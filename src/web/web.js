@@ -28,7 +28,7 @@ function enterWeb() {
 
 function webShellHTML() {
   const sharedHeader = typeof window.renderPrimaryHeader === 'function'
-    ? window.renderPrimaryHeader('web', { actionLabel: 'New concept', actionId: 'webNewConceptBtn' })
+    ? window.renderPrimaryHeader('web', { actionLabel: '◈ New concept', actionId: 'webNewConceptBtn' })
     : '';
 
   return `

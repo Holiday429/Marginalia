@@ -482,7 +482,7 @@ function renderShelfDeepPanel(record) {
   panel.innerHTML = `
     <div class="shelf-deep-head">
       <div>
-        <h3>Cultural Background</h3>
+        <h3 class="section-subtitle">Cultural Background</h3>
       </div>
       <button type="button" class="shelf-context-toggle" data-toggle-context aria-label="${isExpanded ? 'Collapse background' : 'Expand background'}">
         ${isExpanded ? '▾' : '▸'}
@@ -527,7 +527,7 @@ function renderShelfActionPanel(record) {
   panel.innerHTML = `
     <div class="shelf-action-head">
       <div>
-        <h3>To Do Next</h3>
+        <h3 class="section-subtitle">To Do Next</h3>
       </div>
     </div>
     <div class="shelf-action-body">

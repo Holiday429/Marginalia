@@ -66,6 +66,7 @@
   --fs-16:  16px;
   --fs-17:  17px;
   --fs-18:  18px;
+  --fs-20:  20px;
   --fs-22:  22px;
   --fs-28:  28px;
   --fs-36:  36px;
@@ -105,6 +106,14 @@
   --dur-fast:  0.2s;
   --dur-mid:   0.45s;
   --dur-slow:  0.7s;
+
+  /* Shared section subtitles (Search / panel titles across views) */
+  --section-subtitle-size: var(--fs-20);
+  --section-subtitle-line-height: 1.1;
+  --section-subtitle-tracking: -0.01em;
+  --section-subtitle-weight: 400;
+  --section-subtitle-minor-size: var(--fs-18);
+  --section-title-gap-from-divider: 20px;
 }
 
 /* ── Per-view theme overrides ──────────────────────────────────────────── */
@@ -186,4 +195,26 @@ body {
   letter-spacing: var(--track-mono-m);
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.section-subtitle {
+  font-family: var(--font-serif);
+  font-size: var(--section-subtitle-size);
+  line-height: var(--section-subtitle-line-height);
+  letter-spacing: var(--section-subtitle-tracking);
+  font-weight: var(--section-subtitle-weight);
+  color: var(--ink);
+}
+
+.section-subtitle--minor {
+  font-size: var(--section-subtitle-minor-size);
+}
+
+.section-divider-panel {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--section-title-gap-from-divider);
+}
+
+.section-title-gap {
+  padding-top: var(--section-title-gap-from-divider);
 }

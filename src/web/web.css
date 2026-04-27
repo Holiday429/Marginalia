@@ -31,7 +31,7 @@ body[data-view="web"] {
   position: absolute;
   top: 0; left: 0; right: 0;
   z-index: 30;
-  padding: 28px 56px 0;
+  padding: 20px 56px 0;
   background: var(--bg);
   pointer-events: none;
 }
@@ -41,7 +41,7 @@ body[data-view="web"] {
 
 .web-subheader {
   position: absolute;
-  top: 122px;
+  top: 112px;
   left: 56px;
   right: 56px;
   display: flex;
@@ -435,11 +435,11 @@ body[data-view="web"] {
 
 @media (max-width: 980px) {
   #view-web .shared-header-wrap {
-    padding: 24px 20px 0;
+    padding: 20px 20px 0;
   }
 
   .web-subheader {
-    top: 176px;
+    top: 166px;
     left: 20px;
     right: 20px;
     flex-wrap: wrap;
@@ -459,7 +459,7 @@ body[data-view="web"] {
   }
 
   .web-sidebar-filter {
-    top: 252px;
+    top: 242px;
     left: 20px;
     min-width: 150px;
   }
@@ -467,11 +467,11 @@ body[data-view="web"] {
 
 @media (max-width: 640px) {
   .web-subheader {
-    top: 200px;
+    top: 190px;
   }
 
   .web-sidebar-filter {
-    top: 228px;
+    top: 218px;
     left: 20px;
     right: 20px;
     min-width: 0;

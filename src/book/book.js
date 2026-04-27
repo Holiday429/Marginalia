@@ -192,7 +192,7 @@ function getBookSections(b) {
 
 function renderMasthead(b) {
   if (typeof window.renderPrimaryHeader === 'function') {
-    return window.renderPrimaryHeader('home', { showNewEntry: true, actionLabel: '＋ New note' });
+    return window.renderPrimaryHeader('home', { showNewEntry: true, actionLabel: 'New note', actionId: 'bookNewNoteBtn' });
   }
   return `
     <header class="book-masthead">

@@ -9,7 +9,7 @@
 .booklist-shell {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 28px 56px 96px;
+  padding: 20px 56px 96px;
 }
 
 .booklist-main {
@@ -17,27 +17,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.booklist-play-btn {
-  border: 1px solid rgba(232, 223, 200, 0.34);
-  background: rgba(232, 223, 200, 0.9);
-  color: #17130f;
-  border-radius: 999px;
-  min-width: 92px;
-  height: 30px;
-  padding: 0 12px;
-  cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-weight: 600;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.booklist-play-btn:hover {
-  transform: translateY(-1px);
 }
 
 .booklist-play-btn:disabled {
@@ -59,21 +38,9 @@
   margin-bottom: 12px;
 }
 
-.booklist-heading {
-  font-family: 'Fraunces', serif;
-  font-size: clamp(20px, 2.3vw, 28px);
-  line-height: 0.96;
-  letter-spacing: -0.01em;
-  font-weight: 420;
-}
-
+.booklist-heading,
 .booklist-subheading {
-  font-family: 'Fraunces', serif;
-  font-size: clamp(16px, 1.7vw, 21px);
-  line-height: 1.04;
-  letter-spacing: -0.006em;
-  font-weight: 420;
-  color: rgba(232, 223, 200, 0.84);
+  margin: 0;
 }
 
 .booklist-section-head--source {
@@ -82,7 +49,7 @@
 }
 
 .booklist-streak {
-  padding-top: 2px;
+  padding-top: 0;
 }
 
 .year-switcher {
@@ -310,6 +277,10 @@
   overflow: hidden;
 }
 
+.booklist-spine-title.is-cjk {
+  transform: none;
+}
+
 .booklist-spine-author {
   position: absolute;
   left: 50%;
@@ -321,6 +292,10 @@
   letter-spacing: 0.08em;
   opacity: 0.72;
   white-space: nowrap;
+}
+
+.booklist-spine-author.is-cjk {
+  transform: translateX(-50%);
 }
 
 .booklist-spine.is-picked {
@@ -366,13 +341,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 0 12px;
-  min-height: 300px;
+  padding: 20px 18px 22px;
+  min-height: 378px;
   transition: opacity 0.3s ease;
   position: relative;
   z-index: 2;
   overflow: visible;
   height: 100%;
+  width: 100%;
 }
 
 .booklist-stage.is-active {
@@ -388,42 +364,189 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 22px;
   min-height: 0;
+  transition: opacity 0.24s ease, transform 0.24s cubic-bezier(.2,.8,.2,1);
 }
 
 .booklist-stage-book {
-  width: 150px;
-  height: 220px;
+  width: 182px;
+  height: 272px;
   margin: 0 auto;
   position: relative;
+}
+
+.booklist-stage-rank {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.86);
+  opacity: 0;
+  pointer-events: none;
+  font-family: 'Fraunces', serif;
+  font-size: clamp(84px, 8.2vw, 116px);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  color: rgba(245, 236, 217, 0.92);
+  text-shadow:
+    0 20px 42px rgba(0, 0, 0, 0.52),
+    0 2px 0 rgba(255, 255, 255, 0.12);
+  z-index: 4;
+}
+
+.booklist-stage-rank.is-visible {
+  opacity: 1;
+}
+
+.booklist-stage-rank.is-pop {
+  animation: booklist-rank-pop 0.36s cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes booklist-rank-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.72);
+    opacity: 0;
+  }
+  55% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.booklist-favourite-badge {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translate(-50%, -20px) scale(0.84);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 6;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.booklist-favourite-badge.is-visible {
+  display: inline-flex;
+}
+
+.booklist-favourite-badge.is-entered {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition: opacity 0.4s ease, transform 0.48s cubic-bezier(.2,.8,.2,1);
+}
+
+.booklist-favourite-medal {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 247, 206, 0.98) 0 22%, rgba(255, 214, 120, 0.96) 48%, rgba(199, 138, 45, 1) 80%, rgba(122, 74, 14, 1) 100%);
+  border: 2px solid rgba(124, 72, 14, 0.72);
+  box-shadow:
+    0 10px 18px rgba(0, 0, 0, 0.42),
+    inset 0 2px 4px rgba(255, 255, 255, 0.35),
+    inset 0 -3px 7px rgba(92, 54, 12, 0.48);
+}
+
+.booklist-favourite-medal::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(108, 62, 10, 0.42);
+  border-radius: 50%;
+}
+
+.booklist-favourite-ribbon {
+  position: absolute;
+  width: 18px;
+  height: 32px;
+  bottom: -24px;
+  border-radius: 2px 2px 4px 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.26);
+}
+
+.booklist-favourite-ribbon--left {
+  left: 20px;
+  transform: rotate(9deg);
+  background:
+    linear-gradient(90deg, #c8212a 0%, #e33a37 65%, #b61620 100%);
+}
+
+.booklist-favourite-ribbon--right {
+  right: 20px;
+  transform: rotate(-9deg);
+  background:
+    linear-gradient(90deg, #f1b733 0%, #ffd66e 60%, #d09120 100%);
+}
+
+.booklist-favourite-medal-number {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -54%);
+  font-family: 'Fraunces', serif;
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #5e3410;
+  text-shadow: 0 1px 0 rgba(255, 248, 220, 0.35);
+}
+
+.booklist-favourite-badge.is-entered .booklist-favourite-medal {
+  animation: booklist-favourite-pop 0.54s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes booklist-favourite-pop {
+  0% {
+    transform: scale(0.74) rotate(-6deg);
+  }
+  56% {
+    transform: scale(1.08) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.booklist-stage.is-ranking .booklist-stage-book-wrap {
+  opacity: 0;
+  visibility: hidden;
+  transform: none;
 }
 
 .booklist-preview-cover {
   width: 100%;
   height: 100%;
-  border-radius: 3px 10px 10px 3px;
+  border-radius: 10px;
   position: relative;
   overflow: hidden;
   box-shadow:
-    -3px 0 0 rgba(0, 0, 0, 0.5),
     0 14px 26px rgba(0, 0, 0, 0.56),
-    inset 1px 0 0 rgba(255, 255, 255, 0.08);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: transform 0.24s cubic-bezier(.2,.8,.2,1), opacity 0.24s ease, box-shadow 0.2s ease;
 }
 
-.booklist-preview-cover::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  background: rgba(0, 0, 0, 0.34);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  z-index: 1;
+.booklist-preview-cover.is-entering {
+  transform: translateY(10px) scale(0.96);
+  opacity: 0.05;
+}
+
+.booklist-preview-cover.is-entering.is-entered {
+  transform: translateY(0) scale(1);
+  opacity: 1;
 }
 
 .booklist-preview-cover img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   width: 100%;
   height: 100%;
   display: block;
@@ -432,7 +555,7 @@
 
 .booklist-preview-placeholder {
   position: absolute;
-  inset: 12px 10px 12px 18px;
+  inset: 12px;
   border: 1px dashed rgba(255, 255, 255, 0.42);
   border-radius: 4px;
   display: grid;
@@ -485,9 +608,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   text-align: center;
-  min-height: 72px;
+  min-height: 78px;
   max-width: 220px;
 }
 
@@ -501,10 +624,11 @@
 
 .booklist-stage-meta p {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  white-space: pre-line;
   color: rgba(232, 223, 200, 0.74);
-  text-transform: uppercase;
 }
 
 .booklist-racks {
@@ -522,10 +646,11 @@
 .booklist-rack-books {
   display: flex;
   align-items: flex-end;
-  justify-content: center;
-  gap: clamp(10px, 1.4vw, 16px);
-  width: fit-content;
-  margin: 0 auto 2px;
+  justify-content: space-between;
+  gap: clamp(10px, 1.2vw, 16px);
+  width: 100%;
+  margin: 0 0 2px;
+  padding-inline: 4px;
 }
 
 .booklist-slot {
@@ -630,29 +755,33 @@
 }
 
 .booklist-slot.is-featured .booklist-slot-meta h4 {
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .booklist-slot-meta p {
   margin-top: 3px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  white-space: pre-line;
   color: rgba(232, 223, 200, 0.66);
 }
 
 .booklist-main.is-showcase .booklist-top {
   order: 3;
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(250px, 3fr);
-  gap: 22px;
-  align-items: stretch;
+  grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr);
+  gap: 34px;
+  align-items: end;
 }
 
 .booklist-main.is-showcase .booklist-stage {
   order: 2;
-  padding-top: 44px;
+  align-self: end;
+  max-width: 372px;
+  min-height: 430px;
+  margin-left: auto;
 }
 
 .booklist-main.is-showcase .booklist-annual {
@@ -695,6 +824,10 @@
   background: linear-gradient(115deg, rgba(255, 255, 255, 0.08) 0%, transparent 44%);
 }
 
+.booklist-flyer.has-cover::after {
+  background: none;
+}
+
 .booklist-flyer-inner {
   position: absolute;
   inset: 0;
@@ -706,6 +839,13 @@
   text-align: center;
   gap: 6px;
   padding: 12px 10px 12px 18px;
+}
+
+.booklist-flyer-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .booklist-flyer-kicker {
@@ -754,7 +894,9 @@
   }
 
   .booklist-main.is-showcase .booklist-stage {
-    padding-top: 8px;
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 390px;
   }
 }
 

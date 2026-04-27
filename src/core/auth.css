@@ -6,10 +6,7 @@ body.auth-locked {
   position: fixed;
   inset: 0;
   z-index: 90;
-  background:
-    radial-gradient(circle at 12% 12%, rgba(213,170,100,0.22), transparent 34%),
-    radial-gradient(circle at 86% 80%, rgba(123,151,198,0.22), transparent 40%),
-    #0d131d;
+  background: var(--color-ink);
   display: none;
   align-items: center;
   justify-content: center;
@@ -41,8 +38,7 @@ body.auth-locked {
 .auth-logout-btn {
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .auth-kicker {
@@ -115,8 +111,7 @@ body.auth-locked {
   color: #d5aa64;
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
   padding: 10px 12px;
   cursor: pointer;
 }

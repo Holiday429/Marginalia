@@ -85,7 +85,7 @@ window.MarginaliaAuth = (() => {
                 <input id="authUsernameInput" autocomplete="username">
               </label>
               <label>
-                <span id="authIdentityLabel">Email or username</span>
+                <span id="authIdentityLabel">Email or Username</span>
                 <input id="authIdentityInput" required>
               </label>
               <label>
@@ -239,8 +239,8 @@ window.MarginaliaAuth = (() => {
 
     const isRegister = authState.mode === 'register';
     if (usernameRow) usernameRow.hidden = !isRegister;
-    if (identityLabel) identityLabel.textContent = isRegister ? 'Email' : 'Email or username';
-    if (submitBtn) submitBtn.textContent = isRegister ? 'Create account' : 'Sign In';
+    if (identityLabel) identityLabel.textContent = isRegister ? 'Email' : 'Email or Username';
+    if (submitBtn) submitBtn.textContent = isRegister ? 'Create Account' : 'Sign In';
     if (loginTab) loginTab.classList.toggle('active', !isRegister);
     if (registerTab) registerTab.classList.toggle('active', isRegister);
 

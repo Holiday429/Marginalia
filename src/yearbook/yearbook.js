@@ -1,6 +1,6 @@
 /* Booklist view — annual picks animation + streak */
 
-const BOOKLIST_TARGET_COUNT = 8;
+const BOOKLIST_TARGET_COUNT = 10;
 
 const BOOKLIST_STATE = {
   year: new Date().getFullYear(),
@@ -26,6 +26,18 @@ const BOOKLIST_LEVEL_LABELS = [
   'Has notes',
   'Deep notes',
   'Deep notes + action',
+];
+
+const BOOKLIST_CURATED_DESC = [
+  { title: '活山', author: '娜恩·谢泼德 Nan Shepherd', coverSrc: 'assets/covers/活山.jpg' },
+  { title: '流俗地', author: '黎紫书 Zishu Li', coverSrc: 'assets/covers/流俗地.jpg' },
+  { title: '动物庄园', author: '乔治·奥威尔 George Orwell', coverSrc: 'assets/covers/动物庄园.jpg' },
+  { title: '烧纸', author: '李沧东 Chang-dong Lee', coverSrc: 'assets/covers/烧纸.jpg' },
+  { title: '将熟悉变为陌生', author: '齐格蒙·鲍曼 Zygmunt Bauman', coverSrc: 'assets/covers/将熟悉变为陌生.jpg' },
+  { title: '云游', author: '奥尔加·托卡尔丘克 Olga Tokarczuk', coverSrc: 'assets/covers/云游.jpg' },
+  { title: '每一句话语都坐着别的眼睛', author: '赫塔·米勒 Herta Müller', coverSrc: 'assets/covers/每一句话语都坐着别的眼睛.jpg' },
+  { title: '刀锋', author: '毛姆 W. Somerset Maugham', coverSrc: 'assets/covers/刀锋.jpg' },
+  { title: '平面国', author: '埃德温·A.艾勃特', coverSrc: 'assets/covers/平面国.jpg' },
 ];
 
 const BOOKLIST_HEATMAP_CACHE = new Map();
@@ -55,16 +67,16 @@ function renderBooklistShell() {
   if (!host) return;
 
   const sharedHeader = typeof window.renderPrimaryHeader === 'function'
-    ? window.renderPrimaryHeader('yearbook', { showNewEntry: true, actionLabel: '↗ Share' })
+    ? window.renderPrimaryHeader('yearbook', { showNewEntry: true, actionLabel: '↗ Share', actionId: 'yearbookShareBtn' })
     : '';
 
   host.innerHTML = `
     <div class="booklist-shell">
       ${sharedHeader}
       <main class="booklist-main">
-        <section class="booklist-streak">
+        <section class="booklist-streak section-title-gap">
           <div class="booklist-section-head booklist-section-head--regular">
-            <h2 class="booklist-heading">Reading Streak</h2>
+            <h2 class="section-subtitle booklist-heading">Reading Streak</h2>
             <div class="year-switcher">
               <button type="button" id="ybYearPrevBtn" aria-label="Previous year">←</button>
               <span id="ybYearLabel"></span>
@@ -94,7 +106,7 @@ function renderBooklistShell() {
 
         <section class="booklist-source">
           <div class="booklist-section-head booklist-section-head--source">
-            <h3 class="booklist-subheading">Year-In-Reading Shelf</h3>
+            <h3 class="section-subtitle section-subtitle--minor booklist-subheading">Year-In-Reading Shelf</h3>
             <button type="button" class="booklist-play-btn" id="ybPlayBtn">Play</button>
           </div>
           <div class="booklist-source-track" id="ybSourceShelf"></div>
@@ -103,15 +115,23 @@ function renderBooklistShell() {
         </section>
 
         <section class="booklist-top" id="ybTopArea">
-          <section class="booklist-annual">
+          <section class="booklist-annual section-title-gap">
             <div class="booklist-section-head booklist-section-head--regular booklist-annual-head" id="ybAnnualHeadingAnchor">
-              <h2 class="booklist-heading">Annual Shelf</h2>
+              <h2 class="section-subtitle booklist-heading">Annual Shelf</h2>
               <span id="ybAnnualCounter">0 / 0 shelved</span>
             </div>
             <div class="booklist-racks" id="ybAnnualRacks"></div>
           </section>
 
-          <section class="booklist-stage" id="ybCenterStage" aria-live="polite">
+          <section class="booklist-stage shelf-preview-panel" id="ybCenterStage" aria-live="polite">
+            <div class="booklist-stage-rank" id="ybStageRank" aria-hidden="true"></div>
+            <div class="booklist-favourite-badge" id="ybFavouriteBadge" aria-hidden="true">
+              <div class="booklist-favourite-medal">
+                <span class="booklist-favourite-ribbon booklist-favourite-ribbon--left"></span>
+                <span class="booklist-favourite-ribbon booklist-favourite-ribbon--right"></span>
+                <span class="booklist-favourite-medal-number">1</span>
+              </div>
+            </div>
             <div class="booklist-stage-book-wrap">
               <div class="booklist-stage-book" id="ybCenterBook"></div>
               <div class="booklist-stage-meta">
@@ -319,8 +339,11 @@ function formatYBDate(date) {
 
 function hydrateBooklistData() {
   const sourceBooks = buildSourceBooks();
-  const selectedBooks = selectAnnualBooks(sourceBooks, BOOKLIST_TARGET_COUNT);
-  BOOKLIST_STATE.sourceBooks = sourceBooks;
+  const selectedBase = selectAnnualBooks(sourceBooks, BOOKLIST_TARGET_COUNT);
+  const selectedBooks = applyCuratedBooksToSelection(selectedBase);
+  const selectedMap = new Map(selectedBooks.map((book) => [book.uid, book]));
+
+  BOOKLIST_STATE.sourceBooks = sourceBooks.map((book) => selectedMap.get(book.uid) || book);
   BOOKLIST_STATE.selectedBooks = selectedBooks;
   BOOKLIST_STATE.selectedByUid = new Map(selectedBooks.map((book) => [book.uid, book]));
 }
@@ -350,6 +373,7 @@ function renderBooklistContent() {
   const stage = document.getElementById('ybCenterStage');
   if (stage) stage.classList.remove('is-idle', 'is-active');
   resetCenterCopy();
+  resetStageOverlays();
 
   updateProgress(0, Math.max(1, BOOKLIST_STATE.selectedBooks.length));
 }
@@ -369,10 +393,13 @@ function renderSourceShelf(host, books) {
     spine.style.background = book.spine;
     spine.style.color = book.text;
 
+    const titleClass = `booklist-spine-title${containsCJK(book.spineTitle) ? ' is-cjk' : ''}`;
+    const authorClass = `booklist-spine-author${containsCJK(book.spineAuthor) ? ' is-cjk' : ''}`;
     spine.innerHTML = `
-      <span class="booklist-spine-title">${escapeHTML(shorten(book.spineTitle, 34))}</span>
-      <span class="booklist-spine-author">${escapeHTML(shorten(book.spineAuthor, 22))}</span>
+      <span class="${titleClass}">${escapeHTML(shorten(book.spineTitle, 34))}</span>
+      <span class="${authorClass}">${escapeHTML(shorten(book.spineAuthor, 22))}</span>
     `;
+    spine.setAttribute('aria-label', `${book.title} by ${book.author}`);
     host.appendChild(spine);
   });
 }
@@ -415,10 +442,7 @@ function renderAnnualRacks(host, books) {
 
       const meta = document.createElement('div');
       meta.className = 'booklist-slot-meta';
-      meta.innerHTML = `
-        <h4>${escapeHTML(shorten(book.title, 52))}</h4>
-        <p>${escapeHTML(shorten(book.author, 32))}</p>
-      `;
+      meta.innerHTML = `<h4>${escapeHTML(shorten(book.title, 52))}</h4>`;
 
       slot.appendChild(cover);
       slot.appendChild(meta);
@@ -457,11 +481,15 @@ async function startBooklistAnimation(playBtn) {
   BOOKLIST_STATE.isAnimating = true;
   playBtn.disabled = true;
   playBtn.textContent = 'Playing...';
+  resetStageOverlays();
 
   const placement = [...BOOKLIST_STATE.selectedBooks].sort((a, b) => b.rank - a.rank);
   const total = placement.length;
   for (let i = 0; i < total; i++) {
     const book = placement[i];
+    teardownCenterBook();
+    resetCenterCopy();
+    await playStageRankReveal(total - i);
     const sourceEl = document.querySelector(`.booklist-spine[data-source-id="${cssEscape(book.uid)}"]`);
     const slotCover = document.querySelector(`.booklist-slot[data-slot-id="${cssEscape(book.uid)}"] .booklist-slot-cover`);
     if (!sourceEl || !slotCover) continue;
@@ -477,6 +505,7 @@ async function startBooklistAnimation(playBtn) {
 
     await animateFlyer(book, sourceRect, centerRect, targetRect, async () => {
       await playCenterBook(book);
+      if (book.rank === 0) revealFavouriteBadge();
     });
 
     revealAnnualSlot(book.uid);
@@ -529,8 +558,51 @@ function prepareReplayState() {
   const stage = document.getElementById('ybCenterStage');
   if (stage) stage.classList.remove('is-idle', 'is-active');
   resetCenterCopy();
+  resetStageOverlays();
 
   teardownCenterBook();
+}
+
+async function playStageRankReveal(rankNumber) {
+  const rankEl = document.getElementById('ybStageRank');
+  const stage = document.getElementById('ybCenterStage');
+  if (!rankEl) return;
+  if (stage) stage.classList.add('is-ranking');
+  rankEl.textContent = String(rankNumber);
+  rankEl.classList.remove('is-visible', 'is-pop');
+  void rankEl.offsetWidth;
+  rankEl.classList.add('is-visible', 'is-pop');
+  await delay(980);
+  rankEl.classList.remove('is-pop');
+  rankEl.classList.remove('is-visible');
+  await delay(180);
+  if (stage) stage.classList.remove('is-ranking');
+}
+
+function revealFavouriteBadge() {
+  setFavouriteBadgeVisible(true, { animate: true });
+}
+
+function setFavouriteBadgeVisible(isVisible, { animate = false } = {}) {
+  const badge = document.getElementById('ybFavouriteBadge');
+  if (!badge) return;
+  badge.classList.remove('is-visible', 'is-entered');
+  if (!isVisible) return;
+  badge.classList.add('is-visible');
+  if (animate) {
+    requestAnimationFrame(() => badge.classList.add('is-entered'));
+  } else {
+    badge.classList.add('is-entered');
+  }
+}
+
+function resetStageOverlays() {
+  const rankEl = document.getElementById('ybStageRank');
+  const badge = document.getElementById('ybFavouriteBadge');
+  const stage = document.getElementById('ybCenterStage');
+  if (rankEl) rankEl.classList.remove('is-visible', 'is-pop');
+  if (badge) badge.classList.remove('is-visible', 'is-entered');
+  if (stage) stage.classList.remove('is-ranking');
 }
 
 function alignShowcaseIntoView() {
@@ -568,7 +640,8 @@ function setBooklistPreviewByUid(uid, { renderStatic = true } = {}) {
   const title = document.getElementById('ybCenterTitle');
   const author = document.getElementById('ybCenterAuthor');
   if (title) title.textContent = shorten(book.title, 40);
-  if (author) author.textContent = shorten(book.author, 30);
+  if (author) author.textContent = shorten(formatAuthorDisplay(book.author, { multiline: true }), 48);
+  setFavouriteBadgeVisible(book.rank === 0);
 
   document.querySelectorAll('.booklist-slot').forEach((slot) => {
     slot.classList.toggle('is-active', slot.dataset.slotId === uid);
@@ -583,24 +656,7 @@ function renderPreviewStaticBook(book) {
   const host = document.getElementById('ybCenterBook');
   if (!host) return;
   host.classList.add('is-static-preview');
-
-  const frame = document.createElement('div');
-  frame.className = 'booklist-preview-cover';
-  frame.style.background = book.spine;
-
-  if (book.coverSrc) {
-    const img = document.createElement('img');
-    img.src = book.coverSrc;
-    img.alt = `${book.title} cover`;
-    frame.appendChild(img);
-  } else {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'booklist-preview-placeholder';
-    placeholder.textContent = 'Cover';
-    frame.appendChild(placeholder);
-  }
-
-  host.appendChild(frame);
+  host.appendChild(buildCenterPreviewFrame(book));
   setPreviewOpenable(Boolean(book.id && window.BOOK_BY_ID?.[book.id]));
 }
 
@@ -633,16 +689,19 @@ function updateProgress(done, total) {
 
 async function animateFlyer(book, sourceRect, centerRect, targetRect, onCenter) {
   const flyer = document.createElement('div');
-  flyer.className = 'booklist-flyer';
+  const hasCover = Boolean(book.coverSrc);
+  flyer.className = `booklist-flyer${hasCover ? ' has-cover' : ''}`;
   flyer.style.background = book.spine;
   flyer.style.color = book.text;
-  flyer.innerHTML = `
-    <div class="booklist-flyer-inner">
-      <div class="booklist-flyer-kicker">${new Date().getFullYear()}</div>
-      <div class="booklist-flyer-title">${escapeHTML(shorten(book.title, 40))}</div>
-      <div class="booklist-flyer-author">${escapeHTML(shorten(book.author, 24))}</div>
-    </div>
-  `;
+  flyer.innerHTML = hasCover
+    ? `<img class="booklist-flyer-cover" src="${escapeAttr(book.coverSrc)}" alt="${escapeAttr(book.title)} cover">`
+    : `
+      <div class="booklist-flyer-inner">
+        <div class="booklist-flyer-kicker">${new Date().getFullYear()}</div>
+        <div class="booklist-flyer-title">${escapeHTML(shorten(book.title, 40))}</div>
+        <div class="booklist-flyer-author">${escapeHTML(shorten(book.author, 24))}</div>
+      </div>
+    `;
   document.body.appendChild(flyer);
 
   applyFlyerRect(flyer, sourceRect);
@@ -693,62 +752,17 @@ async function playCenterBook(book) {
   stage.classList.remove('is-idle');
   stage.classList.add('is-active');
   title.textContent = shorten(book.title, 40);
-  author.textContent = shorten(book.author, 30);
+  author.textContent = shorten(formatAuthorDisplay(book.author, { multiline: true }), 48);
 
   teardownCenterBook();
-
-  const spineWidth = book.isFeatured ? 64 : 56;
-  const coverWidth = Math.round(spineWidth * 2.4);
-  const bookHeight = book.isFeatured ? 230 : 206;
-  const expand = coverWidth - spineWidth;
-
-  const bookEl = document.createElement('div');
-  bookEl.className = 'book booklist-center-book hero-3d';
-  bookEl.style.width = `${spineWidth}px`;
-  bookEl.style.height = `${bookHeight}px`;
-  bookEl.style.setProperty('--book-h', `${bookHeight}px`);
-  bookEl.style.setProperty('--book-color', book.spine);
-  bookEl.style.setProperty('--book-text', book.text);
-  bookEl.style.setProperty('--cover-bg', book.spine);
-  bookEl.style.setProperty('--cover-text', book.text);
-  bookEl.style.setProperty('--cover-w', `${coverWidth}px`);
-  bookEl.style.setProperty('--spine-w', `${spineWidth}px`);
-  bookEl.style.setProperty('--spine-half', `${spineWidth / 2}px`);
-  bookEl.style.setProperty('--expand', `${expand}px`);
-  bookEl.style.setProperty('--expand-half', `${expand / 2}px`);
-  bookEl.style.setProperty('--hero-stage-clearance', '18px');
-
-  const spineIndex = String(book.rank + 1).padStart(2, '0');
-  const coverInner = book.coverSrc
-    ? `<img src="${escapeAttr(book.coverSrc)}" alt="${escapeAttr(book.title)} cover">`
-    : `<div class="booklist-center-cover-title">${escapeHTML(shorten(book.title, 46))}</div>`;
-
-  bookEl.innerHTML = `
-    <div class="book-inner">
-      <div class="spine">
-        <div class="spine-top-mark">${spineIndex}</div>
-        <div class="spine-text">${escapeHTML(shorten(book.spineTitle, 30))}</div>
-        <div class="spine-author">${escapeHTML(shorten(book.spineAuthor, 20))}</div>
-      </div>
-      <div class="cover">${coverInner}</div>
-      <div class="back"></div>
-    </div>
-  `;
-
-  host.appendChild(bookEl);
-
-  const mountHero = await getHeroMountFn();
-  if (typeof mountHero === 'function') {
-    BOOKLIST_STATE.centerTeardown = mountHero(bookEl);
-  }
+  const frame = buildCenterPreviewFrame(book);
+  frame.classList.add('is-entering');
+  host.appendChild(frame);
+  setPreviewOpenable(Boolean(book.id && window.BOOK_BY_ID?.[book.id]));
 
   await waitFrame();
-  bookEl.classList.add('opening');
-  await delay(90);
-  bookEl.classList.add('opened');
-  await delay(620);
-  bookEl.classList.remove('opened');
-  await delay(130);
+  frame.classList.add('is-entered');
+  await delay(520);
 }
 
 function teardownCenterBook() {
@@ -779,8 +793,8 @@ function getCenterBookRect() {
     if (rect.width > 10 && rect.height > 10) return rect;
   }
 
-  const width = 146;
-  const height = 214;
+  const width = 182;
+  const height = 272;
   return {
     left: window.innerWidth / 2 - width / 2,
     top: window.innerHeight / 2 - height / 2 - 20,
@@ -793,6 +807,62 @@ function splitAnnualRows(books) {
   if (books.length <= 6) return [books];
   const firstCount = Math.ceil(books.length / 2);
   return [books.slice(0, firstCount), books.slice(firstCount)];
+}
+
+function buildCenterPreviewFrame(book) {
+  const frame = document.createElement('div');
+  frame.className = 'booklist-preview-cover is-cover-only';
+  frame.style.background = book.spine;
+
+  if (book.coverSrc) {
+    const img = document.createElement('img');
+    img.src = book.coverSrc;
+    img.alt = `${book.title} cover`;
+    frame.appendChild(img);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'booklist-preview-placeholder';
+    placeholder.textContent = 'Cover';
+    frame.appendChild(placeholder);
+  }
+
+  return frame;
+}
+
+function applyCuratedBooksToSelection(selectedBooks) {
+  if (!Array.isArray(selectedBooks) || !selectedBooks.length) return [];
+
+  return selectedBooks.map((book, index) => {
+    if (index === 0) {
+      return {
+        ...book,
+        rank: 0,
+        isFeatured: true,
+      };
+    }
+
+    const desc = BOOKLIST_CURATED_DESC[index - 1];
+    if (!desc) {
+      return {
+        ...book,
+        rank: index,
+        isFeatured: false,
+      };
+    }
+
+    return {
+      ...book,
+      id: '',
+      detail: null,
+      title: desc.title,
+      author: desc.author,
+      spineTitle: desc.title,
+      spineAuthor: desc.author.split(/\s+[A-Za-z]/)[0]?.trim() || desc.author,
+      coverSrc: desc.coverSrc || book.coverSrc,
+      rank: index,
+      isFeatured: false,
+    };
+  });
 }
 
 function buildSourceBooks() {
@@ -1040,6 +1110,34 @@ function prettifyShelfTitle(str) {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
+
+function formatAuthorDisplay(author, { multiline = false } = {}) {
+  const value = String(author || '').trim();
+  if (!/[a-zA-Z]/.test(value)) return value;
+  const formatted = value
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (m) => m.toUpperCase());
+  if (!multiline) return formatted;
+  return maybeSplitBilingualAuthor(formatted);
+}
+
+function maybeSplitBilingualAuthor(value) {
+  const text = String(value || '').trim();
+  if (!/[\u3400-\u9fff]/.test(text) || !/[A-Za-z]/.test(text)) return text;
+  const latinStart = text.search(/[A-Za-z]/);
+  if (latinStart <= 0) return text;
+
+  const left = text.slice(0, latinStart).trim();
+  const right = text.slice(latinStart).trim();
+  if (!left || !right) return text;
+  if (text.length < 14 || right.length < 8) return `${left} ${right}`;
+  return `${left}\n${right}`;
+}
+
+function containsCJK(value) {
+  return /[\u3400-\u9fff]/.test(String(value || ''));
+}
+
 
 function shorten(str, max) {
   const text = String(str || '');

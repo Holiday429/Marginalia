@@ -15,10 +15,10 @@
 
 const App = (() => {
   const NAV_ITEMS = [
-    { view: 'home', label: 'Shelf', href: '#shelf' },
-    { view: 'map', label: 'Map', href: '#map' },
-    { view: 'web', label: 'Graph', href: '#web' },
-    { view: 'yearbook', label: 'Booklist', href: '#yearbook' },
+    { view: 'home',     label: 'Shelf',    icon: 'shelf', href: '#shelf' },
+    { view: 'map',      label: 'Map',      icon: 'map', href: '#map' },
+    { view: 'web',      label: 'Graph',    icon: 'graph', href: '#web' },
+    { view: 'yearbook', label: 'Booklist', icon: 'list', href: '#yearbook' },
   ];
 
   const views = {
@@ -73,6 +73,9 @@ const App = (() => {
     // Reveal home underneath the preloader, then fade preloader out
     home.hidden = false;
     document.body.dataset.view = 'home';
+    document.querySelectorAll('.nav-link[data-view]').forEach(a => {
+      a.classList.toggle('active', a.dataset.view === 'home');
+    });
     if (typeof initHome === 'function' && !initialized.has('home')) {
       initHome();
       initialized.add('home');
@@ -106,13 +109,25 @@ const App = (() => {
     activeView,
     { showNewEntry = false, actionLabel = '', actionId = '' } = {}
   ) {
+    const NAV_ICON_SYMBOLS = {
+      shelf: 'icon-nav-shelf',
+      map: 'icon-nav-map',
+      graph: 'icon-nav-graph',
+      list: 'icon-nav-list',
+    };
+
+    function renderNavIcon(iconKey) {
+      const symbolId = NAV_ICON_SYMBOLS[iconKey];
+      if (!symbolId) return '';
+      return `<span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#${symbolId}"></use></svg></span>`;
+    }
+
     const links = NAV_ITEMS.map((item) => `
-      <a href="${item.href}" class="nav-link${item.view === activeView ? ' active' : ''}" data-view="${item.view}">${item.label}</a>
+      <a href="${item.href}" class="nav-link${item.view === activeView ? ' active' : ''}" data-view="${item.view}">${renderNavIcon(item.icon)}${item.label}</a>
     `).join('');
 
-    const buttonLabel = actionLabel || (showNewEntry ? '＋ New entry' : '');
-    const actionBtn = buttonLabel
-      ? `<button class="add-btn"${actionId ? ` id="${actionId}"` : ''}>${buttonLabel}</button>`
+    const actionBtn = (actionLabel)
+      ? `<button class="nav-action-btn"${actionId ? ` id="${actionId}"` : ''}>${actionLabel}</button>`
       : '';
 
     return `

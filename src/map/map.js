@@ -86,18 +86,55 @@ const MAP_TAB_META = [
 
 const REGION_PROFILES = {
   CN: {
-    culture: '中国语境下的阅读，常常绕不开家国秩序、经典传统、地方经验与现代化断裂。适合作为“叙事尺度切换”的入口：同一本书里，私人伦理、家族结构与国家叙事通常会彼此缠绕。',
+    culture: '中国文学的阅读入口，不只是“朝代更替”或“历史事件”，而是制度秩序、家庭伦理、地方经验与现代化断裂的长期共振。很多中国文本会把私人命运放在大历史压力之下推进，人物的情感、责任与选择常常同时被家族结构、礼法传统和国家叙事牵引。作为 demo，可以把它理解成一种“多尺度叙事训练”：同一部作品里，个体心理、社会阶层、城乡空间与文明记忆会在同一条线里交错出现。',
     history: [
       '帝制传统、士大夫文化与经典教育长期塑造了“何为正统、何为修身”的阅读背景。',
       '晚清到二十世纪的剧烈转型，使现代中国写作天然带着制度变迁、知识断裂与身份重组的焦虑。',
-      '地方书写很重要。北京、上海、西南、边疆与乡土叙事常常代表不同的现代经验。'
+      '地方书写很重要。北京、上海、西南、边疆与乡土叙事常常代表不同的现代经验。',
+      '五四以来的语言转向（文言到白话）不仅改变表达形式，也改变了“谁能说话、如何说话”的文学政治。',
+      '改革开放后的城市化与市场化，让代际记忆、阶层流动和地方失语成为新一代叙事的核心张力。',
+      '当代中国科幻把国家发展、技术乌托邦与文明危机并置，形成与现实主义并行的第二叙事通道。'
     ],
-    keywords: ['家国叙事', '经典传统', '现代性断裂', '地方经验', '知识分子', '历史记忆'],
+    keywords: ['家国叙事', '礼法秩序', '地方经验', '现代性断裂', '乡土中国', '城市化焦虑', '知识分子伦理', '革命记忆', '代际创伤', '历史叙事', '技术想象', '文明尺度'],
     starters: [
-      { title: '活着', author: '余华', note: '从个人命运进入二十世纪中国社会史。' },
-      { title: '边城', author: '沈从文', note: '先看地方经验，再看现代性如何逼近。' },
-      { title: '乡土中国', author: '费孝通', note: '非虚构入口，补社会结构底色。' }
-    ]
+      {
+        title: '红楼梦',
+        author: '曹雪芹',
+        note: '先建立“中国叙事”的母体：家族结构、礼法秩序、情感伦理与衰败意识。',
+        type: 'Classic baseline',
+        cover: 'assets/covers/红楼梦.jpg',
+      },
+      {
+        title: '活着',
+        author: '余华',
+        note: '把宏大历史压回个体命运，最适合作为现代中国经验的第一入口。',
+        type: 'Modern entry',
+        cover: 'assets/covers/活着.jpg',
+      },
+      {
+        title: '边城',
+        author: '沈从文',
+        note: '补上地方经验与乡土审美，理解现代化来临前后的伦理与节奏变化。',
+        type: 'Regional lens',
+        cover: 'assets/covers/边城.jpg',
+      },
+      {
+        title: '三体',
+        author: '刘慈欣',
+        note: '进入中国科幻路径：国家叙事、技术想象与文明尺度在同一框架里展开。',
+        type: 'Sci-fi axis',
+        cover: 'assets/covers/三体.jpg',
+      }
+    ],
+    hover: {
+      dna: ['家国同构', '礼法与人情', '现代化断裂'],
+      voices: ['鲁迅', '余华'],
+      entry: {
+        title: '活着',
+        reason: '从个体命运切入，快速建立近现代中国社会感受。',
+      },
+      cue: '如果只把中国文学读成“历史故事”，会错过它真正的强度。先看家庭伦理、地方经验与国家叙事如何在同一人物身上拉扯。'
+    }
   },
   GB: {
     culture: '英国阅读语境很适合进入“阶层如何长进日常”的问题：礼仪、教育、婚姻、财产、工业化和帝国余波，常常比宏大口号更深地嵌在人物行动里。',
@@ -535,7 +572,7 @@ function mapShellHTML() {
   const total     = MAP_LIBRARY.length;
   const countries = activeCountries().size;
   const sharedHeader = typeof window.renderPrimaryHeader === 'function'
-    ? window.renderPrimaryHeader('map', { actionLabel: '🌐 World', actionId: 'mapWorldBtn' })
+    ? window.renderPrimaryHeader('map', { actionLabel: '↩ Back', actionId: 'mapWorldBtn' })
     : '';
   return `
     <div class="shared-header-wrap">
@@ -999,69 +1036,18 @@ function showHoverPreviewRich(countryId, countryName, activePoly) {
   if (!stage) return;
 
   const anchor = getHoverAnchorPoint(activePoly);
-  const profile = buildRegionContext(countryId, countryName);
-  const keywordText = profile.keywords.slice(0, 3).join(' · ');
-  const cueText = truncateText(profile.culture, 78);
-  const preferRight = anchor.x < window.innerWidth * 0.5;
-  const side = preferRight ? 1 : -1;
-
-  const metaNodes = [
-    {
-      cls: 'map-hover-meta-country',
-      width: 236,
-      height: 112,
-      candidates: [
-        { dx: 120 * side,  dy: -126 },
-        { dx: -356 * side, dy: -126 },
-        { dx: 120 * side,  dy: 24 },
-        { dx: -356 * side, dy: 24 },
-      ],
-      html: `
-        <div class="map-hover-meta-title">${escapeHTML(countryName)}</div>
-        <div class="map-hover-meta-sub">Reading in context</div>
-      `,
-    },
-    {
-      cls: 'map-hover-meta-note',
-      width: 236,
-      height: 104,
-      candidates: [
-        { dx: -356 * side, dy: -78 },
-        { dx: 120 * side,  dy: -18 },
-        { dx: -356 * side, dy: 52 },
-        { dx: 120 * side,  dy: -178 },
-      ],
-      html: `
-        <div class="map-hover-meta-kicker">hover note</div>
-        <div class="map-hover-meta-text">${escapeHTML(keywordText)}</div>
-      `,
-    },
-    {
-      cls: 'map-hover-meta-cue',
-      width: 248,
-      height: 132,
-      candidates: [
-        { dx: -360 * side, dy: 88 },
-        { dx: 122 * side,  dy: 88 },
-        { dx: -360 * side, dy: -190 },
-        { dx: 122 * side,  dy: -190 },
-      ],
-      html: `
-        <div class="map-hover-meta-kicker">context cue</div>
-        <div class="map-hover-meta-text">${escapeHTML(cueText)}</div>
-      `,
-    },
-  ];
+  const content = buildHoverMetaContent(countryId, countryName);
+  const metaNodes = buildHoverMetaNodes(anchor, countryName, content);
 
   const keepOut = {
-    x: anchor.x - 206,
-    y: anchor.y - 128,
-    w: 412,
-    h: 256,
+    x: anchor.x - 108,
+    y: anchor.y - 68,
+    w: 216,
+    h: 136,
   };
   const laidOut = layoutHoverMetaNodes(metaNodes, anchor, keepOut);
   const nodesHtml = laidOut.map(node =>
-    `<div class="map-hover-meta ${node.cls}" style="left:${node.x}px;top:${node.y}px;width:${node.width}px">${node.html}</div>`
+    `<div class="${node.wrapperClass || 'map-hover-meta'} ${node.cls || ''}" style="left:${node.x}px;top:${node.y}px;width:${node.width}px">${node.html}</div>`
   );
 
   stage.innerHTML = nodesHtml.join('');
@@ -1075,6 +1061,16 @@ function showHoverTitleCloud(books, activePoly, options = {}) {
   stage.innerHTML = nodes.join('');
 }
 
+function hoverViewportBounds() {
+  const panelOffset = document.body.classList.contains('map-panel-open') ? 540 : 0;
+  return {
+    left: 22,
+    right: window.innerWidth - panelOffset - 22,
+    top: hoverSafeTop(),
+    bottom: window.innerHeight - 24,
+  };
+}
+
 function getHoverAnchorPoint(poly) {
   const chartRect = document.getElementById('mapChart')?.getBoundingClientRect();
   const spriteX = poly?.get?.('x');
@@ -1083,22 +1079,19 @@ function getHoverAnchorPoint(poly) {
     ? { x: chartRect.left + spriteX, y: chartRect.top + spriteY }
     : null;
 
-  const panelOffset = document.body.classList.contains('map-panel-open') ? 540 : 0;
-  const maxX = window.innerWidth - panelOffset - 40;
-  const minY = hoverSafeTop() + 48;
+  const bounds = hoverViewportBounds();
   const p = fromPoly || __mapPointer;
   return {
-    x: Math.max(260, Math.min(p.x, maxX)),
-    y: Math.max(minY, Math.min(p.y, window.innerHeight - 190)),
+    x: Math.max(bounds.left + 118, Math.min(p.x, bounds.right - 118)),
+    y: Math.max(bounds.top + 52, Math.min(p.y, bounds.bottom - 152)),
   };
 }
 
 function clampHoverNode(x, y, width, height) {
-  const panelOffset = document.body.classList.contains('map-panel-open') ? 540 : 0;
-  const minY = hoverSafeTop();
+  const bounds = hoverViewportBounds();
   return {
-    x: Math.max(22, Math.min(x, window.innerWidth - panelOffset - width - 22)),
-    y: Math.max(minY, Math.min(y, window.innerHeight - height - 24)),
+    x: Math.max(bounds.left, Math.min(x, bounds.right - width)),
+    y: Math.max(bounds.top, Math.min(y, bounds.bottom - height)),
   };
 }
 
@@ -1107,12 +1100,184 @@ function hoverSafeTop() {
   return subheaderRect ? Math.round(subheaderRect.bottom + 12) : 132;
 }
 
+function getHoverAnchorZone(anchor) {
+  const bounds = hoverViewportBounds();
+  const width = Math.max(1, bounds.right - bounds.left);
+  const height = Math.max(1, bounds.bottom - bounds.top);
+  const relX = (anchor.x - bounds.left) / width;
+  const relY = (anchor.y - bounds.top) / height;
+  return {
+    horizontal: relX < 0.3 ? 'left' : relX > 0.7 ? 'right' : 'center',
+    vertical: relY < 0.36 ? 'top' : relY > 0.68 ? 'bottom' : 'middle',
+  };
+}
+
+function mirrorAngles(angles) {
+  return angles.map(angle => {
+    const mirrored = 180 - angle;
+    return mirrored > 180 ? mirrored - 360 : mirrored;
+  });
+}
+
+function uniqueCompact(values, max = Infinity) {
+  const out = [];
+  const seen = new Set();
+  values.forEach((value) => {
+    const text = String(value || '').trim();
+    if (!text) return;
+    const key = text.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(text);
+  });
+  return out.slice(0, max);
+}
+
+function buildHoverMetaContent(countryId, countryName) {
+  const profile = buildRegionContext(countryId, countryName);
+  const hover = profile.hover || {};
+  const books = allCountryBooks(countryId);
+  const keywordText = uniqueCompact(
+    Array.isArray(hover.dna) && hover.dna.length ? hover.dna : (profile.keywords || []),
+    3
+  ).join(' · ') || 'No clear literary signal yet';
+
+  const voices = uniqueCompact([
+    ...(hover.voices || []),
+    ...(profile.starters || []).map(item => item?.author),
+    ...books.map(book => book?.author),
+  ], 2);
+  const voiceText = voices.join(' · ') || 'No mapped voices yet';
+
+  const hoverEntry = hover.entry && typeof hover.entry === 'object' ? hover.entry : null;
+  const starter =
+    (hoverEntry?.title ? {
+      title: hoverEntry.title,
+      note: hoverEntry.reason || '',
+      author: hoverEntry.author || '',
+    } : null) ||
+    (profile.starters || []).find(item => item?.title) ||
+    (books[0] ? {
+      title: books[0].title,
+      note: `Start with a short work to enter ${countryName}'s literary context.`,
+      author: books[0].author,
+    } : null);
+
+  const entryTitle = truncateText(starter?.title || `One representative work`, 38);
+  const entryReason = truncateText(
+    starter?.note || `Use one concise text to enter ${countryName}'s reading atmosphere.`,
+    52
+  );
+
+  return {
+    keywordText,
+    voiceText,
+    entryTitle,
+    entryReason,
+    cueText: truncateText(String(hover.cue || profile.culture || ''), 84),
+  };
+}
+
+function buildHoverSlotTemplates(zone) {
+  const yBias = zone.vertical === 'top' ? 56 : (zone.vertical === 'bottom' ? -56 : 0);
+  const centerTemplate = {
+    country: [{ dx: 0, dy: -86 }, { dx: 0, dy: 84 }],
+    dna: [{ dx: -218, dy: -154 }, { dx: -226, dy: 92 }, { dx: 214, dy: -154 }],
+    voices: [{ dx: 218, dy: -154 }, { dx: 226, dy: 92 }, { dx: -214, dy: -154 }],
+    entry: [{ dx: -214, dy: 92 }, { dx: -214, dy: -154 }, { dx: 214, dy: 92 }],
+    cue: [{ dx: 214, dy: 92 }, { dx: 214, dy: -154 }, { dx: -214, dy: 92 }],
+  };
+  const edgeTemplate = {
+    country: [{ dx: 142, dy: -78 }, { dx: 160, dy: 84 }],
+    dna: [{ dx: 238, dy: -138 }, { dx: 282, dy: -8 }, { dx: 242, dy: 114 }],
+    voices: [{ dx: 328, dy: -20 }, { dx: 282, dy: -8 }, { dx: 330, dy: 104 }],
+    entry: [{ dx: 242, dy: 114 }, { dx: 282, dy: -8 }, { dx: 238, dy: -138 }],
+    cue: [{ dx: 352, dy: 100 }, { dx: 352, dy: -128 }, { dx: 328, dy: 24 }],
+  };
+
+  const base = zone.horizontal === 'center' ? centerTemplate : edgeTemplate;
+  const side = zone.horizontal === 'right' ? -1 : 1;
+  const isCenter = zone.horizontal === 'center';
+  return Object.fromEntries(
+    Object.entries(base).map(([key, list]) => [
+      key,
+      list.map(slot => ({
+        dx: isCenter ? slot.dx : slot.dx * side,
+        dy: slot.dy + yBias,
+      })),
+    ])
+  );
+}
+
+function slotsToHoverCandidates(anchor, slots, width, height) {
+  return (slots || []).map(slot => ({
+    x: anchor.x + slot.dx - width / 2,
+    y: anchor.y + slot.dy - height / 2,
+  }));
+}
+
+function buildHoverMetaNodes(anchor, countryName, content) {
+  const zone = getHoverAnchorZone(anchor);
+  const slotMap = buildHoverSlotTemplates(zone);
+
+  return [
+    {
+      wrapperClass: 'map-hover-country-name',
+      width: 168,
+      height: 46,
+      candidates: slotsToHoverCandidates(anchor, slotMap.country, 168, 46),
+      html: `<span>${escapeHTML(countryName)}</span>`,
+    },
+    {
+      cls: 'map-hover-meta-dna',
+      width: 198,
+      height: 74,
+      candidates: slotsToHoverCandidates(anchor, slotMap.dna, 198, 74),
+      html: `
+        <div class="map-hover-meta-kicker">literary dna</div>
+        <div class="map-hover-meta-text">${escapeHTML(content.keywordText)}</div>
+      `,
+    },
+    {
+      cls: 'map-hover-meta-voices',
+      width: 194,
+      height: 74,
+      candidates: slotsToHoverCandidates(anchor, slotMap.voices, 194, 74),
+      html: `
+        <div class="map-hover-meta-kicker">representative voices</div>
+        <div class="map-hover-meta-text">${escapeHTML(content.voiceText)}</div>
+      `,
+    },
+    {
+      cls: 'map-hover-meta-entry',
+      width: 212,
+      height: 94,
+      candidates: slotsToHoverCandidates(anchor, slotMap.entry, 212, 94),
+      html: `
+        <div class="map-hover-meta-kicker">entry work</div>
+        <div class="map-hover-meta-entry-title">${escapeHTML(content.entryTitle)}</div>
+        <div class="map-hover-meta-entry-note">${escapeHTML(content.entryReason)}</div>
+      `,
+    },
+    {
+      cls: 'map-hover-meta-cue',
+      width: 230,
+      height: 108,
+      candidates: slotsToHoverCandidates(anchor, slotMap.cue, 230, 108),
+      html: `
+        <div class="map-hover-meta-kicker">context cue</div>
+        <div class="map-hover-meta-text">${escapeHTML(content.cueText)}</div>
+      `,
+    },
+  ];
+}
+
 function layoutHoverMetaNodes(nodes, anchor, keepOut) {
   const placed = [];
   return nodes.map(node => {
     const rawCandidates = (node.candidates || []).map(c => ({
-      x: anchor.x + c.dx,
-      y: anchor.y + c.dy,
+      x: Number.isFinite(c.x) ? c.x : anchor.x + (c.dx || 0),
+      y: Number.isFinite(c.y) ? c.y : anchor.y + (c.dy || 0),
       w: node.width,
       h: node.height,
     }));
@@ -1180,9 +1345,9 @@ function buildHoverTitles(anchor, books, options = {}) {
     max = 8,
     emptyText = 'No mapped books yet',
     className = 'map-hover-title',
-    radiusBase = 196,
-    radiusStep = 38,
-    width = 214,
+    radiusBase = 188,
+    radiusStep = 34,
+    width = 204,
     height = 32,
   } = options;
   const list = books.slice(0, max);
@@ -1192,7 +1357,12 @@ function buildHoverTitles(anchor, books, options = {}) {
     return [`<div class="${className} is-empty" style="left:${pos.x}px;top:${pos.y}px">${escapeHTML(emptyText)}</div>`];
   }
 
-  const angles = [220, 258, 300, 332, 28, 58, 108, 152];
+  const zone = getHoverAnchorZone(anchor);
+  const angles = zone.horizontal === 'center'
+    ? [-135, -35, 135, 35, -90, 90, -10, 170]
+    : zone.horizontal === 'left'
+      ? [-56, -18, 18, 54, -88, 88, 124, -124]
+      : mirrorAngles([-56, -18, 18, 54, -88, 88, 124, -124]);
   return list.map((book, index) => {
     const angle = angles[index % angles.length] * Math.PI / 180;
     const radius = radiusBase + (index % 3) * radiusStep;
@@ -1342,14 +1512,26 @@ function renderPanelBody() {
 
   if (__mapPanelState.activeTab === 'starter') {
     const starterList = buildStarterList(__mapPanelState);
-    container.innerHTML = starterList.map(item => `
-      <section class="map-copy-card">
-        <div class="map-copy-kicker">${escapeHTML(item.type || 'Starter reading')}</div>
-        <h4>${escapeHTML(item.title)}</h4>
-        ${item.author ? `<div class="map-starter-author">${escapeHTML(item.author)}</div>` : ''}
-        <p>${escapeHTML(item.note)}</p>
-      </section>
-    `).join('');
+    container.innerHTML = `
+      <div class="map-starter-list">
+        ${starterList.map((item, index) => `
+          <article class="map-starter-item${index === 0 ? ' first' : ''}">
+            <div class="map-starter-cover${item.cover ? ' has-image' : ''}">
+              ${item.cover
+                ? `<img src="${escapeHTML(item.cover)}" alt="${escapeHTML(item.title)} cover">`
+                : `<span class="map-starter-cover-fallback">${escapeHTML((item.title || '').slice(0, 2) || '书')}</span>`
+              }
+            </div>
+            <div class="map-starter-copy">
+              <div class="map-copy-kicker">${escapeHTML(item.type || 'Starter reading')}</div>
+              <h4>${escapeHTML(item.title)}</h4>
+              ${item.author ? `<div class="map-starter-author">${escapeHTML(item.author)}</div>` : ''}
+              <p>${escapeHTML(item.note)}</p>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    `;
   }
 }
 
@@ -1487,6 +1669,9 @@ function buildKeywordNarrative(label, keywords) {
 
 function buildStarterList(state) {
   const starters = [...(state.context.starters || [])];
+  if (state.countryId === 'CN' && state.type === 'country') {
+    return starters.slice(0, 4);
+  }
   const books = state.books || [];
   const modeLabel = state.filterMode === 'all'
     ? 'all locations'
