@@ -36,7 +36,7 @@ function projectBoxToPixels(box, camera, width, height) {
   return { minX, maxX, minY, maxY };
 }
 
-function mountHeroGLB(bookEl) {
+export function mountHeroGLB(bookEl) {
   const bookInner = bookEl.querySelector('.book-inner');
   if (!bookInner) return;
 

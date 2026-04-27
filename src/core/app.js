@@ -18,7 +18,7 @@ const App = (() => {
     { view: 'home', label: 'Shelf', href: '#shelf' },
     { view: 'map', label: 'Map', href: '#map' },
     { view: 'web', label: 'Graph', href: '#web' },
-    { view: 'yearbook', label: 'Yearbook', href: '#yearbook' },
+    { view: 'yearbook', label: 'Booklist', href: '#yearbook' },
   ];
 
   const views = {

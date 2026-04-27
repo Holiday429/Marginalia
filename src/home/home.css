@@ -1,4 +1,4 @@
-/* Home + Yearbook styles */
+/* Home styles */
 
 body[data-view="home"] {
   font-family: 'Fraunces', serif;
@@ -105,8 +105,7 @@ body[data-view="home"] {
 
 .nav a:focus-visible,
 .nav .add-btn:focus-visible,
-.shelf-filters .chip:focus-visible,
-.year-switcher button:focus-visible {
+.shelf-filters .chip:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
@@ -305,19 +304,45 @@ body[data-view="home"] {
 }
 
 .shelf-row {
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(232, 223, 200, 0.18);
+  padding-bottom: 20px;
 }
 
 .shelf-row:last-child {
-  border-bottom: none;
   padding-bottom: 0;
 }
 
 .shelf-row-books {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: 7px;
+  padding: 0 8px 18px;
+}
+
+.shelf-row-books::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 13px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #3a3125 0%, #251e14 64%, #1c160e 100%);
+  border-top: 1px solid rgba(232, 223, 200, 0.12);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.shelf-row-books::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: calc(100% - 1px);
+  height: 18px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.32), transparent);
+  pointer-events: none;
 }
 
 .shelf-spine {
@@ -884,191 +909,6 @@ body[data-view="home"] {
   color: rgba(232, 223, 200, 0.9);
 }
 
-/* ---- Heatmap ---- */
-.reading-heatmap-section {
-  padding: 16px 0 28px;
-  animation: slideUp 0.8s cubic-bezier(.2, .8, .2, 1) 0.2s both;
-}
-
-.reading-heatmap-section .section-head {
-  border-bottom: none;
-  padding-bottom: 0;
-  margin-bottom: 16px;
-}
-
-.year-switcher {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.year-switcher button {
-  border: 1px solid rgba(232, 223, 200, 0.28);
-  background: transparent;
-  color: var(--ink);
-  border-radius: 8px;
-  width: 34px;
-  height: 30px;
-  cursor: pointer;
-  font-size: 17px;
-  line-height: 1;
-}
-
-.year-switcher button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-#yearLabel {
-  min-width: 72px;
-  text-align: center;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
-  letter-spacing: 0.12em;
-  color: var(--ink);
-}
-
-.heatmap-shell {
-  border: 1px solid var(--rule);
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(232, 223, 200, 0.06), rgba(232, 223, 200, 0.03));
-  padding: 16px 16px 14px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.heatmap-months {
-  display: grid;
-  gap: 4px;
-  margin-bottom: 6px;
-}
-
-.heatmap-month {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.heatmap-grid {
-  display: grid;
-  gap: 4px;
-  width: 100%;
-}
-
-.heat-cell {
-  display: block;
-  border-radius: 2px;
-  background: rgba(232, 223, 200, 0.08);
-  width: 100%;
-  height: 100%;
-}
-
-.heat-cell.l0 {
-  background: rgba(232, 223, 200, 0.1);
-}
-
-.heat-cell.l1 {
-  background: rgba(198, 139, 74, 0.34);
-}
-
-.heat-cell.l2 {
-  background: rgba(198, 139, 74, 0.52);
-}
-
-.heat-cell.l3 {
-  background: rgba(198, 139, 74, 0.72);
-}
-
-.heat-cell.l4 {
-  background: rgba(198, 139, 74, 0.95);
-}
-
-.heat-cell.future {
-  background: rgba(232, 223, 200, 0.1);
-  border: none;
-}
-
-.heatmap-legend {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--muted);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  align-self: flex-end;
-}
-
-.legend-cells {
-  display: flex;
-  gap: 4px;
-}
-
-.legend-cell {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-}
-
-.legend-cell.l0 {
-  background: rgba(232, 223, 200, 0.1);
-}
-
-.legend-cell.l1 {
-  background: rgba(198, 139, 74, 0.34);
-}
-
-.legend-cell.l2 {
-  background: rgba(198, 139, 74, 0.52);
-}
-
-.legend-cell.l3 {
-  background: rgba(198, 139, 74, 0.72);
-}
-
-.legend-cell.l4 {
-  background: rgba(198, 139, 74, 0.95);
-}
-
-/* ---- Yearbook ---- */
-#view-yearbook {
-  min-height: 100vh;
-  background: var(--bg);
-  color: var(--ink);
-}
-
-.yearbook-shell {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 28px 56px 96px;
-}
-
-.yearbook-main {
-  padding-top: 26px;
-}
-
-#view-yearbook .yearbook-streak {
-  width: 100%;
-  max-width: none;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  animation: slideUp 0.8s cubic-bezier(.2, .8, .2, 1) 0.08s both;
-}
-
-#view-yearbook .yearbook-streak .section-head {
-  margin-bottom: 16px;
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
 /* ---- Responsive ---- */
 @media (max-width: 1220px) {
   .shelf-layout.is-expanded {
@@ -1121,10 +961,6 @@ body[data-view="home"] {
 
 @media (max-width: 980px) {
   .page {
-    padding: 24px 20px 80px;
-  }
-
-  .yearbook-shell {
     padding: 24px 20px 80px;
   }
 
@@ -1206,8 +1042,4 @@ body[data-view="home"] {
     font-size: 16px;
   }
 
-  .heatmap-legend {
-    gap: 8px;
-    font-size: 9px;
-  }
 }
