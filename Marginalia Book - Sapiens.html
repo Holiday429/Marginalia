@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>人类简史 — Marginalia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..800,0..100&family=IBM+Plex+Mono:wght@300;400;500&family=Bodoni+Moda:opsz,wght@6..96,400..900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #b8ad9e;
+  --bg-soft: #c4baa8;
+  --bg-deep: #a59887;
+  --ink: #1a1714;
+  --ink-soft: #2d2620;
+  --paper: #e8dfc8;
+  --cream: #ede5d4;
+  --rule: rgba(26,23,20,0.18);
+  --muted: rgba(26,23,20,0.58);
+  --accent: #c68b4a;
+  --navy: #14263e;
+  --navy-soft: #1c334f;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow-x: hidden; }
+
+body {
+  font-family: 'Fraunces', serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  opacity: 0;
+  animation: fadeIn 0.7s ease 0.1s forwards;
+}
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── MASTHEAD (HOME STYLE) ─── */
+.home-masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 32px 56px 20px;
+  border-bottom: 1px solid var(--rule);
+}
+.wordmark {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 32px;
+  letter-spacing: -0.015em;
+  font-variation-settings: "opsz" 96;
+  line-height: 1;
+  color: var(--ink);
+  text-decoration: none;
+}
+.wordmark-sub {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+.nav {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+.nav-link {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  text-decoration: none;
+  opacity: 0.78;
+  transition: opacity 0.2s ease;
+  position: relative;
+  padding-bottom: 4px;
+}
+.nav-link:hover,
+.nav-link.active {
+  opacity: 1;
+}
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -18px;
+  height: 1px;
+  background: var(--ink);
+}
+.add-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--bg);
+  background: var(--ink);
+  border: 1px solid rgba(232, 223, 200, 0.24);
+  width: 152px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  cursor: pointer;
+  margin-left: 12px;
+  font-weight: 600;
+  transition: opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.add-btn:hover {
+  opacity: 0.95;
+  border-color: rgba(232, 223, 200, 0.56);
+  transform: translateY(-1px);
+}
+
+/* ─── PAGE WRAPPER ─── */
+.page { max-width: 1280px; margin: 0 auto; }
+
+/* ─── § 1  OVERVIEW ─── */
+.overview {
+  padding: 64px 56px 56px;
+  display: grid;
+  grid-template-columns: 220px 1fr auto;
+  gap: 56px;
+  align-items: start;
+  border-bottom: 1px solid var(--rule);
+  animation: slideUp 0.8s cubic-bezier(.2,.8,.2,1) 0.2s both;
+}
+
+/* Cover */
+.book-cover {
+  position: relative;
+  aspect-ratio: 2/3;
+  background: var(--navy);
+  color: var(--paper);
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow:
+    0 2px 2px rgba(0,0,0,0.08),
+    0 28px 48px -16px rgba(0,0,0,0.4),
+    inset 0 0 0 1px rgba(255,255,255,0.07);
+  transform: rotate(-1.2deg);
+}
+.book-cover::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 5px;
+  background: linear-gradient(90deg, rgba(0,0,0,0.4), transparent);
+}
+.cover-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+.cover-title-text {
+  font-family: 'Bodoni Moda', serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.cover-title-text em {
+  display: block;
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-top: 4px;
+  opacity: 0.75;
+  text-transform: none;
+}
+.cover-deco {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+}
+.cover-footer-text {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+/* Meta */
+.book-meta { padding-top: 4px; }
+.book-title-big {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: 0.93;
+  letter-spacing: -0.025em;
+  font-variation-settings: "opsz" 144, "SOFT" 40;
+  margin-bottom: 6px;
+}
+.book-title-big em {
+  font-style: italic;
+  font-weight: 400;
+  font-variation-settings: "opsz" 144, "SOFT" 100;
+}
+.book-author {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 36px;
+}
+.meta-rows { margin-bottom: 28px; }
+.meta-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px dotted var(--rule);
+  align-items: baseline;
+}
+.meta-row:first-child { border-top: 1px dotted var(--rule); }
+.meta-k {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.meta-v {
+  font-family: 'Fraunces', serif;
+  font-size: 15px;
+  font-weight: 400;
+}
+.meta-v em { font-style: italic; }
+
+/* Rating */
+.rating-block { text-align: right; padding-top: 4px; }
+.rating-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.rating-num {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 88px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variation-settings: "opsz" 144;
+}
+.rating-num sup {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  vertical-align: top;
+  top: 14px;
+  position: relative;
+}
+.rating-stars {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 8px;
+}
+.star {
+  width: 14px; height: 14px;
+  background: var(--ink);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.star.empty { background: rgba(26,23,20,0.2); }
+.rating-note {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 12px;
+}
+
+/* ─── § 2  CULTURAL CONTEXT ─── */
+.cultural-bg {
+  background: var(--navy);
+  color: var(--paper);
+  padding: 56px 56px 52px;
+  animation: slideUp 0.8s cubic-bezier(.2,.8,.2,1) 0.3s both;
+}
+.cultural-bg .section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: rgba(232,223,200,0.78);
+  opacity: 1;
+  margin-bottom: 20px;
+}
+.cultural-bg .section-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 38px;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-variation-settings: "opsz" 96, "SOFT" 40;
+  font-style: italic;
+  margin-bottom: 40px;
+  opacity: 1;
+  color: rgba(232,223,200,0.97);
+}
+.cultural-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid rgba(232,223,200,0.15);
+}
+.cultural-item {
+  padding: 28px 32px 28px 0;
+  border-bottom: 1px solid rgba(232,223,200,0.1);
+  position: relative;
+}
+.cultural-item:nth-child(3n) { padding-right: 0; }
+.cultural-item + .cultural-item { border-left: 1px solid rgba(232,223,200,0.1); padding-left: 32px; }
+.cultural-item:nth-child(3n+1) { padding-left: 0; }
+.ci-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #f2bc84;
+  margin-bottom: 10px;
+}
+.ci-term {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(232,223,200,0.96);
+  margin-bottom: 10px;
+  font-variation-settings: "opsz" 48;
+}
+.ci-body {
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(232,223,200,0.9);
+  opacity: 1;
+  font-weight: 300;
+  font-variation-settings: "opsz" 24;
+  text-wrap: pretty;
+}
+.ci-ref {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(232,223,200,0.72);
+}
+
+.context-integration {
+  margin-top: 36px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(232,223,200,0.24);
+}
+.context-intro {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+.context-intro h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  font-style: italic;
+  color: rgba(232,223,200,0.95);
+}
+.context-intro p {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.23em;
+  text-transform: uppercase;
+  color: rgba(232,223,200,0.66);
+}
+.context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgba(232,223,200,0.15);
+}
+.context-card {
+  padding: 22px 22px 20px 0;
+  border-bottom: 1px solid rgba(232,223,200,0.12);
+  display: grid;
+  grid-template-columns: 3px 1fr;
+  gap: 16px;
+}
+.context-card:nth-child(even) {
+  padding: 22px 0 20px 22px;
+  border-left: 1px solid rgba(232,223,200,0.12);
+}
+.context-card-bar {
+  margin-top: 2px;
+  background: rgba(232,223,200,0.4);
+}
+.context-card:nth-child(1) .context-card-bar { background: #f2bc84; }
+.context-card:nth-child(2) .context-card-bar { background: #8ca3be; }
+.context-card:nth-child(3) .context-card-bar { background: #d4af7f; }
+.context-card:nth-child(4) .context-card-bar { background: #a8c2a0; }
+.context-card-k {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(232,223,200,0.7);
+  margin-bottom: 7px;
+}
+.context-card-h {
+  font-size: 17px;
+  line-height: 1.25;
+  margin-bottom: 8px;
+  color: rgba(232,223,200,0.96);
+  font-variation-settings: "opsz" 48;
+}
+.context-card-p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(232,223,200,0.9);
+  font-weight: 300;
+}
+.context-card-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(232,223,200,0.66);
+}
+.map-bridge {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.map-bridge-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #f2bc84;
+  padding-top: 7px;
+}
+.map-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.map-pill {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(232,223,200,0.9);
+  border: 1px solid rgba(232,223,200,0.26);
+  padding: 7px 10px;
+  background: rgba(232,223,200,0.06);
+}
+
+/* ─── § 3  HIGHLIGHTS ─── */
+.highlights-section {
+  padding: 64px 56px 56px;
+  border-bottom: 1px solid var(--rule);
+  animation: slideUp 0.8s cubic-bezier(.2,.8,.2,1) 0.35s both;
+}
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 36px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.section-head h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: 30px;
+  letter-spacing: -0.01em;
+  font-style: italic;
+  font-variation-settings: "opsz" 96;
+}
+.section-head .sh-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.highlight-list { display: flex; flex-direction: column; gap: 0; }
+
+.hl-item {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 0;
+  border-bottom: 1px dotted var(--rule);
+}
+.hl-item:first-child { border-top: 1px dotted var(--rule); }
+
+.hl-index {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--muted);
+  padding: 24px 0 24px;
+  line-height: 1;
+}
+
+.hl-body { padding: 24px 0 24px 20px; border-left: 1px dotted var(--rule); }
+
+.hl-quote {
+  font-family: 'Fraunces', serif;
+  font-size: 17px;
+  line-height: 1.6;
+  font-weight: 400;
+  font-style: italic;
+  font-variation-settings: "opsz" 48, "SOFT" 60;
+  text-wrap: pretty;
+  letter-spacing: -0.003em;
+}
+.hl-quote::before { content: '\201C'; opacity: 0.3; font-size: 1.4em; line-height: 0; vertical-align: -0.2em; margin-right: 2px; }
+.hl-quote::after  { content: '\201D'; opacity: 0.3; font-size: 1.4em; line-height: 0; vertical-align: -0.2em; margin-left:  2px; }
+
+.hl-location {
+  display: inline-block;
+  margin-top: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hl-annotation-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  margin-left: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
+}
+.hl-annotation-toggle:hover { opacity: 0.7; }
+.hl-annotation-toggle .tog-icon {
+  width: 14px; height: 14px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  flex-shrink: 0;
+  transition: transform 0.3s;
+}
+.hl-annotation-toggle.open .tog-icon { transform: rotate(45deg); }
+
+.hl-annotation {
+  display: none;
+  margin-top: 16px;
+  padding: 16px 20px;
+  background: rgba(20,38,62,0.07);
+  border-left: 2px solid var(--navy);
+}
+.hl-annotation.visible { display: block; }
+.hl-annotation-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--navy);
+  margin-bottom: 7px;
+  opacity: 0.7;
+}
+.hl-annotation p {
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  line-height: 1.65;
+  font-weight: 300;
+  font-variation-settings: "opsz" 24;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+/* ─── § 4  VISUALIZATION ─── */
+.viz-section {
+  background: var(--paper);
+  padding: 64px 56px 60px;
+  border-bottom: 1px solid var(--rule);
+  animation: slideUp 0.8s cubic-bezier(.2,.8,.2,1) 0.4s both;
+}
+.viz-section .section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.viz-section .section-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  font-style: italic;
+  font-variation-settings: "opsz" 96;
+  margin-bottom: 40px;
+}
+.viz-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.viz-container svg {
+  display: block;
+  min-width: 900px;
+}
+
+/* ─── § 5  TAKEAWAYS ─── */
+.takeaways-section {
+  padding: 64px 56px 60px;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 64px;
+  border-bottom: 1px solid var(--rule);
+  animation: slideUp 0.8s cubic-bezier(.2,.8,.2,1) 0.45s both;
+}
+.takeaways-main {}
+.takeaways-main .section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.takeaways-main h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 36px;
+  letter-spacing: -0.02em;
+  font-style: italic;
+  font-variation-settings: "opsz" 96;
+  margin-bottom: 28px;
+  line-height: 0.95;
+}
+.takeaway-body {
+  font-family: 'Fraunces', serif;
+  font-size: 17px;
+  line-height: 1.75;
+  font-weight: 300;
+  font-variation-settings: "opsz" 36;
+  text-wrap: pretty;
+  color: var(--ink-soft);
+}
+.takeaway-body p + p { margin-top: 16px; }
+.takeaway-body em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ink);
+}
+.takeaways-aside {}
+.aside-card {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 28px 26px;
+  margin-bottom: 16px;
+}
+.aside-card-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  margin-bottom: 14px;
+}
+.aside-card-body {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  line-height: 1.6;
+  font-style: italic;
+  font-weight: 400;
+  font-variation-settings: "opsz" 48;
+  opacity: 0.88;
+}
+
+/* ─── § 6  ACTION LIST ─── */
+.actions-section {
+  padding: 64px 56px 60px;
+  background: var(--cream);
+  border-bottom: 1px solid var(--rule);
+  animation: slideUp 0.8s cubic-bezier(.2,.8,.2,1) 0.5s both;
+}
+.actions-section .section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.actions-section h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 36px;
+  letter-spacing: -0.02em;
+  font-style: italic;
+  font-variation-settings: "opsz" 96;
+  margin-bottom: 36px;
+  line-height: 0.95;
+}
+.action-list { list-style: none; }
+.action-item {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px dotted var(--rule);
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.action-item:first-child { border-top: 1px dotted var(--rule); }
+.action-item:hover { background: rgba(26,23,20,0.03); margin: 0 -8px; padding-left: 8px; padding-right: 8px; }
+.action-check {
+  width: 22px; height: 22px;
+  border: 1.5px solid var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.action-item.done .action-check {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.action-item.done .action-check::after {
+  content: '';
+  width: 12px; height: 6px;
+  border-left: 2px solid var(--paper);
+  border-bottom: 2px solid var(--paper);
+  transform: rotate(-45deg) translateY(-2px);
+  display: block;
+}
+.action-text {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 400;
+  font-variation-settings: "opsz" 48;
+  line-height: 1.45;
+  transition: opacity 0.2s;
+}
+.action-item.done .action-text {
+  opacity: 0.35;
+  text-decoration: line-through;
+  text-decoration-color: rgba(26,23,20,0.3);
+}
+.action-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: rgba(26,23,20,0.08);
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+.action-item.done .action-tag {
+  color: rgba(26,23,20,0.3);
+  background: rgba(26,23,20,0.04);
+}
+
+/* ─── § 7  READING CONTEXT ─── */
+.context-section {
+  padding: 64px 56px 80px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 48px;
+  animation: slideUp 0.8s cubic-bezier(.2,.8,.2,1) 0.55s both;
+}
+.ctx-block {}
+.ctx-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+.ctx-content {
+  font-family: 'Fraunces', serif;
+  font-size: 15px;
+  line-height: 1.7;
+  font-weight: 300;
+  font-variation-settings: "opsz" 36;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+.ctx-content strong {
+  display: block;
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--ink);
+  margin-bottom: 6px;
+  font-variation-settings: "opsz" 48;
+}
+.ctx-content em { font-style: italic; font-weight: 400; }
+.ctx-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+.ctx-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  border: 1px solid var(--rule);
+  padding: 6px 12px;
+  color: var(--muted);
+}
+
+/* ─── FOOTER ─── */
+.footer {
+  border-top: 1px solid var(--rule);
+  padding: 22px 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@media (max-width: 1100px) {
+  .overview {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .rating-block {
+    text-align: left;
+  }
+  .rating-stars {
+    justify-content: flex-start;
+  }
+  .takeaways-section {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .context-section {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
+@media (max-width: 900px) {
+  .home-masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .nav {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .add-btn {
+    margin-left: 0;
+  }
+  .cultural-grid,
+  .context-grid {
+    grid-template-columns: 1fr;
+  }
+  .cultural-item + .cultural-item,
+  .context-card:nth-child(even) {
+    border-left: none;
+    padding-left: 0;
+  }
+  .cultural-item,
+  .context-card {
+    padding-right: 0;
+  }
+  .context-intro {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 10px;
+  }
+  .map-bridge {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-masthead,
+  .overview,
+  .cultural-bg,
+  .highlights-section,
+  .viz-section,
+  .takeaways-section,
+  .actions-section,
+  .context-section,
+  .footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .book-title-big {
+    font-size: clamp(34px, 12vw, 52px);
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- MASTHEAD -->
+  <header class="home-masthead">
+    <div>
+      <a href="#" class="wordmark">Marginalia</a>
+      <span class="wordmark-sub">Margins are where thinking happens</span>
+    </div>
+    <nav class="nav">
+      <a href="#" class="nav-link active">Shelf</a>
+      <a href="#" class="nav-link">Map</a>
+      <a href="#" class="nav-link">Graph</a>
+      <a href="#" class="nav-link">Yearbook</a>
+      <button class="add-btn">＋ New note</button>
+    </nav>
+  </header>
+
+  <!-- § 1  OVERVIEW -->
+  <section class="overview">
+
+    <!-- Cover -->
+    <div class="book-cover" role="img" aria-label="Sapiens cover">
+      <div>
+        <div class="cover-label">Yuval Noah Harari</div>
+      </div>
+      <div>
+        <div class="cover-title-text">
+          Sapiens
+          <em>A Brief History of Humankind</em>
+        </div>
+        <div class="cover-deco">
+          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+            <!-- stylized tree of life -->
+            <circle cx="36" cy="36" r="34" stroke="rgba(232,223,200,0.18)" stroke-width="1"/>
+            <circle cx="36" cy="36" r="22" stroke="rgba(232,223,200,0.12)" stroke-width="1"/>
+            <line x1="36" y1="2" x2="36" y2="70" stroke="rgba(232,223,200,0.2)" stroke-width="0.5"/>
+            <line x1="2" y1="36" x2="70" y2="36" stroke="rgba(232,223,200,0.2)" stroke-width="0.5"/>
+            <!-- homo sapiens figure silhouette simplified -->
+            <circle cx="36" cy="19" r="4" fill="rgba(232,223,200,0.55)"/>
+            <path d="M36 24 L36 44 M28 30 L36 34 L44 30 M36 44 L30 56 M36 44 L42 56"
+              stroke="rgba(232,223,200,0.55)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="cover-footer-text">Harper Collins · 2011</div>
+    </div>
+
+    <!-- Meta -->
+    <div class="book-meta">
+      <div class="book-title-big">人类<em>简史</em></div>
+      <div class="book-author">尤瓦尔·赫拉利 &nbsp;·&nbsp; Yuval Noah Harari</div>
+      <div class="meta-rows">
+        <div class="meta-row">
+          <span class="meta-k">Reading window</span>
+          <span class="meta-v">2024年 9月 14日 — 10月 8日</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-k">Reading location</span>
+          <span class="meta-v"><em>北京 · 家中书房，偶尔通勤地铁</em></span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-k">Edition</span>
+          <span class="meta-v">中信出版社 2014 年简体版</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-k">Total pages</span>
+          <span class="meta-v">440 页</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-k">Reading time</span>
+          <span class="meta-v">24 天 · 约 18 小时</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-k">Tags</span>
+          <span class="meta-v">人类学 · 宏观历史 · 认知革命 · 叙事</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rating -->
+    <div class="rating-block">
+      <div class="rating-label">Overall rating</div>
+      <div class="rating-num">4<sup>/5</sup></div>
+      <div class="rating-stars">
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star empty"></div>
+      </div>
+      <div class="rating-note">Powerful narrative<br>Loose argumentation</div>
+    </div>
+
+  </section>
+
+  <!-- § 2  CULTURAL CONTEXT -->
+  <section class="cultural-bg">
+    <div class="section-label">§ 02 &nbsp;—&nbsp; Cultural Annotations</div>
+    <h2 class="section-title">Cultural Context Annotations</h2>
+    <div class="cultural-grid">
+
+      <div class="cultural-item">
+        <div class="ci-tag">Cognitive Revolution</div>
+        <div class="ci-term">Fictional Thinking</div>
+        <div class="ci-body">Around 70,000 years ago, sapiens developed the ability to imagine and trust shared fictions such as gods, nations, and money. That shift enabled large-scale cooperation far beyond Dunbar's number.</div>
+        <span class="ci-ref">→ Chapters 2–4</span>
+      </div>
+
+      <div class="cultural-item">
+        <div class="ci-tag">Agricultural Revolution</div>
+        <div class="ci-term">History's Biggest Trap</div>
+        <div class="ci-body">Harari frames farming as a tradeoff: population growth and political complexity expanded, while many individuals faced harder labor, narrower diets, and higher disease risk.</div>
+        <span class="ci-ref">→ Chapters 5–8</span>
+      </div>
+
+      <div class="cultural-item">
+        <div class="ci-tag">Imperial Networks</div>
+        <div class="ci-term">Globalization Before the Internet</div>
+        <div class="ci-body">Empires are treated as unifying machines that spread legal systems, languages, and institutions across regions. The claim is deliberately provocative and benefits from critical reading.</div>
+        <span class="ci-ref">→ Chapter 11</span>
+      </div>
+
+      <div class="cultural-item">
+        <div class="ci-tag">Scientific Revolution</div>
+        <div class="ci-term">The Power of Admitted Ignorance</div>
+        <div class="ci-body">The breakthrough is epistemic: replacing certainty with systematic doubt. Science scales because unknowns become research targets rather than theological dead ends.</div>
+        <span class="ci-ref">→ Chapters 14–15</span>
+      </div>
+
+      <div class="cultural-item">
+        <div class="ci-tag">Historical Anthropology</div>
+        <div class="ci-term">Dunbar's Number</div>
+        <div class="ci-body">Robin Dunbar's social-cognitive ceiling explains why stable groups tend to stay around 150. Sapiens bypassed that limit through shared symbolic systems, not bigger brains.</div>
+        <span class="ci-ref">→ Chapter 2</span>
+      </div>
+
+      <div class="cultural-item">
+        <div class="ci-tag">Consumer Capitalism</div>
+        <div class="ci-term">The Happiness Paradox</div>
+        <div class="ci-body">Modern markets continuously regenerate desire. Harari links this cycle to Buddhist critiques of attachment, reframing growth as an engine of both comfort and dissatisfaction.</div>
+        <span class="ci-ref">→ Chapter 19</span>
+      </div>
+
+    </div>
+
+    <div class="context-integration">
+      <div class="context-intro">
+        <h3>Cultural Context Layers</h3>
+        <p>Integrated from Cultural Context Module + Concept Map</p>
+      </div>
+      <div class="context-grid">
+        <article class="context-card">
+          <div class="context-card-bar"></div>
+          <div>
+            <div class="context-card-k">Author Background</div>
+            <h4 class="context-card-h">From Military History to Macro-History</h4>
+            <p class="context-card-p">The project started as undergraduate lecture notes for non-history majors. That teaching origin explains the book's high-level, thesis-first style.</p>
+            <span class="context-card-link">Map tie: Cognitive Revolution → Fictional Thinking</span>
+          </div>
+        </article>
+
+        <article class="context-card">
+          <div class="context-card-bar"></div>
+          <div>
+            <div class="context-card-k">Israel Lens</div>
+            <h4 class="context-card-h">Epistemic Advantage from the Periphery</h4>
+            <p class="context-card-p">Harari writes from a setting shaped by nation-building myths and geopolitical pressure, sharpening his attention to inter-subjective stories.</p>
+            <span class="context-card-link">Map tie: Money + Empire as shared fictions</span>
+          </div>
+        </article>
+
+        <article class="context-card">
+          <div class="context-card-bar"></div>
+          <div>
+            <div class="context-card-k">Publication Moment · 2011</div>
+            <h4 class="context-card-h">Crisis Era, Search for Big Narratives</h4>
+            <p class="context-card-p">In a period of global volatility and fragmented attention, a 70,000-year frame restored coherence for readers overwhelmed by short-term noise.</p>
+            <span class="context-card-link">Map tie: Agricultural → Unification → Scientific arc</span>
+          </div>
+        </article>
+
+        <article class="context-card">
+          <div class="context-card-bar"></div>
+          <div>
+            <div class="context-card-k">Knowledge Lineage</div>
+            <h4 class="context-card-h">Evolutionary Biology × History × Philosophy</h4>
+            <p class="context-card-p">The book curates ideas from Dawkins, Dunbar, Sahlins, and philosophy of language. Its breadth is the signature strength and the core scholarly critique.</p>
+            <span class="context-card-link">Map tie: Derived nodes in all three revolutions</span>
+          </div>
+        </article>
+      </div>
+
+      <div class="map-bridge">
+        <div class="map-bridge-label">Concept Map Integration</div>
+        <div class="map-pill-row">
+          <span class="map-pill">Cognitive: Fiction + Language + Trust</span>
+          <span class="map-pill">Agricultural: Settlement + Surplus + Hierarchy</span>
+          <span class="map-pill">Unification: Money + Empire</span>
+          <span class="map-pill">Scientific: Ignorance + Capital + Expansion</span>
+          <span class="map-pill">Open Question: Industrial → Biotech → AI</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- § 3  HIGHLIGHTS -->
+  <section class="highlights-section">
+    <div class="section-head">
+      <h2>Notes &amp; Highlights</h2>
+      <span class="sh-meta">4 excerpts &nbsp;·&nbsp; Expand for cultural notes</span>
+    </div>
+    <ul class="highlight-list">
+
+      <li class="hl-item">
+        <div class="hl-index">01</div>
+        <div class="hl-body">
+          <p class="hl-quote">历史从人类学会说谎那天开始。</p>
+          <span class="hl-location">p. 27 &nbsp;·&nbsp; Chapter 2: The Tree of Knowledge</span>
+          <br>
+          <button class="hl-annotation-toggle" onclick="toggleAnnotation(this)">
+            <span class="tog-icon">+</span> Cultural note
+          </button>
+          <div class="hl-annotation">
+            <div class="hl-annotation-tag">Note</div>
+            <p>「说谎」在此指创造虚构叙事的能力，而非道德判断。赫拉利刻意用挑衅性措辞，指向维柯（Vico）的「以诗性智慧创造历史」传统，以及尼采「人是会编故事的动物」的论断。虚构能力是悖论性的人类天赋：它既是文明的基础，也是战争、欺骗与意识形态压迫的根源。</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="hl-item">
+        <div class="hl-index">02</div>
+        <div class="hl-body">
+          <p class="hl-quote">农业革命是历史上最大的骗局。小麦并没有让人类的生活变得更好，却让更多的人挤在更小的空间里。</p>
+          <span class="hl-location">p. 87 &nbsp;·&nbsp; Chapter 5: History's Biggest Fraud</span>
+          <br>
+          <button class="hl-annotation-toggle" onclick="toggleAnnotation(this)">
+            <span class="tog-icon">+</span> Cultural note
+          </button>
+          <div class="hl-annotation">
+            <div class="hl-annotation-tag">Note</div>
+            <p>这是对马歇尔·萨林斯（Marshall Sahlins）「原始富裕社会」理论的通俗化表达。萨林斯在 1972 年的《石器时代经济学》中提出，狩猎采集者每天工作 3–5 小时即可满足需求，拥有大量休闲时间。这一论断挑战了进步主义历史叙事，但也受到人类学界的质疑：样本偏差、寿命短暂等因素未被充分考量。</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="hl-item">
+        <div class="hl-index">03</div>
+        <div class="hl-body">
+          <p class="hl-quote">金钱是迄今为止人类发明的最普遍、最有效的互信系统。</p>
+          <span class="hl-location">p. 179 &nbsp;·&nbsp; Chapter 10: The Scent of Money</span>
+          <br>
+          <button class="hl-annotation-toggle" onclick="toggleAnnotation(this)">
+            <span class="tog-icon">+</span> Cultural note
+          </button>
+          <div class="hl-annotation">
+            <div class="hl-annotation-tag">Note</div>
+            <p>此处「互信系统」（inter-subjective trust system）是赫拉利的核心概念框架。与「主观」（仅存在于个人意识）和「客观」（独立于人类意识存在）不同，「互主观」（inter-subjective）指存在于人们共同相信的集体意识中。货币、法律、国家均属此类。这一分类源自现象学传统，可追溯至胡塞尔和梅洛-庞蒂。</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="hl-item">
+        <div class="hl-index">04</div>
+        <div class="hl-body">
+          <p class="hl-quote">科学革命的核心，不是某一项具体发现，而是发现了自己的无知。</p>
+          <span class="hl-location">p. 259 &nbsp;·&nbsp; Chapter 14: Discovering Ignorance</span>
+          <br>
+          <button class="hl-annotation-toggle" onclick="toggleAnnotation(this)">
+            <span class="tog-icon">+</span> Cultural note
+          </button>
+          <div class="hl-annotation">
+            <div class="hl-annotation-tag">Note</div>
+            <p>苏格拉底「我只知道我不知道」的认识论立场在这里得到宏观历史维度的延伸。赫拉利将其与卡尔·波普尔的「可证伪性」原则相连：科学的本质是承认一切知识均有被推翻的可能。这与传统宗教及儒家经典诠释传统的「封闭知识体系」形成对照——后者以捍卫权威性文本为目标，而非追问其局限。</p>
+          </div>
+        </div>
+      </li>
+
+    </ul>
+  </section>
+
+  <!-- § 4  VISUALIZATION -->
+  <section class="viz-section">
+    <div class="section-label">§ 04 &nbsp;—&nbsp; Concept Map</div>
+    <h2 class="section-title">Three Revolutions — Concept Map</h2>
+    <div class="viz-container">
+      <svg viewBox="0 0 1100 520" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:'IBM Plex Mono',monospace;">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 Z" fill="rgba(26,23,20,0.35)"/>
+          </marker>
+          <marker id="arr-acc" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 Z" fill="#c68b4a"/>
+          </marker>
+        </defs>
+
+        <!-- Timeline spine -->
+        <line x1="60" y1="260" x2="1040" y2="260" stroke="rgba(26,23,20,0.18)" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+        <!-- Time labels -->
+        <text x="60" y="300" fill="rgba(26,23,20,0.4)" font-size="9" letter-spacing="2">70,000 BCE</text>
+        <text x="340" y="300" fill="rgba(26,23,20,0.4)" font-size="9" letter-spacing="2">10,000 BCE</text>
+        <text x="660" y="300" fill="rgba(26,23,20,0.4)" font-size="9" letter-spacing="2">500 CE</text>
+        <text x="900" y="300" fill="rgba(26,23,20,0.4)" font-size="9" letter-spacing="2">1500 CE →</text>
+
+        <!-- ── COGNITIVE REVOLUTION ── -->
+        <circle cx="120" cy="260" r="42" fill="#14263e" opacity="0.92"/>
+        <text x="120" y="256" fill="#e8dfc8" font-size="9" letter-spacing="1.5" text-anchor="middle" font-weight="500">Cognitive Rev.</text>
+        <text x="120" y="268" fill="#e8dfc8" font-size="8" text-anchor="middle" opacity="0.6">Cognitive</text>
+
+        <!-- Cognitive sub-nodes -->
+        <ellipse cx="120" cy="148" rx="68" ry="26" fill="rgba(20,38,62,0.1)" stroke="rgba(20,38,62,0.3)" stroke-width="1"/>
+        <text x="120" y="145" fill="#14263e" font-size="9" text-anchor="middle" letter-spacing="1">Fictional Thinking</text>
+        <text x="120" y="157" fill="#14263e" font-size="8" text-anchor="middle" opacity="0.6">Fictional Thinking</text>
+        <line x1="120" y1="174" x2="120" y2="218" stroke="rgba(20,38,62,0.3)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <ellipse cx="248" cy="148" rx="68" ry="26" fill="rgba(20,38,62,0.1)" stroke="rgba(20,38,62,0.3)" stroke-width="1"/>
+        <text x="248" y="145" fill="#14263e" font-size="9" text-anchor="middle" letter-spacing="1">Dunbar Ceiling</text>
+        <text x="248" y="157" fill="#14263e" font-size="8" text-anchor="middle" opacity="0.6">Dunbar's Number ≈150</text>
+        <line x1="163" y1="250" x2="190" y2="174" stroke="rgba(20,38,62,0.25)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <ellipse cx="50" cy="380" rx="64" ry="24" fill="rgba(20,38,62,0.07)" stroke="rgba(20,38,62,0.2)" stroke-width="1"/>
+        <text x="50" y="377" fill="#14263e" font-size="9" text-anchor="middle" letter-spacing="1">Language</text>
+        <text x="50" y="388" fill="#14263e" font-size="8" text-anchor="middle" opacity="0.6">Language</text>
+        <line x1="88" y1="366" x2="100" y2="302" stroke="rgba(20,38,62,0.2)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- ── AGRICULTURAL REVOLUTION ── -->
+        <circle cx="420" cy="260" r="42" fill="#8a7e6e" opacity="0.88"/>
+        <text x="420" y="256" fill="#e8dfc8" font-size="9" letter-spacing="1.5" text-anchor="middle" font-weight="500">Agricultural Rev.</text>
+        <text x="420" y="268" fill="#e8dfc8" font-size="8" text-anchor="middle" opacity="0.6">Agricultural</text>
+
+        <!-- Arrow cognitive → agri -->
+        <path d="M163 260 Q290 240 377 260" stroke="rgba(26,23,20,0.25)" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+        <!-- Agri sub-nodes -->
+        <ellipse cx="360" cy="140" rx="72" ry="26" fill="rgba(138,126,110,0.12)" stroke="rgba(138,126,110,0.4)" stroke-width="1"/>
+        <text x="360" y="137" fill="#2d2620" font-size="9" text-anchor="middle" letter-spacing="1">Settlement · Surplus</text>
+        <text x="360" y="149" fill="#2d2620" font-size="8" text-anchor="middle" opacity="0.6">Settlement &amp; Surplus</text>
+        <line x1="390" y1="166" x2="408" y2="218" stroke="rgba(138,126,110,0.4)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <ellipse cx="500" cy="140" rx="72" ry="26" fill="rgba(138,126,110,0.12)" stroke="rgba(138,126,110,0.4)" stroke-width="1"/>
+        <text x="500" y="137" fill="#2d2620" font-size="9" text-anchor="middle" letter-spacing="1">Hierarchy · State</text>
+        <text x="500" y="149" fill="#2d2620" font-size="8" text-anchor="middle" opacity="0.6">Hierarchy &amp; State</text>
+        <line x1="462" y1="166" x2="440" y2="218" stroke="rgba(138,126,110,0.4)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <ellipse cx="360" cy="390" rx="72" ry="24" fill="rgba(138,126,110,0.08)" stroke="rgba(138,126,110,0.2)" stroke-width="1"/>
+        <text x="360" y="387" fill="#2d2620" font-size="9" text-anchor="middle" letter-spacing="1">More People · Less Joy</text>
+        <text x="360" y="398" fill="#2d2620" font-size="8" text-anchor="middle" opacity="0.6">More people, less joy</text>
+        <line x1="400" y1="374" x2="412" y2="302" stroke="rgba(138,126,110,0.25)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- ── UNIFICATION PROCESSES ── -->
+        <rect x="600" y="230" width="120" height="60" rx="2" fill="rgba(198,139,74,0.15)" stroke="#c68b4a" stroke-width="1.5"/>
+        <text x="660" y="256" fill="#2d2620" font-size="9" text-anchor="middle" letter-spacing="1" font-weight="500">Empire · Money</text>
+        <text x="660" y="268" fill="#2d2620" font-size="8" text-anchor="middle" opacity="0.6">Money &amp; Empire</text>
+        <text x="660" y="278" fill="#c68b4a" font-size="7.5" text-anchor="middle" letter-spacing="2" opacity="0.8">UNIFICATION</text>
+
+        <path d="M463 260 Q530 260 599 260" stroke="#c68b4a" stroke-width="1.5" fill="none" marker-end="url(#arr-acc)" stroke-dasharray="5 3"/>
+
+        <!-- ── SCIENTIFIC REVOLUTION ── -->
+        <circle cx="920" cy="260" r="54" fill="#1a1714" opacity="0.94"/>
+        <text x="920" y="253" fill="#e8dfc8" font-size="9.5" letter-spacing="1.5" text-anchor="middle" font-weight="500">Scientific Rev.</text>
+        <text x="920" y="267" fill="#e8dfc8" font-size="8" text-anchor="middle" opacity="0.55">Scientific</text>
+        <text x="920" y="278" fill="#e8dfc8" font-size="8" text-anchor="middle" opacity="0.55">Revolution</text>
+
+        <path d="M721 260 Q820 240 866 260" stroke="rgba(26,23,20,0.3)" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+        <!-- Sci sub-nodes -->
+        <ellipse cx="840" cy="140" rx="70" ry="26" fill="rgba(26,23,20,0.07)" stroke="rgba(26,23,20,0.25)" stroke-width="1"/>
+        <text x="840" y="137" fill="#1a1714" font-size="9" text-anchor="middle" letter-spacing="1">Admit Ignorance</text>
+        <text x="840" y="149" fill="#1a1714" font-size="8" text-anchor="middle" opacity="0.5">Embrace Ignorance</text>
+        <line x1="870" y1="166" x2="890" y2="206" stroke="rgba(26,23,20,0.2)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <ellipse cx="1000" cy="140" rx="70" ry="26" fill="rgba(26,23,20,0.07)" stroke="rgba(26,23,20,0.25)" stroke-width="1"/>
+        <text x="1000" y="137" fill="#1a1714" font-size="9" text-anchor="middle" letter-spacing="1">Empire + Capital</text>
+        <text x="1000" y="149" fill="#1a1714" font-size="8" text-anchor="middle" opacity="0.5">Capital &amp; Conquest</text>
+        <line x1="980" y1="166" x2="954" y2="206" stroke="rgba(26,23,20,0.2)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <ellipse cx="920" cy="400" rx="82" ry="26" fill="rgba(26,23,20,0.06)" stroke="rgba(26,23,20,0.18)" stroke-width="1"/>
+        <text x="920" y="397" fill="#1a1714" font-size="9" text-anchor="middle" letter-spacing="1">Industry · Genes · AI →</text>
+        <text x="920" y="409" fill="#1a1714" font-size="8" text-anchor="middle" opacity="0.5">Industrial → Biotech → ?</text>
+        <line x1="920" y1="374" x2="920" y2="315" stroke="rgba(26,23,20,0.2)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- Sapiens question -->
+        <text x="1060" y="256" fill="#c68b4a" font-size="22" text-anchor="middle" font-weight="300" opacity="0.6">?</text>
+        <text x="1060" y="270" fill="rgba(26,23,20,0.35)" font-size="7.5" text-anchor="middle" letter-spacing="1.5">WHAT NEXT</text>
+        <line x1="974" y1="260" x2="1044" y2="260" stroke="#c68b4a" stroke-width="1" marker-end="url(#arr-acc)" stroke-dasharray="3 3" opacity="0.5"/>
+
+        <!-- Legend -->
+        <text x="60" y="480" fill="rgba(26,23,20,0.35)" font-size="8" letter-spacing="2">● Core Revolutions</text>
+        <rect x="160" y="473" width="20" height="1.5" fill="#c68b4a"/>
+        <text x="185" y="480" fill="rgba(26,23,20,0.35)" font-size="8" letter-spacing="2">Unification Forces</text>
+        <line x1="270" y1="476" x2="290" y2="476" stroke="rgba(26,23,20,0.3)" stroke-width="1" stroke-dasharray="4 2"/>
+        <text x="296" y="480" fill="rgba(26,23,20,0.35)" font-size="8" letter-spacing="2">Derived Concepts</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- § 5  TAKEAWAYS -->
+  <section class="takeaways-section">
+    <div class="takeaways-main">
+      <div class="section-label">§ 05 &nbsp;—&nbsp; Takeaways</div>
+      <h2>Integration &amp; Takeaways</h2>
+      <div class="takeaway-body">
+        <p>读完此书最大的冲击，不是某个具体的历史结论，而是<em>视角的彻底重组</em>。赫拉利强迫你从七万年的高空俯瞰，此刻感觉无比重要的一切——职业选择、人际纠纷、政治立场——突然变得微不足道。这既是解放，也是某种令人不安的空旷感。</p>
+        <p>「互主观现实」这个概念我会反复使用。金钱、法律、公司、国家——这些我们每天生活在其中的「现实」，本质上是集体相信的故事。一旦你看透这一点，<em>你就很难再对任何权威叙事保持天真的服从</em>。这既是解毒剂，也是某种孤独。</p>
+        <p>对于「幸福」那章，我有保留。赫拉利用佛教解读消费主义的苦恼，论证不够严谨。但他提出的问题是真实的：<em>历史的「进步」究竟让个体更快乐了吗？</em>这个问题值得持续追问，尤其在每次被 Feed 算法操控情绪之后。</p>
+        <p>书的最后一部分关于生物技术与意识上传，是写得最差的部分——更像科幻专栏，而非史学论证。但这不妨碍前三分之二的精彩。<em>好书不需要完美。</em></p>
+      </div>
+    </div>
+    <div class="takeaways-aside">
+      <div class="aside-card">
+        <div class="aside-card-label">Core thesis</div>
+        <div class="aside-card-body">「人类统治地球，不是因为力量或智慧，而是因为我们是唯一能够相信集体虚构的动物。」</div>
+      </div>
+      <div class="aside-card" style="background:var(--navy);">
+        <div class="aside-card-label">Further reading</div>
+        <div class="aside-card-body">《枪炮、病菌与钢铁》贾雷德·戴蒙德<br>《石器时代经济学》马歇尔·萨林斯<br>《开放社会及其敌人》卡尔·波普尔</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- § 6  ACTIONS -->
+  <section class="actions-section">
+    <div class="section-label">§ 06 &nbsp;—&nbsp; Actions</div>
+    <h2>Action List</h2>
+    <ul class="action-list" id="actionList">
+
+      <li class="action-item done" onclick="toggleAction(this)">
+        <div class="action-check"></div>
+        <div class="action-text">重读第二章「知识之树」，整理「虚构能力」的论证逻辑链，写成一页笔记</div>
+        <span class="action-tag">Completed</span>
+      </li>
+
+      <li class="action-item done" onclick="toggleAction(this)">
+        <div class="action-check"></div>
+        <div class="action-text">找到《石器时代经济学》，阅读萨林斯对「原始富裕社会」的论证，与赫拉利比较</div>
+        <span class="action-tag">Completed</span>
+      </li>
+
+      <li class="action-item" onclick="toggleAction(this)">
+        <div class="action-check"></div>
+        <div class="action-text">用「互主观现实」框架重新审视我的职业选择：哪些「重要感」来自集体叙事，哪些来自真实体验？写成一篇私人日志</div>
+        <span class="action-tag">Pending</span>
+      </li>
+
+      <li class="action-item" onclick="toggleAction(this)">
+        <div class="action-check"></div>
+        <div class="action-text">阅读《今日简史》第二十一章「冥想」，测试赫拉利自己是否真的践行了他的幸福论</div>
+        <span class="action-tag">Pending</span>
+      </li>
+
+      <li class="action-item" onclick="toggleAction(this)">
+        <div class="action-check"></div>
+        <div class="action-text">与朋友讨论：如果金钱是集体虚构，我们为什么还要工作？整理讨论结果</div>
+        <span class="action-tag">Pending</span>
+      </li>
+
+      <li class="action-item" onclick="toggleAction(this)">
+        <div class="action-check"></div>
+        <div class="action-text">每次刷 Feed 超过 15 分钟后，停下来问自己：「此刻什么欲望被激活？这个欲望是我的还是算法的？」持续一周记录</div>
+        <span class="action-tag">In progress</span>
+      </li>
+
+    </ul>
+  </section>
+
+  <!-- § 7  READING CONTEXT -->
+  <section class="context-section">
+    <div class="ctx-block">
+      <div class="ctx-label">§ 07 &nbsp;·&nbsp; Reading Location</div>
+      <div class="ctx-content">
+        <strong>北京 · 朝阳区书房</strong>
+        主要在家里的书桌上读，木桌靠窗，下午有斜光。
+        偶尔在通勤地铁上读，但总觉得效果差——这本书需要静下来消化，不适合碎片时间。
+        <em>最佳状态是周末早晨，咖啡还没喝完，手机没有开。</em>
+      </div>
+    </div>
+
+    <div class="ctx-block">
+      <div class="ctx-label">§ 07 &nbsp;·&nbsp; Mindset</div>
+      <div class="ctx-content">
+        <strong>过渡期的不确定感</strong>
+        那段时间正在重新思考工作的意义。从一个项目结束到下一个开始之间的空白期——觉得自己在一个大叙事的缝隙里，暂时失重。
+        <em>赫拉利的宏观视角意外地给了我某种慰藉：人类的整个历史都是偶然叠加偶然的结果，没有一个必然的剧本在等我。</em>
+      </div>
+      <div class="ctx-tags">
+        <span class="ctx-tag">焦虑</span>
+        <span class="ctx-tag">好奇</span>
+        <span class="ctx-tag">寻找意义</span>
+      </div>
+    </div>
+
+    <div class="ctx-block">
+      <div class="ctx-label">§ 07 &nbsp;·&nbsp; Life Context</div>
+      <div class="ctx-content">
+        <strong>2024 年秋 · 30 岁</strong>
+        刚满三十岁，父母开始提婚事，朋友们开始买房，公司在裁员季边缘。
+        <em>这本书让我意识到，「三十岁应该怎样」本身就是一个文化虚构，是农业定居社会发明的生命周期叙事。</em>
+        有点哑然失笑，又有点解脱。
+      </div>
+      <div class="ctx-tags">
+        <span class="ctx-tag">30 岁</span>
+        <span class="ctx-tag">职业迷茫</span>
+        <span class="ctx-tag">北京秋天</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <span>Marginalia &nbsp;·&nbsp; 人类简史</span>
+    <span>Last edited &nbsp;2024-10-12 &nbsp;·&nbsp; Book #47</span>
+  </footer>
+
+</div><!-- .page -->
+
+<script>
+function toggleAnnotation(btn) {
+  const annotation = btn.nextElementSibling;
+  const isOpen = annotation.classList.contains('visible');
+  annotation.classList.toggle('visible', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+  btn.querySelector('.tog-icon').textContent = isOpen ? '+' : '×';
+}
+
+function toggleAction(item) {
+  const isDone = item.classList.contains('done');
+  item.classList.toggle('done', !isDone);
+  const tag = item.querySelector('.action-tag');
+  tag.textContent = isDone ? 'Pending' : 'Completed';
+}
+
+// Animate progress fills on load
+window.addEventListener('DOMContentLoaded', () => {
+  // Stagger section animations
+  document.querySelectorAll('.hl-item').forEach((el, i) => {
+    el.style.animation = `slideUp 0.6s cubic-bezier(.2,.8,.2,1) ${0.3 + i * 0.07}s both`;
+  });
+  document.querySelectorAll('.action-item').forEach((el, i) => {
+    el.style.animation = `slideUp 0.5s cubic-bezier(.2,.8,.2,1) ${0.2 + i * 0.06}s both`;
+  });
+  document.querySelectorAll('.ctx-block').forEach((el, i) => {
+    el.style.animation = `slideUp 0.6s cubic-bezier(.2,.8,.2,1) ${0.2 + i * 0.1}s both`;
+  });
+  document.querySelectorAll('.cultural-item').forEach((el, i) => {
+    el.style.animation = `slideUp 0.6s cubic-bezier(.2,.8,.2,1) ${0.1 + i * 0.07}s both`;
+  });
+});
+</script>
+</body>
+</html>

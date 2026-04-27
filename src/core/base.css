@@ -1,0 +1,189 @@
+/* ==========================================================================
+   Marginalia · Design Tokens
+   --------------------------------------------------------------------------
+   Two layers:
+   1. Raw palette (--color-*)        — never used directly in component CSS
+   2. Semantic aliases (--bg, --ink) — what components consume
+   Semantic aliases re-bind per view via body[data-view="..."] blocks below.
+   ========================================================================== */
+
+:root {
+  /* ── Raw palette ─────────────────────────────────────────────────────── */
+  --color-taupe:        #b8ad9e;
+  --color-taupe-soft:   #c4baa8;
+  --color-taupe-deep:   #a59887;
+  --color-cream:        #ede5d4;
+  --color-paper:        #e8dfc8;
+  --color-bg-warm:      #f3ede2;   /* cultural-context off-white */
+
+  --color-ink:          #1a1714;
+  --color-ink-soft:     #2d2620;
+  --color-ink-deep:     #151210;
+
+  --color-navy:         #14263e;
+  --color-navy-soft:    #1c334f;
+  --color-shelf:        #8a7e6e;
+
+  --color-accent:       #c68b4a;   /* warm tan — primary accent */
+  --color-accent-deep:  #8b3120;   /* brick — annotation accent */
+  --color-accent-gold:  #c4903a;   /* gold — map / highlight */
+  --color-highlight-bg: rgba(197,148,42,0.28);
+  --color-highlight-line: #c5941e;
+
+  /* Rules & muted tones (alpha on ink) */
+  --rule-strong:        rgba(26,23,20,0.28);
+  --rule:               rgba(26,23,20,0.18);
+  --rule-soft:          rgba(26,23,20,0.10);
+  --muted:              rgba(26,23,20,0.58);
+  --muted-soft:         rgba(26,23,20,0.40);
+  --muted-faint:        rgba(26,23,20,0.18);
+
+  /* ── Semantic aliases — default (home / book) ────────────────────────── */
+  --bg:        var(--color-taupe);
+  --bg-soft:   var(--color-taupe-soft);
+  --bg-deep:   var(--color-taupe-deep);
+  --ink:       var(--color-ink);
+  --ink-soft:  var(--color-ink-soft);
+  --paper:     var(--color-paper);
+  --cream:     var(--color-cream);
+  --accent:    var(--color-accent);
+  --navy:      var(--color-navy);
+  --shelf:     var(--color-shelf);
+
+  /* ── Type scale ──────────────────────────────────────────────────────── */
+  --font-serif:  'Fraunces', Georgia, serif;
+  --font-mono:   'IBM Plex Mono', ui-monospace, monospace;
+  --font-display:'Bodoni Moda', 'Fraunces', serif;   /* covers / large display only */
+
+  /* Sizes (use sparingly; prefer the named scale below) */
+  --fs-9:   9px;
+  --fs-10:  10px;
+  --fs-11:  11px;
+  --fs-12:  12px;
+  --fs-13:  13px;
+  --fs-14:  14px;
+  --fs-15:  15px;
+  --fs-16:  16px;
+  --fs-17:  17px;
+  --fs-18:  18px;
+  --fs-22:  22px;
+  --fs-28:  28px;
+  --fs-36:  36px;
+  --fs-48:  48px;
+  --fs-72:  72px;
+
+  /* Letter-spacing for caps mono labels */
+  --track-tight:  -0.02em;
+  --track-normal:  0;
+  --track-mono-s:  0.22em;
+  --track-mono-m:  0.28em;
+  --track-mono-l:  0.34em;
+
+  /* ── Spacing ─────────────────────────────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Layout */
+  --gutter:        56px;          /* page horizontal padding */
+  --section-y:     64px;          /* section vertical rhythm */
+  --max-width:     1280px;
+  --max-width-narrow: 1160px;
+
+  /* Motion */
+  --ease-out:  cubic-bezier(.2,.8,.2,1);
+  --ease-in-out: cubic-bezier(.4,0,.2,1);
+  --dur-fast:  0.2s;
+  --dur-mid:   0.45s;
+  --dur-slow:  0.7s;
+}
+
+/* ── Per-view theme overrides ──────────────────────────────────────────── */
+
+/* Home — dark ink background, paper text */
+body[data-view="home"] {
+  --bg:        var(--color-ink);
+  --bg-soft:   var(--color-ink-soft);
+  --ink:       var(--color-paper);
+  --ink-soft:  #c8bfa8;
+  --paper:     var(--color-ink-soft);
+  --rule:      rgba(232,223,200,0.14);
+  --rule-soft: rgba(232,223,200,0.08);
+  --muted:     rgba(232,223,200,0.52);
+  --muted-soft:rgba(232,223,200,0.32);
+}
+
+/* Book detail — same dark theme as home */
+body[data-view="book"] {
+  --bg:        var(--color-ink);
+  --bg-soft:   var(--color-ink-soft);
+  --ink:       var(--color-paper);
+  --ink-soft:  #c8bfa8;
+  --paper:     var(--color-ink-soft);
+  --rule:      rgba(232,223,200,0.14);
+  --rule-soft: rgba(232,223,200,0.08);
+  --muted:     rgba(232,223,200,0.52);
+  --muted-soft:rgba(232,223,200,0.32);
+}
+
+/* Yearbook — same dark theme as home */
+body[data-view="yearbook"] {
+  --bg:        var(--color-ink);
+  --bg-soft:   var(--color-ink-soft);
+  --ink:       var(--color-paper);
+  --ink-soft:  #c8bfa8;
+  --paper:     var(--color-ink-soft);
+  --rule:      rgba(232,223,200,0.14);
+  --rule-soft: rgba(232,223,200,0.08);
+  --muted:     rgba(232,223,200,0.52);
+  --muted-soft:rgba(232,223,200,0.32);
+}
+
+/* Map — immersive dark mode */
+body[data-view="map"] {
+  --bg:    var(--color-ink);
+  --ink:   var(--color-paper);
+  --paper: var(--color-ink-soft);
+  --rule:        rgba(232,223,200,0.14);
+  --rule-soft:   rgba(232,223,200,0.08);
+  --muted:       rgba(232,223,200,0.55);
+  --muted-soft:  rgba(232,223,200,0.35);
+  --accent:      var(--color-accent-gold);
+}
+
+/* Preloader — keeps existing theme-* class system (handled in preloader.css) */
+
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html { overflow-x: hidden; }
+
+body {
+  font-family: var(--font-serif);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  transition: background var(--dur-mid) var(--ease-out),
+              color      var(--dur-mid) var(--ease-out);
+}
+
+/* ── Shared primitives ─────────────────────────────────────────────────── */
+
+/* Mono caps label — used everywhere for tags, breadcrumbs, k/v keys */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-9);
+  letter-spacing: var(--track-mono-m);
+  text-transform: uppercase;
+  color: var(--muted);
+}

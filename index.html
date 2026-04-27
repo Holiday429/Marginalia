@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Marginalia — Margins are where thinking happens</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!--
+    Type system (target): Fraunces (serif body+display) · IBM Plex Mono (labels) · Bodoni Moda (covers only)
+    Cormorant / Libre Caslon / Inter are still loaded only because preloader book data references them
+    on individual covers. Migrate book schema to use the 3-font system, then drop these three.
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..800,0..100;1,9..144,300..800,0..100&family=IBM+Plex+Mono:wght@300;400;500&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="src/core/base.css">
+  <link rel="stylesheet" href="src/preloader/preloader.css">
+  <link rel="stylesheet" href="src/home/home.css">
+  <link rel="stylesheet" href="src/book/book.css">
+  <link rel="stylesheet" href="src/map/map.css">
+  <link rel="stylesheet" href="src/web/web.css">
+
+  <!-- amCharts (used by map view) — loaded eagerly so first visit boots fast -->
+  <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/geodata/worldLow.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/geodata/chinaHigh.js"></script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ============================================================
+       VIEW: PRELOADER
+       ============================================================ -->
+  <div id="view-preloader" class="theme-ink">
+
+    <header class="masthead">
+      <a class="chapter" href="#" id="preloaderWordmark">Marginalia</a>
+    </header>
+
+    <div class="headline-wrap">
+      <h1 class="headline">Marginalia</h1>
+      <div class="headline-sub">Margins are where thinking happens.</div>
+    </div>
+
+    <main class="stage">
+      <div class="viewport">
+        <div class="track" id="track"></div>
+      </div>
+    </main>
+
+    <div class="loader-meta" id="loaderMeta">
+      <span class="dot"></span>
+      <span id="loaderLabel">Reviewing the collection</span>
+    </div>
+
+    <button class="skip"          id="skipBtn">Skip</button>
+    <button class="tweaks-toggle" id="tweaksToggle">Tweaks</button>
+
+    <div class="tweaks" id="tweaksPanel">
+      <h3>Tweaks <small>Marginalia</small></h3>
+      <div class="tweak-row">
+        <label>Animation speed <span class="num" id="speedNum">0.8×</span></label>
+        <input type="range" id="speedSlider" min="0.4" max="2.0" step="0.1" value="1.0">
+      </div>
+      <div class="tweak-row">
+        <label>Swing intensity <span class="num" id="swingNum">100%</span></label>
+        <input type="range" id="swingSlider" min="30" max="180" step="5" value="100">
+      </div>
+      <div class="tweak-row">
+        <label>Background</label>
+        <div class="row-flex" id="themeRow">
+          <div class="swatch"        data-theme="taupe" style="background:#b8ad9e"></div>
+          <div class="swatch"        data-theme="cream" style="background:#e8dfc8"></div>
+          <div class="swatch"        data-theme="sage"  style="background:#aab39a"></div>
+          <div class="swatch"        data-theme="clay"  style="background:#c89f85"></div>
+          <div class="swatch active" data-theme="ink"   style="background:#2a2824"></div>
+        </div>
+      </div>
+      <div class="tweak-row">
+        <label>Book palette</label>
+        <div class="row-flex" id="paletteRow">
+          <button class="chip active" data-palette="editorial">Editorial</button>
+          <button class="chip"        data-palette="jewel">Jewel</button>
+          <button class="chip"        data-palette="mono">Mono</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /view-preloader -->
+
+
+  <!-- ============================================================
+       VIEW: HOME
+       ============================================================ -->
+  <div id="view-home" hidden>
+  <div class="page">
+
+    <header class="home-masthead">
+      <div>
+        <div class="wordmark">Marginalia</div>
+        <span class="wordmark-sub">Margins are where thinking happens</span>
+      </div>
+      <nav class="nav">
+        <a href="#shelf"    class="nav-link active" data-view="home">Shelf</a>
+        <a href="#map"      class="nav-link"        data-view="map">Map</a>
+        <a href="#web"      class="nav-link"        data-view="web">Graph</a>
+        <a href="#yearbook" class="nav-link"        data-view="yearbook">Yearbook</a>
+        <button class="add-btn">＋ New entry</button>
+      </nav>
+    </header>
+
+    <section id="shelf" class="shelf-section">
+      <div class="section-head">
+        <span class="count" id="shelfCount">0 books</span>
+      </div>
+      <div class="shelf-layout">
+        <div class="shelf-stack-panel">
+          <div class="shelf-tools">
+            <label class="shelf-search" for="shelfSearchInput">
+              <span class="shelf-search-label">Search</span>
+              <input id="shelfSearchInput" type="search" placeholder="Title, author, tag">
+            </label>
+            <div class="shelf-filters">
+              <button class="chip active">All</button>
+              <button class="chip">Finished</button>
+              <button class="chip">Reading</button>
+              <button class="chip">To Read</button>
+            </div>
+          </div>
+          <div class="shelf-stack" id="shelfStack"></div>
+        </div>
+        <aside class="shelf-preview-panel" id="shelfPreviewPanel">
+          <button class="shelf-preview-close" id="shelfPreviewCloseBtn" type="button" aria-label="Close preview">×</button>
+          <div class="shelf-preview-cover" id="shelfPreviewCoverFrame">
+            <img id="shelfPreviewCover" alt="Selected book cover" hidden>
+            <div class="shelf-preview-fallback" id="shelfPreviewFallback"></div>
+          </div>
+          <div class="shelf-preview-meta">
+            <h3 id="shelfPreviewTitle"></h3>
+            <p class="preview-subtitle" id="shelfPreviewSubtitle"></p>
+            <p class="preview-author" id="shelfPreviewAuthor"></p>
+            <div class="preview-stats" id="shelfPreviewStats"></div>
+            <p class="preview-description" id="shelfPreviewDescription"></p>
+            <div class="preview-tags" id="shelfPreviewTags"></div>
+          </div>
+        </aside>
+      </div>
+      <section class="shelf-deep-panel" id="shelfDeepPanel" hidden></section>
+      <section class="shelf-action-panel" id="shelfActionPanel" hidden></section>
+    </section>
+
+  </div>
+  </div><!-- /view-home -->
+
+
+  <!-- ============================================================
+       VIEW: BOOK (single-book detail) — populated in step 2
+       ============================================================ -->
+  <div id="view-book" hidden></div>
+
+  <!-- ============================================================
+       VIEW: MAP (reading map) — populated in step 4
+       ============================================================ -->
+  <div id="view-map" hidden></div>
+
+  <!-- ============================================================
+       VIEW: WEB (concept web)
+       ============================================================ -->
+  <div id="view-web" hidden></div>
+
+  <!-- ============================================================
+       VIEW: YEARBOOK
+       ============================================================ -->
+  <div id="view-yearbook" hidden></div>
+
+
+  <script src="src/core/books.js"></script>
+  <script src="src/core/app.js"></script>
+  <script src="src/preloader/preloader.js"></script>
+  <script src="src/home/home.js"></script>
+  <script src="src/yearbook/yearbook.js"></script>
+  <script src="src/book/book.js"></script>
+  <script src="src/map/map.js"></script>
+  <script src="src/web/web.js"></script>
+  <script type="module" src="src/preloader/hero-glb.js"></script>
+
+</body>
+</html>

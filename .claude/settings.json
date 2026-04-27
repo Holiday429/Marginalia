@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(open -a \"Google Chrome\" \"http://localhost:9013\")",
+      "Bash(open \"http://localhost:9013\")",
+      "Bash(pkill -f \"python3 -m http.server\")",
+      "Bash(node -e \"require\\('puppeteer'\\)\")",
+      "Bash(open \"http://localhost:9016\")",
+      "Bash(pkill -f \"python3 -m http.server 9016\")",
+      "Bash(curl -s \"http://localhost:8765/index.html\")",
+      "Bash(curl -s \"http://localhost:8765/index.html\" -o /dev/null -w \"%{http_code}\\\\n\")"
+    ]
+  }
+}

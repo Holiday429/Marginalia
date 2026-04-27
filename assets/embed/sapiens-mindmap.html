@@ -1,0 +1,515 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.app{font-family:var(--font-sans);padding:0 0 2rem}
+.hero{padding:1.75rem 1.5rem 1.25rem;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:1.25rem}
+.hero-t{font-size:20px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+.hero-s{font-size:13px;color:var(--color-text-secondary)}
+.nav{display:flex;gap:6px;padding:0 1.5rem 1.25rem;flex-wrap:wrap}
+.nb{padding:6px 14px;font-size:13px;border:.5px solid var(--color-border-secondary);border-radius:20px;background:none;color:var(--color-text-secondary);cursor:pointer;transition:all .15s;white-space:nowrap}
+.nb:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.nb.on{background:var(--color-text-primary);color:var(--color-background-primary);border-color:transparent}
+.tab{display:none;padding:0 1.5rem}
+.tab.on{display:block}
+
+.era-lbl{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;margin:1.25rem 0 .4rem;padding-left:2px}
+.era-lbl.col{padding-left:10px}
+.tl-row{display:flex;gap:0;align-items:stretch;margin-bottom:1px;cursor:pointer;border-radius:7px;overflow:hidden;transition:background .12s}
+.tl-row:hover{background:var(--color-background-secondary)}
+.tl-spine{display:flex;flex-direction:column;align-items:center;width:30px;flex-shrink:0;padding:7px 0}
+.tl-ln{width:1.5px;flex:1;min-height:4px}
+.tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tl-body{padding:6px 8px 6px 2px;flex:1}
+.tl-yr{font-size:10px;font-weight:500;color:var(--color-text-tertiary);display:block;margin-bottom:1px}
+.tl-tt{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.tl-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+.tag{font-size:11px;padding:1px 7px;border-radius:4px;border:.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.d-gr{background:#888780}.d-gn{background:#1D9E75}.d-pu{background:#7F77DD}.d-am{background:#BA7517}.d-co{background:#D85A30}.d-bl{background:#378ADD}.d-pk{background:#D4537E}
+.l-gr{background:var(--color-border-tertiary)}.l-pu{background:#AFA9EC}.l-am{background:#EF9F27}.l-co{background:#F0997B}.l-bl{background:#85B7EB}
+
+.rev-tabs{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.rtab{padding:7px 16px;font-size:13px;border:.5px solid var(--color-border-secondary);border-radius:8px;background:none;color:var(--color-text-secondary);cursor:pointer;transition:all .15s;text-align:left;line-height:1.3}
+.rtab:hover{background:var(--color-background-secondary)}
+.rtab.on{color:#fff;border-color:transparent}
+.rtab small{display:block;font-size:10px;opacity:.8;margin-bottom:1px}
+.rev-body{border:.5px solid var(--color-border-tertiary);border-radius:12px;padding:1.25rem}
+.rev-ht{font-size:15px;font-weight:500;margin-bottom:3px}
+.rev-hd{font-size:12px;color:var(--color-text-secondary);margin-bottom:1rem}
+.sec-lbl{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-tertiary);margin:.875rem 0 .4rem}
+.kp{display:flex;gap:8px;padding:5px 0;border-bottom:.5px solid var(--color-border-tertiary);align-items:flex-start}
+.kp:last-of-type{border-bottom:none}
+.kp-d{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.kp-t{font-size:13px;font-weight:500;color:var(--color-text-primary);line-height:1.4}
+.kp-s{font-size:12px;color:var(--color-text-secondary);line-height:1.4;margin-top:1px}
+.ch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:6px}
+.ch-card{border:.5px solid var(--color-border-tertiary);border-radius:8px;padding:7px 9px;cursor:pointer;transition:all .12s}
+.ch-card:hover{background:var(--color-background-secondary);border-color:var(--color-border-secondary)}
+.ch-cn{font-size:10px;color:var(--color-text-tertiary);margin-bottom:2px}
+.ch-ct{font-size:12px;font-weight:500;color:var(--color-text-primary);line-height:1.3}
+.mindmap-wrap{width:100%;border:.5px solid var(--color-border-tertiary);border-radius:9px;overflow:hidden;background:var(--color-background-secondary);margin-bottom:.75rem}
+
+.ch-wrap{display:flex;gap:0}
+.ch-sidebar{width:190px;flex-shrink:0;border-right:.5px solid var(--color-border-tertiary);padding:.5rem 0;max-height:620px;overflow-y:auto}
+.ch-sidebar::-webkit-scrollbar{width:3px}.ch-sidebar::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
+.part-lbl{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:.875rem .75rem .25rem;color:var(--color-text-tertiary)}
+.cbtn{display:flex;align-items:center;gap:7px;width:100%;padding:5px 10px;border:none;background:none;cursor:pointer;text-align:left;transition:background .1s}
+.cbtn:hover{background:var(--color-background-secondary)}
+.cbtn.on{background:var(--color-background-secondary)}
+.cbtn.on .cind{opacity:1}
+.cind{width:3px;height:20px;border-radius:2px;flex-shrink:0;opacity:.2;transition:opacity .15s}
+.cnum{font-size:10px;color:var(--color-text-tertiary);width:18px;flex-shrink:0}
+.cnm{font-size:12px;color:var(--color-text-primary);line-height:1.3}
+.ch-main{flex:1;padding:1.25rem 1.25rem 1rem;overflow-y:auto;max-height:620px;min-width:0}
+.ch-main::-webkit-scrollbar{width:3px}.ch-main::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
+.ch-hdr{margin-bottom:1rem;padding-bottom:.875rem;border-bottom:.5px solid var(--color-border-tertiary)}
+.ch-part-lbl{font-size:11px;color:var(--color-text-tertiary);margin-bottom:3px}
+.ch-title{font-size:17px;font-weight:500;color:var(--color-text-primary);margin-bottom:.4rem}
+.ch-hook{font-size:12px;color:var(--color-text-secondary);line-height:1.6;border-left:2px solid var(--color-border-secondary);padding-left:9px;font-style:italic}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;margin-bottom:.75rem}
+.stat{background:var(--color-background-secondary);border-radius:7px;padding:.5rem .75rem}
+.stat-v{font-size:17px;font-weight:500}
+.stat-l{font-size:11px;color:var(--color-text-secondary);margin-top:1px;line-height:1.3}
+.flow{display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-bottom:.75rem}
+.fn{font-size:11px;padding:4px 8px;border-radius:5px;border:.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary)}
+.fa{font-size:12px;color:var(--color-text-tertiary)}
+.tension{display:grid;grid-template-columns:1fr auto 1fr;gap:7px;align-items:center;margin-bottom:.75rem}
+.t-side{border:.5px solid var(--color-border-tertiary);border-radius:7px;padding:.5rem .75rem}
+.t-title{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+.t-body{font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.t-vs{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-align:center}
+.cmp{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:.75rem}
+.cmp th{padding:5px 8px;font-size:10px;font-weight:500;color:var(--color-text-tertiary);letter-spacing:.05em;text-transform:uppercase;border-bottom:.5px solid var(--color-border-secondary);text-align:left}
+.cmp td{padding:5px 8px;border-bottom:.5px solid var(--color-border-tertiary);color:var(--color-text-primary);line-height:1.4;vertical-align:top}
+.cmp tr:last-child td{border-bottom:none}
+.cmp td:first-child{color:var(--color-text-secondary)}
+.pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:.25rem}
+.pill{font-size:11px;padding:2px 8px;border-radius:20px;border:.5px solid var(--color-border-secondary);color:var(--color-text-secondary);cursor:pointer;transition:all .12s;background:none}
+.pill:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+
+.ideas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.idea{border:.5px solid var(--color-border-tertiary);border-radius:11px;padding:.875rem}
+.idea-hdr{display:flex;align-items:center;gap:9px;margin-bottom:.5rem}
+.idea-ic{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.idea-n{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.idea-b{font-size:13px;color:var(--color-text-secondary);line-height:1.6}
+.idea-q{font-size:12px;color:var(--color-text-primary);border-left:2px solid var(--color-border-secondary);padding-left:8px;margin-top:.5rem;line-height:1.5;font-style:italic}
+
+.hap-q{font-size:14px;font-weight:500;color:var(--color-text-primary);line-height:1.5;padding:.875rem 1rem;border:.5px solid var(--color-border-tertiary);border-radius:11px;margin-bottom:1rem;border-left:3px solid #D4537E}
+.hap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1rem}
+.hap-card{border:.5px solid var(--color-border-tertiary);border-radius:9px;padding:.75rem;text-align:center}
+.hap-ic{font-size:20px;margin-bottom:4px}
+.hap-t{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+.hap-b{font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.layer{display:flex;gap:12px;align-items:flex-start;padding:7px 0;border-bottom:.5px solid var(--color-border-tertiary)}
+.layer:last-child{border-bottom:none}
+.layer-n{font-size:17px;font-weight:500;color:var(--color-text-tertiary);min-width:26px;flex-shrink:0}
+.layer-t{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.layer-b{font-size:12px;color:var(--color-text-secondary);line-height:1.5}
+.verdict{padding:.875rem 1rem;border:.5px solid var(--color-border-tertiary);border-radius:11px;border-left:3px solid #7F77DD;margin-top:1rem}
+.verdict-t{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.375rem}
+.verdict-b{font-size:12px;color:var(--color-text-secondary);line-height:1.6}
+
+.fut-tl{position:relative;padding-left:18px;border-left:1.5px solid var(--color-border-secondary);margin-bottom:1rem}
+.fut-node{margin-bottom:.875rem;position:relative}
+.fut-node::before{content:'';position:absolute;left:-22px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-border-secondary)}
+.fut-nt{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.fut-nb{font-size:12px;color:var(--color-text-secondary);line-height:1.5}
+.path-grid{display:grid;gap:8px;margin-bottom:1rem}
+.path{border:.5px solid var(--color-border-tertiary);border-radius:11px;padding:.875rem}
+.path-num{font-size:18px;font-weight:500;color:var(--color-text-tertiary);margin-bottom:3px}
+.path-t{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.375rem}
+.path-badge{font-size:10px;padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:.375rem}
+.path-pts{list-style:none}
+.path-pts li{font-size:12px;color:var(--color-text-secondary);padding:2px 0;display:flex;gap:5px;line-height:1.4}
+.pt-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.warn{padding:.875rem 1rem;border:.5px solid var(--color-border-tertiary);border-radius:11px;border-left:3px solid #D4537E}
+.warn-t{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.375rem}
+.warn-b{font-size:12px;color:var(--color-text-secondary);line-height:1.6}
+</style>
+
+<div class="app">
+<div class="hero">
+  <div class="hero-t">人类简史：从动物到上帝</div>
+  <div class="hero-s">尤瓦尔·赫拉利 著 &nbsp;·&nbsp; 四大革命 &nbsp;·&nbsp; 20章 &nbsp;·&nbsp; 交互式知识图谱</div>
+</div>
+<div class="nav">
+  <button class="nb on" onclick="showTab('timeline',this)">时间轴</button>
+  <button class="nb" onclick="showTab('revs',this)">四大革命</button>
+  <button class="nb" onclick="showTab('chapters',this)">章节详情</button>
+  <button class="nb" onclick="showTab('ideas',this)">核心论点</button>
+  <button class="nb" onclick="showTab('hap',this)">幸福之问</button>
+  <button class="nb" onclick="showTab('future',this)">智人末日</button>
+</div>
+
+<!-- TIMELINE -->
+<div class="tab on" id="t-timeline">
+<div class="era-lbl" style="color:#888780">宇宙与生命</div>
+<div class="tl-row" onclick="ask('大爆炸与宇宙诞生')"><div class="tl-spine"><div class="tl-ln l-gr"></div><div class="tl-dot d-gr"></div><div class="tl-ln l-gr"></div></div><div class="tl-body"><span class="tl-yr">135亿年前</span><div class="tl-tt">大爆炸，宇宙诞生</div><div class="tl-tags"><span class="tag">物质·能量·时间·空间同时出现</span><span class="tag">物理学起点</span></div></div></div>
+<div class="tl-row" onclick="ask('地球生命起源')"><div class="tl-spine"><div class="tl-ln l-gr"></div><div class="tl-dot d-gn"></div><div class="tl-ln l-gr"></div></div><div class="tl-body"><span class="tl-yr">38亿年前</span><div class="tl-tt">地球出现有机体</div><div class="tl-tags"><span class="tag">生物学诞生</span><span class="tag">自然选择开始运作</span></div></div></div>
+<div class="era-lbl" style="color:#888780">人属史前</div>
+<div class="tl-row" onclick="ask('250万年前早期人类')"><div class="tl-spine"><div class="tl-ln l-gr"></div><div class="tl-dot d-gr"></div><div class="tl-ln l-gr"></div></div><div class="tl-body"><span class="tl-yr">250万年前</span><div class="tl-tt">早期人属出现于东非</div><div class="tl-tags"><span class="tag">直立人·匠人·鲁道夫人</span><span class="tag">多种人类共存</span></div></div></div>
+<div class="tl-row" onclick="ask('人类用火的意义')"><div class="tl-spine"><div class="tl-ln l-gr"></div><div class="tl-dot d-gr"></div><div class="tl-ln l-gr"></div></div><div class="tl-body"><span class="tl-yr">80万年前</span><div class="tl-tt">人类开始用火</div><div class="tl-tags"><span class="tag">烹饪→肠道缩短→脑容量增大</span><span class="tag">跃升食物链顶端</span></div></div></div>
+<div class="tl-row" onclick="ask('尼安德特人与智人')"><div class="tl-spine"><div class="tl-ln l-gr"></div><div class="tl-dot d-gr"></div><div class="tl-ln l-gr"></div></div><div class="tl-body"><span class="tl-yr">50万～20万年前</span><div class="tl-tt">尼安德特人兴起，智人出现</div><div class="tl-tags"><span class="tag">尼安德特人脑容量超过智人</span><span class="tag">曾击退智人第一次北进</span></div></div></div>
+<div class="era-lbl col" style="color:#534AB7;border-left:2px solid #7F77DD">第一部分 · 认知革命（7万年前）</div>
+<div class="tl-row" onclick="ask('认知革命核心突破')"><div class="tl-spine"><div class="tl-ln l-pu"></div><div class="tl-dot d-pu"></div><div class="tl-ln l-pu"></div></div><div class="tl-body"><span class="tl-yr">7万年前</span><div class="tl-tt">认知革命——虚构语言出现</div><div class="tl-tags"><span class="tag">偶然基因突变</span><span class="tag">能谈论不存在的事物</span><span class="tag">陌生人大规模合作</span></div></div></div>
+<div class="tl-row" onclick="ask('施泰德狮人意义')"><div class="tl-spine"><div class="tl-ln l-pu"></div><div class="tl-dot d-pu"></div><div class="tl-ln l-pu"></div></div><div class="tl-body"><span class="tl-yr">3.2万年前</span><div class="tl-tt">施泰德"狮人"象牙雕像</div><div class="tl-tags"><span class="tag">最早可确认艺术品</span><span class="tag">宗教信仰出现</span></div></div></div>
+<div class="tl-row" onclick="ask('智人扩张与尼安德特人灭绝')"><div class="tl-spine"><div class="tl-ln l-pu"></div><div class="tl-dot d-pu"></div><div class="tl-ln l-pu"></div></div><div class="tl-body"><span class="tl-yr">4.5万～1.6万年前</span><div class="tl-tt">智人扩张至全球，尼安德特人灭绝</div><div class="tl-tags"><span class="tag">澳洲90%大型动物灭绝</span><span class="tag">美洲大型动物随后灭绝</span></div></div></div>
+<div class="era-lbl col" style="color:#854F0B;border-left:2px solid #BA7517">第二部分 · 农业革命（1.2万年前）</div>
+<div class="tl-row" onclick="ask('农业革命为何是史上最大骗局')"><div class="tl-spine"><div class="tl-ln l-am"></div><div class="tl-dot d-am"></div><div class="tl-ln l-am"></div></div><div class="tl-body"><span class="tl-yr">前9500～8500年</span><div class="tl-tt">农业在多地独立诞生</div><div class="tl-tags"><span class="tag">中东·中国·中美洲·非洲独立发展</span></div></div></div>
+<div class="tl-row" onclick="ask('哥贝克力石阵说明了什么')"><div class="tl-spine"><div class="tl-ln l-am"></div><div class="tl-dot d-am"></div><div class="tl-ln l-am"></div></div><div class="tl-body"><span class="tl-yr">前9000年</span><div class="tl-tt">哥贝克力石阵建造</div><div class="tl-tags"><span class="tag">农业前已有大型宗教建筑</span><span class="tag">宗教可能先于农业</span></div></div></div>
+<div class="tl-row" onclick="ask('早期城市帝国与文字')"><div class="tl-spine"><div class="tl-ln l-am"></div><div class="tl-dot d-am"></div><div class="tl-ln l-am"></div></div><div class="tl-body"><span class="tl-yr">前5000～1776年</span><div class="tl-tt">城市·帝国·文字·汉谟拉比法典</div><div class="tl-tags"><span class="tag">想象的秩序支撑大规模合作</span><span class="tag">文字=账目，不是诗歌</span></div></div></div>
+<div class="era-lbl col" style="color:#993C1D;border-left:2px solid #D85A30">第三部分 · 人类融合统一（公元前后）</div>
+<div class="tl-row" onclick="ask('铸币金钱体系')"><div class="tl-spine"><div class="tl-ln l-co"></div><div class="tl-dot d-co"></div><div class="tl-ln l-co"></div></div><div class="tl-body"><span class="tl-yr">前600年</span><div class="tl-tt">铸币普及，金钱体系成型</div><div class="tl-tags"><span class="tag">最普世的信念体系</span></div></div></div>
+<div class="tl-row" onclick="ask('波斯罗马帝国与世界宗教')"><div class="tl-spine"><div class="tl-ln l-co"></div><div class="tl-dot d-co"></div><div class="tl-ln l-co"></div></div><div class="tl-body"><span class="tl-yr">前550年～公元700年</span><div class="tl-tt">波斯·罗马·佛教·基督教·伊斯兰扩张</div><div class="tl-tags"><span class="tag">普世帝国+普世宗教=统一人类</span></div></div></div>
+<div class="tl-row" onclick="ask('蒙古帝国的历史意义')"><div class="tl-spine"><div class="tl-ln l-co"></div><div class="tl-dot d-co"></div><div class="tl-ln l-co"></div></div><div class="tl-body"><span class="tl-yr">1206～1368年</span><div class="tl-tt">蒙古帝国——历史最大陆上帝国</div><div class="tl-tags"><span class="tag">欧亚贸易网络打通</span><span class="tag">撒马尔罕成全球交流枢纽</span></div></div></div>
+<div class="era-lbl col" style="color:#185FA5;border-left:2px solid #378ADD">第四部分 · 科学革命（500年前至今）</div>
+<div class="tl-row" onclick="ask('1492年地图空白的意义')"><div class="tl-spine"><div class="tl-ln l-bl"></div><div class="tl-dot d-bl"></div><div class="tl-ln l-bl"></div></div><div class="tl-body"><span class="tl-yr">1492年</span><div class="tl-tt">哥伦布航行，地图出现空白</div><div class="tl-tags"><span class="tag">征服心态+科学=殖民扩张</span></div></div></div>
+<div class="tl-row" onclick="ask('科学革命核心与资本主义')"><div class="tl-spine"><div class="tl-ln l-bl"></div><div class="tl-dot d-bl"></div><div class="tl-ln l-bl"></div></div><div class="tl-body"><span class="tl-yr">16～18世纪</span><div class="tl-tt">科学革命·资本主义·库克远征</div><div class="tl-tags"><span class="tag">承认无知·信用体系·科学即征服工具</span></div></div></div>
+<div class="tl-row" onclick="ask('工业革命与蒸汽机')"><div class="tl-spine"><div class="tl-ln l-bl"></div><div class="tl-dot d-bl"></div><div class="tl-ln l-bl"></div></div><div class="tl-body"><span class="tl-yr">1700～1850年</span><div class="tl-tt">工业革命·蒸汽机·时刻表</div><div class="tl-tags"><span class="tag">热能→动能</span><span class="tag">1847年英国铁路统一时区</span></div></div></div>
+<div class="tl-row" onclick="ask('1945年原子弹与核子和平')"><div class="tl-spine"><div class="tl-ln l-bl"></div><div class="tl-dot d-bl"></div><div class="tl-ln l-bl"></div></div><div class="tl-body"><span class="tl-yr">1945年～今</span><div class="tl-tt">原子弹·核子和平·全球化</div><div class="tl-tags"><span class="tag">人类首次有能力终结自身</span><span class="tag">国际战争近乎消失</span></div></div></div>
+<div class="tl-row" onclick="ask('21世纪智人超越生物学界限')"><div class="tl-spine"><div class="tl-ln l-bl"></div><div class="tl-dot d-pk"></div><div class="tl-ln l-bl"></div></div><div class="tl-body"><span class="tl-yr">21世纪</span><div class="tl-tt">智人超越生物学界限</div><div class="tl-tags"><span class="tag">生物工程·仿生工程·人工智能</span><span class="tag">自然选择→智能设计</span></div></div></div>
+</div>
+
+<!-- REVOLUTIONS -->
+<div class="tab" id="t-revs">
+<div class="rev-tabs">
+  <button class="rtab on" id="rtab-cog" onclick="selRev('cog',this)"><small>第一部分</small>认知革命</button>
+  <button class="rtab" id="rtab-agri" onclick="selRev('agri',this)"><small>第二部分</small>农业革命</button>
+  <button class="rtab" id="rtab-uni" onclick="selRev('uni',this)"><small>第三部分</small>人类融合统一</button>
+  <button class="rtab" id="rtab-sci" onclick="selRev('sci',this)"><small>第四部分</small>科学革命</button>
+</div>
+<div class="rev-body" id="rev-body"></div>
+</div>
+
+<!-- CHAPTERS -->
+<div class="tab" id="t-chapters">
+<div class="ch-wrap">
+<div class="ch-sidebar">
+  <div class="part-lbl" style="color:#534AB7">认知革命</div>
+  <button class="cbtn" onclick="showCh(0)"><div class="cind" style="background:#7F77DD"></div><div class="cnum">01</div><div class="cnm">没什么特别的动物</div></button>
+  <button class="cbtn" onclick="showCh(1)"><div class="cind" style="background:#7F77DD"></div><div class="cnum">02</div><div class="cnm">知善恶树</div></button>
+  <button class="cbtn" onclick="showCh(2)"><div class="cind" style="background:#7F77DD"></div><div class="cnum">03</div><div class="cnm">亚当和夏娃的一天</div></button>
+  <button class="cbtn" onclick="showCh(3)"><div class="cind" style="background:#7F77DD"></div><div class="cnum">04</div><div class="cnm">毁天灭地的人类洪水</div></button>
+  <div class="part-lbl" style="color:#854F0B">农业革命</div>
+  <button class="cbtn" onclick="showCh(4)"><div class="cind" style="background:#BA7517"></div><div class="cnum">05</div><div class="cnm">史上最大骗局</div></button>
+  <button class="cbtn" onclick="showCh(5)"><div class="cind" style="background:#BA7517"></div><div class="cnum">06</div><div class="cnm">盖起金字塔</div></button>
+  <button class="cbtn" onclick="showCh(6)"><div class="cind" style="background:#BA7517"></div><div class="cnum">07</div><div class="cnm">记忆过载</div></button>
+  <button class="cbtn" onclick="showCh(7)"><div class="cind" style="background:#BA7517"></div><div class="cnum">08</div><div class="cnm">历史从无正义</div></button>
+  <div class="part-lbl" style="color:#993C1D">融合统一</div>
+  <button class="cbtn" onclick="showCh(8)"><div class="cind" style="background:#D85A30"></div><div class="cnum">09</div><div class="cnm">历史的方向</div></button>
+  <button class="cbtn" onclick="showCh(9)"><div class="cind" style="background:#D85A30"></div><div class="cnum">10</div><div class="cnm">金钱的味道</div></button>
+  <button class="cbtn" onclick="showCh(10)"><div class="cind" style="background:#D85A30"></div><div class="cnum">11</div><div class="cnm">帝国的愿景</div></button>
+  <button class="cbtn" onclick="showCh(11)"><div class="cind" style="background:#D85A30"></div><div class="cnum">12</div><div class="cnm">宗教的法则</div></button>
+  <button class="cbtn" onclick="showCh(12)"><div class="cind" style="background:#D85A30"></div><div class="cnum">13</div><div class="cnm">成功的秘密</div></button>
+  <div class="part-lbl" style="color:#185FA5">科学革命</div>
+  <button class="cbtn" onclick="showCh(13)"><div class="cind" style="background:#378ADD"></div><div class="cnum">14</div><div class="cnm">发现自己的无知</div></button>
+  <button class="cbtn" onclick="showCh(14)"><div class="cind" style="background:#378ADD"></div><div class="cnum">15</div><div class="cnm">科学与帝国的联姻</div></button>
+  <button class="cbtn" onclick="showCh(15)"><div class="cind" style="background:#378ADD"></div><div class="cnum">16</div><div class="cnm">资本主义教条</div></button>
+  <button class="cbtn" onclick="showCh(16)"><div class="cind" style="background:#378ADD"></div><div class="cnum">17</div><div class="cnm">工业的巨轮</div></button>
+  <button class="cbtn" onclick="showCh(17)"><div class="cind" style="background:#378ADD"></div><div class="cnum">18</div><div class="cnm">一场永远的革命</div></button>
+  <button class="cbtn" onclick="showCh(18)"><div class="cind" style="background:#D4537E"></div><div class="cnum">19</div><div class="cnm">幸福快乐的日子？</div></button>
+  <button class="cbtn" onclick="showCh(19)"><div class="cind" style="background:#D4537E"></div><div class="cnum">20</div><div class="cnm">智人末日</div></button>
+</div>
+<div class="ch-main" id="ch-main"><div style="color:var(--color-text-tertiary);font-size:13px;padding:2rem;text-align:center">← 点击左侧章节</div></div>
+</div>
+</div>
+
+<!-- IDEAS -->
+<div class="tab" id="t-ideas">
+<div class="ideas">
+  <div class="idea"><div class="idea-hdr"><div class="idea-ic" style="background:#EEEDFE">🧠</div><div class="idea-n">虚构的力量</div></div><div class="idea-b">智人统治地球的秘密：能够相信并传播根本不存在的事物。神灵、国家、人权、金钱——都是集体虚构，因为共同相信，它们拥有无比强大的力量。</div><div class="idea-q">尼安德特人无法相信"我们都是上帝的儿女"。而我们可以。</div></div>
+  <div class="idea"><div class="idea-hdr"><div class="idea-ic" style="background:#FAEEDA">🌾</div><div class="idea-n">农业是一场骗局</div></div><div class="idea-b">农业让农民更辛苦、食物更单一、疾病更多。真正的赢家是小麦——通过驯化人类，让自己成为地球上分布最广的植物。</div><div class="idea-q">小麦用"奢侈陷阱"驯化了智人。</div></div>
+  <div class="idea"><div class="idea-hdr"><div class="idea-ic" style="background:#FAECE7">⚖️</div><div class="idea-n">想象的秩序</div></div><div class="idea-b">汉谟拉比法典与《独立宣言》同样是虚构，但数百万人共同相信，就成了比物理现实更难撼动的力量。没有人能单独逃脱——因为逃脱本身需要另一套虚构。</div><div class="idea-q">神圣的秩序不是在自然界被发现的，而是在人类心中被创造的。</div></div>
+  <div class="idea"><div class="idea-hdr"><div class="idea-ic" style="background:#E6F1FB">🔭</div><div class="idea-n">无知的革命</div></div><div class="idea-b">科学革命的突破是：人类第一次承认"我不知道"，不再从圣典寻找答案。承认无知本身，是整个现代世界的真正起点。</div><div class="idea-q">科学革命不是一个新答案，而是一个新问题：我们真的知道吗？</div></div>
+  <div class="idea"><div class="idea-hdr"><div class="idea-ic" style="background:#EAF3DE">💰</div><div class="idea-n">金钱：最成功的故事</div></div><div class="idea-b">基督徒与穆斯林互相仇杀，却接受对方的硬币。金钱是人类最成功的集体虚构——不需要信任对方，只需要共同相信同一套体系。</div><div class="idea-q">金钱把一切变成可以互换的量——是人类文明最普世的语言。</div></div>
+  <div class="idea"><div class="idea-hdr"><div class="idea-ic" style="background:#FBEAF0">🔄</div><div class="idea-n">历史的方向</div></div><div class="idea-b">历史有一个隐约的方向：从分散到融合，从多元到单一。金钱、帝国、宗教是三大统一力量。但这个方向不意味着进步——权力增加不等于幸福增加。</div><div class="idea-q">历史朝向统一的方向，但这并不意味着更好——只是更大。</div></div>
+</div>
+</div>
+
+<!-- HAPPINESS -->
+<div class="tab" id="t-hap">
+<div class="hap-q">所有革命和进步，真的让人类更快乐了吗？<br>雪维洞穴3万年前那个把手印留在岩壁上的人，和阿姆斯特朗在月球留下脚印的人——谁更快乐？</div>
+<div class="hap-grid">
+  <div class="hap-card"><div class="hap-ic">📈</div><div class="hap-t">进步论</div><div class="hap-b">能力↑ = 幸福↑<br>历史是不断改善的故事</div></div>
+  <div class="hap-card"><div class="hap-ic">🌿</div><div class="hap-t">退步论</div><div class="hap-b">文明 = 远离伊甸园<br>每次发明让我们更不快乐</div></div>
+  <div class="hap-card"><div class="hap-ic">⚗️</div><div class="hap-t">微妙立场</div><div class="hap-b">科学革命后才真正进步<br>但代价是其他物种的苦难</div></div>
+</div>
+<div class="sec-lbl">采集者 vs 农民 vs 现代人</div>
+<div class="tension">
+  <div class="t-side" style="border-top:2px solid #BA7517"><div class="t-title" style="color:#854F0B">农民比采集者更苦</div><div class="t-body">每天工作：3～6h vs 8～12h<br>食物多样性急剧下降<br>传染病大幅增加<br>对未来的焦虑：从无到有</div></div>
+  <div class="t-vs">→</div>
+  <div class="t-side" style="border-top:2px solid #378ADD"><div class="t-title" style="color:#185FA5">现代人有真实进步</div><div class="t-body">儿童死亡率：33% → 5%以下<br>大规模饥荒近乎消失<br>战争死亡率历史最低<br>但：预期提高，满足下降</div></div>
+</div>
+<div class="sec-lbl">幸福的三个层次</div>
+<div class="layer"><div class="layer-n" style="color:#7F77DD">01</div><div><div class="layer-t">主观感受层——适应性重置</div><div class="layer-b">快乐是神经系统的状态。彩票中奖者一年后的幸福感与未中奖者无显著差异。进化将期望值不断重置，满足总是短暂的。</div></div></div>
+<div class="layer"><div class="layer-n" style="color:#1D9E75">02</div><div><div class="layer-t">化学层——血清素与多巴胺</div><div class="layer-b">快乐本质上是血清素、多巴胺、催产素的分泌状态。如果能直接调控这些化学物质，是否找到了幸福的捷径？这是现代精神药物面对的终极伦理问题。</div></div></div>
+<div class="layer"><div class="layer-n" style="color:#D85A30">03</div><div><div class="layer-t">意义层——佛教的答案</div><div class="layer-b">幸福源于不执着于追求幸福本身。当代不快乐，很多来自被虚构故事（消费主义、民族主义）放大的期望。</div></div></div>
+<div class="verdict"><div class="verdict-t">赫拉利的最终立场</div><div class="verdict-b">历史学家从不问幸福问题，但这可能是最重要的问题。如果经济增长不带来幸福，资本主义的核心前提就崩溃了；如果帝国属民比独立公民更幸福，民族自决的意义何在？<br><strong style="color:var(--color-text-primary)">这些问题没有答案，但提问本身就是意义所在。</strong></div></div>
+</div>
+
+<!-- FUTURE -->
+<div class="tab" id="t-future">
+<div class="sec-lbl">智能设计的三个阶段</div>
+<div class="fut-tl">
+  <div class="fut-node"><div class="fut-nt">1万年前——选择育种</div><div class="fut-nb">让最肥的母鸡与最慢的公鸡交配，创造出自然界不存在的鸡。智能设计第一次超越自然选择，但仍受限于已有基因库。</div></div>
+  <div class="fut-node"><div class="fut-nt">1996～2000年——跨物种基因工程</div><div class="fut-nb">老鼠背上长出人耳形状；荧光兔阿巴在黑暗中发出绿光。40亿年来，基因第一次在完全不同的物种之间自由转移。</div></div>
+  <div class="fut-node" style="margin-bottom:0"><div class="fut-nt">今天——CRISPR基因编辑</div><div class="fut-nb">编辑基因如同编辑文字。科学家已能设计抗病毒蚊子，以及可能具有超强认知能力的人类。</div></div>
+</div>
+<div class="sec-lbl">三条通向"智人末日"的路径</div>
+<div class="path-grid">
+  <div class="path" style="border-top:2px solid #1D9E75"><div class="path-num" style="color:#1D9E75">01</div><div class="path-t">生物工程——重写遗传密码</div><span class="path-badge" style="background:#EAF3DE;color:#27500A">荧光兔阿巴 · 基因治疗 · CRISPR</span><ul class="path-pts"><li><span class="pt-dot" style="background:#1D9E75"></span>直接改写DNA，打破40亿年物种边界</li><li><span class="pt-dot" style="background:#1D9E75"></span>最大风险：只有富人能用，制造生物学意义上的"超人"阶级</li></ul></div>
+  <div class="path" style="border-top:2px solid #378ADD"><div class="path-num" style="color:#378ADD">02</div><div class="path-t">仿生工程——人机深度融合</div><span class="path-badge" style="background:#E6F1FB;color:#0C447C">沙利文仿生手臂 · 脑机接口</span><ul class="path-pts"><li><span class="pt-dot" style="background:#378ADD"></span>沙利文用意念控制仿生臂，能感受热冷</li><li><span class="pt-dot" style="background:#378ADD"></span>哲学问题：半机械人还算人类吗？</li></ul></div>
+  <div class="path" style="border-top:2px solid #7F77DD"><div class="path-num" style="color:#7F77DD">03</div><div class="path-t">无机生命——意识的新载体</div><span class="path-badge" style="background:#EEEDFE;color:#3C3489">人工智能 · 奇异点 · 意识上传</span><ul class="path-pts"><li><span class="pt-dot" style="background:#7F77DD"></span>奇异点：AI超越人类智慧后，历史不再是关于人类的故事</li><li><span class="pt-dot" style="background:#7F77DD"></span>意识可被上传复制——"死亡"的定义将彻底改变</li></ul></div>
+</div>
+<div class="warn"><div class="warn-t">后记：变成神的这种动物</div><div class="warn-b">7万年前，智人是非洲角落一种微不足道的动物。今天，我们拥有创造和毁灭一切的神力——但仍然不知道自己想要什么，也不对任何人负责。<br><br><strong style="color:#D4537E">拥有神的能力，但是不负责任、贪得无厌，而且连想要什么都不知道。天下危险，恐怕莫此为甚。</strong></div></div>
+</div>
+</div>
+
+<script>
+const C='#7F77DD',A='#BA7517',U='#D85A30',S='#378ADD',P='#D4537E';
+
+function mkMM(d, col){
+  const {cx, br} = d;
+  const W=680, H=300;
+  const cxPos=W/2, cyPos=H/2;
+  const cw=Math.max(cx.length*13+24, 88), ch=40;
+  const bw=90, bh=30;
+  const lw=100, lh=26;
+  const branchY=[cyPos-56, cyPos-56, cyPos+26, cyPos+26];
+  const bxL=cxPos-160-bw, bxR=cxPos+160;
+  const branchX=[bxL, bxR, bxL, bxR];
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg" style="display:block;padding:12px 0">`;
+  br.forEach((b,i)=>{
+    const bx=branchX[i], by=branchY[i];
+    const bCx=bx+bw/2, bCy=by+bh/2;
+    const isLeft=i===0||i===2;
+    const cEdgeX=isLeft? cxPos-cw/2 : cxPos+cw/2;
+    s+=`<path d="M${cEdgeX} ${cyPos} Q${(cEdgeX+bCx)/2} ${cyPos} ${bCx} ${bCy}" fill="none" stroke="${col}" stroke-width="1" opacity=".4"/>`;
+    b.it.forEach((item,j)=>{
+      const lx=isLeft? bx-lw-12 : bx+bw+12;
+      const spacing=(b.it.length-1)*30;
+      const ly=by+bh/2 - spacing/2 + j*30 - lh/2;
+      const lCy=ly+lh/2;
+      const bEdgeX=isLeft? bx : bx+bw;
+      s+=`<line x1="${bEdgeX}" y1="${bCy}" x2="${lx+(isLeft?lw:0)}" y2="${lCy}" stroke="${col}" stroke-width=".7" opacity=".3"/>`;
+    });
+  });
+  s+=`<rect x="${cxPos-cw/2}" y="${cyPos-ch/2}" width="${cw}" height="${ch}" rx="9" fill="${col}" fill-opacity=".12" stroke="${col}" stroke-width="1"/>`;
+  s+=`<text x="${cxPos}" y="${cyPos}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="${col}" font-family="var(--font-sans)">${cx}</text>`;
+  br.forEach((b,i)=>{
+    const bx=branchX[i], by=branchY[i];
+    const bCy=by+bh/2;
+    const isLeft=i===0||i===2;
+    s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="6" fill="${col}" fill-opacity=".08" stroke="${col}" stroke-width=".7"/>`;
+    s+=`<text x="${bx+bw/2}" y="${bCy}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" fill="${col}" font-family="var(--font-sans)">${b.l}</text>`;
+    const lx=isLeft? bx-lw-12 : bx+bw+12;
+    const spacing=(b.it.length-1)*30;
+    b.it.forEach((item,j)=>{
+      const ly=bCy - spacing/2 + j*30 - lh/2;
+      const label=item.length>11?item.slice(0,11)+'…':item;
+      s+=`<rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="5" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width=".5"/>`;
+      s+=`<text x="${lx+lw/2}" y="${ly+lh/2}" text-anchor="middle" dominant-baseline="central" font-size="11" fill="var(--color-text-secondary)" font-family="var(--font-sans)">${label}</text>`;
+    });
+  });
+  s+=`</svg>`;
+  return s;
+}
+
+const revData={
+  cog:{col:C,title:'认知革命',time:'约7万年前',desc:'一次偶然基因突变，改变大脑连接方式，创造出能传播虚构故事的语言——人类与所有其他动物的根本分野。',
+    mm:{cx:'认知革命',br:[
+      {l:'触发机制',it:['偶然基因突变','大脑连接改变','7万年前爆发']},
+      {l:'虚构语言',it:['谈论不存在的事','传播集体神话','无限组合句子']},
+      {l:'历史证据',it:['施泰德狮人','拉斯科壁画','贸易·宗教出现']},
+      {l:'深远影响',it:['尼安德特人灭绝','智人扩张全球','生态系统崩溃']}
+    ]},
+    kps:[
+      {c:C,t:'虚构语言的突破',s:'青猴能喊叫警告狮子；智人能说"狮子是我们部落的守护神"——后者让人建立宗教、国家、法律、军队'},
+      {c:C,t:'认知失调是文化引擎',s:'每种文化内部都有无法解决的矛盾（骑士精神vs基督教），正是这种张力推动了历史的演化'},
+      {c:C,t:'人类是天生的生态杀手',s:'每抵达一块新大陆，大型动物很快灭绝——不是农业时代才开始，从认知革命起就如此'},
+      {c:C,t:'双重现实的诞生',s:'河流·树木是客观存在；国家·人权·金钱是集体想象，但同样真实甚至更有力量'},
+    ],
+    chs:[{n:'第1章',t:'没什么特别的动物'},{n:'第2章',t:'知善恶树'},{n:'第3章',t:'亚当和夏娃的一天'},{n:'第4章',t:'毁天灭地的人类洪水'}],
+    chIdx:[0,1,2,3]},
+
+  agri:{col:A,title:'农业革命',time:'约1.2万年前',desc:'赫拉利称之为"史上最大骗局"——农业让人口爆增，却让大多数个体更辛苦、更不自由。真正受益的是小麦。',
+    mm:{cx:'农业革命',br:[
+      {l:'驯化地点',it:['中东：小麦·山羊','中国：稻米·猪','中美洲：玉米·豆']},
+      {l:'骗局本质',it:['小麦=2.25亿公顷','农民比采集者苦','奢侈陷阱无法逃']},
+      {l:'新型秩序',it:['想象秩序支撑帝国','文字=账目非诗歌','等级制度固化']},
+      {l:'神圣干预',it:['哥贝克力石阵','宗教先于农业？','神圣动力→定居']}
+    ]},
+    kps:[
+      {c:A,t:'小麦驯化了人类，而非相反',s:'农业前小麦几乎不存在，今天覆盖2.25亿公顷。从演化角度，小麦才是成功者'},
+      {c:A,t:'奢侈陷阱：每次改善只增加负担',s:'更多粮食→更多人口→更多工作→无法回头。这是一个无法逃离的恶性循环'},
+      {c:A,t:'想象的秩序支撑了不平等',s:'汉谟拉比法典和《独立宣言》都是虚构，但让数百万人甘心服从，且无法单独挣脱'},
+      {c:A,t:'文字是官僚工具，不是文学',s:'最古老文字=账目；官僚制度比诗歌更早需要文字'},
+    ],
+    chs:[{n:'第5章',t:'史上最大骗局'},{n:'第6章',t:'盖起金字塔'},{n:'第7章',t:'记忆过载'},{n:'第8章',t:'历史从无正义'}],
+    chIdx:[4,5,6,7]},
+
+  uni:{col:U,title:'人类融合统一',time:'公元前后数百年',desc:'金钱、帝国、宗教——三种力量将无数相互隔绝的人类群体整合为一个全球体系，过程充满暴力、不公正和偶然性。',
+    mm:{cx:'融合统一',br:[
+      {l:'金钱',it:['普世信念体系','去道德化交换','信用=未来虚构']},
+      {l:'帝国',it:['摧毁者与创造者','努曼西亚悖论','文化遗产超帝国']},
+      {l:'宗教',it:['超人类合法性','普世性+推广性','从泛神→一神论']},
+      {l:'历史偶然',it:['马后炮谬误','二级混沌系统','最不可能的成真']}
+    ]},
+    kps:[
+      {c:U,t:'金钱：最成功的普世信念体系',s:'基督徒与穆斯林互相仇杀，但接受对方的硬币。金钱没有气味，不分宗教'},
+      {c:U,t:'帝国：毁灭者与创造者',s:'努曼西亚被罗马摧毁，但今天西班牙人用拉丁语后裔的语言纪念努曼西亚——帝国遗产超越帝国本身'},
+      {c:U,t:'宗教：给脆弱秩序超人类合法性',s:'一旦法律来自神，就不容动摇。从泛神论到一神论，让宗教成为跨文化的统一工具'},
+      {c:U,t:'历史没有剧本：偶然决定一切',s:'如果君士坦丁没有选择基督教，如果拜占庭挡住伊斯兰第一波进攻，今天的世界会完全不同'},
+    ],
+    chs:[{n:'第9章',t:'历史的方向'},{n:'第10章',t:'金钱的味道'},{n:'第11章',t:'帝国的愿景'},{n:'第12章',t:'宗教的法则'},{n:'第13章',t:'成功的秘密'}],
+    chIdx:[8,9,10,11,12]},
+
+  sci:{col:S,title:'科学革命',time:'约500年前至今',desc:'人类第一次承认自己的无知，用观察、数学和实验探索世界。500年内，全球人口从5亿增至70亿，生产增长240倍。',
+    mm:{cx:'科学革命',br:[
+      {l:'核心突破',it:['承认无知出发','观察·数学·实验','知识=技术=权力']},
+      {l:'科学与帝国',it:['地图留空白','库克远征联姻','科学即征服工具']},
+      {l:'资本主义',it:['信用=未来虚构','银行1元放贷10','东印度公司模式']},
+      {l:'工业革命',it:['热能→动能突破','消费主义诞生','时间被商品化']}
+    ]},
+    kps:[
+      {c:S,t:'"我不知道"是真正的突破',s:'之前所有知识体系都声称掌握真理；科学第一次把"不知道"变成力量'},
+      {c:S,t:'科学与帝国的不可分割',s:'库克远征：皇家学会出资+皇家海军出船——科学知识即政治权力，地图即征服'},
+      {c:S,t:'资本主义=对未来的虚构',s:'"会变大的饼"：银行只有1元可放贷10元，整个现代经济是关于未来的集体信念'},
+      {c:S,t:'工业革命改变了时间本身',s:'1847年英国铁路统一时区——时间第一次从自然节律变成可商品化的资源'},
+    ],
+    chs:[{n:'第14章',t:'发现自己的无知'},{n:'第15章',t:'科学与帝国的联姻'},{n:'第16章',t:'资本主义教条'},{n:'第17章',t:'工业的巨轮'},{n:'第18章',t:'一场永远的革命'},{n:'第19章',t:'幸福快乐的日子'},{n:'第20章',t:'智人末日'}],
+    chIdx:[13,14,15,16,17,18,19]},
+};
+
+const chData=[
+  {part:'认知革命',col:C,title:'没什么特别的动物',hook:'135亿年到250万年前智人出现——影响力不亚于萤火虫。是什么让后来的人类与众不同？',
+   kps:[{c:C,t:'人类曾是食物链中层',s:'250万年来靠捡食残羹为生，狮子和老鹰才是真正的顶级掠食者'},{c:C,t:'大脑的真实代价',s:'脑重占体重2%但消耗25%热量；骨盆缩小→早产→漫长照顾期→社会性加强'},{c:C,t:'多种人类曾共存',s:'过去同时存在直立人、尼安德特人、丹尼索瓦人等多个物种，今天只剩智人——这是历史最大秘密'}],
+   concepts:['Homo sapiens','人属','大脑耗能','早产策略']},
+  {part:'认知革命',col:C,title:'知善恶树',hook:'为什么7万年前智人第一次北进失败，第二次却征服了世界？',
+   kps:[{c:C,t:'虚构语言是关键',s:'青猴喊"有狮子"；智人说"狮子是我们守护神"——后者能建立宗教、国家、军队'},{c:C,t:'第一次失败，第二次成功',s:'10万年前首次北进被尼安德特人击退；7万年前认知革命后第二次，尼安德特人最终灭绝'},{c:C,t:'双重现实诞生',s:'河流·树木是客观现实；神灵·国家·金钱是主观虚构，但智人第一次能在两个层面同时生活'}],
+   concepts:['认知革命','虚构语言','双重现实','施泰德狮人']},
+  {part:'认知革命',col:C,title:'亚当和夏娃的一天',hook:'狩猎采集者每天工作3～6小时，食物多元，社会平等——他们真的比现代人过得差吗？',
+   cmp:[['','采集者','现代农业工人'],['每日工作时长','3～6小时','8～12小时'],['饮食多样性','上百种动植物','少数主粮'],['传染病风险','低（小规模流动）','高（聚居·牲畜）'],['未来忧虑','极少','季节·税收·债务']],
+   kps:[{c:C,t:'我们仍有采集者的大脑',s:'肥胖症根本原因：遇到甜食必须大吃的本能在今天食物丰富环境中成了灾难'},{c:C,t:'远古公社vs一夫一妻制之争',s:'有证据支持远古共同养育，也有证据支持核心家庭——至今无定论'}],
+   concepts:['演化心理学','贪吃基因','远古公社']},
+  {part:'认知革命',col:C,title:'毁天灭地的人类洪水',hook:'智人每次到达新大陆，大型动物就大规模灭绝。这是巧合，还是人类本性？',
+   stats:[{v:'90%',l:'澳洲大型动物灭绝'},{v:'4.5万年前',l:'智人抵达澳大利亚'},{v:'2000年',l:'进入美洲后灭绝用时'}],
+   flow:['认知革命','→','航海能力','→','抵达新大陆','→','大型动物灭绝','→','生态系统重塑'],
+   kps:[{c:C,t:'澳大利亚：第一场浩劫',s:'巨型袋鼠(200kg)、袋狮、双门齿兽(2.5吨)——在智人到来后数千年内全部消失'},{c:C,t:'岛屿效应验证结论',s:'马达加斯加、新西兰、夏威夷——每当智人首次登岛，当地独特动物几乎无一幸免'}],
+   concepts:['澳洲灭绝','岛屿效应','生态杀手']},
+  {part:'农业革命',col:A,title:'史上最大骗局',hook:'农业让人类更辛苦、更单一、更容易生病。真正的赢家是小麦。',
+   kps:[{c:A,t:'小麦驯化了人类',s:'1万年前小麦只在中东一小块地方。今天占地2.25亿公顷——从演化角度，小麦才是成功者'},{c:A,t:'奢侈陷阱：无法回头',s:'农业提供更多粮食→人口增加→更努力耕作→无法回到采集。每一步改善都成了更深的陷阱'},{c:A,t:'哥贝克力石阵的启示',s:'前9000年，农业之前就有巨型宗教建筑群。也许是宗教需求驱动了定居'}],
+   concepts:['奢侈陷阱','驯化','哥贝克力石阵']},
+  {part:'农业革命',col:A,title:'盖起金字塔',hook:'金字塔靠什么建起来的？不是鞭子，而是一个故事——"这是神的旨意"。',
+   cmp:[['','采集者时代','农业时代'],['活动范围','几十到几百平方公里','一小片田地'],['对未来规划','很少','几年甚至几十年'],['精神压力','低','高（饥荒·税收）'],['想象秩序复杂度','简单（部落故事）','复杂（法典·帝国）']],
+   kps:[{c:A,t:'想象的秩序支撑一切',s:'汉谟拉比三级社会——神授秩序让被压迫者接受现实，让统治者合法统治'},{c:A,t:'未来意识的诞生',s:'采集者活在当下；农民第一次为未来焦虑——明年收成、储粮、税收。焦虑是农业的副产品'}],
+   concepts:['想象的秩序','汉谟拉比法典','未来意识']},
+  {part:'农业革命',col:A,title:'记忆过载',hook:'大脑是为社交关系进化的，不擅长处理数字。文字如何解决了这个问题？',
+   flow:['帝国扩张','→','信息爆炸','→','人脑的三大局限','→','文字发明','→','官僚制度'],
+   kps:[{c:A,t:'大脑的三个局限',s:'①容量有限 ②随人死亡 ③只善于社交/空间信息——文字补足这些局限'},{c:A,t:'最古老的文字是账目',s:'乌鲁克泥板（前3400年）写的是"库辛收到37桶大麦"——第一批书写者是会计，不是诗人'}],
+   concepts:['乌鲁克泥板','结绳记事','官僚制度']},
+  {part:'农业革命',col:A,title:'历史从无正义',hook:'种族歧视、性别不平等、阶级制度——它们从哪里来？为什么这么难以消除？',
+   tension:{l:{title:'恶性循环',body:'歧视→贫困→再"证明"\n歧视合理性→永续歧视'},r:{title:'文化矛盾推动变化',body:'内部矛盾才是文化引擎\n骑士精神vs基督教→十字军'}},
+   kps:[{c:A,t:'所有阶级都被"自然化"',s:'奴隶制是自然秩序（亚里士多德）；种族差异是生物事实——每种都声称不是人造的'},{c:A,t:'认知失调不是缺陷，是特性',s:'人类能同时持有矛盾信念，才能生活在复杂社会里'}],
+   concepts:['恶性循环','认知失调','父权制']},
+  {part:'融合统一',col:U,title:'历史的方向',hook:'历史有方向吗？文化的内部矛盾如何驱动历史不断变迁？',
+   kps:[{c:U,t:'文化内部矛盾是引擎',s:'中世纪贵族同时信基督教又信骑士精神——正是这种张力催生了十字军、骑士修会'},{c:U,t:'自由vs平等：1789年至今的核心矛盾',s:'民主党要平等；共和党要自由。这个矛盾推动着政治永远演化'},{c:U,t:'历史大方向：从多到少，从小到大',s:'从间谍卫星的高度看：几千年来文化数量减少，每个文化规模扩大'}],
+   concepts:['认知失调','历史方向','自由vs平等','全球化']},
+  {part:'融合统一',col:U,title:'金钱的味道',hook:'"我们有种心病，只有金子能医。"金钱为什么是人类最伟大的发明？',
+   flow:['部落（人情）','→','以物易物（局限）','→','货币出现','→','全球金融','→','信用/未来的钱'],
+   kps:[{c:U,t:'以物易物的根本局限',s:'100种商品就需要4950个汇率；双重需求巧合极难达成'},{c:U,t:'金钱=最成功的集体信念',s:'基督徒和穆斯林互相仇杀300年，却接受对方的硬币'},{c:U,t:'金钱的"去道德化"',s:'金钱把医疗、爱情、道德都转化成可交换的量'}],
+   concepts:['以物易物困境','货币起源','集体信念']},
+  {part:'融合统一',col:U,title:'帝国的愿景',hook:'努曼西亚人用生命抵抗罗马，今天西班牙人用罗马语言纪念他们——谁才是真正的胜利者？',
+   tension:{l:{title:'帝国批评者',body:'军事征服·文化破坏\n被征服民族受苦'},r:{title:'帝国辩护者',body:'带来基础设施·法律\n文化遗产超越帝国本身'}},
+   kps:[{c:U,t:'努曼西亚悖论',s:'西班牙人用西班牙语（拉丁语后裔）纪念抵抗罗马的英雄，用罗马法律维护权利'},{c:U,t:'帝国遗产超越帝国本身',s:'古罗马崩溃1500年后，欧洲人仍说拉丁语后裔的语言，用罗马法律，信奉罗马推广的基督教'}],
+   concepts:['帝国定义','努曼西亚','文化同化']},
+  {part:'融合统一',col:U,title:'宗教的法则',hook:'宗教不只是信仰——它是给脆弱社会秩序提供超人类合法性的系统。',
+   kps:[{c:U,t:'宗教两要素',s:'①超人类秩序（非人制定）②据此产生约束力的规范。足球有规则但FIFA可修改——不算宗教'},{c:U,t:'农业革命→宗教革命',s:'采集者认为动植物与人平等；农民拥有控制动植物。宗教随之演变，动物变成人类财产'},{c:U,t:'世俗宗教',s:'自由主义、共产主义、民族主义都具备宗教特征——有超人类秩序，有约束性规范，有圣典'}],
+   concepts:['宗教定义','泛神论','一神论','世俗宗教']},
+  {part:'融合统一',col:U,title:'成功的秘密',hook:'为什么是基督教而非祆教？历史没有剧本，只有偶然。',
+   cmp:[['事件','当时评估','实际结果'],['基督教成罗马国教','极低（异端教派）','成真（313年）'],['布尔什维克执政','极低（激进小党）','成真（1917年）'],['伊斯兰征服中东','极低（沙漠部落）','成真（7世纪）']],
+   kps:[{c:U,t:'马后炮谬误',s:'事后看来"不可避免"的事，在当时几乎没人预见'},{c:U,t:'二级混沌系统',s:'历史是"会受预测影响而改变"的系统——一旦预测发布，人们改变行为，使预测失效'}],
+   concepts:['马后炮谬误','二级混沌','历史偶然性']},
+  {part:'科学革命',col:S,title:'发现自己的无知',hook:'公元1000年睡去1500年醒来世界没变；1500年睡去今天醒来——是天堂还是地狱？',
+   stats:[{v:'14×',l:'500年人口增长'},{v:'240×',l:'500年经济产出增长'},{v:'115×',l:'能源消耗增长'},{v:'1945',l:'人类获得终结自身能力'}],
+   kps:[{c:S,t:'三大突破性特质',s:'①愿意承认无知 ②以观察和实验为权威（非圣典）③将知识与技术结合'},{c:S,t:'1945年7月16日',s:'原子弹爆炸——人类第一次有能力结束历史进程本身'}],
+   concepts:['科学革命三要素','吉尔伽美什计划','原子弹时刻']},
+  {part:'科学革命',col:S,title:'科学与帝国的联姻',hook:'库克远征队：皇家学会出资，皇家海军出船——科学知识从一开始就是征服的工具。',
+   flow:['地图上的空白','→','派船探索','→','科学+军事侦察','→','声称主权','→','殖民扩张'],
+   kps:[{c:S,t:'地图的空白改变了历史',s:'欧洲地图留有"未知区域"，中国地图把世界画得完整——这个差异决定了谁派船去探索'},{c:S,t:'库克远征的双重遗产',s:'正面：发现坏血病疗法。负面：塔斯马尼亚的征服与灭族'}],
+   concepts:['征服心态','地图的空白','塔斯马尼亚灭族']},
+  {part:'科学革命',col:S,title:'资本主义教条',hook:'银行保险库里只有100万，为什么承包商账户里有1000万？这不是骗局，这是信念。',
+   stats:[{v:'2500亿',l:'1500年全球GDP'},{v:'60万亿',l:'今天全球GDP'},{v:'550',l:'1500年人均GDP(美元)'},{v:'8800',l:'今天人均GDP(美元)'}],
+   flow:['存款100万','→','放贷10倍','→','面包店建成','→','产生利润','→','"会变大的饼"循环'],
+   kps:[{c:S,t:'信用=对未来的集体信念',s:'银行持有1元可放贷10元——整个现代经济的基础是"饼会变大"的信念'},{c:S,t:'资本主义与帝国的共生',s:'东印度公司：第一家股份公司，有军队，有殖民权——资本主义从一开始就与帝国主义共生'}],
+   concepts:['信用体系','东印度公司','创业困境']},
+  {part:'科学革命',col:S,title:'工业的巨轮',hook:'水壶盖子跳了几千年，没人注意到里面的革命。蒸汽机如何打破了太阳能的枷锁？',
+   kps:[{c:S,t:'人类历史由太阳能驱动',s:'历史上所有活动依赖太阳能→植物→肌肉。工业革命第一次让人类用煤炭打破这个循环'},{c:S,t:'消费主义的诞生',s:'工业革命制造了前所未有的产量——必须教育大众消费才能维持增长。"节俭是美德"变成了"消费是义务"'}],
+   concepts:['蒸汽机','能量转换','消费主义']},
+  {part:'科学革命',col:S,title:'一场永远的革命',hook:'工业革命改变的不只是经济，它改变了时间本身。',
+   stats:[{v:'7亿',l:'1700年全球人口'},{v:'70亿',l:'2014年全球人口'},{v:'8万只',l:'今天野生长颈鹿'},{v:'15亿头',l:'今天牛的数量'}],
+   tension:{l:{title:'生态代价',body:'大型野生动物总重<1亿吨\n家畜总重：7亿吨\n生物多样性急剧下降'},r:{title:'人类福祉',body:'人口从7亿增至70亿\n儿童死亡率大幅降低\n战争死亡率历史最低'}},
+   kps:[{c:S,t:'时间被工业化',s:'1847年英国铁路统一时区——"守时"从此成为道德要求'},{c:S,t:'国家与市场填补家族空白',s:'工业革命后，国家照顾老人，市场提供服务，家族功能萎缩'}],
+   concepts:['统一时区','家庭崩溃','核子和平']},
+  {part:'科学革命',col:P,title:'从此过着幸福快乐的日子？',hook:'历史学家研究政治、战争、经济，但从不问最重要的问题：人们快乐吗？',
+   tension:{l:{title:'采集者可能更快乐',body:'工作时间短（3～6h/天）\n食物多元·社群紧密\n无未来焦虑'},r:{title:'现代人也有优势',body:'儿童死亡率从33%降到5%\n饥荒在发达国家消失\n寿命大幅延长'}},
+   kps:[{c:P,t:'幸福研究是历史最大空白',s:'所有政治纲领都声称追求幸福，但没有人系统验证'},{c:P,t:'佛教的答案',s:'幸福源于不执着于追求幸福本身。当代不快乐，很多来自被虚构故事放大的期望'}],
+   concepts:['幸福研究','适应性重置','佛教哲学']},
+  {part:'科学革命',col:P,title:'智人末日',hook:'40亿年的自然选择，正被智能设计取代。这不是科幻，而是今天正在发生的事。',
+   kps:[{c:P,t:'40亿年的转折点',s:'荧光兔阿巴的存在证明：生命可以被设计。这是整个地球生命史上的转折点'},{c:P,t:'最危险的是社会分化',s:'如果只有富人能用基因工程让后代更聪明，将产生生物学意义上的"超人"阶级'},{c:P,t:'后记：变成神的这种动物',s:'拥有神的能力，但不知道要去哪里，也不对任何人负责'}],
+   concepts:['生物工程','仿生工程','奇异点','后人类']},
+];
+
+let currentCh=0;
+
+function showCh(idx){
+  currentCh=idx;
+  document.querySelectorAll('.cbtn').forEach((b,i)=>b.classList.toggle('on',i===idx));
+  const ch=chData[idx];
+  let h=`<div class="ch-hdr"><div class="ch-part-lbl" style="color:${ch.col}">${ch.part}</div><div class="ch-title">${ch.title}</div><div class="ch-hook">${ch.hook}</div></div>`;
+  if(ch.stats){h+=`<div class="sec-lbl">关键数据</div><div class="stats">`;ch.stats.forEach(s=>{h+=`<div class="stat"><div class="stat-v" style="color:${ch.col}">${s.v}</div><div class="stat-l">${s.l}</div></div>`;});h+=`</div>`;}
+  if(ch.flow){h+=`<div class="sec-lbl">逻辑链</div><div class="flow">`;ch.flow.forEach(f=>{h+=f==='→'?`<span class="fa">→</span>`:`<span class="fn">${f}</span>`;});h+=`</div>`;}
+  if(ch.tension){h+=`<div class="sec-lbl">核心张力</div><div class="tension"><div class="t-side"><div class="t-title">${ch.tension.l.title}</div><div class="t-body">${ch.tension.l.body}</div></div><div class="t-vs">VS</div><div class="t-side"><div class="t-title">${ch.tension.r.title}</div><div class="t-body">${ch.tension.r.body}</div></div></div>`;}
+  if(ch.cmp){h+=`<div class="sec-lbl">对比分析</div><table class="cmp"><thead><tr>`;ch.cmp[0].forEach(c=>{h+=`<th>${c}</th>`;});h+=`</tr></thead><tbody>`;ch.cmp.slice(1).forEach(r=>{h+=`<tr>`;r.forEach(c=>{h+=`<td>${c}</td>`;});h+=`</tr>`;});h+=`</tbody></table>`;}
+  h+=`<div class="sec-lbl">核心论点</div>`;
+  ch.kps.forEach(p=>{h+=`<div class="kp"><div class="kp-d" style="background:${p.c}"></div><div><div class="kp-t">${p.t}</div><div class="kp-s">${p.s}</div></div></div>`;});
+  if(ch.concepts){h+=`<div class="sec-lbl">关键概念</div><div class="pills">`;ch.concepts.forEach(k=>{h+=`<span class="pill" onclick="ask('解释《人类简史》中的概念：${k}')">${k} ↗</span>`;});h+=`</div>`;}
+  document.getElementById('ch-main').innerHTML=h;
+  document.getElementById('ch-main').scrollTop=0;
+}
+
+function selRev(key,btn){
+  document.querySelectorAll('.rtab').forEach(b=>{b.classList.remove('on');b.style.background='';b.style.color='';});
+  btn.classList.add('on');btn.style.background=revData[key].col;btn.style.color='#fff';
+  const d=revData[key];
+  let h=`<div class="rev-ht" style="color:${d.col}">${d.title}</div><div class="rev-hd">${d.time} &nbsp;·&nbsp; ${d.desc}</div>`;
+
+  /* ── 思维导图放在核心论点上方 ── */
+  h+=`<div class="sec-lbl">全部分思维导图</div><div class="mindmap-wrap">${mkMM(d.mm, d.col)}</div>`;
+
+  h+=`<div class="sec-lbl">核心论点</div>`;
+  d.kps.forEach(p=>{h+=`<div class="kp"><div class="kp-d" style="background:${p.c}"></div><div><div class="kp-t">${p.t}</div><div class="kp-s">${p.s}</div></div></div>`;});
+  h+=`<div class="sec-lbl">本部分章节</div><div class="ch-grid">`;
+  d.chs.forEach((c,i)=>{h+=`<div class="ch-card" onclick="jumpToChapter(${d.chIdx[i]})"><div class="ch-cn">${c.n}</div><div class="ch-ct">${c.t}</div></div>`;});
+  h+=`</div>`;
+  document.getElementById('rev-body').innerHTML=h;
+}
+
+function jumpToChapter(idx){
+  showTab('chapters',document.querySelectorAll('.nb')[2]);
+  setTimeout(()=>showCh(idx),10);
+}
+
+function showTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('t-'+id).classList.add('on');
+  btn.classList.add('on');
+  if(id==='revs'&&document.getElementById('rev-body').innerHTML.includes('点击'))selRev('cog',document.getElementById('rtab-cog'));
+  if(id==='chapters'&&document.getElementById('ch-main').innerHTML.includes('点击左侧'))showCh(0);
+}
+
+function ask(q){sendPrompt(q);}
+
+selRev('cog',document.getElementById('rtab-cog'));
+</script>

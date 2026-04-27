@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>文化背景系统 — 人类简史 — Marginalia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #f3ede2;
+  --paper:     #faf7f1;
+  --ink:       #151210;
+  --ink-mid:   rgba(21,18,16,0.52);
+  --ink-faint: rgba(21,18,16,0.18);
+  --rule:      rgba(21,18,16,0.1);
+  --accent:    #8b3120;
+  --accent-bg: rgba(139,49,32,0.06);
+  --hl:        rgba(197,148,42,0.28);
+  --hl-line:   #c5941e;
+  --navy:      #1b2e44;
+  --sage:      #3d5a46;
+  --slate:     #3a4a5c;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Fraunces', Georgia, serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+/* ─── MINIMAL NAV ─── */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 64px;
+  border-bottom: 1px solid var(--rule);
+}
+.nav-wordmark {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variation-settings: "opsz" 96;
+  color: var(--ink);
+  text-decoration: none;
+}
+.nav-crumb {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.nav-crumb .sep { opacity: 0.35; }
+
+/* ─── MODULE WRAPPER ─── */
+.module {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 64px 100px;
+}
+
+/* ─── MODULE HEADER ─── */
+.module-header {
+  padding: 72px 0 56px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0;
+}
+.module-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.module-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.module-title {
+  font-size: clamp(36px, 4vw, 54px);
+  font-weight: 300;
+  font-style: italic;
+  letter-spacing: -0.025em;
+  line-height: 0.92;
+  font-variation-settings: "opsz" 144, "SOFT" 30;
+}
+.module-title strong {
+  font-weight: 600;
+  font-style: normal;
+  font-variation-settings: "opsz" 96, "SOFT" 0;
+}
+.module-desc {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  line-height: 1.7;
+  color: var(--ink-mid);
+  max-width: 280px;
+  text-align: right;
+  letter-spacing: 0.02em;
+}
+
+/* ─── LAYER LABELS ─── */
+.layer-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 0 28px;
+}
+.layer-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+  border: 1px solid var(--rule);
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+.layer-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+}
+.layer-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* ═══════════════════════════════════════════════
+   LAYER 1 — BOOK CONTEXT CARD
+═══════════════════════════════════════════════ */
+.ctx-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  overflow: hidden;
+}
+
+.ctx-card-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 40px;
+  align-items: center;
+  padding: 32px 40px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+.ctx-card-header:hover { background: rgba(21,18,16,0.02); }
+
+.ctx-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.ctx-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+  background: rgba(21,18,16,0.05);
+  padding: 5px 11px;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+.ctx-tag.accent-tag {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: rgba(139,49,32,0.15);
+}
+
+.ctx-card-h {
+  font-size: 22px;
+  font-weight: 400;
+  font-style: italic;
+  font-variation-settings: "opsz" 48, "SOFT" 40;
+  line-height: 1.2;
+}
+
+.ctx-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: none;
+  border: 1px solid rgba(139,49,32,0.3);
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ctx-toggle-btn:hover {
+  background: var(--accent);
+  color: var(--paper);
+  border-color: var(--accent);
+}
+.ctx-toggle-icon {
+  width: 10px;
+  height: 10px;
+  position: relative;
+  flex-shrink: 0;
+}
+.ctx-toggle-icon::before,
+.ctx-toggle-icon::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+  transition: transform 0.3s, opacity 0.3s;
+}
+.ctx-toggle-icon::before { width: 10px; height: 1px; top: 4px; left: 0; }
+.ctx-toggle-icon::after  { width: 1px; height: 10px; top: 0; left: 4px; }
+.ctx-toggle-btn.open .ctx-toggle-icon::after { transform: rotate(90deg); opacity: 0; }
+
+/* Expandable body */
+.ctx-card-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ctx-card-body.open {
+  max-height: 900px;
+}
+.ctx-card-inner {
+  padding: 0 40px 44px;
+  border-top: 1px solid var(--rule);
+}
+
+/* 4-column grid of context sections */
+.ctx-sections {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  margin-top: 36px;
+}
+.ctx-section {
+  padding: 28px 32px 28px 0;
+  border-bottom: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: 3px 1fr;
+  gap: 20px;
+}
+.ctx-section:nth-child(even) {
+  padding: 28px 0 28px 32px;
+  border-left: 1px solid var(--rule);
+}
+.ctx-section:nth-child(3),
+.ctx-section:nth-child(4) {
+  border-bottom: none;
+}
+.ctx-section-bar {
+  width: 3px;
+  background: var(--rule);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.ctx-section:nth-child(1) .ctx-section-bar { background: var(--accent); }
+.ctx-section:nth-child(2) .ctx-section-bar { background: var(--navy); }
+.ctx-section:nth-child(3) .ctx-section-bar { background: #7a6240; }
+.ctx-section:nth-child(4) .ctx-section-bar { background: var(--sage); }
+.ctx-section-content {}
+.ctx-section-k {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+  margin-bottom: 8px;
+}
+.ctx-section-h {
+  font-size: 16px;
+  font-weight: 500;
+  font-variation-settings: "opsz" 48, "SOFT" 0;
+  margin-bottom: 10px;
+  line-height: 1.25;
+}
+.ctx-section-p {
+  font-size: 14px;
+  line-height: 1.72;
+  font-weight: 300;
+  font-variation-settings: "opsz" 24;
+  color: rgba(21,18,16,0.78);
+  text-wrap: pretty;
+}
+.ctx-section-p em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ink);
+}
+.ctx-keyword {
+  display: inline;
+  background: rgba(21,18,16,0.06);
+  padding: 0 4px;
+  border-radius: 1px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════
+   LAYER 2 — INLINE ANNOTATIONS
+═══════════════════════════════════════════════ */
+.annotation-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.anno-example {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  overflow: hidden;
+}
+
+.anno-book-page {
+  padding: 40px 48px;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 0;
+}
+
+.anno-page-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  padding-top: 3px;
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  align-self: start;
+}
+
+.anno-text-col {}
+
+.anno-chapter {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+  margin-bottom: 18px;
+}
+
+.anno-passage {
+  font-size: 18px;
+  line-height: 1.72;
+  font-weight: 300;
+  font-variation-settings: "opsz" 48, "SOFT" 20;
+  text-wrap: pretty;
+  color: var(--ink);
+}
+
+/* The highlighted span */
+.hl-span {
+  position: relative;
+  cursor: pointer;
+  display: inline;
+  border-bottom: 2px solid var(--hl-line);
+  background: var(--hl);
+  padding: 1px 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+.hl-span:hover {
+  background: rgba(197,148,42,0.4);
+}
+.hl-span.active {
+  background: rgba(197,148,42,0.45);
+  border-color: var(--hl-line);
+}
+.hl-span::after {
+  content: attr(data-num);
+  position: relative;
+  top: -6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  color: var(--hl-line);
+  margin-left: 2px;
+  font-weight: 500;
+}
+
+/* Annotation drawer */
+.anno-drawer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  border-top: 1px solid transparent;
+}
+.anno-drawer.open {
+  max-height: 400px;
+  border-top-color: var(--rule);
+}
+
+.anno-drawer-inner {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 0;
+}
+
+.anno-drawer-accent {
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.anno-drawer-content {
+  padding: 28px 48px 32px 32px;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 32px;
+  background: var(--accent-bg);
+}
+
+.anno-drawer-meta {}
+.anno-drawer-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.anno-drawer-concept {
+  font-size: 15px;
+  font-weight: 500;
+  font-variation-settings: "opsz" 36;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.anno-drawer-thinkers {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  color: var(--ink-mid);
+  letter-spacing: 0.02em;
+  line-height: 1.8;
+  font-style: italic;
+}
+
+.anno-drawer-body {
+  font-size: 14px;
+  line-height: 1.78;
+  font-weight: 300;
+  font-variation-settings: "opsz" 24;
+  color: rgba(21,18,16,0.8);
+  text-wrap: pretty;
+}
+.anno-drawer-body p + p { margin-top: 12px; }
+.anno-drawer-body em { font-style: italic; font-weight: 400; color: var(--ink); }
+.anno-drawer-body strong { font-weight: 500; font-style: normal; }
+
+.anno-hint {
+  padding: 0 48px 18px 76px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hl-line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+}
+.anno-hint::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 1px;
+  background: var(--hl-line);
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════
+   LAYER 3 — CULTURAL COORDINATES
+═══════════════════════════════════════════════ */
+.coord-wrapper {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: 48px 48px 40px;
+}
+
+.coord-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 36px;
+}
+.coord-h {
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 300;
+  font-variation-settings: "opsz" 48, "SOFT" 40;
+}
+.coord-legend {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.coord-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+}
+.coord-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* SVG chart */
+.coord-chart {
+  position: relative;
+  width: 100%;
+}
+.coord-chart svg {
+  width: 100%;
+  display: block;
+}
+
+/* Tooltip */
+.coord-tooltip {
+  position: absolute;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 14px 16px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s;
+  max-width: 220px;
+  z-index: 10;
+  border: none;
+}
+.coord-tooltip.visible { opacity: 1; }
+.coord-tt-title {
+  font-size: 13px;
+  font-weight: 500;
+  font-variation-settings: "opsz" 36;
+  font-style: italic;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.coord-tt-author {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(242,236,224,0.55);
+  margin-bottom: 10px;
+}
+.coord-tt-note {
+  font-size: 11.5px;
+  line-height: 1.6;
+  font-weight: 300;
+  font-variation-settings: "opsz" 24;
+  color: rgba(242,236,224,0.82);
+}
+
+/* ─── FOOTER ─── */
+.page-footer {
+  border-top: 1px solid var(--rule);
+  padding: 20px 64px;
+  display: flex;
+  justify-content: space-between;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.module-header { animation: fadeUp 0.7s cubic-bezier(.2,.8,.2,1) 0.05s both; }
+.ctx-card      { animation: fadeUp 0.7s cubic-bezier(.2,.8,.2,1) 0.15s both; }
+.anno-example  { animation: fadeUp 0.6s cubic-bezier(.2,.8,.2,1) 0.2s both; }
+.coord-wrapper { animation: fadeUp 0.7s cubic-bezier(.2,.8,.2,1) 0.25s both; }
+
+body { opacity: 0; animation: fadeUp 0.4s ease 0.02s forwards; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="Marginalia Book - Sapiens.html" class="nav-wordmark">Marginalia</a>
+  <div class="nav-crumb">
+    <span>书架</span><span class="sep">·</span>
+    <span>人类简史</span><span class="sep">·</span>
+    <span style="color:var(--ink)">文化背景</span>
+  </div>
+</nav>
+
+<div class="module">
+
+  <!-- MODULE HEADER -->
+  <div class="module-header">
+    <div>
+      <div class="module-eyebrow">Cultural Context System</div>
+      <h1 class="module-title">理解一本书<br>如何<strong>诞生</strong>于那个时代</h1>
+    </div>
+    <div class="module-desc">
+      文化背景系统帮助读者理解作者的知识谱系、写作语境，以及这本书在思想史中的坐标位置。
+    </div>
+  </div>
+
+  <!-- ═══ LAYER 1 ═══ -->
+  <div class="layer-label">
+    <span class="layer-num">层级 01</span>
+    <span class="layer-title">书籍背景</span>
+    <div class="layer-rule"></div>
+    <span class="layer-title">Book Context</span>
+  </div>
+
+  <div class="ctx-card">
+    <div class="ctx-card-header" onclick="toggleCtxCard(this)">
+      <div>
+        <h2 class="ctx-card-h">尤瓦尔·赫拉利与《人类简史》的诞生语境</h2>
+        <div class="ctx-card-tags">
+          <span class="ctx-tag accent-tag">以色列学者</span>
+          <span class="ctx-tag">希伯来大学</span>
+          <span class="ctx-tag">2011 年出版</span>
+          <span class="ctx-tag">进化生物学 × 历史学</span>
+          <span class="ctx-tag">全球化语境</span>
+          <span class="ctx-tag">跨学科叙事</span>
+        </div>
+      </div>
+      <button class="ctx-toggle-btn" id="ctxToggleBtn">
+        <span class="ctx-toggle-icon"></span>
+        展开背景
+      </button>
+    </div>
+
+    <div class="ctx-card-body" id="ctxBody">
+      <div class="ctx-card-inner">
+        <div class="ctx-sections">
+
+          <!-- 1 作者背景 -->
+          <div class="ctx-section">
+            <div class="ctx-section-bar"></div>
+            <div class="ctx-section-content">
+              <div class="ctx-section-k">作者学术背景</div>
+              <div class="ctx-section-h">从军事史到宏观历史学</div>
+              <div class="ctx-section-p">
+                赫拉利的博士论文研究中世纪欧洲军事史，师从牛津大学史蒂文·甘布尔教授，属于相当专门化的历史学训练。这种背景反而给他提供了一个超越学科边界的自由度——他不属于任何大历史学派，因此不受学术门派的叙事义务约束。《人类简史》最初以希伯来语写就（<em class="ctx-keyword">Qitzur Toldot Ha-Enoshut</em>），作为希伯来大学的公开课讲义，教学对象是非历史专业的本科生。这一「非专业受众」的写作起点，塑造了全书拒绝技术性细节、追求震撼性论断的叙事风格。
+              </div>
+            </div>
+          </div>
+
+          <!-- 2 以色列视角 -->
+          <div class="ctx-section">
+            <div class="ctx-section-bar"></div>
+            <div class="ctx-section-content">
+              <div class="ctx-section-k">以色列视角</div>
+              <div class="ctx-section-h">边缘位置的认识论优势</div>
+              <div class="ctx-section-p">
+                以色列的知识分子处境独特：身处中东却深嵌西方学术体系，拥有欧洲犹太流散史的创伤记忆，同时置身于民族国家神话的现实实验室。赫拉利对<em class="ctx-keyword">「集体虚构」</em>的敏感——国家、货币、法律都是人类合谋相信的故事——与以色列作为一个靠信仰建构身份认同的国家的现实深度共鸣。此外，他公开出柜的同性恋身份和对冥想的实践，也使他对主流叙事保持一种结构性的质疑姿态。
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 出版语境 -->
+          <div class="ctx-section">
+            <div class="ctx-section-bar"></div>
+            <div class="ctx-section-content">
+              <div class="ctx-section-k">出版语境 · 2011</div>
+              <div class="ctx-section-h">全球化加速与宏大叙事的复苏</div>
+              <div class="ctx-section-p">
+                2011 年是《阿拉伯之春》、占领华尔街运动、日本福岛核灾难同时发生的年份——全球化的脆弱性以戏剧化方式暴露。与此同时，社交媒体首次成为主流信息基础设施，人类的集体注意力碎片化加剧。恰在此刻，一本声称能从七万年高空俯瞰人类全史的书，提供了某种秩序感和意义框架，击中了集体焦虑。英译本 2014 年由 Harper Collins 出版后，马克·扎克伯格将其列入年度读书清单，一举引爆全球销量。
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 跨学科根基 -->
+          <div class="ctx-section">
+            <div class="ctx-section-bar"></div>
+            <div class="ctx-section-content">
+              <div class="ctx-section-k">知识谱系</div>
+              <div class="ctx-section-h">进化生物学 × 历史学 × 哲学</div>
+              <div class="ctx-section-p">
+                《人类简史》是一次有意识的跨学科合并：吸收道金斯（<em class="ctx-keyword">利己基因</em>）的进化生物学，借用邓巴（<em class="ctx-keyword">社交大脑假说</em>）的认知人类学，援引萨林斯（<em class="ctx-keyword">石器时代经济学</em>）的原始主义批判，并以维特根斯坦式的语言游戏概念重新包装宗教与制度。这种「策展式」知识整合，既是书的力量所在——综合性视野罕有，也是其受到专业历史学家批评之处——每个领域的论证都嫌粗疏。
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYER 2 ═══ -->
+  <div class="layer-label">
+    <span class="layer-num">层级 02</span>
+    <span class="layer-title">笔记内联注释</span>
+    <div class="layer-rule"></div>
+    <span class="layer-title">Inline Cultural Annotations</span>
+  </div>
+
+  <div class="annotation-examples">
+
+    <!-- Example 1 -->
+    <div class="anno-example">
+      <div class="anno-hint">点击高亮文字展开文化注释</div>
+      <div class="anno-book-page">
+        <div class="anno-page-num">p. 27</div>
+        <div class="anno-text-col">
+          <div class="anno-chapter">第二章 · 知识之树 · 认知革命</div>
+          <div class="anno-passage">
+            在认知革命之后，传说、神话、神以及宗教，在人类演化中首次出现。在那之前，其他动物（包括更早的人类物种）也会互相警告危险、传递食物的位置，却无法表达诸如「死后灵魂的去处」这样的概念。正是
+            <span class="hl-span" data-num="①" data-idx="0" onclick="toggleAnno(this)">智人在认知革命后开始相信虚构故事，从而实现了大规模的社会协作</span>
+            ，这是其他人科动物从未获得的能力。
+          </div>
+        </div>
+      </div>
+      <div class="anno-drawer" id="anno-0">
+        <div class="anno-drawer-inner">
+          <div class="anno-drawer-accent"></div>
+          <div class="anno-drawer-content">
+            <div class="anno-drawer-meta">
+              <div class="anno-drawer-tag">人类学根源</div>
+              <div class="anno-drawer-concept">集体虚构与<br>互主观现实</div>
+              <div class="anno-drawer-thinkers">
+                涂尔干 · 社会事实<br>
+                道金斯 · 迷因理论<br>
+                卡西尔 · 符号动物<br>
+                斯科特 · 国家视角
+              </div>
+            </div>
+            <div class="anno-drawer-body">
+              <p>「集体虚构」（Collective Fiction）是赫拉利最具挑衅性的核心命题。他将宗教、货币、国家、公司统统归入同一范畴：<em>它们都只存在于人类的共同相信之中</em>，一旦集体信仰崩溃，它们便瞬间消失——就像苏联解体或某家银行破产的那一刻。</p>
+              <p>这一思想可上溯至涂尔干的「集体意识」，以及卡西尔在《人论》中对人类作为<em>「符号性动物」</em>的定义。道金斯的「迷因」（meme）概念也提供了演化论框架：文化观念像基因一样复制、变异、竞争。赫拉利将这些脉络以非学术方式整合，触及了一个深刻问题：<strong>如果所有社会制度都是虚构，它们是否仍值得遵从？</strong>这个问题在威权政治语境中尤为锋利。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Example 2 -->
+    <div class="anno-example">
+      <div class="anno-hint">点击高亮文字展开文化注释</div>
+      <div class="anno-book-page">
+        <div class="anno-page-num">p. 87</div>
+        <div class="anno-text-col">
+          <div class="anno-chapter">第五章 · 历史上最大的骗局 · 农业革命</div>
+          <div class="anno-passage">
+            历史上最大的骗局也许就是农业革命。小麦、水稻和马铃薯的大规模驯化，让人类从此多于动物并大量繁殖，但个体的生活品质却并没有提高。
+            <span class="hl-span" data-num="②" data-idx="1" onclick="toggleAnno(this)">农业革命是历史上最大的骗局</span>
+            ——它让少数精英受益，让大多数人类过上更辛苦、营养更单调、更容易感染疾病的生活，而这一切只为了让地球上出现更多的智人。
+          </div>
+        </div>
+      </div>
+      <div class="anno-drawer" id="anno-1">
+        <div class="anno-drawer-inner">
+          <div class="anno-drawer-accent"></div>
+          <div class="anno-drawer-content">
+            <div class="anno-drawer-meta">
+              <div class="anno-drawer-tag">思想史张力</div>
+              <div class="anno-drawer-concept">原始主义<br>vs. 进步主义</div>
+              <div class="anno-drawer-thinkers">
+                萨林斯 · 石器时代经济学<br>
+                卢梭 · 自然状态<br>
+                马克思 · 异化劳动<br>
+                斯科特 · 逃避统治
+              </div>
+            </div>
+            <div class="anno-drawer-body">
+              <p>这一观点直接呼应马歇尔·萨林斯 1972 年的《石器时代经济学》：狩猎采集者每天工作 3—5 小时即可满足需求，拥有大量休闲时间，是「最初的富裕社会」。这挑战了启蒙以来的<em>进步主义历史叙事</em>——即人类文明是从野蛮走向文明的线性进化。</p>
+              <p>赫拉利有意对话两条思想脉络：一是马克思主义对<em>异化劳动</em>的批判（农业社会使人成为重复劳动的工具）；二是卢梭式的自然状态浪漫主义。但他也刻意保持距离——他的论点是冷静的物种生物学论证，而非道德谴责。<strong>批评者则指出</strong>：样本偏差（现存采集部落多在边缘地带）、寿命短暂、婴儿死亡率高等反证，使「原始富裕」论显得过于乐观。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ LAYER 3 ═══ -->
+  <div class="layer-label">
+    <span class="layer-num">层级 03</span>
+    <span class="layer-title">文化坐标</span>
+    <div class="layer-rule"></div>
+    <span class="layer-title">Cultural Coordinates</span>
+  </div>
+
+  <div class="coord-wrapper">
+    <div class="coord-header">
+      <h3 class="coord-h">《人类简史》在思想版图中的位置</h3>
+      <div class="coord-legend">
+        <div class="coord-legend-item">
+          <div class="coord-legend-dot" style="background:var(--accent);"></div>
+          本书
+        </div>
+        <div class="coord-legend-item">
+          <div class="coord-legend-dot" style="background:var(--navy);"></div>
+          对比参照
+        </div>
+      </div>
+    </div>
+
+    <div class="coord-chart">
+      <svg viewBox="0 0 1000 540" xmlns="http://www.w3.org/2000/svg" id="coordSvg">
+        <defs>
+          <style>
+            .ax-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1.5px; fill: rgba(21,18,16,0.38); text-transform: uppercase; }
+            .ax-tick  { font-family: 'IBM Plex Mono', monospace; font-size: 9px; fill: rgba(21,18,16,0.35); letter-spacing: 1px; }
+            .book-label { font-family: 'Fraunces', Georgia, serif; font-style: italic; fill: rgba(21,18,16,0.85); }
+            .book-label-sub { font-family: 'IBM Plex Mono', monospace; fill: rgba(21,18,16,0.4); }
+          </style>
+        </defs>
+
+        <!-- Grid -->
+        <!-- Horizontal grid lines -->
+        <line x1="100" y1="80"  x2="960" y2="80"  stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="100" y1="160" x2="960" y2="160" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="100" y1="240" x2="960" y2="240" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="100" y1="320" x2="960" y2="320" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="100" y1="400" x2="960" y2="400" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="100" y1="460" x2="960" y2="460" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+
+        <!-- Vertical grid lines for years -->
+        <line x1="238" y1="60" x2="238" y2="476" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="376" y1="60" x2="376" y2="476" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="514" y1="60" x2="514" y2="476" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="652" y1="60" x2="652" y2="476" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="790" y1="60" x2="790" y2="476" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+        <line x1="928" y1="60" x2="928" y2="476" stroke="rgba(21,18,16,0.07)" stroke-width="1"/>
+
+        <!-- Axes -->
+        <line x1="100" y1="60" x2="100" y2="476" stroke="rgba(21,18,16,0.2)" stroke-width="1.5"/>
+        <line x1="100" y1="476" x2="960" y2="476" stroke="rgba(21,18,16,0.2)" stroke-width="1.5"/>
+
+        <!-- Y-axis labels -->
+        <text x="92" y="84"  class="ax-tick" text-anchor="end">综合·跨学科</text>
+        <text x="92" y="244" class="ax-tick" text-anchor="end">中间地带</text>
+        <text x="92" y="464" class="ax-tick" text-anchor="end">专科·单学科</text>
+
+        <!-- Y-axis title -->
+        <text transform="translate(22, 268) rotate(-90)" class="ax-label" text-anchor="middle">学科跨度 / Disciplinary Breadth</text>
+
+        <!-- X-axis ticks -->
+        <text x="100" y="496" class="ax-tick" text-anchor="middle">1988</text>
+        <text x="238" y="496" class="ax-tick" text-anchor="middle">1993</text>
+        <text x="376" y="496" class="ax-tick" text-anchor="middle">1998</text>
+        <text x="514" y="496" class="ax-tick" text-anchor="middle">2003</text>
+        <text x="652" y="496" class="ax-tick" text-anchor="middle">2008</text>
+        <text x="790" y="496" class="ax-tick" text-anchor="middle">2013</text>
+        <text x="928" y="496" class="ax-tick" text-anchor="middle">2018</text>
+        <text x="530" y="530" class="ax-label" text-anchor="middle">出版年份 / Publication Year</text>
+
+        <!-- ── BOOK: The Third Chimpanzee 1991 ── -->
+        <!-- x: 1991 → 100 + (1991-1988)/(2020-1988)*860 = 100 + 3/32*860 ≈ 181 -->
+        <!-- y: cross-disciplinary high → ~130 -->
+        <circle cx="181" cy="135" r="9" fill="var(--navy)" opacity="0.85"
+          data-book="0"
+          class="book-dot"
+          onmouseenter="showTooltip(event,0)"
+          onmouseleave="hideTooltip()"/>
+        <text x="196" y="122" class="book-label" font-size="13">《第三种黑猩猩》</text>
+        <text x="196" y="136" class="book-label-sub" font-size="9">贾雷德·戴蒙德 · 1991</text>
+
+        <!-- ── BOOK: Guns Germs Steel 1997 ── -->
+        <!-- x: 1997 → 100 + 9/32*860 ≈ 342 -->
+        <!-- y: cross-disciplinary, slightly less → ~165 -->
+        <circle cx="342" cy="170" r="9" fill="var(--navy)" opacity="0.85"
+          data-book="1"
+          class="book-dot"
+          onmouseenter="showTooltip(event,1)"
+          onmouseleave="hideTooltip()"/>
+        <text x="357" y="157" class="book-label" font-size="13">《枪炮、病菌与钢铁》</text>
+        <text x="357" y="171" class="book-label-sub" font-size="9">贾雷德·戴蒙德 · 1997</text>
+
+        <!-- ── BOOK: Thinking Fast and Slow 2011 ── -->
+        <!-- x: 2011 → 100 + 23/32*860 ≈ 718 -->
+        <!-- y: mid-low, specialized → ~340 -->
+        <circle cx="718" cy="330" r="9" fill="var(--navy)" opacity="0.85"
+          data-book="2"
+          class="book-dot"
+          onmouseenter="showTooltip(event,2)"
+          onmouseleave="hideTooltip()"/>
+        <text x="733" y="318" class="book-label" font-size="13">《思考，快与慢》</text>
+        <text x="733" y="332" class="book-label-sub" font-size="9">丹尼尔·卡尼曼 · 2011</text>
+
+        <!-- ── BOOK: Sapiens 2011 (Hebrew) / 2014 (English) ── -->
+        <!-- x: 2011 → 718, slightly offset for legibility → 700 -->
+        <!-- y: most cross-disciplinary → ~90 -->
+        <circle cx="700" cy="95" r="13" fill="var(--accent)" opacity="0.92"
+          data-book="3"
+          class="book-dot"
+          onmouseenter="showTooltip(event,3)"
+          onmouseleave="hideTooltip()"/>
+        <!-- Annotation arrow -->
+        <line x1="713" y1="95" x2="760" y2="95" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 2" opacity="0.5"/>
+        <text x="765" y="88" class="book-label" font-size="15" fill="var(--accent)">《人类简史》</text>
+        <text x="765" y="103" class="book-label-sub" font-size="9" fill="rgba(139,49,32,0.65)">尤瓦尔·赫拉利 · 2011/2014</text>
+
+        <!-- Proximity annotation -->
+        <rect x="168" y="200" width="240" height="64" fill="none" stroke="rgba(21,18,16,0.08)" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="288" y="220" class="book-label-sub" font-size="8.5" text-anchor="middle" fill="rgba(21,18,16,0.35)">戴蒙德影响圈</text>
+        <text x="288" y="234" class="book-label-sub" font-size="8" text-anchor="middle" fill="rgba(21,18,16,0.28)">地理决定论 × 跨学科</text>
+        <text x="288" y="248" class="book-label-sub" font-size="8" text-anchor="middle" fill="rgba(21,18,16,0.28)">赫拉利明确承认受其影响</text>
+
+        <!-- Note on Y=240 midline -->
+        <line x1="100" y1="240" x2="960" y2="240" stroke="rgba(21,18,16,0.12)" stroke-width="1" stroke-dasharray="5 3"/>
+        <text x="108" y="235" class="book-label-sub" font-size="8" fill="rgba(21,18,16,0.3)">— 专业学术边界 —</text>
+      </svg>
+
+      <!-- Tooltip -->
+      <div class="coord-tooltip" id="coordTooltip">
+        <div class="coord-tt-title" id="ttTitle"></div>
+        <div class="coord-tt-author" id="ttAuthor"></div>
+        <div class="coord-tt-note" id="ttNote"></div>
+      </div>
+    </div>
+
+    <!-- Axis note -->
+    <div style="margin-top:20px; font-family:'IBM Plex Mono',monospace; font-size:8.5px; letter-spacing:0.22em; text-transform:uppercase; color:var(--ink-mid); display:flex; gap:24px; justify-content:flex-end;">
+      <span>Y 轴衡量作者跨越学科边界的程度，非学术价值判断</span>
+      <span>·</span>
+      <span>Hover 书目查看详情</span>
+    </div>
+  </div>
+
+</div><!-- .module -->
+
+<footer class="page-footer">
+  <span>Marginalia &nbsp;·&nbsp; 人类简史 &nbsp;·&nbsp; 文化背景系统</span>
+  <span>Cultural Context System &nbsp;·&nbsp; 2026</span>
+</footer>
+
+<script>
+/* ── Layer 1: Toggle Card ── */
+function toggleCtxCard(header) {
+  const body = document.getElementById('ctxBody');
+  const btn  = document.getElementById('ctxToggleBtn');
+  const open = body.classList.toggle('open');
+  btn.classList.toggle('open', open);
+  btn.querySelector('.ctx-toggle-icon').style.cssText = '';
+  btn.childNodes[btn.childNodes.length - 1].textContent = open ? ' 收起背景' : ' 展开背景';
+}
+
+/* ── Layer 2: Inline Annotation ── */
+function toggleAnno(span) {
+  const idx     = span.dataset.idx;
+  const drawer  = document.getElementById('anno-' + idx);
+  const isOpen  = drawer.classList.contains('open');
+
+  // Close all drawers first
+  document.querySelectorAll('.anno-drawer').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.hl-span').forEach(s => s.classList.remove('active'));
+
+  if (!isOpen) {
+    drawer.classList.add('open');
+    span.classList.add('active');
+    // Smooth scroll so drawer is visible
+    setTimeout(() => {
+      const rect = drawer.getBoundingClientRect();
+      if (rect.bottom > window.innerHeight) {
+        const offset = rect.top + window.pageYOffset - 120;
+        window.scrollTo({ top: offset, behavior: 'smooth' });
+      }
+    }, 100);
+  }
+}
+
+/* ── Layer 3: Tooltip ── */
+const BOOKS = [
+  {
+    title:  '《第三种黑猩猩》\nThe Third Chimpanzee',
+    author: '贾雷德·戴蒙德 · 1991',
+    note:   '以进化生物学视角重新定义人类在自然中的位置。戴蒙德打通生物学与文化史的方法论，是《人类简史》最直接的方法论先驱。赫拉利在多场访谈中承认受其影响。'
+  },
+  {
+    title:  '《枪炮、病菌与钢铁》\nGuns, Germs, and Steel',
+    author: '贾雷德·戴蒙德 · 1997 · 普利策奖',
+    note:   '用地理与生态条件解释文明兴衰，挑战「西方优越论」。与《人类简史》同属「地理决定论」谱系，但戴蒙德的论证更为严谨，受学界批评也更少。两书共同构成宏观历史写作的当代标杆。'
+  },
+  {
+    title:  '《思考，快与慢》\nThinking, Fast and Slow',
+    author: '丹尼尔·卡尼曼 · 2011 · 以色列裔',
+    note:   '同为2011年以色列裔学者的英语畅销书，卡尼曼（诺贝尔经济学奖得主）聚焦认知心理学，学科跨度相对较小。两书的同时成功，折射出2011年前后大众对「理解人类行为」的强烈需求。'
+  },
+  {
+    title:  '《人类简史》\nSapiens: A Brief History of Humankind',
+    author: '尤瓦尔·赫拉利 · 希伯来语2011 / 英语2014',
+    note:   '横跨进化生物学、认知人类学、历史学、哲学与佛教思想。以色列学者视角赋予书对「集体虚构」的特殊敏感。学科跨度与叙事野心均居同类书籍之首，也因此受到专业历史学家最多质疑。'
+  }
+];
+
+const tooltip = document.getElementById('coordTooltip');
+const ttTitle  = document.getElementById('ttTitle');
+const ttAuthor = document.getElementById('ttAuthor');
+const ttNote   = document.getElementById('ttNote');
+
+function showTooltip(e, idx) {
+  const b = BOOKS[idx];
+  ttTitle.textContent  = b.title;
+  ttAuthor.textContent = b.author;
+  ttNote.textContent   = b.note;
+
+  const chart = document.querySelector('.coord-chart');
+  const cRect = chart.getBoundingClientRect();
+  const eRect = e.target.getBoundingClientRect();
+
+  let left = eRect.left - cRect.left + 20;
+  let top  = eRect.top  - cRect.top  - 10;
+
+  // Keep within bounds
+  if (left + 240 > cRect.width) left = eRect.left - cRect.left - 250;
+  if (top < 0) top = eRect.bottom - cRect.top + 8;
+
+  tooltip.style.left = left + 'px';
+  tooltip.style.top  = top  + 'px';
+  tooltip.classList.add('visible');
+}
+
+function hideTooltip() {
+  tooltip.classList.remove('visible');
+}
+
+// Make book dots interactive on touch/click too
+document.querySelectorAll('.book-dot').forEach(dot => {
+  dot.style.cursor = 'pointer';
+  dot.setAttribute('tabindex', '0');
+});
+</script>
+</body>
+</html>
