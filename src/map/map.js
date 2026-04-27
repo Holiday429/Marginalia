@@ -12,6 +12,10 @@ let __mapFocusedCountryId = null;
 let __mapActivePoly  = null;
 let __mapRoot        = null;
 let __mapGoWorldFn   = null;
+let __mapPanelState  = null;
+let __mapHoverCountryId = null;
+let __mapPointer    = { x: 0, y: 0 };
+let __mapGeoMode    = 'all';
 
 /* ── Book data ──────────────────────────────────────────────────────────── */
 
@@ -54,13 +58,279 @@ const MAP_BOOKS = [
   { id:"b38", title:"The Iliad",                     author:"Homer",            bg:"#604808", text:"#f4d040", loc:"GR", city:"Troy / Mycenae",    year:-750, tags:["Epic","Ancient"] },
 ];
 
-const BY_LOC  = {};
-const BY_PROV = {};
-MAP_BOOKS.forEach(b => {
-  (BY_LOC[b.loc]  = BY_LOC[b.loc]  || []).push(b);
-  if (b.province) (BY_PROV[b.province] = BY_PROV[b.province] || []).push(b);
-});
-const BOOK_COUNTRIES = new Set(Object.keys(BY_LOC));
+const MAP_MODE_META = {
+  authorOrigin: {
+    label: 'Author origin',
+    short: 'Author',
+    empty: 'No author-origin books in this region yet.',
+  },
+  contentLocation: {
+    label: 'Content location',
+    short: 'Content',
+    empty: 'No content-location books in this region yet.',
+  },
+  readerLocation: {
+    label: 'Reader anchor',
+    short: 'Reader',
+    empty: 'No reader-anchor books in this region yet.',
+  }
+};
+
+const MAP_TAB_META = [
+  { id: 'books',    label: 'Books' },
+  { id: 'culture',  label: 'Culture' },
+  { id: 'history',  label: 'History' },
+  { id: 'keywords', label: 'Keywords' },
+  { id: 'starter',  label: 'Starter' },
+];
+
+const REGION_PROFILES = {
+  CN: {
+    culture: '中国语境下的阅读，常常绕不开家国秩序、经典传统、地方经验与现代化断裂。适合作为“叙事尺度切换”的入口：同一本书里，私人伦理、家族结构与国家叙事通常会彼此缠绕。',
+    history: [
+      '帝制传统、士大夫文化与经典教育长期塑造了“何为正统、何为修身”的阅读背景。',
+      '晚清到二十世纪的剧烈转型，使现代中国写作天然带着制度变迁、知识断裂与身份重组的焦虑。',
+      '地方书写很重要。北京、上海、西南、边疆与乡土叙事常常代表不同的现代经验。'
+    ],
+    keywords: ['家国叙事', '经典传统', '现代性断裂', '地方经验', '知识分子', '历史记忆'],
+    starters: [
+      { title: '活着', author: '余华', note: '从个人命运进入二十世纪中国社会史。' },
+      { title: '边城', author: '沈从文', note: '先看地方经验，再看现代性如何逼近。' },
+      { title: '乡土中国', author: '费孝通', note: '非虚构入口，补社会结构底色。' }
+    ]
+  },
+  GB: {
+    culture: '英国阅读语境很适合进入“阶层如何长进日常”的问题：礼仪、教育、婚姻、财产、工业化和帝国余波，常常比宏大口号更深地嵌在人物行动里。',
+    history: [
+      '从乡绅社会到工业社会，英国文学反复处理阶层流动与制度惯性的矛盾。',
+      '伦敦既是现代都市样本，也是帝国中心的精神投影。',
+      '现代主义在英国往往表现为内心时间、意识流与战后失序感。'
+    ],
+    keywords: ['阶层秩序', '都市现代性', '经验主义', '内心时间', '帝国余波'],
+    starters: [
+      { title: 'Pride and Prejudice', author: 'Jane Austen', note: '从婚姻与礼仪切入阶层社会。' },
+      { title: 'Mrs Dalloway', author: 'Virginia Woolf', note: '进入现代都市与意识流。' },
+      { title: 'The Road to Wigan Pier', author: 'George Orwell', note: '补足工业社会与阶层观察。' }
+    ]
+  },
+  FR: {
+    culture: '法国常是“思想先于立场显形”的阅读现场。城市、沙龙、革命、世俗化与知识分子传统，让文本天然带着论辩感与形式自觉。',
+    history: [
+      '革命传统让政治、人民与公共空间成为文学和思想写作的长期母题。',
+      '巴黎不仅是地理中心，也常是欲望、记忆与现代感官经验的浓缩器。',
+      '法国文学与哲学之间的边界较薄，叙事经常同时在做思想实验。'
+    ],
+    keywords: ['革命传统', '知识分子', '世俗化', '都市感官', '记忆书写'],
+    starters: [
+      { title: 'Les Misérables', author: 'Victor Hugo', note: '宏大历史与个人伦理同时进入。' },
+      { title: 'The Stranger', author: 'Albert Camus', note: '存在主义入口足够轻。' },
+      { title: 'Swann’s Way', author: 'Marcel Proust', note: '从记忆与感知打开法国现代性。' }
+    ]
+  },
+  RU: {
+    culture: '俄罗斯阅读入口通常不是“情节”，而是极端处境中的精神强度。宗教、苦难、帝国广度与知识分子自我审判，会把人物推向伦理和存在的边界。',
+    history: [
+      '十九世纪俄罗斯文学几乎承担了哲学和社会批判的双重角色。',
+      '从沙俄到苏联，国家权力与个体灵魂的张力是持续母题。',
+      '大城市与边疆、宫廷与地下室，经常构成俄国叙事的尺度反差。'
+    ],
+    keywords: ['苦难意识', '灵魂审判', '帝国尺度', '知识分子', '宗教伦理'],
+    starters: [
+      { title: 'Crime and Punishment', author: 'Fyodor Dostoevsky', note: '最直接进入精神压力场。' },
+      { title: 'The Death of Ivan Ilyich', author: 'Leo Tolstoy', note: '短篇更适合第一本。' },
+      { title: 'The Master and Margarita', author: 'Mikhail Bulgakov', note: '进入苏联语境下的荒诞与讽刺。' }
+    ]
+  },
+  JP: {
+    culture: '日本文本常擅长处理留白、感受密度与关系中的微小位移。读日本文学，常不是追求“说了什么”，而是追踪“没有说透的部分”。',
+    history: [
+      '宫廷传统、物哀审美与近代化冲击共同塑造了日本叙事的细部感。',
+      '战后文学尤其关注个体疏离、城市孤独与消费社会下的空心化。',
+      '地方与季节感很重要，景物往往不是背景，而是情绪结构的一部分。'
+    ],
+    keywords: ['物哀', '留白', '都市孤独', '关系微差', '季节感'],
+    starters: [
+      { title: 'The Tale of Genji', author: 'Murasaki Shikibu', note: '看传统审美的源头。' },
+      { title: 'Snow Country', author: 'Yasunari Kawabata', note: '短而纯，适合作为质感入口。' },
+      { title: 'Norwegian Wood', author: 'Haruki Murakami', note: '现代读者最容易进入的门。' }
+    ]
+  },
+  US: {
+    culture: '美国写作很适合观察“个人神话如何与制度现实碰撞”。移动性、边疆想象、种族结构、资本逻辑与自我发明欲，会在很多文本里同时出现。',
+    history: [
+      '从建国叙事到资本扩张，美国文学长期围绕成功、自由与暴力的代价展开。',
+      '城市、郊区、公路和边境是高频场景，空间本身就代表价值观冲突。',
+      '二十世纪以后，消费文化与身份政治不断重写“美国梦”的内容。'
+    ],
+    keywords: ['美国梦', '边疆神话', '资本逻辑', '身份政治', '流动性'],
+    starters: [
+      { title: 'The Great Gatsby', author: 'F. Scott Fitzgerald', note: '美国梦的明亮表面与空心内核。' },
+      { title: 'Beloved', author: 'Toni Morrison', note: '补足被主流叙事压住的历史。' },
+      { title: 'Moby-Dick', author: 'Herman Melville', note: '从史诗尺度理解美国执念。' }
+    ]
+  },
+  IN: {
+    culture: '印度阅读入口通常要同时接受多重时间层叠：宗教、殖民、语言、多民族与后殖民现代国家并行存在，文本往往天然复杂且多声部。',
+    history: [
+      '殖民经验让英语写作在印度既是表达工具，也是权力历史的残留。',
+      '家族、宗教与国家形成常常不是分开的线，而是同一张网。',
+      '城市与地方、现代法治与传统共同体之间的摩擦，会反复返回小说现场。'
+    ],
+    keywords: ['后殖民', '多语言', '家族叙事', '宗教政治', '民族国家'],
+    starters: [
+      { title: 'The God of Small Things', author: 'Arundhati Roy', note: '从家庭和地方进入大结构。' },
+      { title: 'Midnight’s Children', author: 'Salman Rushdie', note: '国家历史与个人身体绑在一起。' },
+      { title: 'India After Gandhi', author: 'Ramachandra Guha', note: '历史背景补得很快。' }
+    ]
+  },
+  IL: {
+    culture: '以色列相关写作很适合作为“历史压强如何进入现实感”的入口。宗教传统、国家建立、战争记忆与现代科技社会常并置出现。',
+    history: [
+      '圣经传统与现代民族国家建构在这里持续叠加，时间感非常厚。',
+      '安全、边界与身份问题会把公共议题直接压到个人生活层面。',
+      '很多以色列作者天然擅长在宏观历史和日常伦理之间快速切换。'
+    ],
+    keywords: ['国家建构', '历史压强', '宗教世俗', '边界政治', '记忆伦理'],
+    starters: [
+      { title: 'Sapiens', author: 'Yuval Noah Harari', note: '从宏观历史视角看以色列知识语境。' },
+      { title: 'A Tale of Love and Darkness', author: 'Amos Oz', note: '国家建立与家庭记忆并看。' },
+      { title: 'To the End of the Land', author: 'David Grossman', note: '进入战争与私人关系。' }
+    ]
+  }
+};
+
+function deriveMapGeo(book) {
+  const detail = window.BOOK_BY_ID?.[book.id];
+  const detailGeo = detail?.geo || {};
+  const fallbackCountry = book.loc || detail?.location?.country || null;
+  const fallbackProvince = book.province || detail?.location?.province || null;
+  const fallbackCity = book.city || detail?.location?.city || null;
+  const contextPlace = detail?.context?.place || '';
+  const readerCountry = /(北京|中国|Shanghai|Beijing)/i.test(contextPlace) ? 'CN' : null;
+
+  return {
+    authorOrigin: detailGeo.authorOrigin || (fallbackCountry ? {
+      country: fallbackCountry,
+      province: fallbackProvince,
+      city: fallbackCity
+    } : null),
+    contentLocation: detailGeo.contentLocation || (fallbackCountry ? {
+      country: fallbackCountry,
+      province: fallbackProvince,
+      city: fallbackCity
+    } : null),
+    readerLocation: detailGeo.readerLocation || (readerCountry ? {
+      country: readerCountry,
+      city: contextPlace
+    } : null),
+  };
+}
+
+function buildMapLibrary(seedBooks) {
+  return seedBooks.map(book => {
+    const detail = window.BOOK_BY_ID?.[book.id];
+    const coverImage = detail?.cover?.image || null;
+    return {
+      ...book,
+      coverImage,
+      geo: deriveMapGeo(book),
+    };
+  });
+}
+
+function buildGeoBuckets(books) {
+  const buckets = {
+    authorOrigin: { countries: {}, provinces: {} },
+    contentLocation: { countries: {}, provinces: {} },
+    readerLocation: { countries: {}, provinces: {} },
+    allCountries: new Set(),
+  };
+
+  books.forEach(book => {
+    Object.keys(MAP_MODE_META).forEach(mode => {
+      const geo = book.geo?.[mode];
+      if (!geo?.country) return;
+      (buckets[mode].countries[geo.country] = buckets[mode].countries[geo.country] || []).push(book);
+      buckets.allCountries.add(geo.country);
+      if (geo.province) {
+        (buckets[mode].provinces[geo.province] = buckets[mode].provinces[geo.province] || []).push(book);
+      }
+    });
+  });
+
+  return buckets;
+}
+
+const MAP_LIBRARY = buildMapLibrary(MAP_BOOKS);
+const MAP_GEO = buildGeoBuckets(MAP_LIBRARY);
+
+function activeCountryMap() {
+  if (__mapGeoMode === 'all') return mergedCountryMap();
+  return MAP_GEO[__mapGeoMode].countries;
+}
+
+function activeProvinceMap() {
+  if (__mapGeoMode === 'all') return mergedProvinceMap();
+  return MAP_GEO[__mapGeoMode].provinces;
+}
+
+function activeCountries() {
+  return new Set(Object.keys(activeCountryMap()));
+}
+
+function activeCountryBooks(countryId) {
+  return activeCountryMap()[countryId] || [];
+}
+
+function activeProvinceBooks(provinceId) {
+  return activeProvinceMap()[provinceId] || [];
+}
+
+function allCountryBooks(countryId) {
+  const map = new Map();
+  Object.keys(MAP_MODE_META).forEach(mode => {
+    const list = MAP_GEO[mode].countries[countryId] || [];
+    list.forEach(book => map.set(book.id, book));
+  });
+  return Array.from(map.values());
+}
+
+function allProvinceBooks(provinceId) {
+  const map = new Map();
+  Object.keys(MAP_MODE_META).forEach(mode => {
+    const list = MAP_GEO[mode].provinces[provinceId] || [];
+    list.forEach(book => map.set(book.id, book));
+  });
+  return Array.from(map.values());
+}
+
+function modeMaxCount(kind = 'country') {
+  const scope = kind === 'province' ? activeProvinceMap() : activeCountryMap();
+  const counts = Object.values(scope).map(list => list.length);
+  return Math.max(1, ...counts, 0);
+}
+
+function mergedCountryMap() {
+  const merged = {};
+  Object.keys(MAP_MODE_META).forEach(mode => {
+    Object.entries(MAP_GEO[mode].countries).forEach(([countryId, books]) => {
+      const map = (merged[countryId] = merged[countryId] || new Map());
+      books.forEach(book => map.set(book.id, book));
+    });
+  });
+  return Object.fromEntries(Object.entries(merged).map(([k, map]) => [k, Array.from(map.values())]));
+}
+
+function mergedProvinceMap() {
+  const merged = {};
+  Object.keys(MAP_MODE_META).forEach(mode => {
+    Object.entries(MAP_GEO[mode].provinces).forEach(([provinceId, books]) => {
+      const map = (merged[provinceId] = merged[provinceId] || new Map());
+      books.forEach(book => map.set(book.id, book));
+    });
+  });
+  return Object.fromEntries(Object.entries(merged).map(([k, map]) => [k, Array.from(map.values())]));
+}
 
 /* ── Country colour palette ─────────────────────────────────────────────── */
 
@@ -120,15 +390,76 @@ const BOOK_COLOR_BOOST = {
   GR:'#4a6a8a', CZ:'#5a5a7a', PT:'#5a4a7a', NG:'#7a5a4a',
   IT:'#7a4a6a', CL:'#6a4a5a',
 };
+const REGION_NAME_FORMATTER = typeof Intl !== 'undefined' && Intl.DisplayNames
+  ? new Intl.DisplayNames(['en'], { type: 'region' })
+  : null;
 
 const DIMMED_FILL        = '#1e2026';
 const WATER_FILL         = '#1a1714';
 const HOVER_STROKE       = '#c4903a';
 const HOVER_STROKE_WIDTH = 1.5;
+const HEAT_MODE_COLORS = {
+  authorOrigin: {
+    low: '#2f3f66',
+    high: '#7ba5ff',
+  },
+  contentLocation: {
+    low: '#4d3f2d',
+    high: '#c4903a',
+  },
+  readerLocation: {
+    low: '#2f4a3b',
+    high: '#7cc9a1',
+  },
+};
 
-function countryFill(id, hasBooks) {
-  if (hasBooks && BOOK_COLOR_BOOST[id]) return BOOK_COLOR_BOOST[id];
-  return COUNTRY_COLOR[id] || PALETTE[Math.abs(hashStr(id)) % PALETTE.length];
+function countryFill(id) {
+  if (__mapGeoMode === 'all') {
+    const hasBooks = activeCountryBooks(id).length > 0;
+    if (hasBooks && BOOK_COLOR_BOOST[id]) return BOOK_COLOR_BOOST[id];
+    return COUNTRY_COLOR[id] || PALETTE[Math.abs(hashStr(id)) % PALETTE.length];
+  }
+  const count = activeCountryBooks(id).length;
+  const max = modeMaxCount('country');
+  return heatColorForCount(count, max);
+}
+
+function provinceFill(id) {
+  if (__mapGeoMode === 'all') {
+    const base = PALETTE[Math.abs(hashStr(id)) % PALETTE.length];
+    return activeProvinceBooks(id).length ? brighten(base, 18) : base;
+  }
+  const count = activeProvinceBooks(id).length;
+  const max = modeMaxCount('province');
+  return heatColorForCount(count, max, 0.7);
+}
+
+function heatColorForCount(count, maxCount, minT = 0.42) {
+  if (count <= 0) return DIMMED_FILL;
+  const scale = Math.max(0, Math.min(1, count / Math.max(1, maxCount)));
+  const tone = minT + (1 - minT) * Math.pow(scale, 0.75);
+  const palette = HEAT_MODE_COLORS[__mapGeoMode] || HEAT_MODE_COLORS.contentLocation;
+  return mixHexColor(palette.low, palette.high, tone);
+}
+
+function mixHexColor(fromHex, toHex, t) {
+  const a = hexToRgb(fromHex);
+  const b = hexToRgb(toHex);
+  const mix = (x, y) => Math.round(x + (y - x) * t);
+  return rgbToHex(mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b));
+}
+
+function hexToRgb(hex) {
+  const s = hex.replace('#', '');
+  return {
+    r: parseInt(s.slice(0, 2), 16),
+    g: parseInt(s.slice(2, 4), 16),
+    b: parseInt(s.slice(4, 6), 16),
+  };
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
 }
 function hashStr(s) {
   let h = 0;
@@ -137,34 +468,24 @@ function hashStr(s) {
 }
 
 function mapTopPadding(forChina = false) {
-  const headerRect = document.querySelector('#view-map .shared-header-wrap')?.getBoundingClientRect();
+  const subheaderRect = document.querySelector('#view-map .map-subheader')?.getBoundingClientRect();
   const isMobile = window.innerWidth <= 980;
-  const headerBottom = headerRect ? Math.round(headerRect.bottom) : (isMobile ? 112 : 96);
+  if (forChina) return isMobile ? 18 : 12;
+  const fallback = isMobile ? 214 : 154;
+  const areaTop = subheaderRect ? Math.round(subheaderRect.bottom + (isMobile ? 12 : 14)) : fallback;
+  return areaTop;
+}
 
-  if (!forChina && !__mapFocusedCountryId) {
-    const worldTarget = Math.round(headerBottom * (isMobile ? 0.22 : 0.18));
-    const worldMin = isMobile ? 22 : 14;
-    const worldMax = isMobile ? 54 : 36;
-    return Math.max(worldMin, Math.min(worldTarget, worldMax));
-  }
-
-  const fallback = isMobile ? 152 : 118;
-  const target = headerRect
-    ? Math.round(headerRect.bottom + (isMobile ? 10 : 12))
-    : fallback;
-  const minPad = isMobile ? 112 : 92;
-  const maxPad = Math.round(window.innerHeight * (isMobile ? 0.28 : 0.22));
-  const base = Math.max(minPad, Math.min(target, maxPad));
-  if (!forChina) return base;
-
-  const chinaMin = isMobile ? 78 : 46;
-  const chinaMax = isMobile ? 154 : 120;
-  return Math.max(chinaMin, Math.min(Math.round(base * 0.36), chinaMax));
+function mapBottomPadding(forChina = false) {
+  const isMobile = window.innerWidth <= 980;
+  if (forChina) return isMobile ? 18 : 12;
+  return isMobile ? 22 : 16;
 }
 
 function applyMapTopPadding(forChina = __mapInChina) {
   if (!__mapChart) return;
   __mapChart.set('paddingTop', mapTopPadding(forChina));
+  __mapChart.set('paddingBottom', mapBottomPadding(forChina));
 }
 
 function setMapInteractionMode(mode = 'world') {
@@ -211,10 +532,10 @@ function waitForAmCharts(cb, attempt = 0) {
 /* ── DOM scaffold ──────────────────────────────────────────────────────── */
 
 function mapShellHTML() {
-  const total     = MAP_BOOKS.length;
-  const countries = Object.keys(BY_LOC).length;
+  const total     = MAP_LIBRARY.length;
+  const countries = activeCountries().size;
   const sharedHeader = typeof window.renderPrimaryHeader === 'function'
-    ? window.renderPrimaryHeader('map', { actionLabel: 'World', actionId: 'mapWorldBtn' })
+    ? window.renderPrimaryHeader('map', { actionLabel: '🌐 World', actionId: 'mapWorldBtn' })
     : '';
   return `
     <div class="shared-header-wrap">
@@ -222,9 +543,10 @@ function mapShellHTML() {
     </div>
 
     <div class="map-subheader">
+      <div class="map-geo-filters" id="mapGeoFilters"></div>
       <div class="map-header-right">
-        <div class="map-chip"><strong>${total}</strong> books mapped</div>
-        <div class="map-chip"><strong>${countries}</strong> countries</div>
+        <div class="map-chip"><strong id="mapBooksCount">${total}</strong> books mapped</div>
+        <div class="map-chip"><strong id="mapCountriesCount">${countries}</strong> countries</div>
       </div>
       <div class="map-breadcrumb" id="mapBreadcrumb" hidden></div>
     </div>
@@ -238,13 +560,15 @@ function mapShellHTML() {
       <div class="map-zoom-btn map-zoom-fit" id="mapZoomHome">Fit</div>
     </div>
 
-    <div class="map-hint" id="mapHint">Click any country to explore its books</div>
+    <div class="map-hint" id="mapHint">Hover for a hint · click to open regional context</div>
 
     <!-- Hover tooltip -->
     <div class="map-tooltip" id="mapTooltip">
       <span class="map-tooltip-name" id="mapTooltipName"></span>
       <span class="map-tooltip-count" id="mapTooltipCount"></span>
     </div>
+
+    <div class="map-hover-stage" id="mapHoverStage"></div>
 
     <!-- Side panel -->
     <div class="map-panel" id="mapPanel">
@@ -253,14 +577,15 @@ function mapShellHTML() {
         <div class="map-panel-sub"   id="mapPanelSub">—</div>
         <div class="map-panel-close" id="mapPanelClose">×</div>
       </div>
-      <div class="map-panel-filters" id="mapPanelFilters"></div>
-      <div class="map-panel-books"   id="mapPanelBooks"></div>
+      <div class="map-panel-tabs" id="mapPanelTabs"></div>
+      <div class="map-panel-body" id="mapPanelBody"></div>
     </div>
   `;
 }
 
 function bindMapShellEvents() {
   document.getElementById('mapPanelClose').addEventListener('click', closePanel);
+  renderGlobalGeoFilters();
   const worldBtn = document.getElementById('mapWorldBtn');
   if (worldBtn) {
     worldBtn.addEventListener('click', (event) => {
@@ -277,6 +602,7 @@ function bindMapShellEvents() {
 
   const tooltip = document.getElementById('mapTooltip');
   document.addEventListener('mousemove', e => {
+    __mapPointer = { x: e.clientX, y: e.clientY };
     const tw = 220, th = 44;
     let lx = e.clientX + 16;
     let ly = e.clientY - 12;
@@ -285,6 +611,25 @@ function bindMapShellEvents() {
     tooltip.style.left = lx + 'px';
     tooltip.style.top  = ly + 'px';
   });
+}
+
+function renderGlobalGeoFilters() {
+  const wrap = document.getElementById('mapGeoFilters');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  Object.entries(MAP_MODE_META).forEach(([mode, meta]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'map-geo-btn' + (mode === __mapGeoMode ? ' active' : '');
+    button.textContent = meta.label;
+    button.addEventListener('click', () => setGeoMode(mode === __mapGeoMode ? 'all' : mode));
+    wrap.appendChild(button);
+  });
+}
+
+function updateSubheaderCounts() {
+  const countriesEl = document.getElementById('mapCountriesCount');
+  if (countriesEl) countriesEl.textContent = String(activeCountries().size);
 }
 
 /* ── amCharts boot ─────────────────────────────────────────────────────── */
@@ -343,10 +688,7 @@ function bootMap() {
 
   /* Paint each country */
   worldSeries.events.on('datavalidated', () => {
-    worldSeries.mapPolygons.each(poly => {
-      const id = poly.dataItem.get('id');
-      poly.set('fill', am5.color(countryFill(id, BOOK_COUNTRIES.has(id))));
-    });
+    repaintWorldFills(worldSeries);
   });
 
   /* Tooltip — show name on any country, book count if available */
@@ -357,13 +699,19 @@ function bootMap() {
   worldSeries.mapPolygons.template.events.on('pointerover', ev => {
     const id    = ev.target.dataItem.get('id');
     const name  = getPolyName(ev.target);
-    const count = (BY_LOC[id] || []).length;
+    const count = activeCountryBooks(id).length;
+    if (!__mapFocusedCountryId && !__mapInChina) {
+      tooltip.classList.remove('visible');
+      showHoverPreview(id, name, ev.target);
+      return;
+    }
     tipName.textContent  = name;
     tipCount.textContent = count > 0 ? `· ${count} book${count !== 1 ? 's' : ''}` : '';
     tooltip.classList.add('visible');
   });
   worldSeries.mapPolygons.template.events.on('pointerout', () => {
     tooltip.classList.remove('visible');
+    if (!__mapFocusedCountryId && !__mapInChina) clearHoverPreview();
   });
 
   /* Click */
@@ -375,16 +723,11 @@ function bootMap() {
 
     if (id === 'CN') { drillChina(); return; }
 
+    clearHoverPreview();
     focusCountry(ev.target, id, name);
 
     dimAllExcept(worldSeries, ev.target, id);
-
-    const books = BY_LOC[id] || [];
-    if (books.length) {
-      openPanel(name, `${books.length} book${books.length !== 1 ? 's' : ''} mapped`, books, id);
-    } else {
-      closePanel();
-    }
+    openCountryPanel(id, name);
   });
 
   /* ── China province series ── */
@@ -409,35 +752,38 @@ function bootMap() {
     strokeWidth: HOVER_STROKE_WIDTH,
   });
 
-  /* Province colour palette */
-  const CN_PROV_PALETTE = [
-    '#6a4a3a','#3a5a6a','#4a6a3a','#6a3a5a','#3a4a6a',
-    '#5a6a3a','#6a3a3a','#3a6a5a','#5a3a6a','#3a6a3a',
-    '#6a5a3a','#3a3a6a','#6a4a5a','#4a5a6a','#5a4a6a',
-    '#3a5a3a','#6a3a4a','#4a6a5a','#5a6a4a','#4a3a5a',
-  ];
-
   chinaSeries.events.on('datavalidated', () => {
-    let ci = 0;
-    chinaSeries.mapPolygons.each(poly => {
-      const id      = poly.dataItem.get('id');
-      const hasBook = !!(BY_PROV[id]?.length);
-      const base    = CN_PROV_PALETTE[ci % CN_PROV_PALETTE.length];
-      ci++;
-      poly.set('fill', am5.color(hasBook ? brighten(base, 22) : base));
-    });
+    repaintChinaFills(chinaSeries);
   });
 
   chinaSeries.mapPolygons.template.events.on('pointerover', ev => {
     const id    = ev.target.dataItem.get('id');
     const name  = getPolyName(ev.target);
-    const count = (BY_PROV[id] || []).length;
-    tipName.textContent  = name;
-    tipCount.textContent = count > 0 ? `· ${count} book${count !== 1 ? 's' : ''}` : '';
-    tooltip.classList.add('visible');
+    const count = activeProvinceBooks(id).length;
+    if (__mapGeoMode === 'all') {
+      tipName.textContent  = name;
+      tipCount.textContent = count > 0 ? `· ${count} book${count !== 1 ? 's' : ''}` : '';
+      tooltip.classList.add('visible');
+      return;
+    }
+    tooltip.classList.remove('visible');
+    if (!count) {
+      clearHoverPreview();
+      return;
+    }
+    showHoverTitleCloud(activeProvinceBooks(id), ev.target, {
+      emptyText: '',
+      max: 8,
+      className: 'map-hover-title map-hover-title-heat',
+      radiusBase: 148,
+      radiusStep: 20,
+      width: 198,
+      height: 30,
+    });
   });
   chinaSeries.mapPolygons.template.events.on('pointerout', () => {
     tooltip.classList.remove('visible');
+    if (__mapGeoMode !== 'all') clearHoverPreview();
   });
 
   chinaSeries.mapPolygons.template.events.on('click', ev => {
@@ -450,12 +796,8 @@ function bootMap() {
       p.set('fill', am5.color(p === ev.target ? brighten('#5a4828', 28) : DIMMED_FILL));
     });
 
-    const books = BY_PROV[id] || [];
-    openPanel(
-      name + ' Province',
-      `${books.length} book${books.length !== 1 ? 's' : ''} set here · China`,
-      books, 'CN-prov'
-    );
+    const books = allProvinceBooks(id);
+    openProvincePanel(id, name, books);
   });
 
   /* ── Drill / back ── */
@@ -466,9 +808,18 @@ function bootMap() {
   function fitChina() {
     const doZoom = () => {
       applyMapTopPadding(true);
-      chart.zoomToGeoPoint({ longitude: 104, latitude: 33.2 }, 5, true);
+      chart.zoomToGeoPoint({ longitude: 104, latitude: 35.5 }, 4.5, true);
     };
     setTimeout(doZoom, 500);
+  }
+
+  function resetWorldHome() {
+    applyMapTopPadding(false);
+    setMapInteractionMode('world');
+    const doHome = () => chart.goHome();
+    setTimeout(doHome, 20);
+    setTimeout(doHome, 200);
+    setTimeout(doHome, 520);
   }
 
   function fitCountry(poly) {
@@ -492,31 +843,47 @@ function bootMap() {
 
   function drillChina() {
     if (__mapInChina) return;
+    clearHoverPreview();
     __mapInChina = true;
     __mapFocusedCountryId = 'CN';
     worldSeries.hide();
     chinaSeries.show();
     setMapInteractionMode('detail');
     setBreadcrumb('china', 'China', goWorld);
-    const allCN = BY_LOC['CN'] || [];
-    openPanel('China', `${allCN.length} books mapped`, allCN, 'CN');
+    openCountryPanel('CN', 'China');
     fitChina();
   }
 
   function goWorld() {
     __mapInChina = false;
     __mapFocusedCountryId = null;
+    clearHoverPreview();
     chinaSeries.hide();
     worldSeries.show();
-    setMapInteractionMode('world');
-    applyMapTopPadding(false);
     setBreadcrumb('world', 'World', null);
     closePanel();
     resetWorldFills(worldSeries);
-    setTimeout(() => chart.goHome(), 80);
-    setTimeout(() => chart.goHome(), 520);
+    resetWorldHome();
   }
   __mapGoWorldFn = goWorld;
+
+  window.__setMapGeoMode = (mode) => {
+    __mapGeoMode = mode;
+    renderGlobalGeoFilters();
+    updateSubheaderCounts();
+    repaintWorldFills(worldSeries);
+    repaintChinaFills(chinaSeries);
+    if (__mapFocusedCountryId && __mapActivePoly && !__mapInChina) {
+      dimAllExcept(worldSeries, __mapActivePoly, __mapFocusedCountryId);
+    }
+    if (__mapPanelState?.type === 'country') {
+      openCountryPanel(__mapPanelState.countryId, __mapPanelState.placeLabel);
+    }
+    if (__mapPanelState?.type === 'province') {
+      openProvincePanel(__mapPanelState.provinceId, __mapPanelState.placeLabel);
+    }
+    clearHoverPreview();
+  };
 
   document.getElementById('mapZoomIn').addEventListener('click',  () => chart.zoomIn());
   document.getElementById('mapZoomOut').addEventListener('click', () => chart.zoomOut());
@@ -526,7 +893,7 @@ function bootMap() {
     } else if (__mapFocusedCountryId) {
       goWorld();
     } else {
-      chart.goHome();
+      resetWorldHome();
       closePanel();
       resetWorldFills(worldSeries);
     }
@@ -556,7 +923,7 @@ function dimAllExcept(series, activePoly, activeId) {
     const id = poly.dataItem.get('id');
     poly.set('fill', am5.color(
       poly === activePoly
-        ? countryFill(id, BOOK_COUNTRIES.has(id))
+        ? countryFill(id)
         : DIMMED_FILL
     ));
   });
@@ -564,12 +931,277 @@ function dimAllExcept(series, activePoly, activeId) {
 }
 
 function resetWorldFills(series) {
+  repaintWorldFills(series);
+  __mapActivePoly = null;
+}
+
+function repaintWorldFills(series = __mapWorldSeries) {
   if (!series) return;
   series.mapPolygons.each(poly => {
     const id = poly.dataItem.get('id');
-    poly.set('fill', am5.color(countryFill(id, BOOK_COUNTRIES.has(id))));
+    poly.set('fill', am5.color(countryFill(id)));
   });
-  __mapActivePoly = null;
+}
+
+function repaintChinaFills(series = __mapChinaSeries) {
+  if (!series) return;
+  series.mapPolygons.each(poly => {
+    const id = poly.dataItem.get('id');
+    poly.set('fill', am5.color(provinceFill(id)));
+  });
+}
+
+function setGeoMode(mode) {
+  const isValid = mode === 'all' || !!MAP_MODE_META[mode];
+  if (!isValid || mode === __mapGeoMode) return;
+  if (typeof window.__setMapGeoMode === 'function') {
+    window.__setMapGeoMode(mode);
+  } else {
+    __mapGeoMode = mode;
+    renderGlobalGeoFilters();
+    updateSubheaderCounts();
+  }
+}
+
+function clearHoverPreview() {
+  __mapHoverCountryId = null;
+  const stage = document.getElementById('mapHoverStage');
+  if (stage) stage.innerHTML = '';
+  if (!__mapFocusedCountryId && !__mapInChina) resetWorldFills(__mapWorldSeries);
+}
+
+function showHoverPreview(countryId, countryName, activePoly) {
+  __mapHoverCountryId = countryId;
+  if (__mapGeoMode === 'all') {
+    showHoverPreviewRich(countryId, countryName, activePoly);
+    return;
+  }
+  const books = activeCountryBooks(countryId);
+  if (!books.length) {
+    clearHoverPreview();
+    return;
+  }
+  showHoverTitleCloud(books, activePoly, {
+    emptyText: '',
+    max: 8,
+    className: 'map-hover-title map-hover-title-heat',
+    radiusBase: 154,
+    radiusStep: 22,
+    width: 198,
+    height: 30,
+  });
+}
+
+function showHoverPreviewRich(countryId, countryName, activePoly) {
+  dimAllExcept(__mapWorldSeries, activePoly, countryId);
+
+  const stage = document.getElementById('mapHoverStage');
+  if (!stage) return;
+
+  const anchor = getHoverAnchorPoint(activePoly);
+  const profile = buildRegionContext(countryId, countryName);
+  const keywordText = profile.keywords.slice(0, 3).join(' · ');
+  const cueText = truncateText(profile.culture, 78);
+  const preferRight = anchor.x < window.innerWidth * 0.5;
+  const side = preferRight ? 1 : -1;
+
+  const metaNodes = [
+    {
+      cls: 'map-hover-meta-country',
+      width: 236,
+      height: 112,
+      candidates: [
+        { dx: 120 * side,  dy: -126 },
+        { dx: -356 * side, dy: -126 },
+        { dx: 120 * side,  dy: 24 },
+        { dx: -356 * side, dy: 24 },
+      ],
+      html: `
+        <div class="map-hover-meta-title">${escapeHTML(countryName)}</div>
+        <div class="map-hover-meta-sub">Reading in context</div>
+      `,
+    },
+    {
+      cls: 'map-hover-meta-note',
+      width: 236,
+      height: 104,
+      candidates: [
+        { dx: -356 * side, dy: -78 },
+        { dx: 120 * side,  dy: -18 },
+        { dx: -356 * side, dy: 52 },
+        { dx: 120 * side,  dy: -178 },
+      ],
+      html: `
+        <div class="map-hover-meta-kicker">hover note</div>
+        <div class="map-hover-meta-text">${escapeHTML(keywordText)}</div>
+      `,
+    },
+    {
+      cls: 'map-hover-meta-cue',
+      width: 248,
+      height: 132,
+      candidates: [
+        { dx: -360 * side, dy: 88 },
+        { dx: 122 * side,  dy: 88 },
+        { dx: -360 * side, dy: -190 },
+        { dx: 122 * side,  dy: -190 },
+      ],
+      html: `
+        <div class="map-hover-meta-kicker">context cue</div>
+        <div class="map-hover-meta-text">${escapeHTML(cueText)}</div>
+      `,
+    },
+  ];
+
+  const keepOut = {
+    x: anchor.x - 206,
+    y: anchor.y - 128,
+    w: 412,
+    h: 256,
+  };
+  const laidOut = layoutHoverMetaNodes(metaNodes, anchor, keepOut);
+  const nodesHtml = laidOut.map(node =>
+    `<div class="map-hover-meta ${node.cls}" style="left:${node.x}px;top:${node.y}px;width:${node.width}px">${node.html}</div>`
+  );
+
+  stage.innerHTML = nodesHtml.join('');
+}
+
+function showHoverTitleCloud(books, activePoly, options = {}) {
+  const stage = document.getElementById('mapHoverStage');
+  if (!stage) return;
+  const anchor = getHoverAnchorPoint(activePoly);
+  const nodes = buildHoverTitles(anchor, books, options);
+  stage.innerHTML = nodes.join('');
+}
+
+function getHoverAnchorPoint(poly) {
+  const chartRect = document.getElementById('mapChart')?.getBoundingClientRect();
+  const spriteX = poly?.get?.('x');
+  const spriteY = poly?.get?.('y');
+  const fromPoly = Number.isFinite(spriteX) && Number.isFinite(spriteY) && chartRect
+    ? { x: chartRect.left + spriteX, y: chartRect.top + spriteY }
+    : null;
+
+  const panelOffset = document.body.classList.contains('map-panel-open') ? 540 : 0;
+  const maxX = window.innerWidth - panelOffset - 40;
+  const minY = hoverSafeTop() + 48;
+  const p = fromPoly || __mapPointer;
+  return {
+    x: Math.max(260, Math.min(p.x, maxX)),
+    y: Math.max(minY, Math.min(p.y, window.innerHeight - 190)),
+  };
+}
+
+function clampHoverNode(x, y, width, height) {
+  const panelOffset = document.body.classList.contains('map-panel-open') ? 540 : 0;
+  const minY = hoverSafeTop();
+  return {
+    x: Math.max(22, Math.min(x, window.innerWidth - panelOffset - width - 22)),
+    y: Math.max(minY, Math.min(y, window.innerHeight - height - 24)),
+  };
+}
+
+function hoverSafeTop() {
+  const subheaderRect = document.querySelector('#view-map .map-subheader')?.getBoundingClientRect();
+  return subheaderRect ? Math.round(subheaderRect.bottom + 12) : 132;
+}
+
+function layoutHoverMetaNodes(nodes, anchor, keepOut) {
+  const placed = [];
+  return nodes.map(node => {
+    const rawCandidates = (node.candidates || []).map(c => ({
+      x: anchor.x + c.dx,
+      y: anchor.y + c.dy,
+      w: node.width,
+      h: node.height,
+    }));
+    const fallback = rawCandidates.length ? rawCandidates : [{
+      x: anchor.x + 120,
+      y: anchor.y - 80,
+      w: node.width,
+      h: node.height,
+    }];
+
+    let chosen = null;
+    for (const candidate of fallback) {
+      const rect = clampHoverRect(candidate);
+      if (rectsOverlap(rect, keepOut, 12)) continue;
+      if (placed.some(prev => rectsOverlap(rect, prev, 12))) continue;
+      chosen = rect;
+      break;
+    }
+    if (!chosen) {
+      chosen = pickLeastOverlapRect(fallback, keepOut, placed);
+    }
+    placed.push(chosen);
+    return { ...node, x: chosen.x, y: chosen.y };
+  });
+}
+
+function clampHoverRect(rect) {
+  const pos = clampHoverNode(rect.x, rect.y, rect.w, rect.h);
+  return { ...rect, x: pos.x, y: pos.y };
+}
+
+function pickLeastOverlapRect(candidates, keepOut, placed) {
+  let best = clampHoverRect(candidates[0]);
+  let bestScore = Number.POSITIVE_INFINITY;
+  candidates.forEach(candidate => {
+    const rect = clampHoverRect(candidate);
+    const score =
+      overlapArea(rect, keepOut) * 3 +
+      placed.reduce((sum, prev) => sum + overlapArea(rect, prev), 0);
+    if (score < bestScore) {
+      best = rect;
+      bestScore = score;
+    }
+  });
+  return best;
+}
+
+function rectsOverlap(a, b, pad = 0) {
+  return !(
+    a.x + a.w + pad <= b.x ||
+    b.x + b.w + pad <= a.x ||
+    a.y + a.h + pad <= b.y ||
+    b.y + b.h + pad <= a.y
+  );
+}
+
+function overlapArea(a, b) {
+  const x = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const y = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  return x * y;
+}
+
+function buildHoverTitles(anchor, books, options = {}) {
+  const {
+    max = 8,
+    emptyText = 'No mapped books yet',
+    className = 'map-hover-title',
+    radiusBase = 196,
+    radiusStep = 38,
+    width = 214,
+    height = 32,
+  } = options;
+  const list = books.slice(0, max);
+  if (!list.length) {
+    if (!emptyText) return [];
+    const pos = clampHoverNode(anchor.x - 86, anchor.y + 122, 190, 32);
+    return [`<div class="${className} is-empty" style="left:${pos.x}px;top:${pos.y}px">${escapeHTML(emptyText)}</div>`];
+  }
+
+  const angles = [220, 258, 300, 332, 28, 58, 108, 152];
+  return list.map((book, index) => {
+    const angle = angles[index % angles.length] * Math.PI / 180;
+    const radius = radiusBase + (index % 3) * radiusStep;
+    const x = anchor.x + Math.cos(angle) * radius;
+    const y = anchor.y + Math.sin(angle) * radius;
+    const pos = clampHoverNode(x - width / 2, y - height / 2, width, height);
+    const rot = (index % 2 === 0 ? -1 : 1) * (6 + (index % 3) * 2);
+    return `<div class="${className}" style="left:${pos.x}px;top:${pos.y}px;transform:rotate(${rot}deg)">${escapeHTML(book.title)}</div>`;
+  });
 }
 
 function brighten(hex, amount) {
@@ -581,39 +1213,164 @@ function brighten(hex, amount) {
 
 /* ── Panel ──────────────────────────────────────────────────────────────── */
 
-function openPanel(name, sub, books, locKey) {
+function openCountryPanel(countryId, name) {
+  const books = allCountryBooks(countryId);
+
+  __mapPanelState = {
+    type: 'country',
+    countryId,
+    regionLabel: name,
+    placeLabel: name,
+    filterMode: __mapGeoMode,
+    activeTab: 'books',
+    books,
+    context: buildRegionContext(countryId, name),
+    showProvinceLabels: countryId !== 'CN',
+  };
+
+  renderPanel();
+}
+
+function openProvincePanel(provinceId, name, books = allProvinceBooks(provinceId)) {
+  const provinceName = PROV_NAMES[provinceId] || name;
+  const parentCountryId = inferProvinceCountry(provinceId, books);
+  const parentCountryLabel = countryLabelFromId(parentCountryId);
+  __mapPanelState = {
+    type: 'province',
+    countryId: parentCountryId,
+    provinceId,
+    regionLabel: provinceName,
+    placeLabel: `${parentCountryLabel} > ${provinceName}`,
+    filterMode: __mapGeoMode,
+    activeTab: 'books',
+    books,
+    context: buildRegionContext(parentCountryId, provinceName),
+    showProvinceLabels: false,
+  };
+
+  renderPanel();
+}
+
+function renderPanel() {
   const panelEl = document.getElementById('mapPanel');
-  const isChinaRoot = locKey === 'CN';
+  if (!panelEl || !__mapPanelState) return;
 
-  document.getElementById('mapPanelPlace').textContent = name;
-  document.getElementById('mapPanelSub').textContent   = sub;
+  document.getElementById('mapPanelPlace').textContent = __mapPanelState.placeLabel;
+  const subEl = document.getElementById('mapPanelSub');
+  const subtitle = buildPanelSubtitle(__mapPanelState);
+  subEl.textContent = subtitle;
+  subEl.classList.toggle('is-empty', !subtitle);
 
-  /* China root defaults to all books, without filter chips */
-  const filtersEl = document.getElementById('mapPanelFilters');
-  filtersEl.innerHTML = '';
+  renderPanelTabs();
+  renderPanelBody();
 
-  renderPanelBooks(books, { showProvinceLabels: !isChinaRoot });
   panelEl.classList.add('open');
   document.body.classList.add('map-panel-open');
 }
 
 function closePanel() {
+  __mapPanelState = null;
   const panelEl = document.getElementById('mapPanel');
   panelEl.classList.remove('open');
   document.body.classList.remove('map-panel-open');
 }
 
+function renderPanelTabs() {
+  const container = document.getElementById('mapPanelTabs');
+  if (!container || !__mapPanelState) return;
+  container.innerHTML = '';
+
+  MAP_TAB_META.forEach(tab => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'map-tab-btn' + (tab.id === __mapPanelState.activeTab ? ' active' : '');
+    btn.textContent = tab.label;
+    btn.addEventListener('click', () => {
+      __mapPanelState.activeTab = tab.id;
+      renderPanelBody();
+      renderPanelTabs();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function renderPanelBody() {
+  const container = document.getElementById('mapPanelBody');
+  if (!container || !__mapPanelState) return;
+
+  if (__mapPanelState.activeTab === 'books') {
+    renderPanelBooks(__mapPanelState.books || [], {
+      showProvinceLabels: __mapPanelState.showProvinceLabels,
+      filterMode: __mapPanelState.filterMode,
+    });
+    return;
+  }
+
+  const ctx = __mapPanelState.context;
+  if (__mapPanelState.activeTab === 'culture') {
+    container.innerHTML = `
+      <section class="map-copy-card">
+        <div class="map-copy-kicker">Cultural background</div>
+        <p>${escapeHTML(ctx.culture)}</p>
+      </section>
+    `;
+    return;
+  }
+
+  if (__mapPanelState.activeTab === 'history') {
+    container.innerHTML = ctx.history.map(item => `
+      <section class="map-copy-card">
+        <div class="map-copy-kicker">Historical context</div>
+        <p>${escapeHTML(item)}</p>
+      </section>
+    `).join('');
+    return;
+  }
+
+  if (__mapPanelState.activeTab === 'keywords') {
+    container.innerHTML = `
+      <section class="map-copy-card">
+        <div class="map-copy-kicker">Literary / thought keywords</div>
+        <div class="map-keyword-grid">
+          ${ctx.keywords.map(word => `<span class="map-keyword-chip">${escapeHTML(word)}</span>`).join('')}
+        </div>
+        <p class="map-copy-note">${escapeHTML(buildKeywordNarrative(__mapPanelState.regionLabel, ctx.keywords))}</p>
+      </section>
+    `;
+    return;
+  }
+
+  if (__mapPanelState.activeTab === 'starter') {
+    const starterList = buildStarterList(__mapPanelState);
+    container.innerHTML = starterList.map(item => `
+      <section class="map-copy-card">
+        <div class="map-copy-kicker">${escapeHTML(item.type || 'Starter reading')}</div>
+        <h4>${escapeHTML(item.title)}</h4>
+        ${item.author ? `<div class="map-starter-author">${escapeHTML(item.author)}</div>` : ''}
+        <p>${escapeHTML(item.note)}</p>
+      </section>
+    `).join('');
+  }
+}
+
 function renderPanelBooks(books, { showProvinceLabels = true } = {}) {
-  const container = document.getElementById('mapPanelBooks');
+  const container = document.getElementById('mapPanelBody');
+  if (!container || !__mapPanelState) return;
   if (!books.length) {
-    container.innerHTML = `<div class="map-panel-empty">No books in this region yet</div>`;
+    const modeMeta = MAP_MODE_META[__mapPanelState.filterMode];
+    container.innerHTML = `
+      <div class="map-panel-empty">
+        <strong>${escapeHTML(modeMeta?.label || 'All locations')}</strong>
+        <span>${escapeHTML(modeMeta?.empty || 'No mapped books in this region yet.')}</span>
+      </div>
+    `;
     return;
   }
   container.innerHTML = '';
 
   const groups = showProvinceLabels
     ? Object.entries(books.reduce((acc, b) => {
-      const key = b.province || '__none';
+      const key = inferProvinceKey(b);
       (acc[key] = acc[key] || []).push(b);
       return acc;
     }, {}))
@@ -622,33 +1379,127 @@ function renderPanelBooks(books, { showProvinceLabels = true } = {}) {
   groups.forEach(([prov, list]) => {
     if (showProvinceLabels && groups.length > 1 && prov !== '__none') {
       const lbl = document.createElement('div');
-      lbl.className   = 'mb-province-label';
-      lbl.textContent = PROV_NAMES[prov] || prov;
+      lbl.className = 'mb-province-label';
+      lbl.textContent = buildProvincePathLabel(prov, list);
       container.appendChild(lbl);
     }
-    list.forEach(b => {
-      const row = document.createElement('div');
-      row.className = 'mb-row';
-      const yearLabel = b.year > 0 ? b.year : Math.abs(b.year) + ' BCE';
-      row.innerHTML = `
-        <div class="mb-mini-cover" style="background:${b.bg};color:${b.text}">
-          <div class="mb-mini-title">${escapeHTML(b.title)}</div>
-        </div>
-        <div class="mb-info">
-          <div class="mb-info-title">${escapeHTML(b.title)}</div>
-          <div class="mb-info-author">${escapeHTML(b.author)}</div>
-          <div class="mb-info-meta">
-            <span class="mb-info-year">${yearLabel}</span>
-            ${b.tags.slice(0,2).map(t=>`<span class="mb-info-tag">${escapeHTML(t)}</span>`).join('')}
-          </div>
-        </div>
-        <div class="mb-arrow">→</div>`;
-      row.addEventListener('click', () => {
-        if (window.BOOK_BY_ID?.[b.id]) App.show('book', { id: b.id });
-      });
-      container.appendChild(row);
+    list.forEach(b => container.appendChild(renderBookRow(b)));
+  });
+}
+
+function renderBookRow(b) {
+  const row = document.createElement('div');
+  row.className = 'mb-row';
+  const yearLabel = b.year > 0 ? b.year : Math.abs(b.year) + ' BCE';
+  const coverMarkup = b.coverImage
+    ? `<div class="mb-mini-cover has-image"><img src="${escapeHTML(b.coverImage)}" alt="${escapeHTML(b.title)} cover"></div>`
+    : `<div class="mb-mini-cover" style="background:${b.bg};color:${b.text}"><div class="mb-mini-title">${escapeHTML(b.title)}</div></div>`;
+
+  row.innerHTML = `
+    ${coverMarkup}
+    <div class="mb-info">
+      <div class="mb-info-title">${escapeHTML(b.title)}</div>
+      <div class="mb-info-author">${escapeHTML(b.author)}</div>
+      <div class="mb-info-meta">
+        <span class="mb-info-year">${yearLabel}</span>
+        ${b.tags.slice(0,2).map(t=>`<span class="mb-info-tag">${escapeHTML(t)}</span>`).join('')}
+      </div>
+    </div>
+    <div class="mb-arrow">→</div>`;
+  row.addEventListener('click', () => {
+    if (window.BOOK_BY_ID?.[b.id]) App.show('book', { id: b.id });
+  });
+  return row;
+}
+
+function inferProvinceKey(book) {
+  return (
+    book.geo?.contentLocation?.province ||
+    book.geo?.authorOrigin?.province ||
+    book.geo?.readerLocation?.province ||
+    book.province ||
+    '__none'
+  );
+}
+
+function buildPanelSubtitle(state) {
+  if (state.type === 'province') return '';
+  const total = state.books.length;
+  const modeLabel = state.filterMode === 'all'
+    ? 'All locations'
+    : (MAP_MODE_META[state.filterMode]?.label || 'Current mode');
+  return `${total} books in ${modeLabel.toLowerCase()} · culture + history + entry routes`;
+}
+
+function buildProvincePathLabel(provinceId, books) {
+  const countryId = inferProvinceCountry(provinceId, books);
+  return `${countryLabelFromId(countryId)} > ${PROV_NAMES[provinceId] || provinceId}`;
+}
+
+function inferProvinceCountry(provinceId, books = []) {
+  const counts = {};
+  const note = (countryId) => {
+    if (!countryId) return;
+    counts[countryId] = (counts[countryId] || 0) + 1;
+  };
+  books.forEach(book => {
+    const geos = Object.values(book.geo || {});
+    geos.forEach(geo => {
+      if (!geo?.province || geo.province !== provinceId) return;
+      note(geo.country || book.loc);
+    });
+    if (book.province === provinceId) note(book.loc);
+  });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (top) return top;
+  if (provinceId.startsWith('CN-')) return 'CN';
+  return __mapPanelState?.countryId || 'CN';
+}
+
+function countryLabelFromId(countryId) {
+  if (!countryId) return 'World';
+  const label = REGION_NAME_FORMATTER?.of(countryId);
+  return label || countryId;
+}
+
+function buildRegionContext(countryId, label) {
+  const profile = REGION_PROFILES[countryId];
+  if (profile) return profile;
+  return {
+    culture: `${label} 目前还没有落入你的书单，但它依然适合作为“文化盲区入口”来读。先别急着找代表作，先问这个地区的语言、国家形成、宗教结构和城市经验怎样塑造了它的问题意识。`,
+    history: [
+      `${label} 的阅读通常值得先补一条简短历史线：国家形成、殖民或战争经验、现代化节奏。`,
+      `优先寻找能把地方日常和大结构连起来的作品：小说、回忆录、历史随笔通常比纯理论更好进入。`,
+      `把它当成“语境训练”而不是知识清单，会更快建立阅读抓手。`
+    ],
+    keywords: ['国家形成', '地方经验', '语言层次', '历史记忆', '宗教与世俗', '现代化节奏'],
+    starters: [
+      { title: '先读一部地区小说', note: `用人物关系进入 ${label} 的日常秩序与情感结构。`, type: 'Path 01' },
+      { title: '再补一本历史概述', note: `把 ${label} 的制度转型、战争或殖民线索串起来。`, type: 'Path 02' },
+      { title: '最后看回忆录或思想随笔', note: '让个人经验把抽象历史重新压回现实。', type: 'Path 03' }
+    ]
+  };
+}
+
+function buildKeywordNarrative(label, keywords) {
+  return `${label} 这条阅读线不一定先求“完整”，先抓住 ${keywords.slice(0, 3).join(' / ')} 这几个词，通常就能更快进入地区语境。`;
+}
+
+function buildStarterList(state) {
+  const starters = [...(state.context.starters || [])];
+  const books = state.books || [];
+  const modeLabel = state.filterMode === 'all'
+    ? 'all locations'
+    : (MAP_MODE_META[state.filterMode]?.label.toLowerCase() || 'current mode');
+  books.slice(0, 2).forEach(book => {
+    starters.unshift({
+      title: book.title,
+      author: book.author,
+      note: `Already mapped in ${modeLabel}. Start here directly.`,
+      type: 'Mapped now'
     });
   });
+  return starters.slice(0, 4);
 }
 
 /* ── Misc ───────────────────────────────────────────────────────────────── */
@@ -670,9 +1521,9 @@ const PROV_NAMES = {
 function setBreadcrumb(level, label, worldClickFn) {
   const el = document.getElementById('mapBreadcrumb');
   if (level === 'world') {
-    el.innerHTML = `<span class="crumb active">World</span>`;
+    el.innerHTML = `<span class="crumb active">🌐 World</span>`;
   } else {
-    el.innerHTML = `<span class="crumb crumb-link" id="crumbWorld">World</span>
+    el.innerHTML = `<span class="crumb crumb-link" id="crumbWorld">🌐 World</span>
       <span class="crumb-sep">›</span>
       <span class="crumb active">${escapeHTML(label)}</span>`;
     if (worldClickFn) {
@@ -694,6 +1545,12 @@ function getPolyName(polygon) {
   if (ctx?.name)             return ctx.name;
   if (di.get?.('name'))      return di.get('name');
   return '';
+}
+
+function truncateText(text, maxChars) {
+  const raw = String(text || '').trim();
+  if (raw.length <= maxChars) return raw;
+  return raw.slice(0, maxChars - 1).trimEnd() + '…';
 }
 
 function escapeHTML(s) {
