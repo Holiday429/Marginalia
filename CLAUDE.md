@@ -64,6 +64,12 @@ Marginalia/
 Preloader 主题通过 `body.theme-xxx` 切换（ink / taupe / cream / sage / clay）。
 Home 视图通过 `body[data-view="home"]` 控制样式，不依赖 theme class。
 
+## 文案规则（全局）
+
+- 服务型 UI 文案默认使用英文：包括按钮、筛选标签、tabs、chips、breadcrumbs、状态标签、面板分类标题。
+- 服务型 UI 文案默认使用 Title Case 或 Sentence case，不使用全大写（除明确缩写如 API、AI）。
+- 内容型文本（书摘、文化背景、用户笔记）可按原语言显示，不受上述英文限制。
+
 ## 注意事项
 
 - `book.glb` 路径相对于 `index.html`（根目录），不需要加 `src/` 前缀

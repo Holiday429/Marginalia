@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function isSelfWorkspaceUser(workspaceId, uid) {
+      return isAuthed() && request.auth.uid == uid;
+    }
+
+    // workspaces/{workspaceId}/users/{uid}/...
+    match /workspaces/{workspaceId}/users/{uid}/{allPaths=**} {
+      allow read, write: if isSelfWorkspaceUser(workspaceId, uid);
+    }
+
+    // Deny any other storage path.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

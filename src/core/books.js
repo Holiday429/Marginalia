@@ -41,6 +41,11 @@
        province  string?  e.g. 'CN-37' (for the map's drilldown)
        city      string?
      }
+     geo?: {
+       authorOrigin?:    { country, province?, city? }
+       contentLocation?: { country, province?, city? }
+       readerLocation?:  { country, province?, city? }
+     }
      summary     short prose description (1–2 sentences)
      insight: {
        oneLiner, answeredQuestion, coreQuestion, integration,
@@ -51,6 +56,10 @@
      mindmap     { revolutions, ideas, happiness, futurePaths } optional
      connections [{ id?, title, author, relation, type }]
      actions     [{ id, text, status: 'todo'|'doing'|'done', tag? }]
+     graph?: {
+       concepts[]           confirmed Concept + BookConceptLink seed
+       suggestedConcepts[]  AI-suggested links awaiting confirmation
+     }
      notes       free-form journal entries — TBD shape
    ========================================================================== */
 
@@ -86,6 +95,20 @@ window.BOOK_DETAILS = [
     location: {
       country: 'IL',          // 作者/写作地
       city:    'Jerusalem'
+    },
+    geo: {
+      authorOrigin: {
+        country: 'IL',
+        city: 'Jerusalem'
+      },
+      contentLocation: {
+        country: 'IL',
+        city: 'Jerusalem'
+      },
+      readerLocation: {
+        country: 'CN',
+        city: 'Beijing'
+      }
     },
     summary: '横跨进化生物学、认知人类学、历史学与哲学的一部宏大叙事。以以色列学者视角赋予该书对「集体虚构」的特殊敏感。',
     insight: {
@@ -130,37 +153,41 @@ window.BOOK_DETAILS = [
       { id: 1, page: 27,  chapter: '第二章 · 知识之树',
         kind: 'concept',
         quote: '历史从人类学会说谎那天开始。',
+        conceptId: 'fictional-thinking',
         annotation: '「说谎」在此暗指虚构能力，而非道德判断。赫拉利化用维柯（Vico）的《以诗性智性创造历史》传统，以及尼采「人是会编故事的动物」的论断。虚构能力是有论述性的人类天赋，它既是文明的基础，也是政治、欺骗与意识形态形成压迫的根源。' },
       { id: 2, page: 87,  chapter: '第五章 · 历史上最大的骗局',
         kind: 'argument',
         quote: '农业革命是历史上最大的骗局。小麦并没有让人类的生活变得更好，却让更多的人挤在更小的空间里。',
+        conceptId: 'agricultural-revolution',
         annotation: '这是对马歇尔·萨林斯（Marshall Sahlins）《原始富裕社会》论调的通俗化表达。萨林斯在 1972 年的《石器时代经济学》中提出：狩猎采集者每天工作 3–5 小时即可满足需求，拥有大量休闲时间。这一论断挑战了进步主义历史叙事，但也回避了人类学的质疑（样本偏差、寿命短期等因素未被充分考虑）。' },
       { id: 3, page: 179, chapter: '第八章 · 金钱的味道',
         kind: 'concept',
         quote: '金钱是迄今为止人类发明的最普遍、最有效率的互信系统。',
+        conceptId: 'intersubjective-reality',
         annotation: '此处「互信系统」（inter-subjective trust system）是赫拉利的核心概念框架。不是「主观」（仅存在于个人意识），也不是「客观」（独立于人类意识存在），而是「互主观」（inter-subjective）—— 存在于人们共同相信的集体意识中。货币、法律、国家均属此类。这一分类源自现象学传统，可追溯至胡塞尔与梅洛-庞蒂。' },
       { id: 4, page: 259, chapter: '第十四章 · 发现自己的无知',
         kind: 'action',
         quote: '科学革命的核心，不是某一项具体发现，而是发现了自己的无知。',
+        conceptId: 'scientific-revolution',
         annotation: '苏格拉底「我只知道我不知道」的认识论立场在这里得到宏观历史维度的延伸。赫拉利将其与卡尔·波普尔的「可证伪性」原则相连：科学的本质是承认一切知识可能被推翻的可能。这与传统宗教和帝国经书已完备的「封闭知识体系」形成对照——后者以权威与稳定性文本为目标，而非追问其局限。' }
     ],
     cultural: [
-      { tag: '认知革命', term: '虚构能力 (Fictional Thinking)',
+      { tag: '认知革命', term: '虚构能力 (Fictional Thinking)', conceptId: 'fictional-thinking',
         body: '约 7 万年前，智人获得了创造并相信「不存在之物」的能力，如神话、国家、货币。这一跃迁使大规模社会协作成为可能，也使其他人种动物从未突破 150 人的邓巴数量限制。',
         ref: '第 2–4 章' },
-      { tag: '农业革命', term: '历史最大骗局',
+      { tag: '农业革命', term: '历史最大骗局', conceptId: 'agricultural-revolution',
         body: '赫拉利认为农业革命对大多数人类个体而言是生活质量的倒退：更长的劳动时间、更单调的饮食、更高的疫病风险。但它是物种数量的胜利引擎。「成功的物种、未必等于幸福的个体」。',
         ref: '第 5–8 章' },
-      { tag: '帝国主义', term: '互联网之前的全球化',
+      { tag: '帝国主义', term: '互联网之前的全球化', conceptId: 'imperial-globalization',
         body: '书中将帝国视为人类融合的主要驱动力。帝国徐徐而同时传播了法律、语言与文化，形成了今天我们所说的「全球文明」——这是对帝国主义的去政治化常识解读，需要结合批判理论保持警觉。',
         ref: '第 11 章' },
-      { tag: '科学革命', term: '承认无知的革命',
+      { tag: '科学革命', term: '承认无知的革命', conceptId: 'scientific-revolution',
         body: '现代科学的核心突破并非某项发现，而是一种认识论态度：承认「我们不知道」，并将这种无知转化为研究动力。这与中世纪「经书已完备」的知识封闭心态形成鲜明对比。',
         ref: '第 14–15 章' },
-      { tag: '历史哲学', term: '邓巴数 (Dunbar\'s Number)',
+      { tag: '历史哲学', term: '邓巴数 (Dunbar\'s Number)', conceptId: 'dunbar-number',
         body: '英国人类学家罗宾·邓巴提出的认知上限概念：灵长类动物因数目质容量，稳定社交网络上限约 150 人。智人超越此限制依靠的是共同虚构（神话、法律、货币），而非生物性脑容量提升。',
         ref: '第 2 章' },
-      { tag: '消费主义', term: '幸福迷思',
+      { tag: '消费主义', term: '幸福迷思', conceptId: 'happiness-myth',
         body: '现代经济以「欲望再生产」为引擎——满足一个欲望立刻催生新欲望。赫拉利更倾佛教视角：苦来源于对欲望的执着，而非欲望本身。这一论点续《今日简史》中对冥想的推崇一脉相承。',
         ref: '第 19 章' }
     ],
@@ -316,6 +343,101 @@ window.BOOK_DETAILS = [
       { id: 'a5', text: '与朋友讨论：如果金钱是集体虚构，我们为什么还要工作？整理讨论结果',                         status: 'todo', tag: '待执行' },
       { id: 'a6', text: '每次刷 Feed 超过 15 分钟后，停下来问自己：「此刻什么欲望被激活？这个欲望是我的还是算法的？」持续一周记录', status: 'doing', tag: '进行中' }
     ],
+    graph: {
+      concepts: [
+        {
+          id: 'fictional-thinking',
+          name: '虚构能力',
+          aliases: ['Fictional Thinking', 'Collective Fiction'],
+          contextTag: '认知革命',
+          relationType: 'core-thesis',
+          strength: 1,
+          description: '陌生人大规模协作并不靠血缘延展，而靠被共同相信的虚构对象来组织。',
+          highlightIds: [1],
+          actionIds: ['a1', 'a5'],
+          readerUnderstanding: '这是这本书最核心的入口。它把神话、公司、货币、国家都压回“被共同维持的故事”这一层。'
+        },
+        {
+          id: 'agricultural-revolution',
+          name: '农业革命',
+          aliases: ['历史最大骗局'],
+          contextTag: '农业革命',
+          relationType: 'questions',
+          strength: 0.9,
+          description: '农业在物种规模上是成功的，但在个体幸福和劳动负担上可能是一场反讽式进步。',
+          highlightIds: [2],
+          actionIds: ['a2'],
+          readerUnderstanding: '我不会把“最大骗局”当成定论，更把它当成对进步叙事的一次必要反问。'
+        },
+        {
+          id: 'intersubjective-reality',
+          name: '互主观现实',
+          aliases: ['Inter-subjective Reality', '互信系统'],
+          contextTag: '历史哲学',
+          relationType: 'core-thesis',
+          strength: 0.96,
+          description: '真正支撑制度运转的并非客观实体，而是被大量人共同相信并持续执行的抽象秩序。',
+          highlightIds: [3],
+          actionIds: ['a3', 'a5'],
+          readerUnderstanding: '这是我后来反看工作、身份、金钱与成功脚本时最常调用的概念。'
+        },
+        {
+          id: 'scientific-revolution',
+          name: '科学革命',
+          aliases: ['承认无知'],
+          contextTag: '科学革命',
+          relationType: 'supports',
+          strength: 0.84,
+          description: '现代科学真正改变历史的不是具体发现，而是承认未知并系统推进未知的姿态。',
+          highlightIds: [4],
+          readerUnderstanding: '相比“科学带来技术”，我更在意它把无知从羞耻变成方法。'
+        },
+        {
+          id: 'happiness-myth',
+          name: '幸福迷思',
+          aliases: ['欲望再生产'],
+          contextTag: '消费主义',
+          relationType: 'action-trigger',
+          strength: 0.88,
+          description: '文明增长和欲望扩张并不自动导向幸福，反而可能持续制造新的不满足。',
+          actionIds: ['a4', 'a6'],
+          readerUnderstanding: '它把宏观历史问题压回我的日常生活：为什么效率更高、选择更多，却不更轻松。'
+        },
+        {
+          id: 'dunbar-number',
+          name: '邓巴数',
+          aliases: ['Dunbar Number'],
+          contextTag: '历史哲学',
+          relationType: 'supports',
+          strength: 0.68,
+          description: '稳定社交网络存在生物学上限，而文明通过共同虚构暂时跨过了这个上限。',
+          readerUnderstanding: '它让我更清楚制度并不是“自然长大”的，而是为了越过认知上限而发明的脚手架。'
+        }
+      ],
+      suggestedConcepts: [
+        {
+          id: 'collective-narratives',
+          name: '集体叙事',
+          aliases: ['Shared Narratives'],
+          contextTag: '叙事',
+          relationType: 'supports',
+          strength: 0.58,
+          description: 'AI 认为你已经在多处把工作、身份和成功理解为社会脚本，值得单列成概念。',
+          actionIds: ['a3', 'a5'],
+          rationale: '你的结论部分反复把制度、身份与成功解释为“社会脚本”，这可能已经超出单一书籍摘要。'
+        },
+        {
+          id: 'progress-myth',
+          name: '进步叙事',
+          aliases: ['Myth of Progress'],
+          contextTag: '历史哲学',
+          relationType: 'questions',
+          strength: 0.52,
+          description: 'AI 认为这本书持续在挑战“增长等于更好”的默认叙事。',
+          rationale: '农业革命、幸福问题与消费主义几处笔记都在反问进步是否真的转化为更好的生活。'
+        }
+      ]
+    },
     context: {
       place: '北京 · 朝阳区书房 · 主要在家里的书桌上读，星期日间，下午有阳光。偶尔在咖啡馆里读，但总觉得效果差——这本书需要静下来吸收，不适合碎片时间。最佳状态是在周末早晨，咖啡还没冷掉，手机没打开。',
       mood:  '过渡期的不确定感。那段时间正在重新思考工作的意义，从一个项目结束到下一个开始之间的空白期——觉得自己在一个大叙事的缝隙里，有时失重。赫拉利的宏观视角恰恰对应着某种新意：人类的整个历史都是偶然加加偶然的结果，没有一个必然的剧本在等待。',

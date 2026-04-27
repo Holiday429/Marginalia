@@ -1,98 +1,107 @@
 /* ==========================================================================
-   Marginalia · Knowledge Graph view
-   --------------------------------------------------------------------------
-   D3.js force-directed graph:
-     concept nodes = unique tags from MAP_BOOKS + BOOK_DETAILS (sized by count)
-     book nodes    = individual books linked to their tags
+   Marginalia · Concept graph
    ========================================================================== */
 
-let __webBooted   = false;
-let __webFilter   = null;
-let __webZoom     = null;
-let __webSvg      = null;
-let __webRootGroup = null;
-let __webSim      = null;
-let __webCNodes   = null;
-let __webBNodes   = null;
-let __webLinks    = null;
+let __webBooted = false;
+let __webSvg = null;
+let __webZoom = null;
+let __webMode = 'all';
+let __webQuery = '';
+let __webFocusConceptId = '';
 let __webFilterPanelOpen = false;
-
-/* ── Lifecycle ─────────────────────────────────────────────────────────── */
 
 function initWeb() {
   const container = document.getElementById('view-web');
+  if (!container) return;
   container.innerHTML = webShellHTML();
   bindWebShellEvents();
 }
 
 function enterWeb() {
   showWebHint();
-  if (!__webBooted) {
+  if (typeof d3 === 'undefined') {
     loadD3ThenBoot();
+    return;
   }
+  bootWeb();
 }
 
-/* ── Shell HTML ──────────────────────────────────────────────────────────── */
-
 function webShellHTML() {
-  const total = (typeof MAP_BOOKS !== 'undefined' ? MAP_BOOKS.length : 0)
-              + (typeof BOOK_DETAILS !== 'undefined' ? BOOK_DETAILS.length : 0);
   const sharedHeader = typeof window.renderPrimaryHeader === 'function'
     ? window.renderPrimaryHeader('web', { actionLabel: 'New concept', actionId: 'webNewConceptBtn' })
     : '';
+
   return `
-<div class="shared-header-wrap">
-  ${sharedHeader}
-</div>
+    <div class="shared-header-wrap">
+      ${sharedHeader}
+    </div>
 
-<div class="web-subheader">
-  <button class="web-filter-toggle" id="webFilterToggle" type="button" aria-expanded="false">
-    Knowledge Graph
-  </button>
-  <div class="web-header-right">
-    <div class="web-chip"><strong>${total}</strong> books</div>
-    <div class="web-chip"><strong id="webConceptCount">—</strong> concepts</div>
-  </div>
-</div>
+    <div class="web-subheader">
+      <button class="web-filter-toggle" id="webFilterToggle" type="button" aria-expanded="false">
+        Concept Network
+      </button>
+      <label class="web-search">
+        <span>Search</span>
+        <input id="webSearchInput" type="search" placeholder="Concept, book, context">
+      </label>
+      <div class="web-mode-switch" id="webModeSwitch">
+        <button class="web-mode-btn active" data-web-mode="all" type="button">Concept Web</button>
+        <button class="web-mode-btn" data-web-mode="suggested" type="button">Unconfirmed AI Links</button>
+      </div>
+      <div class="web-header-right">
+        <div class="web-chip"><strong id="webBookCount">—</strong> books</div>
+        <div class="web-chip"><strong id="webConceptCount">—</strong> concepts</div>
+        <div class="web-chip"><strong id="webSuggestedCount">—</strong> suggested</div>
+      </div>
+    </div>
 
-<aside class="web-sidebar-filter" id="webFilters" aria-hidden="true"></aside>
+    <aside class="web-sidebar-filter" id="webFilters" aria-hidden="true"></aside>
+    <svg id="webGraph"></svg>
 
-<svg id="webGraph"></svg>
+    <div class="web-hint" id="webHint">Click a concept for its reading history · drag to inspect</div>
 
-<div class="web-hint" id="webHint">Drag to explore · hover to inspect · scroll to zoom</div>
+    <div class="web-tooltip" id="webTooltip">
+      <div class="web-tt-tag" id="ttTag"></div>
+      <div class="web-tt-name" id="ttName"></div>
+      <div class="web-tt-body" id="ttBody"></div>
+      <div class="web-tt-books" id="ttBooks"></div>
+    </div>
 
-<div class="web-tooltip" id="webTooltip">
-  <div class="web-tt-tag"   id="ttTag"></div>
-  <div class="web-tt-name"  id="ttName"></div>
-  <div class="web-tt-body"  id="ttBody"></div>
-  <div class="web-tt-books" id="ttBooks"></div>
-</div>
+    <div class="web-legend">
+      <div class="web-legend-row">
+        <div class="web-legend-dot" style="background:rgba(213,170,100,0.86)"></div>
+        <span>Concept</span>
+      </div>
+      <div class="web-legend-row">
+        <div class="web-legend-dot" style="background:rgba(232,223,200,0.3);border:1px solid rgba(232,223,200,0.4)"></div>
+        <span>Book</span>
+      </div>
+      <div class="web-legend-row">
+        <div class="web-legend-square"></div>
+        <span>Cultural context</span>
+      </div>
+      <div class="web-legend-row">
+        <div class="web-legend-line" style="background:rgba(213,170,100,0.58)"></div>
+        <span>Confirmed</span>
+      </div>
+      <div class="web-legend-row">
+        <div class="web-legend-line is-dashed"></div>
+        <span>AI suggested</span>
+      </div>
+    </div>
 
-<div class="web-legend">
-  <div class="web-legend-row">
-    <div class="web-legend-dot" style="background:rgba(198,139,74,0.85)"></div>
-    <span>Concept / theme</span>
-  </div>
-  <div class="web-legend-row">
-    <div class="web-legend-dot" style="background:rgba(232,223,200,0.3);border:1px solid rgba(232,223,200,0.4)"></div>
-    <span>Book</span>
-  </div>
-  <div class="web-legend-row">
-    <div class="web-legend-line" style="background:rgba(232,223,200,0.18)"></div>
-    <span>Shared concept</span>
-  </div>
-</div>
-
-<div class="web-controls">
-  <button class="web-ctrl-btn" id="webZoomIn">+</button>
-  <button class="web-ctrl-btn" id="webZoomOut">−</button>
-  <button class="web-ctrl-btn" id="webReset" style="font-size:13px;letter-spacing:0.06em">fit</button>
-</div>`;
+    <div class="web-controls">
+      <button class="web-ctrl-btn" id="webZoomIn" type="button">+</button>
+      <button class="web-ctrl-btn" id="webZoomOut" type="button">−</button>
+      <button class="web-ctrl-btn" id="webReset" type="button" style="font-size:13px;letter-spacing:0.06em">fit</button>
+    </div>
+  `;
 }
 
 function bindWebShellEvents() {
   const host = document.getElementById('view-web');
   const toggle = document.getElementById('webFilterToggle');
+  const input = document.getElementById('webSearchInput');
   if (!host || !toggle) return;
 
   toggle.addEventListener('click', (event) => {
@@ -100,412 +109,266 @@ function bindWebShellEvents() {
     toggleWebFilterPanel();
   });
 
+  input?.addEventListener('input', () => {
+    __webQuery = input.value.trim().toLowerCase();
+    __webFocusConceptId = '';
+    renderWebGraph();
+  });
+
+  document.querySelectorAll('[data-web-mode]').forEach((button) => {
+    button.addEventListener('click', () => {
+      __webMode = button.dataset.webMode || 'all';
+      document.querySelectorAll('[data-web-mode]').forEach((item) => {
+        item.classList.toggle('active', item === button);
+      });
+      __webFocusConceptId = '';
+      renderWebGraph();
+    });
+  });
+
   host.addEventListener('click', (event) => {
     if (!__webFilterPanelOpen) return;
     if (event.target.closest('#webFilters') || event.target.closest('#webFilterToggle')) return;
     toggleWebFilterPanel(false);
   });
-}
 
-/* ── D3 lazy load ────────────────────────────────────────────────────────── */
+  window.addEventListener('marginalia:graph-links-changed', () => {
+    if (document.body.dataset.view === 'web') renderWebGraph();
+  });
+}
 
 function loadD3ThenBoot() {
-  if (typeof d3 !== 'undefined') { bootWeb(); return; }
-  const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';
-  s.onload  = bootWeb;
-  s.onerror = () => console.error('[web] D3 failed to load');
-  document.head.appendChild(s);
+  if (typeof d3 !== 'undefined') {
+    bootWeb();
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';
+  script.onload = bootWeb;
+  script.onerror = () => console.error('[web] Failed to load D3.');
+  document.head.appendChild(script);
 }
-
-/* ── Build graph data ────────────────────────────────────────────────────── */
-
-function buildGraphData() {
-  const allBooks = [];
-  const tagMap   = {};   // normalised-key → { id, label, books[] }
-
-  function addBook(id, title, author, tags, bg, text) {
-    const node = { id, title, author, tags, bg, text, type: 'book' };
-    allBooks.push(node);
-    tags.forEach(tag => {
-      const key = tag.toLowerCase().trim();
-      if (!tagMap[key]) {
-        tagMap[key] = { id: 'tag-' + key, label: tag, books: [], type: 'concept' };
-      }
-      tagMap[key].books.push(node);
-    });
-  }
-
-  if (typeof MAP_BOOKS !== 'undefined') {
-    MAP_BOOKS.forEach(b =>
-      addBook(b.id, b.title, b.author, b.tags || [], b.bg || '#333', b.text || '#eee')
-    );
-  }
-  if (typeof BOOK_DETAILS !== 'undefined') {
-    BOOK_DETAILS.forEach(b => {
-      if (allBooks.find(x => x.id === b.id)) return; // already from MAP_BOOKS
-      const tags = [
-        ...(b.tags || []),
-        ...(b.cultural || []).map(c => c.tag)
-      ];
-      addBook(b.id, b.title, b.author, [...new Set(tags)],
-              b.cover?.bg || '#333', b.cover?.text || '#eee');
-    });
-  }
-
-  const concepts     = Object.values(tagMap);
-  const linkedIds    = new Set(concepts.flatMap(c => c.books.map(bk => bk.id)));
-  const linkedBooks  = allBooks.filter(b => linkedIds.has(b.id));
-  const nodes        = [...concepts, ...linkedBooks];
-
-  const links = [];
-  concepts.forEach(c => {
-    c.books.forEach(b => {
-      links.push({ source: c.id, target: b.id });
-    });
-  });
-
-  return { nodes, links, concepts, books: linkedBooks };
-}
-
-/* ── Main boot ───────────────────────────────────────────────────────────── */
 
 function bootWeb() {
-  __webBooted = true;
-
-  const { nodes, links, concepts, books } = buildGraphData();
-
-  // Update concept count
-  const countEl = document.getElementById('webConceptCount');
-  if (countEl) countEl.textContent = concepts.length;
-
-  // Build filter chips
-  buildWebFilters(concepts);
-
-  // Measure viewport — view is now visible so clientWidth is valid
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-
-  const svg = d3.select('#webGraph')
-    .attr('width', W)
-    .attr('height', H);
-
-  __webSvg = svg;
-
-  const g = svg.append('g').attr('class', 'web-root');
-  __webRootGroup = g;
-
-  // ── Zoom ──────────────────────────────────────────────────────────────────
-  __webZoom = d3.zoom()
-    .scaleExtent([0.12, 5])
-    .on('zoom', (ev) => {
-      const constrained = constrainWebTransform(ev.transform);
-      g.attr('transform', constrained);
-      if (Math.abs(constrained.x - ev.transform.x) > 0.2 ||
-          Math.abs(constrained.y - ev.transform.y) > 0.2 ||
-          Math.abs(constrained.k - ev.transform.k) > 0.0001) {
-        __webSvg.property('__zoom', constrained);
-      }
-    });
-
-  svg.call(__webZoom);
-
-  // Zoom controls (now injected into DOM)
-  document.getElementById('webZoomIn').addEventListener('click', () =>
-    svg.transition().duration(300).call(__webZoom.scaleBy, 1.45));
-  document.getElementById('webZoomOut').addEventListener('click', () =>
-    svg.transition().duration(300).call(__webZoom.scaleBy, 0.7));
-  document.getElementById('webReset').addEventListener('click', () =>
-    applyWebFit(true));
-
-  // ── Scale ─────────────────────────────────────────────────────────────────
-  const maxBooks  = d3.max(concepts, c => c.books.length) || 1;
-  const conceptR  = d3.scaleSqrt().domain([1, maxBooks]).range([12, 38]);
-  const bookR     = 6.5;
-
-  // ── Simulation ────────────────────────────────────────────────────────────
-  __webSim = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(d => d.id)
-      .distance(d => {
-        const src = d.source.id || d.source;
-        const c   = concepts.find(x => x.id === src);
-        return (c ? conceptR(c.books.length) : 16) + 44;
-      })
-      .strength(0.35))
-    .force('charge', d3.forceManyBody()
-      .strength(d => d.type === 'concept' ? -220 : -36))
-    .force('center', d3.forceCenter(0, 0))
-    .force('collision', d3.forceCollide()
-      .radius(d => d.type === 'concept' ? conceptR(d.books.length) + 11 : bookR + 5));
-
-  // ── Links ─────────────────────────────────────────────────────────────────
-  __webLinks = g.append('g')
-    .selectAll('line')
-    .data(links)
-    .enter().append('line')
-      .attr('stroke', 'rgba(232,223,200,0.1)')
-      .attr('stroke-width', 1);
-
-  // ── Concept nodes ─────────────────────────────────────────────────────────
-  __webCNodes = g.append('g')
-    .selectAll('g')
-    .data(concepts)
-    .enter().append('g')
-      .attr('class', 'c-node')
-      .style('cursor', 'pointer')
-      .call(webDrag(__webSim))
-      .on('mouseenter', (ev, d) => webShowConceptTip(ev, d))
-      .on('mousemove',  (ev)    => webMoveTip(ev))
-      .on('mouseleave', ()      => webHideTip())
-      .on('click',      (ev, d) => webToggleFilter(d.id, concepts, books, links));
-
-  // Glow ring
-  __webCNodes.append('circle')
-    .attr('r', d => conceptR(d.books.length) + 5)
-    .attr('fill',   'none')
-    .attr('stroke', d => webTagColor(d.label))
-    .attr('stroke-width', 1)
-    .attr('opacity', 0.15);
-
-  // Main circle
-  __webCNodes.append('circle')
-    .attr('r',            d => conceptR(d.books.length))
-    .attr('fill',         d => webTagColor(d.label))
-    .attr('fill-opacity', 0.2)
-    .attr('stroke',       d => webTagColor(d.label))
-    .attr('stroke-width', 1.5)
-    .attr('stroke-opacity', 0.75)
-    .attr('class', 'c-main');
-
-  // Label
-  __webCNodes.append('text')
-    .attr('class', 'web-node-label')
-    .attr('text-anchor', 'middle')
-    .attr('dy', '0.35em')
-    .text(d => d.label.length > 13 ? d.label.slice(0, 12) + '…' : d.label);
-
-  // ── Book nodes ────────────────────────────────────────────────────────────
-  __webBNodes = g.append('g')
-    .selectAll('g')
-    .data(books)
-    .enter().append('g')
-      .attr('class', 'b-node')
-      .style('cursor', d =>
-        (d.id && typeof BOOK_BY_ID !== 'undefined' && BOOK_BY_ID[d.id]) ? 'pointer' : 'default')
-      .call(webDrag(__webSim))
-      .on('mouseenter', (ev, d) => webShowBookTip(ev, d))
-      .on('mousemove',  (ev)    => webMoveTip(ev))
-      .on('mouseleave', ()      => webHideTip())
-      .on('click',      (ev, d) => {
-        if (d.id && typeof BOOK_BY_ID !== 'undefined' && BOOK_BY_ID[d.id]) {
-          App.show('book', { id: d.id });
-        }
+  if (!__webBooted) {
+    const svg = d3.select('#webGraph');
+    __webSvg = svg;
+    __webZoom = d3.zoom()
+      .scaleExtent([0.18, 5])
+      .on('zoom', (event) => {
+        d3.select('#webGraphRoot').attr('transform', event.transform);
       });
 
-  __webBNodes.append('circle')
-    .attr('r',            bookR)
-    .attr('fill',         d => d.bg)
-    .attr('fill-opacity', 0.75)
-    .attr('stroke',       'rgba(232,223,200,0.4)')
-    .attr('stroke-width', 1);
+    svg.call(__webZoom);
+    document.getElementById('webZoomIn')?.addEventListener('click', () => {
+      svg.transition().duration(240).call(__webZoom.scaleBy, 1.4);
+    });
+    document.getElementById('webZoomOut')?.addEventListener('click', () => {
+      svg.transition().duration(240).call(__webZoom.scaleBy, 0.72);
+    });
+    document.getElementById('webReset')?.addEventListener('click', () => applyWebFit(true));
+    __webBooted = true;
+  }
 
-  __webBNodes.append('text')
-    .attr('class', 'web-node-label book-label')
-    .attr('x', bookR + 5)
-    .attr('dy', '0.35em')
-    .text(d => webShortTitle(d.title));
-
-  // ── Tick ──────────────────────────────────────────────────────────────────
-  __webSim.on('tick', () => {
-    __webLinks
-      .attr('x1', d => d.source.x)
-      .attr('y1', d => d.source.y)
-      .attr('x2', d => d.target.x)
-      .attr('y2', d => d.target.y);
-    __webCNodes.attr('transform', d => `translate(${d.x},${d.y})`);
-    __webBNodes.attr('transform', d => `translate(${d.x},${d.y})`);
-  });
-
-  // Default fit mode with readable scale
-  setTimeout(() => applyWebFit(false), 180);
-  setTimeout(() => applyWebFit(true), 860);
+  renderWebGraph();
 }
 
-function applyWebFit(animated = false) {
-  if (!__webSvg || !__webRootGroup || !__webZoom) return;
+function renderWebGraph() {
+  if (!__webSvg || typeof d3 === 'undefined' || !window.MarginaliaGraph) return;
+
+  const snapshot = window.MarginaliaGraph.getGraphSnapshot({
+    query: __webQuery,
+    mode: __webMode,
+    topConceptLimit: __webQuery ? 18 : 10,
+    focusConceptId: __webFocusConceptId,
+  });
+
+  updateWebStats(snapshot);
+  buildWebFilters(snapshot);
 
   const W = window.innerWidth;
   const H = window.innerHeight;
   __webSvg.attr('width', W).attr('height', H);
+  __webSvg.selectAll('*').remove();
 
-  const rootNode = __webRootGroup.node();
-  if (!rootNode) return;
-  const box = rootNode.getBBox();
-  if (!isFinite(box.width) || !isFinite(box.height) || box.width <= 0 || box.height <= 0) return;
+  const root = __webSvg.append('g').attr('id', 'webGraphRoot');
+  const conceptNodes = snapshot.nodes.filter((node) => node.type === 'concept');
+  const bookNodes = snapshot.nodes.filter((node) => node.type === 'book');
+  const contextNodes = snapshot.nodes.filter((node) => node.type === 'context');
 
-  const viewport = getWebSafeViewport(W, H);
-  const availableW = Math.max(220, viewport.width);
-  const availableH = Math.max(220, viewport.height);
+  const conceptRadius = d3.scaleSqrt()
+    .domain([0.6, d3.max(conceptNodes, (node) => node.weight) || 1])
+    .range([18, 46]);
+  const contextSize = d3.scaleSqrt()
+    .domain([0.4, d3.max(contextNodes, (node) => node.weight) || 1])
+    .range([14, 24]);
 
-  const scaleX = availableW / box.width;
-  const scaleY = availableH / box.height;
-  const targetScale = clamp(Math.min(scaleX, scaleY), 0.78, 1.2);
+  const simulation = d3.forceSimulation(snapshot.nodes)
+    .force('link', d3.forceLink(snapshot.links).id((node) => node.id)
+      .distance((link) => link.linkType === 'context-concept' ? 110 : 132)
+      .strength((link) => link.linkType === 'context-concept' ? 0.34 : 0.44))
+    .force('charge', d3.forceManyBody().strength((node) => (
+      node.type === 'concept' ? -420 : node.type === 'context' ? -180 : -90
+    )))
+    .force('collision', d3.forceCollide().radius((node) => {
+      if (node.type === 'concept') return conceptRadius(node.weight) + 12;
+      if (node.type === 'context') return contextSize(node.weight) + 10;
+      return 18;
+    }))
+    .force('center', d3.forceCenter(0, 0));
 
-  const centerX = viewport.left + availableW / 2;
-  const centerY = viewport.top + availableH / 2;
-  const graphCenterX = box.x + box.width / 2;
-  const graphCenterY = box.y + box.height / 2;
-  const tx = centerX - targetScale * graphCenterX;
-  const ty = centerY - targetScale * graphCenterY;
-  const transform = constrainWebTransform(d3.zoomIdentity.translate(tx, ty).scale(targetScale));
+  const linkEls = root.append('g')
+    .selectAll('line')
+    .data(snapshot.links)
+    .enter()
+    .append('line')
+    .attr('stroke', (link) => {
+      if (link.linkType === 'context-concept') return 'rgba(123,151,198,0.34)';
+      return link.status === 'suggested' ? 'rgba(213,170,100,0.5)' : 'rgba(213,170,100,0.7)';
+    })
+    .attr('stroke-width', (link) => link.linkType === 'context-concept' ? 1 : Math.max(1.1, link.strength * 1.7))
+    .attr('stroke-dasharray', (link) => link.status === 'suggested' ? '6 5' : null)
+    .attr('opacity', (link) => link.linkType === 'context-concept' ? 0.8 : 1);
 
-  if (animated) {
-    __webSvg.transition().duration(450).call(__webZoom.transform, transform);
-  } else {
-    __webSvg.call(__webZoom.transform, transform);
-  }
+  const conceptEls = root.append('g')
+    .selectAll('g')
+    .data(conceptNodes)
+    .enter()
+    .append('g')
+    .attr('class', 'web-concept-node')
+    .style('cursor', 'pointer')
+    .call(webDrag(simulation))
+    .on('mouseenter', (event, node) => webShowConceptTip(event, node))
+    .on('mousemove', (event) => webMoveTip(event))
+    .on('mouseleave', webHideTip)
+    .on('click', (event, node) => {
+      __webFocusConceptId = node.id;
+      window.openConceptDrawer?.(node.id);
+      renderWebGraph();
+    });
+
+  conceptEls.append('circle')
+    .attr('r', (node) => conceptRadius(node.weight) + 6)
+    .attr('fill', 'none')
+    .attr('stroke', (node) => node.hasSuggested ? 'rgba(213,170,100,0.45)' : 'rgba(213,170,100,0.22)');
+  conceptEls.append('circle')
+    .attr('r', (node) => conceptRadius(node.weight))
+    .attr('fill', (node) => node.hasSuggested ? 'rgba(213,170,100,0.28)' : 'rgba(213,170,100,0.17)')
+    .attr('stroke', 'rgba(213,170,100,0.92)')
+    .attr('stroke-width', 1.4);
+  conceptEls.append('text')
+    .attr('class', 'web-node-label')
+    .attr('text-anchor', 'middle')
+    .attr('dy', '0.35em')
+    .text((node) => truncateWebLabel(node.shortLabel || node.name, 14));
+
+  const contextEls = root.append('g')
+    .selectAll('g')
+    .data(contextNodes)
+    .enter()
+    .append('g')
+    .attr('class', 'web-context-node')
+    .call(webDrag(simulation))
+    .on('mouseenter', (event, node) => webShowContextTip(event, node))
+    .on('mousemove', (event) => webMoveTip(event))
+    .on('mouseleave', webHideTip);
+
+  contextEls.append('rect')
+    .attr('x', (node) => -contextSize(node.weight))
+    .attr('y', (node) => -contextSize(node.weight) * 0.7)
+    .attr('rx', 6)
+    .attr('ry', 6)
+    .attr('width', (node) => contextSize(node.weight) * 2)
+    .attr('height', (node) => contextSize(node.weight) * 1.4)
+    .attr('fill', 'rgba(123,151,198,0.18)')
+    .attr('stroke', 'rgba(123,151,198,0.55)');
+  contextEls.append('text')
+    .attr('class', 'web-node-label web-context-label')
+    .attr('text-anchor', 'middle')
+    .attr('dy', '0.32em')
+    .text((node) => truncateWebLabel(node.label, 12));
+
+  const bookEls = root.append('g')
+    .selectAll('g')
+    .data(bookNodes)
+    .enter()
+    .append('g')
+    .attr('class', 'web-book-node')
+    .style('cursor', 'pointer')
+    .call(webDrag(simulation))
+    .on('mouseenter', (event, node) => webShowBookTip(event, node))
+    .on('mousemove', (event) => webMoveTip(event))
+    .on('mouseleave', webHideTip)
+    .on('click', (event, node) => {
+      if (window.BOOK_BY_ID?.[node.id]) App.show('book', { id: node.id });
+    });
+
+  bookEls.append('circle')
+    .attr('r', 8)
+    .attr('fill', (node) => node.bg)
+    .attr('fill-opacity', 0.88)
+    .attr('stroke', 'rgba(232,223,200,0.42)')
+    .attr('stroke-width', 1.1);
+  bookEls.append('text')
+    .attr('class', 'web-node-label book-label')
+    .attr('x', 13)
+    .attr('dy', '0.35em')
+    .text((node) => truncateWebLabel(shortBookTitle(node.titleZh || node.title), 18));
+
+  simulation.on('tick', () => {
+    linkEls
+      .attr('x1', (link) => link.source.x)
+      .attr('y1', (link) => link.source.y)
+      .attr('x2', (link) => link.target.x)
+      .attr('y2', (link) => link.target.y);
+    conceptEls.attr('transform', (node) => `translate(${node.x},${node.y})`);
+    contextEls.attr('transform', (node) => `translate(${node.x},${node.y})`);
+    bookEls.attr('transform', (node) => `translate(${node.x},${node.y})`);
+  });
+
+  setTimeout(() => applyWebFit(false), 120);
+  setTimeout(() => applyWebFit(true), 420);
 }
 
-function getWebSafeViewport(W = window.innerWidth, H = window.innerHeight) {
-  const subheaderRect = document.querySelector('#view-web .web-subheader')?.getBoundingClientRect();
-  const controlsRect = document.querySelector('#view-web .web-controls')?.getBoundingClientRect();
-  const isMobile = W <= 980;
-
-  const left = isMobile ? 20 : 56;
-  const top = subheaderRect
-    ? Math.round(subheaderRect.bottom + (isMobile ? 20 : 22))
-    : (isMobile ? 228 : 188);
-  const right = controlsRect
-    ? Math.round(controlsRect.left - (isMobile ? 18 : 22))
-    : W - (isMobile ? 64 : 92);
-  const bottom = H - (isMobile ? 28 : 24);
-
-  return {
-    left,
-    top,
-    right,
-    bottom,
-    width: Math.max(220, right - left),
-    height: Math.max(220, bottom - top),
-  };
+function updateWebStats(snapshot) {
+  document.getElementById('webBookCount').textContent = snapshot.stats.books;
+  document.getElementById('webConceptCount').textContent = snapshot.stats.concepts;
+  document.getElementById('webSuggestedCount').textContent = snapshot.stats.suggestedLinks;
 }
 
-function constrainWebTransform(transform) {
-  if (!__webRootGroup) return transform;
-  const rootNode = __webRootGroup.node();
-  if (!rootNode) return transform;
-  const box = rootNode.getBBox();
-  if (!isFinite(box.width) || !isFinite(box.height) || box.width <= 0 || box.height <= 0) {
-    return transform;
-  }
-
-  const viewport = getWebSafeViewport();
-  const k = transform.k;
-  const scaledW = box.width * k;
-  const scaledH = box.height * k;
-
-  let x = transform.x;
-  let y = transform.y;
-
-  if (scaledW <= viewport.width) {
-    x = viewport.left + (viewport.width - scaledW) / 2 - box.x * k;
-  } else {
-    const minX = viewport.right - (box.x + box.width) * k;
-    const maxX = viewport.left - box.x * k;
-    x = clamp(x, minX, maxX);
-  }
-
-  if (scaledH <= viewport.height) {
-    y = viewport.top + (viewport.height - scaledH) / 2 - box.y * k;
-  } else {
-    const minY = viewport.bottom - (box.y + box.height) * k;
-    const maxY = viewport.top - box.y * k;
-    y = clamp(y, minY, maxY);
-  }
-
-  return d3.zoomIdentity.translate(x, y).scale(k);
-}
-
-/* ── Tag colour ──────────────────────────────────────────────────────────── */
-
-const WEB_COLORS = {
-  // Chinese lit
-  'Classic':      '#c68b4a', 'Qing': '#c68b4a', 'Beijing': '#c07840',
-  'Shanghai':     '#c07840', 'Shandong': '#c07840', 'Hunan': '#c07840',
-  'Sichuan':      '#c07840', 'Inner Mongolia': '#c07840',
-  'Labour':       '#b06830', 'Rivers': '#b06830', 'Pastoral': '#b06830',
-  // Awards
-  'Nobel':        '#c4903a', 'Booker': '#c4903a', 'Booker Prize': '#c4903a',
-  'Hugo Award':   '#c4903a',
-  // Sci-fi / speculative
-  'Sci-fi':       '#4a8aaa', 'Trilogy': '#4a8aaa', 'Magic realism': '#6a5aaa',
-  'Dystopia':     '#4a6aaa', 'Absurd': '#6a5aaa',
-  // European / Western lit
-  'Modernist':    '#6a8a6a', 'Victorian': '#6a8a6a', 'Gothic': '#8a6a8a',
-  'Paris':        '#5a7a8a', 'London': '#5a7a8a', 'Moscow': '#5a7a8a',
-  'St Petersburg':'5a7a8a',
-  // Ideas
-  'Philosophy':   '#8a6aaa', 'Memory': '#8a6aaa', 'Consciousness': '#7a6a9a',
-  '人类学':       '#2a9a7a', '宏观历史': '#2a8a6a', '认知革命': '#3a8a6a',
-  '叙事':         '#4a7a6a', '帝国主义': '#5a6a6a', '科学革命': '#2a9a8a',
-  '历史哲学':     '#3a7a8a', '消费主义': '#6a7a5a', '农业革命': '#5a8a5a',
-  // War / Dark
-  'War':          '#8a4a3a', 'Violence': '#8a4a3a', 'Crime': '#7a4a5a',
-  'Psychological':'7a5a6a',
-  // Nature
-  'Nature':       '#4a7a4a', 'Sea': '#3a6a7a', 'Snow': '#7a8a9a',
-  // Family / Society
-  'Family':       '#8a7a4a', 'Family saga': '#8a7a4a', 'Society': '#8a7a5a',
-  'Colonialism':  '#7a6a4a', 'Caste': '#7a6a5a',
-};
-
-function webTagColor(label) {
-  if (WEB_COLORS[label]) return WEB_COLORS[label];
-  let h = 0;
-  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) & 0xffff;
-  return `hsl(${h % 360},35%,52%)`;
-}
-
-/* ── Filter bar ─────────────────────────────────────────────────────────── */
-
-const WEB_FILTER_GROUPS = [
-  { label: 'All' },
-  { label: 'Chinese lit',  match: ['Classic','Qing','Beijing','Shanghai','Shandong','Hunan',
-                                    'Sichuan','Inner Mongolia','Labour','Memoir','Pastoral',
-                                    'Novella','Coming-of-age','Rivers','Satire','Journey'] },
-  { label: 'European',     match: ['Modernist','Epic','Paris','London','Moscow','St Petersburg',
-                                    'Yorkshire','Gothic','Victorian','Absurd','Psychological',
-                                    'Dystopia','Surveillance','Consciousness','Memory',
-                                    'Moorland','Midlands','Revolution'] },
-  { label: 'Ideas',        match: ['Philosophy','人类学','宏观历史','认知革命','叙事','帝国主义',
-                                    '科学革命','历史哲学','消费主义','农业革命','Memory',
-                                    'Consciousness','Inner life'] },
-  { label: 'Awards',       match: ['Nobel','Booker','Booker Prize','Hugo Award'] },
-  { label: 'Epic & War',   match: ['Epic','War','Violence','Ancient','Napoleon','Sea',
-                                    'Medieval','Crime','Western'] },
-];
-
-function buildWebFilters(concepts) {
+function buildWebFilters(snapshot) {
   const panel = document.getElementById('webFilters');
   if (!panel) return;
+
+  const concepts = snapshot.concepts
+    .slice()
+    .sort((a, b) => (b.totalStrength - a.totalStrength) || a.name.localeCompare(b.name, 'zh-Hans-CN'));
+
   panel.innerHTML = '';
 
-  WEB_FILTER_GROUPS.forEach((g, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'web-filter-item' + (i === 0 ? ' active' : '');
-    btn.style.setProperty('--i', String(i));
-    btn.type = 'button';
-    btn.textContent = g.label;
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.web-filter-item').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      __webFilter = null; // clear concept-click filter
-      const ids = g.match
-        ? concepts.filter(c => g.match.includes(c.label)).map(c => c.id)
-        : null;
-      webApplyFilter(ids);
+  const allBtn = document.createElement('button');
+  allBtn.className = `web-filter-item${!__webFocusConceptId ? ' active' : ''}`;
+  allBtn.type = 'button';
+  allBtn.style.setProperty('--i', '0');
+  allBtn.textContent = __webMode === 'suggested' ? 'All suggested links' : 'Top concepts';
+  allBtn.addEventListener('click', () => {
+    __webFocusConceptId = '';
+    renderWebGraph();
+  });
+  panel.appendChild(allBtn);
+
+  concepts.forEach((concept, index) => {
+    const button = document.createElement('button');
+    button.className = `web-filter-item${concept.id === __webFocusConceptId ? ' active' : ''}`;
+    button.type = 'button';
+    button.style.setProperty('--i', String(index + 1));
+    button.textContent = `${concept.name} · ${concept.bookCount}`;
+    button.addEventListener('click', () => {
+      __webFocusConceptId = concept.id;
+      renderWebGraph();
+      window.openConceptDrawer?.(concept.id);
     });
-    panel.appendChild(btn);
+    panel.appendChild(button);
   });
 
   toggleWebFilterPanel(__webFilterPanelOpen);
@@ -516,133 +379,140 @@ function toggleWebFilterPanel(forceOpen) {
   const toggle = document.getElementById('webFilterToggle');
   if (!panel || !toggle) return;
 
-  const nextOpen = typeof forceOpen === 'boolean'
-    ? forceOpen
-    : !__webFilterPanelOpen;
-
-  __webFilterPanelOpen = nextOpen;
-  panel.classList.toggle('open', nextOpen);
-  panel.setAttribute('aria-hidden', String(!nextOpen));
-  toggle.classList.toggle('open', nextOpen);
-  toggle.setAttribute('aria-expanded', String(nextOpen));
+  __webFilterPanelOpen = typeof forceOpen === 'boolean' ? forceOpen : !__webFilterPanelOpen;
+  panel.classList.toggle('open', __webFilterPanelOpen);
+  panel.setAttribute('aria-hidden', String(!__webFilterPanelOpen));
+  toggle.classList.toggle('open', __webFilterPanelOpen);
+  toggle.setAttribute('aria-expanded', String(__webFilterPanelOpen));
 }
 
-function webApplyFilter(ids) {
-  if (!__webCNodes) return;
-  __webCNodes.style('opacity', d => (!ids || ids.includes(d.id)) ? 1 : 0.07);
-  __webBNodes.style('opacity', d => {
-    if (!ids) return 1;
-    return d.tags.some(t => {
-      const key = 'tag-' + t.toLowerCase().trim();
-      return ids.includes(key);
-    }) ? 1 : 0.04;
-  });
-  __webLinks.style('opacity', d => {
-    if (!ids) return 1;
-    const src = typeof d.source === 'object' ? d.source.id : d.source;
-    return ids.includes(src) ? 0.25 : 0.03;
-  });
-}
-
-function webToggleFilter(tagId, concepts) {
-  if (__webFilter === tagId) {
-    __webFilter = null;
-    webApplyFilter(null);
-    document.querySelectorAll('.web-filter-item').forEach((b, i) => {
-      b.classList.toggle('active', i === 0);
-    });
-  } else {
-    __webFilter = tagId;
-    webApplyFilter([tagId]);
-    document.querySelectorAll('.web-filter-item').forEach(b => b.classList.remove('active'));
-  }
-}
-
-/* ── Drag ────────────────────────────────────────────────────────────────── */
-
-function webDrag(sim) {
+function webDrag(simulation) {
   return d3.drag()
-    .on('start', (ev, d) => {
-      if (!ev.active) sim.alphaTarget(0.3).restart();
-      d.fx = d.x; d.fy = d.y;
+    .on('start', (event, node) => {
+      if (!event.active) simulation.alphaTarget(0.28).restart();
+      node.fx = node.x;
+      node.fy = node.y;
     })
-    .on('drag',  (ev, d) => { d.fx = ev.x; d.fy = ev.y; })
-    .on('end',   (ev, d) => {
-      if (!ev.active) sim.alphaTarget(0);
-      d.fx = null; d.fy = null;
+    .on('drag', (event, node) => {
+      node.fx = event.x;
+      node.fy = event.y;
+    })
+    .on('end', (event, node) => {
+      if (!event.active) simulation.alphaTarget(0);
+      node.fx = null;
+      node.fy = null;
     });
 }
 
-/* ── Tooltips ────────────────────────────────────────────────────────────── */
+function applyWebFit(animated = false) {
+  if (!__webSvg || !__webZoom) return;
+  const rootNode = document.getElementById('webGraphRoot');
+  if (!rootNode) return;
+  const box = rootNode.getBBox();
+  if (!isFinite(box.width) || !isFinite(box.height) || box.width <= 0 || box.height <= 0) return;
 
-function webShowConceptTip(ev, concept) {
-  document.getElementById('ttTag').textContent  = 'Concept';
-  document.getElementById('ttName').textContent = concept.label;
-  document.getElementById('ttBody').textContent =
-    `${concept.books.length} book${concept.books.length !== 1 ? 's' : ''} share this theme · click to highlight`;
-  const bEl = document.getElementById('ttBooks');
-  bEl.innerHTML = '';
-  concept.books.slice(0, 7).forEach(b => {
-    const s = document.createElement('span');
-    s.className = 'web-tt-book';
-    s.textContent = webShortTitle(b.title);
-    bEl.appendChild(s);
+  const viewport = getWebSafeViewport();
+  const scale = clamp(Math.min(viewport.width / box.width, viewport.height / box.height), 0.52, 1.08);
+  const tx = viewport.left + viewport.width / 2 - scale * (box.x + box.width / 2);
+  const ty = viewport.top + viewport.height / 2 - scale * (box.y + box.height / 2);
+  const transform = d3.zoomIdentity.translate(tx, ty).scale(scale);
+
+  if (animated) {
+    __webSvg.transition().duration(360).call(__webZoom.transform, transform);
+  } else {
+    __webSvg.call(__webZoom.transform, transform);
+  }
+}
+
+function getWebSafeViewport() {
+  const subheader = document.querySelector('#view-web .web-subheader')?.getBoundingClientRect();
+  const controls = document.querySelector('#view-web .web-controls')?.getBoundingClientRect();
+  const left = window.innerWidth <= 980 ? 18 : 56;
+  const top = subheader ? Math.round(subheader.bottom + 24) : 190;
+  const right = controls ? Math.round(controls.left - 20) : window.innerWidth - 92;
+  const bottom = window.innerHeight - 28;
+
+  return {
+    left,
+    top,
+    width: Math.max(240, right - left),
+    height: Math.max(240, bottom - top),
+  };
+}
+
+function webShowConceptTip(event, concept) {
+  document.getElementById('ttTag').textContent = concept.hasSuggested ? 'Concept · evolving' : 'Concept';
+  document.getElementById('ttName').textContent = concept.name;
+  document.getElementById('ttBody').textContent = `${concept.bookCount} book link${concept.bookCount !== 1 ? 's' : ''} · click for reading history`;
+  const container = document.getElementById('ttBooks');
+  container.innerHTML = '';
+  (window.MarginaliaGraph.getConceptDetails(concept.id)?.relatedBooks || []).slice(0, 5).forEach(({ book }) => {
+    const chip = document.createElement('span');
+    chip.className = 'web-tt-book';
+    chip.textContent = shortBookTitle(book.titleZh || book.title);
+    container.appendChild(chip);
   });
-  if (concept.books.length > 7) {
-    const s = document.createElement('span');
-    s.className = 'web-tt-book';
-    s.textContent = `+${concept.books.length - 7} more`;
-    bEl.appendChild(s);
-  }
   document.getElementById('webTooltip').classList.add('show');
-  webMoveTip(ev);
+  webMoveTip(event);
 }
 
-function webShowBookTip(ev, book) {
-  document.getElementById('ttTag').textContent  = book.author || '';
-  document.getElementById('ttName').textContent = book.title;
-  document.getElementById('ttBody').textContent = (book.tags || []).join(' · ');
-  const bEl = document.getElementById('ttBooks');
-  bEl.innerHTML = '';
-  if (typeof BOOK_BY_ID !== 'undefined' && BOOK_BY_ID[book.id]) {
-    const s = document.createElement('span');
-    s.className = 'web-tt-book';
-    s.textContent = 'Click to open';
-    bEl.appendChild(s);
-  }
+function webShowBookTip(event, book) {
+  document.getElementById('ttTag').textContent = book.authorZh || book.author || 'Book';
+  document.getElementById('ttName').textContent = book.titleZh || book.title;
+  document.getElementById('ttBody').textContent = (book.tags || []).slice(0, 4).join(' · ');
+  const container = document.getElementById('ttBooks');
+  container.innerHTML = '';
+  const chip = document.createElement('span');
+  chip.className = 'web-tt-book';
+  chip.textContent = 'Open book';
+  container.appendChild(chip);
   document.getElementById('webTooltip').classList.add('show');
-  webMoveTip(ev);
+  webMoveTip(event);
 }
 
-function webMoveTip(ev) {
-  const tt = document.getElementById('webTooltip');
-  const x  = Math.min(ev.clientX + 14, window.innerWidth  - tt.offsetWidth  - 10);
-  const y  = Math.max(10, Math.min(ev.clientY - 14, window.innerHeight - tt.offsetHeight - 10));
-  tt.style.left = x + 'px';
-  tt.style.top  = y + 'px';
+function webShowContextTip(event, context) {
+  document.getElementById('ttTag').textContent = 'Cultural context';
+  document.getElementById('ttName').textContent = context.label;
+  document.getElementById('ttBody').textContent = context.description || `${context.conceptCount} connected concepts`;
+  const container = document.getElementById('ttBooks');
+  container.innerHTML = '';
+  const chip = document.createElement('span');
+  chip.className = 'web-tt-book';
+  chip.textContent = `${context.conceptCount} concepts`;
+  container.appendChild(chip);
+  document.getElementById('webTooltip').classList.add('show');
+  webMoveTip(event);
+}
+
+function webMoveTip(event) {
+  const tooltip = document.getElementById('webTooltip');
+  if (!tooltip) return;
+  const x = Math.min(event.clientX + 16, window.innerWidth - tooltip.offsetWidth - 10);
+  const y = Math.max(10, Math.min(event.clientY - 14, window.innerHeight - tooltip.offsetHeight - 10));
+  tooltip.style.left = `${x}px`;
+  tooltip.style.top = `${y}px`;
 }
 
 function webHideTip() {
   document.getElementById('webTooltip')?.classList.remove('show');
 }
 
-/* ── Hint ────────────────────────────────────────────────────────────────── */
-
 function showWebHint() {
-  const el = document.getElementById('webHint');
-  if (!el) return;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3500);
+  const hint = document.getElementById('webHint');
+  if (!hint) return;
+  hint.classList.add('show');
+  setTimeout(() => hint.classList.remove('show'), 3200);
 }
 
-/* ── Utility ─────────────────────────────────────────────────────────────── */
+function truncateWebLabel(value, maxChars) {
+  const raw = String(value || '').trim();
+  return raw.length > maxChars ? `${raw.slice(0, maxChars - 1)}…` : raw;
+}
 
-function webShortTitle(t) {
-  if (!t) return '';
-  const skip = new Set(['The','A','An','In','Of','And','Les','Der','Die']);
-  const words = t.split(' ').filter(w => !skip.has(w));
-  if (words.length <= 3) return words.join(' ');
-  return words.slice(0, 3).join(' ') + '…';
+function shortBookTitle(value) {
+  const raw = String(value || '').trim();
+  if (raw.length <= 18) return raw;
+  return `${raw.slice(0, 17)}…`;
 }
 
 function clamp(value, min, max) {

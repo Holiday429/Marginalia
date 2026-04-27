@@ -122,7 +122,10 @@ function bindHomeEvents() {
 function buildShelfRecords() {
   const records = [];
   (window.SHELF_BOOKS || []).forEach((b, index) => {
-    const detailId = b.id || matchBookId(b.title);
+    let detailId = b.id || matchBookId(b.title);
+    if (!detailId || !window.BOOK_BY_ID?.[detailId]) {
+      detailId = ensureShelfDetailRecord(b, index);
+    }
     const key = `${slugify(b.title)}-${index}`;
     const title = toTitleCase(b.title);
     const detail = detailId ? window.BOOK_BY_ID?.[detailId] : null;
@@ -163,6 +166,53 @@ function buildShelfRecords() {
     });
   });
   return records;
+}
+
+function ensureShelfDetailRecord(shelfBook, index) {
+  const explicitId = shelfBook.id && String(shelfBook.id).trim();
+  const baseId = explicitId || slugify(shelfBook.title || `book-${index + 1}`);
+  let detailId = baseId;
+  let dedupe = 2;
+  while (window.BOOK_BY_ID?.[detailId] && window.BOOK_BY_ID[detailId].title !== shelfBook.title) {
+    detailId = `${baseId}-${dedupe++}`;
+  }
+  if (window.BOOK_BY_ID?.[detailId]) return detailId;
+
+  const template = window.BOOK_BY_ID?.sapiens || window.BOOK_DETAILS?.[0];
+  if (!template) return null;
+
+  const detail = deepClone(template);
+  detail.id = detailId;
+  detail.title = toTitleCase(shelfBook.title || template.title || detailId);
+  detail.titleZh = detail.title;
+  detail.author = shelfBook.author || template.author || 'Unknown';
+  detail.authorZh = '';
+  detail.status = mapShelfStatusToDetailStatus(shelfBook.status || 'want');
+  detail.rating = null;
+  detail.tags = [statusToLabel(shelfBook.status || 'want'), 'Shelf Template'];
+  if (!detail.cover) detail.cover = {};
+  detail.cover.bg = shelfBook.spine || detail.cover.bg || '#14263e';
+  detail.cover.text = shelfBook.text || detail.cover.text || '#e8dfc8';
+  detail.cover.image = '';
+  if (!detail.meta) detail.meta = {};
+  detail.meta.publisher = detail.meta.publisher || 'Personal shelf';
+  detail.meta.edition = detail.meta.edition || 'Template entry';
+  detail.summary = `${detail.title} uses the current Sapiens note architecture as a placeholder entry.`;
+
+  window.BOOK_DETAILS.push(detail);
+  window.BOOK_BY_ID[detail.id] = detail;
+  return detail.id;
+}
+
+function mapShelfStatusToDetailStatus(status) {
+  if (status === 'finished') return 'finished';
+  if (status === 'reading') return 'reading';
+  return 'wishlist';
+}
+
+function deepClone(value) {
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
 }
 
 function resolveCoverSrc(book, detailId) {
