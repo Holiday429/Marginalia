@@ -1,0 +1,239 @@
+body.concept-drawer-open {
+  overflow: hidden;
+}
+
+.concept-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 9, 14, 0.46);
+  backdrop-filter: blur(4px);
+  z-index: 70;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.concept-overlay.open {
+  opacity: 1;
+}
+
+.concept-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(560px, 100vw);
+  height: 100vh;
+  background: #11161f;
+  color: #e8dfc8;
+  border-left: 1px solid rgba(232,223,200,0.14);
+  z-index: 71;
+  transform: translateX(100%);
+  transition: transform 220ms cubic-bezier(.22,.9,.2,1);
+  display: flex;
+  flex-direction: column;
+}
+
+.concept-drawer.open {
+  transform: translateX(0);
+}
+
+.concept-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px 28px 18px;
+  border-bottom: 1px solid rgba(232,223,200,0.08);
+}
+
+.concept-drawer-kicker,
+.concept-status,
+.concept-book-meta,
+.concept-section-head span,
+.concept-evidence-meta,
+.concept-chip,
+.concept-inline-pill,
+.concept-link-actions button {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.concept-drawer-kicker {
+  color: #d5aa64;
+  margin-bottom: 8px;
+}
+
+.concept-drawer-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.concept-drawer-close {
+  border: 1px solid rgba(232,223,200,0.18);
+  background: transparent;
+  color: rgba(232,223,200,0.7);
+  width: 36px;
+  height: 36px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.concept-drawer-body {
+  overflow-y: auto;
+  padding: 0 28px 28px;
+}
+
+.concept-drawer-section {
+  padding-top: 24px;
+}
+
+.concept-summary,
+.concept-understanding,
+.concept-rationale,
+.concept-evidence-card p,
+.concept-muted {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(232,223,200,0.78);
+}
+
+.concept-rationale {
+  color: rgba(213,170,100,0.8);
+  margin-top: 10px;
+}
+
+.concept-chip-row,
+.concept-inline-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.concept-chip,
+.concept-inline-pill {
+  border: 1px solid rgba(232,223,200,0.16);
+  padding: 5px 8px;
+  color: rgba(232,223,200,0.62);
+}
+
+.concept-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.concept-section-head h3,
+.concept-subsection h3 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(232,223,200,0.52);
+}
+
+.concept-book-card {
+  border: 1px solid rgba(232,223,200,0.1);
+  padding: 18px 18px 16px;
+  background: rgba(255,255,255,0.016);
+}
+
+.concept-book-card + .concept-book-card {
+  margin-top: 14px;
+}
+
+.concept-book-card.is-focus {
+  border-color: rgba(213,170,100,0.4);
+  background: rgba(213,170,100,0.06);
+}
+
+.concept-book-head {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.concept-book-open {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #e8dfc8;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.concept-book-meta {
+  color: rgba(232,223,200,0.46);
+  text-align: right;
+}
+
+.concept-sep {
+  margin: 0 4px;
+}
+
+.concept-understanding {
+  margin-top: 12px;
+}
+
+.concept-subsection {
+  margin-top: 16px;
+}
+
+.concept-evidence-card {
+  border-left: 1px solid rgba(213,170,100,0.28);
+  padding-left: 12px;
+  margin-top: 10px;
+}
+
+.concept-evidence-meta {
+  margin-bottom: 6px;
+  color: rgba(213,170,100,0.78);
+}
+
+.concept-link-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.concept-status-btn {
+  border: 1px solid rgba(232,223,200,0.18);
+  background: transparent;
+  color: #e8dfc8;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.concept-status-btn.is-confirm {
+  border-color: rgba(135,182,167,0.4);
+  color: #87b6a7;
+}
+
+.concept-status-btn.is-reject {
+  border-color: rgba(214,118,118,0.4);
+  color: #d67676;
+}
+
+@media (max-width: 720px) {
+  .concept-drawer {
+    width: 100vw;
+  }
+
+  .concept-drawer-head,
+  .concept-drawer-body {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}

@@ -12,13 +12,15 @@
     Cormorant / Libre Caslon / Inter are still loaded only because preloader book data references them
     on individual covers. Migrate book schema to use the 3-font system, then drop these three.
   -->
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..800,0..100;1,9..144,300..800,0..100&family=IBM+Plex+Mono:wght@300;400;500&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..800,0..100;1,9..144,300..800,0..100&family=IBM+Plex+Mono:wght@300;400;500&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;700&family=Caveat:wght@500;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="src/core/base.css">
   <link rel="stylesheet" href="src/preloader/preloader.css">
   <link rel="stylesheet" href="src/home/home.css">
   <link rel="stylesheet" href="src/book/book.css">
   <link rel="stylesheet" href="src/map/map.css">
+  <link rel="stylesheet" href="src/core/auth.css">
+  <link rel="stylesheet" href="src/core/concept-ui.css">
   <link rel="stylesheet" href="src/web/web.css">
 
   <!-- amCharts (used by map view) — loaded eagerly so first visit boots fast -->
@@ -185,8 +187,19 @@
   <div id="view-yearbook" hidden></div>
 
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script src="src/core/books.js"></script>
+  <script src="src/core/firebase-config.js"></script>
+  <script src="src/core/firebase-auth.js"></script>
+  <script src="src/core/firebase-storage.js"></script>
+  <script src="src/core/firebase-books-sync.js"></script>
+  <script src="src/core/graph-data.js"></script>
+  <script src="src/core/firebase-graph-sync.js"></script>
   <script src="src/core/app.js"></script>
+  <script src="src/core/concept-ui.js"></script>
   <script src="src/preloader/preloader.js"></script>
   <script src="src/home/home.js"></script>
   <script src="src/yearbook/yearbook.js"></script>

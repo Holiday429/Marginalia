@@ -61,6 +61,45 @@ function enterBook(params = {}) {
     });
   });
 
+  root.querySelectorAll('[data-open-concept-id]').forEach((item) => {
+    item.addEventListener('click', () => {
+      const conceptId = item.dataset.openConceptId;
+      if (!conceptId || typeof window.openConceptDrawer !== 'function') return;
+      window.openConceptDrawer(conceptId, { focusBookId: id });
+    });
+  });
+
+  const uploadBtn = root.querySelector('[data-upload-cover-btn]');
+  const uploadInput = root.querySelector('[data-upload-cover-input]');
+  const uploadStatus = root.querySelector('[data-upload-cover-status]');
+  if (uploadBtn && uploadInput) {
+    uploadBtn.addEventListener('click', () => uploadInput.click());
+    uploadInput.addEventListener('change', async () => {
+      const file = uploadInput.files?.[0];
+      if (!file) return;
+      if (!window.MarginaliaStorage?.isEnabled?.()) {
+        if (uploadStatus) uploadStatus.textContent = 'Storage not enabled';
+        return;
+      }
+      if (uploadStatus) uploadStatus.textContent = 'Uploading...';
+      try {
+        const uploaded = await window.MarginaliaStorage.uploadCoverImage({ file, bookId: id });
+        await window.MarginaliaBooksCloud?.setBookCover({
+          bookId: id,
+          imageUrl: uploaded.downloadURL,
+          storagePath: uploaded.path,
+        });
+        if (uploadStatus) uploadStatus.textContent = 'Synced';
+        enterBook({ id });
+      } catch (error) {
+        console.error('[book] Cover upload failed.', error);
+        if (uploadStatus) uploadStatus.textContent = 'Upload failed';
+      } finally {
+        uploadInput.value = '';
+      }
+    });
+  }
+
   // Wire up knowledge structure inner tabs
   root.querySelectorAll('.mm-top-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -136,6 +175,8 @@ function getBookSections(b) {
     sections.push({ id: 'highlights', label: 'Key Notes & Highlights', html: renderHighlights(b) });
   if (b.cultural?.length)
     sections.push({ id: 'cultural',   label: 'Cultural Annotations',   html: renderCultural(b) });
+  if (getBookGraphConcepts(b.id).length)
+    sections.push({ id: 'concepts',   label: 'Related Concepts',       html: renderRelatedConcepts(b) });
   if (b.mindmap)
     sections.push({ id: 'knowledge',  label: 'Knowledge Structure',     html: renderMindmap(b) });
   if (b.connections?.length)
@@ -194,21 +235,28 @@ function renderOverview(b) {
   return `
     <section class="book-overview">
       <div class="book-overview-hero">
-        <div class="book-cover${hasCoverImage ? ' has-image' : ''}" style="${cvStyle}" role="img" aria-label="${esc(b.titleZh || b.title)} cover">
-          ${hasCoverImage
-            ? `<img class="book-cover-image" src="${esc(cv.image)}" alt="${esc(b.titleZh || b.title)} cover">`
-            : `
-              <div><div class="cover-label">${esc(b.author)}</div></div>
-              <div>
-                <div class="cover-title-text">
-                  ${esc(stripSubtitle(b.title))}
-                  ${b.title.includes(':') ? `<em>${esc(b.title.split(':')[1].trim())}</em>` : ''}
+        <div class="book-cover-stack">
+          <div class="book-cover${hasCoverImage ? ' has-image' : ''}" style="${cvStyle}" role="img" aria-label="${esc(b.titleZh || b.title)} cover">
+            ${hasCoverImage
+              ? `<img class="book-cover-image" src="${esc(cv.image)}" alt="${esc(b.titleZh || b.title)} cover">`
+              : `
+                <div><div class="cover-label">${esc(b.author)}</div></div>
+                <div>
+                  <div class="cover-title-text">
+                    ${esc(stripSubtitle(b.title))}
+                    ${b.title.includes(':') ? `<em>${esc(b.title.split(':')[1].trim())}</em>` : ''}
+                  </div>
+                  <div class="cover-deco">${coverArt(cv.art)}</div>
                 </div>
-                <div class="cover-deco">${coverArt(cv.art)}</div>
-              </div>
-              <div class="cover-footer-text">${esc(b.meta?.publisher || '')} · ${b.year || ''}</div>
-            `
-          }
+                <div class="cover-footer-text">${esc(b.meta?.publisher || '')} · ${b.year || ''}</div>
+              `
+            }
+          </div>
+          <div class="book-cover-tools">
+            <button type="button" class="book-cover-upload-btn" data-upload-cover-btn>Upload cover</button>
+            <span class="book-cover-upload-status" data-upload-cover-status></span>
+            <input type="file" accept="image/*" data-upload-cover-input hidden>
+          </div>
         </div>
         <div class="book-overview-main">
           <div class="book-title-big">${formatTitle(b.titleZh || b.title)}</div>
@@ -286,6 +334,7 @@ function renderHighlights(b) {
               <p class="hl-quote">${esc(h.quote)}</p>
               <span class="hl-location">${h.page ? `p. ${h.page} · ` : ''}${esc(h.chapter || '')}</span>
               ${h.kind ? `<span class="hl-kind">${esc(normalizeHighlightKind(h.kind))}</span>` : ''}
+              ${h.conceptId ? `<button class="hl-concept-link" type="button" data-open-concept-id="${esc(h.conceptId)}">Open concept</button>` : ''}
               ${h.annotation ? `
                 <br>
                 <button class="hl-annotation-toggle" type="button">
@@ -311,10 +360,41 @@ function renderCultural(b) {
         ${b.cultural.map(c => `
           <div class="cultural-item">
             <div class="ci-tag">${esc(c.tag)}</div>
-            <div class="ci-term">${esc(c.term)}</div>
+            <div class="ci-term"${c.conceptId ? ` data-open-concept-id="${esc(c.conceptId)}" role="button" tabindex="0"` : ''}>${esc(c.term)}</div>
             <div class="ci-body">${esc(c.body)}</div>
             ${c.ref ? `<span class="ci-ref">— ${esc(c.ref)}</span>` : ''}
           </div>`).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function renderRelatedConcepts(b) {
+  const items = getBookGraphConcepts(b.id);
+  return `
+    <section class="connections-section">
+      <div class="section-label">§ 05 — Concept Network</div>
+      <h2>Related Concepts</h2>
+      <div class="related-concept-grid">
+        ${items.map(({ concept, link, context }) => {
+          const statusMeta = window.MarginaliaGraph.getLinkStatusMeta(link.status);
+          const relationMeta = window.MarginaliaGraph.getRelationMeta(link.relationType);
+          return `
+            <article class="related-concept-card${link.status === 'suggested' ? ' is-suggested' : ''}" data-open-concept-id="${esc(concept.id)}" role="button" tabindex="0">
+              <div class="related-concept-meta">
+                <span>${esc(statusMeta.label)}</span>
+                <span>·</span>
+                <span style="color:${relationMeta.color}">${esc(relationMeta.label)}</span>
+              </div>
+              <h3>${esc(concept.name)}</h3>
+              <p>${esc(link.readerUnderstanding || concept.description || '')}</p>
+              <div class="related-concept-footer">
+                ${context ? `<span>${esc(context.label)}</span>` : '<span>Concept</span>'}
+                <span>Open</span>
+              </div>
+            </article>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -573,6 +653,11 @@ function normalizeActionTag(tag) {
 
 function normalizeHighlightKind(kind) {
   return { concept: 'Concept', argument: 'Argument', critique: 'Critique', action: 'Action trigger' }[kind] || kind;
+}
+
+function getBookGraphConcepts(bookId) {
+  if (!window.MarginaliaGraph?.getBookRelatedConcepts) return [];
+  return window.MarginaliaGraph.getBookRelatedConcepts(bookId);
 }
 
 function coverArt(id) {
