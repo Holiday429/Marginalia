@@ -41,8 +41,8 @@ window.PanelRegistry = (() => {
     },
 
     'claude-import': {
-      label: 'From Claude',
-      icon: '⟳',
+      label: 'Visual Notes',
+      icon: '⧉',
       universal: true,
       render: null,
     },
