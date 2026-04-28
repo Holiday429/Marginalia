@@ -252,7 +252,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <!-- 1. Mock / seed data (replace with real API adapters when ready) -->
+  <!-- 1. Schema + type system (load first — everything else reads from these) -->
+  <script src="src/data/schema/book-types.js"></script>      <!-- window.BOOK_TYPES, window.BookTypes -->
+  <script src="src/book/panels/registry.js"></script>        <!-- window.PanelRegistry -->
+  <script src="src/ai/features/registry.js"></script>        <!-- window.AIFeatureRegistry -->
+
+  <!-- 1b. Mock / seed data (replace with real API adapters when ready) -->
   <script src="src/data/mock/seed-spines.js"></script>       <!-- window.BOOKS, window.SHELF_BOOKS -->
   <script src="src/data/mock/curated-booklist.js"></script>  <!-- window.BOOKLIST_CURATED -->
   <script src="src/data/seed/sapiens.js"></script>           <!-- window.__SEED_SAPIENS -->
