@@ -24,29 +24,29 @@ window.BOOK_TYPES = {
   nonfiction: {
     label: 'Nonfiction',
     description: 'Science, history, biography',
-    defaultPanels: ['overview', 'highlights', 'notes', 'mindmap', 'timeline', 'claude-import'],
-    defaultAiFeatures: ['mindmap-gen', 'timeline-gen', 'concept-cards'],
+    defaultPanels: ['overview', 'highlights', 'notes', 'mindmap', 'concept-cards', 'actions', 'claude-import'],
+    defaultAiFeatures: ['mindmap-gen', 'concept-cards', 'action-suggest'],
   },
 
   social: {
     label: 'Social Science',
     description: 'Sociology, philosophy, gender studies, economics',
-    defaultPanels: ['overview', 'highlights', 'notes', 'concept-cards', 'claude-import'],
-    defaultAiFeatures: ['concept-cards', 'argument-breakdown'],
+    defaultPanels: ['overview', 'highlights', 'notes', 'concept-cards', 'actions', 'claude-import'],
+    defaultAiFeatures: ['concept-cards', 'argument-breakdown', 'action-suggest'],
   },
 
   travel: {
     label: 'Travel',
     description: 'Travel writing, place-based narrative, cultural reportage',
-    defaultPanels: ['overview', 'highlights', 'notes', 'geo-context', 'claude-import'],
-    defaultAiFeatures: ['geo-context'],
+    defaultPanels: ['overview', 'highlights', 'notes', 'geo-context', 'actions', 'claude-import'],
+    defaultAiFeatures: ['geo-context', 'action-suggest'],
   },
 
   essay: {
     label: 'Essay / Self-help',
     description: 'Personal essays, self-help, life writing',
-    defaultPanels: ['overview', 'highlights', 'notes', 'actions', 'claude-import'],
-    defaultAiFeatures: ['action-suggest'],
+    defaultPanels: ['overview', 'highlights', 'notes', 'concept-cards', 'actions', 'claude-import'],
+    defaultAiFeatures: ['action-suggest', 'argument-breakdown'],
   },
 
 };

@@ -470,21 +470,47 @@ window.NewEntry = (() => {
     }
     showIsbnStatus(status, 'Looking up…', 'loading');
     try {
-      const res  = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-      const json = await res.json();
-      const book = json[`ISBN:${isbn}`];
-      if (!book) { showIsbnStatus(status, 'Not found. Try entering title manually.', 'error'); return; }
+      // Try Google Books first (best coverage including Chinese books)
+      const gbRes  = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+      const gbJson = await gbRes.json();
+      const gbItem = gbJson.items?.[0]?.volumeInfo;
+
+      if (gbItem) {
+        const titleInput  = dialog.querySelector('#neTitle');
+        const authorInput = dialog.querySelector('#neAuthor');
+        if (titleInput  && !titleInput.value)  titleInput.value  = gbItem.title || '';
+        if (authorInput && !authorInput.value) authorInput.value = (gbItem.authors || []).join(', ');
+
+        const coverUrl = gbItem.imageLinks?.thumbnail || gbItem.imageLinks?.smallThumbnail || '';
+        if (coverUrl) {
+          const img = dialog.querySelector('#neCoverImg');
+          const placeholder = dialog.querySelector('#neCoverPlaceholder');
+          const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
+          if (img) { img.src = coverUrl.replace('http://', 'https://'); img.hidden = false; }
+          if (placeholder) placeholder.hidden = true;
+          if (uploadBtn) uploadBtn.textContent = 'Change Cover';
+        }
+
+        state.title  = titleInput?.value  || '';
+        state.author = authorInput?.value || '';
+        renderSpinePreview();
+        showIsbnStatus(status, `Found: ${gbItem.title}`, 'ok');
+        return;
+      }
+
+      // Fallback: Open Library
+      const olRes  = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+      const olJson = await olRes.json();
+      const olBook = olJson[`ISBN:${isbn}`];
+      if (!olBook) { showIsbnStatus(status, 'Not found in database. Enter title manually.', 'error'); return; }
 
       const titleInput  = dialog.querySelector('#neTitle');
       const authorInput = dialog.querySelector('#neAuthor');
-
-      if (titleInput && !titleInput.value)  titleInput.value  = book.title || '';
+      if (titleInput  && !titleInput.value)  titleInput.value  = olBook.title || '';
       if (authorInput && !authorInput.value) {
-        authorInput.value = (book.authors || []).map(a => a.name).filter(Boolean).join(', ');
+        authorInput.value = (olBook.authors || []).map(a => a.name).filter(Boolean).join(', ');
       }
-
-      // Cover
-      const coverUrl = book.cover?.medium || book.cover?.large || '';
+      const coverUrl = olBook.cover?.medium || olBook.cover?.large || '';
       if (coverUrl) {
         const img = dialog.querySelector('#neCoverImg');
         const placeholder = dialog.querySelector('#neCoverPlaceholder');
@@ -493,11 +519,10 @@ window.NewEntry = (() => {
         if (placeholder) placeholder.hidden = true;
         if (uploadBtn) uploadBtn.textContent = 'Change Cover';
       }
-
       state.title  = titleInput?.value  || '';
       state.author = authorInput?.value || '';
       renderSpinePreview();
-      showIsbnStatus(status, `Found: ${book.title}`, 'ok');
+      showIsbnStatus(status, `Found: ${olBook.title}`, 'ok');
     } catch {
       showIsbnStatus(status, 'Lookup failed. Check your connection.', 'error');
     }
