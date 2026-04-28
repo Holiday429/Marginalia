@@ -99,6 +99,29 @@ window.PanelRegistry = (() => {
       render: null,
     },
 
+    /* ── Legacy / per-book panels (pre-4A, kept for backward compat) ─────── */
+
+    conclusion: {
+      label: 'My Conclusion',
+      icon: '◑',
+      universal: false,
+      render: null,
+    },
+
+    related: {
+      label: 'Related Books',
+      icon: '◎',
+      universal: false,
+      render: null,
+    },
+
+    context: {
+      label: 'Reading Context',
+      icon: '◐',
+      universal: false,
+      render: null,
+    },
+
   };
 
   return {

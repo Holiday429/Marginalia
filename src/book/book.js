@@ -285,7 +285,9 @@ function _renderPanelSection(b, panelId, panelLabel) {
   // Built-in renderers for panels that exist pre-4B
   switch (panelId) {
     case 'overview':
-      return { id: 'overview', label: 'Overview', html: renderOverview(b) + renderIntegration(b) };
+      return { id: 'overview', label: 'Overview', html: renderOverview(b) };
+    case 'conclusion':
+      return { id: 'conclusion', label: 'My Conclusion', html: renderIntegration(b) };
     case 'highlights':
       return b.highlights?.length
         ? { id: 'highlights', label: 'Key Notes & Highlights', html: renderHighlights(b) }
@@ -299,9 +301,17 @@ function _renderPanelSection(b, panelId, panelLabel) {
       return b.mindmap
         ? { id: 'knowledge', label: 'Knowledge Structure', html: renderMindmap(b) }
         : null;
+    case 'related':
+      return b.connections?.length
+        ? { id: 'related', label: 'Related Books', html: renderConnections(b) }
+        : null;
     case 'actions':
       return b.actions?.length
         ? { id: 'actions', label: 'Action List', html: renderActions(b) }
+        : null;
+    case 'context':
+      return b.context
+        ? { id: 'context', label: 'Reading Context', html: renderContext(b) }
         : null;
     case 'geo-context':
     case 'cultural':
@@ -312,7 +322,7 @@ function _renderPanelSection(b, panelId, panelLabel) {
     case 'timeline':
     case 'notes':
     case 'claude-import':
-      // Panels not yet implemented — silently skip until 4B/4C
+      // Not yet implemented — silently skip until 4B/4C
       return null;
     default:
       return null;
