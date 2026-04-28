@@ -7,7 +7,7 @@
   border-radius: 10px;
   padding: 0;
   width: min(900px, 96vw);
-  max-height: 92vh;
+  max-height: 96vh;
   overflow: hidden;
   background: var(--bg);
   color: var(--ink);
@@ -23,7 +23,8 @@
   display: grid;
   grid-template-columns: 300px 1fr;
   height: 100%;
-  max-height: 92vh;
+  max-height: 96vh;
+  overflow: hidden;
 }
 
 /* ── Left panel ── */
@@ -250,6 +251,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0;  /* required for overflow-y to work inside a grid/flex child */
 }
 
 .ne-form-head {
@@ -297,6 +299,7 @@
 }
 
 .ne-req { color: var(--accent); }
+.ne-field-hint-inline { color: var(--muted); font-size: 0.9em; }
 
 .ne-input,
 .ne-select {

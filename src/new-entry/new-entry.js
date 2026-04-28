@@ -470,26 +470,37 @@ window.NewEntry = (() => {
     }
     showIsbnStatus(status, 'Looking up…', 'loading');
     try {
-      const res  = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-      const json = await res.json();
-      const book = json[`ISBN:${isbn}`];
-      if (!book) { showIsbnStatus(status, 'Not found. Try searching by title.', 'error'); return; }
+      // Open Library works in browser without CORS issues via this endpoint
+      const res  = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+      if (!res.ok) { showIsbnStatus(status, 'Not found. Try entering title manually.', 'error'); return; }
+      const book = await res.json();
 
-      // Fill fields
       const titleInput  = dialog.querySelector('#neTitle');
       const authorInput = dialog.querySelector('#neAuthor');
-      if (titleInput && !titleInput.value)  titleInput.value  = book.title || '';
-      if (authorInput && !authorInput.value) {
-        authorInput.value = (book.authors || []).map(a => a.name).join(', ');
+
+      if (titleInput && !titleInput.value) titleInput.value = book.title || '';
+
+      // Authors are refs — fetch first author name
+      if (authorInput && !authorInput.value && book.authors?.length) {
+        const authorKey = book.authors[0].key; // e.g. "/authors/OL123A"
+        fetch(`https://openlibrary.org${authorKey}.json`)
+          .then(r => r.json())
+          .then(a => {
+            if (a.name && !authorInput.value) authorInput.value = a.name;
+            state.author = authorInput.value;
+            renderSpinePreview();
+          }).catch(() => {});
       }
 
-      // Cover image
-      const coverId = book.cover?.medium || book.cover?.large;
-      if (coverId) {
-        const img = dialog.querySelector('#neCoverImg');
-        const placeholder = dialog.querySelector('#neCoverPlaceholder');
-        const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
-        if (img) { img.src = coverId; img.hidden = false; }
+      // Cover via ISBN
+      const coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+      const img = dialog.querySelector('#neCoverImg');
+      const placeholder = dialog.querySelector('#neCoverPlaceholder');
+      const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
+      // Test if cover exists (Open Library returns a 1px gif if not found)
+      const coverRes = await fetch(coverUrl);
+      if (coverRes.ok && coverRes.headers.get('content-length') !== '807') {
+        if (img) { img.src = coverUrl; img.hidden = false; }
         if (placeholder) placeholder.hidden = true;
         if (uploadBtn) uploadBtn.textContent = 'Change Cover';
       }
