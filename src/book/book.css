@@ -1728,3 +1728,44 @@
   color: var(--bg);
 }
 .kindle-preview-import:disabled { opacity: 0.5; cursor: default; }
+
+/* ── Notes panel ─────────────────────────────────────────────────────────── */
+.notes-panel {
+  padding: 0;
+}
+.notes-panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.notes-panel-head h2 {
+  margin: 0;
+}
+.notes-save-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.notes-editor {
+  min-height: 320px;
+  width: 100%;
+  font-family: var(--font-serif);
+  font-size: var(--fs-16);
+  line-height: 1.75;
+  color: var(--ink);
+  border: 1px solid rgba(26,23,20,0.15);
+  padding: 20px 24px;
+  outline: none;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+}
+.notes-editor:focus {
+  border-color: var(--accent);
+}
+.notes-editor:empty::before {
+  content: attr(placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}

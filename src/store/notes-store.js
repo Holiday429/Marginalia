@@ -1,7 +1,7 @@
 /* ==========================================================================
    Marginalia · Notes Store
    --------------------------------------------------------------------------
-   Persists user-created highlights and action statuses to IndexedDB.
+   Persists user-created highlights, action statuses, and book notes to IndexedDB.
    Firebase flush happens when user is signed in (via db.js).
 
    Public surface:
@@ -11,14 +11,17 @@
      NotesStore.saveHighlight(bookId, highlight) → Promise
      NotesStore.deleteHighlight(bookId, highlightId) → Promise
      NotesStore.importHighlights(bookId, highlights) → Promise  (for Kindle import)
+     NotesStore.getNote(bookId) → { content, updatedAt } | null
+     NotesStore.saveNote(bookId, content) → Promise
      NotesStore.onChange(fn) — subscribe to any change
    ========================================================================== */
 
 window.NotesStore = (() => {
   const DB_NAME    = 'marginalia-notes';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORE_ACTIONS    = 'action-status';
   const STORE_HIGHLIGHTS = 'highlights';
+  const STORE_NOTES      = 'book-notes';
 
   let _db     = null;
   let _ready  = false;
@@ -39,6 +42,10 @@ window.NotesStore = (() => {
         if (!db.objectStoreNames.contains(STORE_HIGHLIGHTS)) {
           const hs = db.createObjectStore(STORE_HIGHLIGHTS, { keyPath: 'id' });
           hs.createIndex('bookId', 'bookId', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(STORE_NOTES)) {
+          // key: bookId, one note doc per book
+          db.createObjectStore(STORE_NOTES, { keyPath: 'bookId' });
         }
       };
 
@@ -178,6 +185,22 @@ window.NotesStore = (() => {
     _emit();
   }
 
+  /* ── Book notes ──────────────────────────────────────────────────────────── */
+
+  async function getNote(bookId) {
+    if (!_db) return null;
+    return _idbGet(_tx(STORE_NOTES), bookId);
+  }
+
+  async function saveNote(bookId, content) {
+    const record = { bookId, content, updatedAt: Date.now() };
+    if (_db) {
+      await _idbPut(_tx(STORE_NOTES, 'readwrite'), record);
+    }
+    _emit();
+    return record;
+  }
+
   /* ── Subscriptions ───────────────────────────────────────────────────────── */
 
   function onChange(fn) {
@@ -197,6 +220,8 @@ window.NotesStore = (() => {
     saveHighlight,
     deleteHighlight,
     importHighlights,
+    getNote,
+    saveNote,
     onChange,
   };
 })();
