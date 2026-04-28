@@ -17,7 +17,8 @@
       "Bash(node -e \"const {chromium} = require\\('@playwright/test'\\); console.log\\('playwright available'\\)\")",
       "Bash(ls /Users/Holiday_1/Desktop/Growth/Marginalia/node_modules/.bin/playwright)",
       "Read(//Users/Holiday_1/.npm/**)",
-      "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia show 771fdac:src/home/home.js)"
+      "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia show 771fdac:src/home/home.js)",
+      "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia stash push -m \"codex/shelf-studio changes \\(auth, app, base\\)\" -- src/core/app.js src/core/auth.css src/core/base.css src/firebase/auth.js index.html)"
     ]
   }
 }
