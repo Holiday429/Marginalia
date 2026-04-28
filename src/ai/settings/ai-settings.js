@@ -1,29 +1,20 @@
 /* ==========================================================================
-   Marginalia · AI Settings panel
+   Marginalia · AI Settings
    --------------------------------------------------------------------------
-   Injects a floating settings button (gear icon) visible on book detail pages.
-   Opens a modal where the user can enter/remove their DeepSeek API key.
-   Key is stored in localStorage only.
+   The gear button is rendered by renderPrimaryHeader() in app.js and appears
+   in the nav on every view. This script mounts the modal once and wires
+   click events to any #aiSettingsBtn in the DOM.
+   Key is stored in localStorage only — never sent to Marginalia servers.
    ========================================================================== */
 
 (function initAISettings() {
 
-  function mount() {
-    if (document.getElementById('aiSettingsBtn')) return;
+  function mountModal() {
+    if (document.getElementById('aiSettingsModal')) {
+      wireGearBtn();
+      return;
+    }
 
-    // Floating gear button
-    const btn = document.createElement('button');
-    btn.id = 'aiSettingsBtn';
-    btn.className = 'ai-settings-trigger';
-    btn.setAttribute('aria-label', 'AI settings');
-    btn.innerHTML = `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4">
-      <circle cx="8" cy="8" r="2.8"/>
-      <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/>
-    </svg>`;
-    btn.addEventListener('click', openModal);
-    document.body.appendChild(btn);
-
-    // Modal
     const modal = document.createElement('div');
     modal.id = 'aiSettingsModal';
     modal.className = 'ai-settings-modal';
@@ -74,11 +65,9 @@
     `;
     document.body.appendChild(modal);
 
-    // Close
     document.getElementById('aiSettingsClose').addEventListener('click', closeModal);
     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
-    // Show/hide key
     const keyInput = document.getElementById('aiKeyInput');
     document.getElementById('aiKeyToggle').addEventListener('click', () => {
       const isPassword = keyInput.type === 'password';
@@ -86,7 +75,6 @@
       document.getElementById('aiKeyToggle').textContent = isPassword ? 'Hide' : 'Show';
     });
 
-    // Save
     document.getElementById('aiKeySave').addEventListener('click', () => {
       const val = keyInput.value.trim();
       if (!val) return;
@@ -97,17 +85,25 @@
       showStatus('Key saved.');
     });
 
-    // Remove
     document.getElementById('aiKeyRemove').addEventListener('click', () => {
       window.MarginaliaAI.clearKey();
       showStatus('Key removed.');
     });
 
-    // Model
     const modelSelect = document.getElementById('aiModelSelect');
     modelSelect.value = window.MarginaliaAI.getModel();
     modelSelect.addEventListener('change', () => {
       window.MarginaliaAI.setModel(modelSelect.value);
+    });
+
+    wireGearBtn();
+  }
+
+  function wireGearBtn() {
+    // Nav re-renders on every view switch, so re-query each time
+    document.querySelectorAll('#aiSettingsBtn').forEach(btn => {
+      btn.removeEventListener('click', openModal);
+      btn.addEventListener('click', openModal);
     });
   }
 
@@ -122,8 +118,7 @@
     const modal = document.getElementById('aiSettingsModal');
     if (!modal) return;
     modal.classList.add('open');
-    const hasKey = window.MarginaliaAI.hasKey();
-    showStatus(hasKey ? 'A key is currently saved.' : 'No key saved yet.');
+    showStatus(window.MarginaliaAI.hasKey() ? 'A key is currently saved.' : 'No key saved yet.');
     document.getElementById('aiModelSelect').value = window.MarginaliaAI.getModel();
   }
 
@@ -131,18 +126,13 @@
     document.getElementById('aiSettingsModal')?.classList.remove('open');
   }
 
-  // Mount when book view is active
-  window.addEventListener('marginalia:ui-refresh', () => {
-    if (document.body.dataset.view === 'book') mount();
-  });
+  // Mount modal once on load, re-wire gear btn on every nav render
+  window.addEventListener('marginalia:ui-refresh', wireGearBtn);
 
-  // Also mount on DOMContentLoaded in case we land directly on book view
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      if (document.body.dataset.view === 'book') mount();
-    });
+    document.addEventListener('DOMContentLoaded', mountModal);
   } else {
-    if (document.body.dataset.view === 'book') mount();
+    mountModal();
   }
 
 })();

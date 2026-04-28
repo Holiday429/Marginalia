@@ -16,6 +16,7 @@
 const App = (() => {
   const NAV_ITEMS = [
     { view: 'shelf',    label: 'Shelf',    icon: 'shelf', href: '#shelf' },
+    { view: 'studio',   label: 'Library', icon: 'library', href: '#studio' },
     { view: 'map',      label: 'Map',      icon: 'map', href: '#map' },
     { view: 'web',      label: 'Graph',    icon: 'graph', href: '#web' },
     { view: 'booklist', label: 'Booklist', icon: 'list', href: '#booklist' },
@@ -24,6 +25,7 @@ const App = (() => {
   const views = {
     preloader: document.getElementById('view-preloader'),
     shelf:     document.getElementById('view-shelf'),
+    studio:    document.getElementById('view-studio'),
     book:      document.getElementById('view-book'),      // may be null until built
     map:       document.getElementById('view-map'),
     web:       document.getElementById('view-web'),
@@ -60,6 +62,7 @@ const App = (() => {
     });
 
     window.scrollTo({ top: 0 });
+    window.dispatchEvent(new Event('marginalia:ui-refresh'));
   }
 
   let transitioning = false;
@@ -91,6 +94,7 @@ const App = (() => {
       preloader.hidden = true;
       preloader.style.cssText = '';
       transitioning = false;
+      window.dispatchEvent(new Event('marginalia:ui-refresh'));
     }, 750);
   }
 
@@ -111,6 +115,7 @@ const App = (() => {
   ) {
     const NAV_ICON_SYMBOLS = {
       shelf: 'icon-nav-shelf',
+      library: 'icon-nav-library',
       map: 'icon-nav-map',
       graph: 'icon-nav-graph',
       list: 'icon-nav-list',
@@ -130,6 +135,20 @@ const App = (() => {
     const actionBtn = (resolvedActionLabel)
       ? `<button class="nav-action-btn"${actionId ? ` id="${actionId}"` : ''}>${toServiceTitleCase(resolvedActionLabel)}</button>`
       : '';
+    const authBtn = `
+      <button class="auth-avatar-btn" type="button" data-auth-trigger aria-label="Open login panel" hidden>
+        <span class="auth-avatar" data-auth-avatar aria-hidden="true">L</span>
+      </button>
+    `;
+
+    const aiBtn = `
+      <button class="ai-settings-trigger" id="aiSettingsBtn" type="button" aria-label="AI settings" title="AI settings">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4">
+          <circle cx="8" cy="8" r="2.8"/>
+          <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/>
+        </svg>
+      </button>
+    `;
 
     return `
       <header class="app-masthead shared-masthead">
@@ -140,6 +159,8 @@ const App = (() => {
         <nav class="nav">
           ${links}
           ${actionBtn}
+          ${authBtn}
+          ${aiBtn}
         </nav>
       </header>
     `;

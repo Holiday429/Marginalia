@@ -297,21 +297,24 @@ function _renderPanelSection(b, panelId, panelLabel) {
         : null;
     case 'concept-cards':
     case 'concepts':
-      return getBookGraphConcepts(b.id).length
-        ? { id: 'concepts', label: 'Related Concepts', html: renderRelatedConcepts(b) }
-        : null;
+      return {
+        id: 'concepts', label: 'Related Concepts',
+        html: getBookGraphConcepts(b.id).length ? renderRelatedConcepts(b) : renderAiPlaceholder('Concepts'),
+      };
     case 'mindmap':
-      return b.mindmap
-        ? { id: 'knowledge', label: 'Knowledge Structure', html: renderMindmap(b) }
-        : null;
+      return {
+        id: 'knowledge', label: 'Knowledge Structure',
+        html: b.mindmap ? renderMindmap(b) : renderAiPlaceholder('Knowledge Structure'),
+      };
     case 'related':
       return b.connections?.length
         ? { id: 'related', label: 'Related Books', html: renderConnections(b) }
         : null;
     case 'actions':
-      return b.actions?.length
-        ? { id: 'actions', label: 'Action List', html: renderActions(b) }
-        : null;
+      return {
+        id: 'actions', label: 'Action List',
+        html: b.actions?.length ? renderActions(b) : renderAiPlaceholder('Action List'),
+      };
     case 'context':
       return b.context
         ? { id: 'context', label: 'Reading Context', html: renderContext(b) }
@@ -804,6 +807,10 @@ function renderContext(b) {
       ${block('§ 08 · Life Context', c.life, c.lifeTags)}
     </section>
   `;
+}
+
+function renderAiPlaceholder(label) {
+  return `<div class="ai-panel-placeholder"><span>No ${esc(label)} yet — use the Generate button above to create one with AI.</span></div>`;
 }
 
 function renderFooter(b) {
