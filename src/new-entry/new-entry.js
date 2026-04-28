@@ -260,6 +260,17 @@ window.NewEntry = (() => {
           </div>
 
           <div class="ne-field">
+            <label class="ne-label" for="neBookType">Book Type <span class="ne-field-hint-inline">— determines AI features</span></label>
+            <select class="ne-select" id="neBookType">
+              <option value="nonfiction">Nonfiction — history, science, biography</option>
+              <option value="fiction">Fiction — novels, literary fiction</option>
+              <option value="social">Social Science — philosophy, sociology, economics</option>
+              <option value="essay">Essay / Self-help — personal essays, self-help</option>
+              <option value="travel">Travel — travel writing, cultural reportage</option>
+            </select>
+          </div>
+
+          <div class="ne-field">
             <label class="ne-label" for="neOrigin">Country / Origin</label>
             <input class="ne-input" id="neOrigin" type="text" placeholder="e.g. Japan, United States">
           </div>
@@ -507,46 +518,70 @@ window.NewEntry = (() => {
       return;
     }
 
-    const style = SPINE_STYLES.find(s => s.id === state.styleId) || SPINE_STYLES[0];
-    const lang  = dialog.querySelector('#neLanguage')?.value || 'en';
-    const tags  = (dialog.querySelector('#neTags')?.value || '')
+    const style    = SPINE_STYLES.find(s => s.id === state.styleId) || SPINE_STYLES[0];
+    const lang     = dialog.querySelector('#neLanguage')?.value || 'en';
+    const bookType = dialog.querySelector('#neBookType')?.value || 'nonfiction';
+    const tags     = (dialog.querySelector('#neTags')?.value || '')
       .split(',').map(t => t.trim()).filter(Boolean);
 
-    const newBook = {
+    // Generate a stable id from title + timestamp
+    const id = 'book-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32)
+      + '-' + Date.now().toString(36);
+
+    const coverImgSrc = dialog.querySelector('#neCoverImg')?.src || null;
+    const coverIsBlob = coverImgSrc?.startsWith('blob:');
+
+    // Resolve panels + aiFeatures from type registry
+    const typeConfig   = window.BOOK_TYPES?.[bookType] || {};
+    const defaultPanels = typeConfig.defaultPanels || ['overview', 'highlights', 'notes', 'claude-import'];
+    const aiFeatures    = typeConfig.defaultAiFeatures || [];
+
+    const fullBook = {
+      id,
       title,
-      author:    dialog.querySelector('#neAuthor')?.value.trim()       || '',
-      status:    dialog.querySelector('#neStatus')?.value              || 'reading',
-      origin:    dialog.querySelector('#neOrigin')?.value.trim()       || '',
+      author:   dialog.querySelector('#neAuthor')?.value.trim() || '',
+      status:   dialog.querySelector('#neStatus')?.value        || 'reading',
       tags,
-      externalLink: dialog.querySelector('#neExternalLink')?.value.trim() || '',
-      language:  lang,
-      // Spine data (matches SHELF_BOOKS schema)
-      spine:     state.spineColor,
-      text:      state.textColor,
-      w:         state.thickness,
-      h:         0.88,
-      font:      style.font,
-      weight:    style.weight,
-      // Cover
-      coverFile: state.coverFile || null,
-      coverPreview: dialog.querySelector('#neCoverImg')?.src || null,
+      language: lang,
+      bookType,
+      panels:   defaultPanels,
+      aiFeatures,
+      year:     new Date().getFullYear(),
+      summary:  '',
+      cover: {
+        bg:     state.spineColor,
+        text:   state.textColor,
+        font:   style.font,
+        weight: style.weight,
+        // Only store non-blob URLs (blob URLs don't survive page reload)
+        image:  (coverImgSrc && !coverIsBlob) ? coverImgSrc : null,
+      },
+      meta: {
+        startedAt: new Date().toISOString().slice(0, 10),
+      },
+      highlights: [],
+      actions:    [],
     };
 
-    // Persist to NotesStore (acts as the local book store until Firebase)
-    window.NotesStore?.saveBook?.(newBook).catch(() => {});
+    // Register into BOOK_BY_ID and BOOK_DETAILS so book.js can render it
+    if (!window.BOOK_DETAILS) window.BOOK_DETAILS = [];
+    if (!window.BOOK_BY_ID)   window.BOOK_BY_ID   = {};
+    window.BOOK_DETAILS.unshift(fullBook);
+    window.BOOK_BY_ID[id] = fullBook;
 
-    // Inject into SHELF_BOOKS so the shelf re-renders immediately
+    // Inject into SHELF_BOOKS so the shelf shows the spine
     if (window.SHELF_BOOKS) {
       window.SHELF_BOOKS.unshift({
-        title:  newBook.title,
-        author: newBook.author,
-        spine:  newBook.spine,
-        text:   newBook.text,
-        w:      newBook.w,
-        h:      newBook.h,
-        status: newBook.status,
-        font:   newBook.font,
-        weight: newBook.weight,
+        id,
+        title:  fullBook.title,
+        author: fullBook.author,
+        spine:  state.spineColor,
+        text:   state.textColor,
+        w:      state.thickness,
+        h:      0.88,
+        status: fullBook.status,
+        font:   style.font,
+        weight: style.weight,
       });
     }
 
@@ -554,6 +589,9 @@ window.NewEntry = (() => {
     if (typeof window.renderShelfSection === 'function') window.renderShelfSection();
 
     close();
+
+    // Navigate directly to the new book's detail page
+    App.show('book', { id });
   }
 
   /* ── Public ──────────────────────────────────────────────────────────────── */
