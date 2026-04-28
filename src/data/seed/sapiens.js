@@ -8,7 +8,13 @@
 
 window.__SEED_SAPIENS = {
   id: 'sapiens',
-  bookType: 'science',
+
+  // ── Type system (Phase 4A) ────────────────────────────────────────────────
+  // 'nonfiction' maps to: overview, highlights, notes, mindmap, timeline, claude-import
+  // Override panels/aiFeatures here to customise for this specific book.
+  bookType: 'nonfiction',
+  // panels: undefined,       ← inherits nonfiction default
+  aiFeatures: ['mindmap-gen', 'timeline-gen', 'concept-cards'],
   title: 'Sapiens: A Brief History of Humankind',
   titleZh: '人类简史',
   author: 'Yuval Noah Harari',

@@ -247,6 +247,79 @@ function renderBook(b) {
 }
 
 function getBookSections(b) {
+  // Phase 4A: if PanelRegistry is available, use it to drive the tab list.
+  // Panel render functions registered via PanelRegistry.set() take priority;
+  // built-in legacy renderers are used as fallback so nothing breaks.
+  if (window.PanelRegistry && window.BookTypes) {
+    return _getSectionsFromRegistry(b);
+  }
+  // Legacy fallback (pre-4A books or registry not yet loaded)
+  return _getSectionsLegacy(b);
+}
+
+function _getSectionsFromRegistry(b) {
+  const panels = window.PanelRegistry.forBook(b);
+  const sections = [];
+
+  for (const panel of panels) {
+    const section = _renderPanelSection(b, panel.id, panel.label);
+    if (section) sections.push(section);
+  }
+
+  // Always ensure at least overview is shown
+  if (!sections.length) {
+    sections.push({ id: 'overview', label: 'Overview', html: renderOverview(b) });
+  }
+  return sections;
+}
+
+function _renderPanelSection(b, panelId, panelLabel) {
+  // If a registered panel render function exists, use it
+  const panel = window.PanelRegistry?.get(panelId);
+  if (panel?.render) {
+    const container = document.createElement('div');
+    panel.render(b, container);
+    return { id: panelId, label: panelLabel || panel.label, html: container.innerHTML };
+  }
+
+  // Built-in renderers for panels that exist pre-4B
+  switch (panelId) {
+    case 'overview':
+      return { id: 'overview', label: 'Overview', html: renderOverview(b) + renderIntegration(b) };
+    case 'highlights':
+      return b.highlights?.length
+        ? { id: 'highlights', label: 'Key Notes & Highlights', html: renderHighlights(b) }
+        : null;
+    case 'concept-cards':
+    case 'concepts':
+      return getBookGraphConcepts(b.id).length
+        ? { id: 'concepts', label: 'Related Concepts', html: renderRelatedConcepts(b) }
+        : null;
+    case 'mindmap':
+      return b.mindmap
+        ? { id: 'knowledge', label: 'Knowledge Structure', html: renderMindmap(b) }
+        : null;
+    case 'actions':
+      return b.actions?.length
+        ? { id: 'actions', label: 'Action List', html: renderActions(b) }
+        : null;
+    case 'geo-context':
+    case 'cultural':
+      return b.cultural?.length
+        ? { id: 'cultural', label: 'Cultural Annotations', html: renderCultural(b) }
+        : null;
+    case 'characters':
+    case 'timeline':
+    case 'notes':
+    case 'claude-import':
+      // Panels not yet implemented — silently skip until 4B/4C
+      return null;
+    default:
+      return null;
+  }
+}
+
+function _getSectionsLegacy(b) {
   const sections = [
     { id: 'overview',   label: 'Overview',               html: renderOverview(b) },
     { id: 'conclusion', label: 'My Conclusion',           html: renderIntegration(b) },
