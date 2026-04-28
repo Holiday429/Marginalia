@@ -16,13 +16,14 @@
 
   <link rel="stylesheet" href="src/core/base.css">
   <link rel="stylesheet" href="src/preloader/preloader.css">
-  <link rel="stylesheet" href="src/home/home.css">
-  <link rel="stylesheet" href="src/yearbook/yearbook.css">
+  <link rel="stylesheet" href="src/shelf/shelf.css">
+  <link rel="stylesheet" href="src/booklist/booklist.css">
   <link rel="stylesheet" href="src/book/book.css">
   <link rel="stylesheet" href="src/map/map.css">
   <link rel="stylesheet" href="src/core/auth.css">
   <link rel="stylesheet" href="src/core/concept-ui.css">
   <link rel="stylesheet" href="src/web/web.css">
+  <link rel="stylesheet" href="src/new-entry/new-entry.css">
 
   <!-- amCharts (used by map view) — loaded eagerly so first visit boots fast -->
   <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
@@ -127,24 +128,58 @@
 
 
   <!-- ============================================================
-       VIEW: HOME
+       VIEW: SHELF
        ============================================================ -->
-  <div id="view-home" hidden>
+  <div id="view-shelf" hidden>
   <div class="page">
 
-    <header class="home-masthead">
+    <header class="app-masthead">
       <div>
         <div class="wordmark">Marginalia</div>
         <span class="wordmark-sub">Margins are where thinking happens</span>
       </div>
       <nav class="nav">
-        <a href="#shelf"    class="nav-link active" data-view="home"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-shelf"></use></svg></span>Shelf</a>
+        <a href="#shelf"    class="nav-link active" data-view="shelf"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-shelf"></use></svg></span>Shelf</a>
         <a href="#map"      class="nav-link"        data-view="map"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-map"></use></svg></span>Map</a>
         <a href="#web"      class="nav-link"        data-view="web"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-graph"></use></svg></span>Graph</a>
-        <a href="#yearbook" class="nav-link"        data-view="yearbook"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-list"></use></svg></span>Booklist</a>
-        <button class="nav-action-btn" id="homeNewEntryBtn"><span class="nav-icon">＋</span>New entry</button>
+        <a href="#booklist" class="nav-link"        data-view="booklist"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-list"></use></svg></span>Booklist</a>
+        <button class="nav-action-btn" id="shelfNewEntryBtn"><span class="nav-icon">＋</span>Add Book</button>
       </nav>
     </header>
+
+    <div class="shelf-stats-bar" id="shelfStatsBar">
+      <div class="shelf-stat">
+        <span class="shelf-stat-label">Books Finished</span>
+        <div class="shelf-stat-value-row">
+          <span class="shelf-stat-num" id="statBooksFinished">—</span>
+          <span class="shelf-stat-year" id="statBooksYear"></span>
+        </div>
+        <span class="shelf-stat-sub" id="statBooksVsLastYear"></span>
+      </div>
+      <div class="shelf-stat">
+        <span class="shelf-stat-label">Reading Now</span>
+        <div class="shelf-stat-value-row">
+          <span class="shelf-stat-num" id="statReadingCount">—</span>
+          <span class="shelf-stat-year">book</span>
+        </div>
+        <span class="shelf-stat-sub" id="statReadingTitle"></span>
+      </div>
+      <div class="shelf-stat">
+        <span class="shelf-stat-label">Highlights Saved</span>
+        <div class="shelf-stat-value-row">
+          <span class="shelf-stat-num" id="statHighlights">—</span>
+        </div>
+        <span class="shelf-stat-sub" id="statHighlightsSub"></span>
+      </div>
+      <div class="shelf-stat">
+        <span class="shelf-stat-label">Actions Completed</span>
+        <div class="shelf-stat-value-row">
+          <span class="shelf-stat-num" id="statActionsDone">—</span>
+          <span class="shelf-stat-year">done</span>
+        </div>
+        <span class="shelf-stat-sub" id="statActionsPending"></span>
+      </div>
+    </div>
 
     <section id="shelf" class="shelf-section">
       <div class="section-head">
@@ -187,7 +222,7 @@
     </section>
 
   </div>
-  </div><!-- /view-home -->
+  </div><!-- /view-shelf -->
 
 
   <!-- ============================================================
@@ -206,27 +241,48 @@
   <div id="view-web" hidden></div>
 
   <!-- ============================================================
-       VIEW: YEARBOOK
+       VIEW: BOOKLIST
        ============================================================ -->
-  <div id="view-yearbook" hidden></div>
+  <div id="view-booklist" hidden></div>
 
 
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-  <script src="src/core/books.js"></script>
-  <script src="src/core/firebase-config.js"></script>
-  <script src="src/core/firebase-auth.js"></script>
-  <script src="src/core/firebase-storage.js"></script>
-  <script src="src/core/firebase-books-sync.js"></script>
+
+  <!-- 1. Mock / seed data (replace with real API adapters when ready) -->
+  <script src="src/data/mock/seed-spines.js"></script>       <!-- window.BOOKS, window.SHELF_BOOKS -->
+  <script src="src/data/mock/curated-booklist.js"></script>  <!-- window.BOOKLIST_CURATED -->
+  <script src="src/data/seed/sapiens.js"></script>           <!-- window.__SEED_SAPIENS -->
+  <script src="src/data/seed/index.js"></script>             <!-- window.BOOK_DETAILS, BOOK_BY_ID -->
+
+  <!-- 2. Firebase layer (config → auth → db) -->
+  <script src="src/firebase/config.js"></script>
+  <script src="src/firebase/auth.js"></script>
+  <script src="src/firebase/db.js"></script>
+
+  <!-- 3. State stores -->
+  <script src="src/store/books-store.js"></script>
+  <script src="src/store/notes-store.js"></script>
+
+  <!-- 4. Core app utilities -->
   <script src="src/core/graph-data.js"></script>
-  <script src="src/core/firebase-graph-sync.js"></script>
   <script src="src/core/app.js"></script>
   <script src="src/core/concept-ui.js"></script>
+
+  <!-- 4b. API adapters -->
+  <script src="src/api/kindle-import.js"></script>
+
+  <!-- 5. Shared components -->
+  <script src="src/components/spine-card.js"></script>
+  <script src="src/new-entry/new-entry.js"></script>
+
+  <!-- 6. Views -->
   <script src="src/preloader/preloader.js"></script>
-  <script src="src/home/home.js"></script>
-  <script src="src/yearbook/yearbook.js"></script>
+  <script src="src/shelf/shelf.js"></script>
+  <script src="src/booklist/booklist.js"></script>
   <script src="src/book/book.js"></script>
   <script src="src/map/map.js"></script>
   <script src="src/web/web.js"></script>

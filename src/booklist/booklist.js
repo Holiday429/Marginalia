@@ -22,28 +22,19 @@ const BOOKLIST_YEARS = (() => {
 
 const BOOKLIST_LEVEL_LABELS = [
   'No record',
-  'Reading evidence',
+  'Reading Evidence',
   'Has notes',
   'Deep notes',
   'Deep notes + action',
 ];
 
-const BOOKLIST_CURATED_DESC = [
-  { title: '活山', author: '娜恩·谢泼德 Nan Shepherd', coverSrc: 'assets/covers/活山.jpg' },
-  { title: '流俗地', author: '黎紫书 Zishu Li', coverSrc: 'assets/covers/流俗地.jpg' },
-  { title: '动物庄园', author: '乔治·奥威尔 George Orwell', coverSrc: 'assets/covers/动物庄园.jpg' },
-  { title: '烧纸', author: '李沧东 Chang-dong Lee', coverSrc: 'assets/covers/烧纸.jpg' },
-  { title: '将熟悉变为陌生', author: '齐格蒙·鲍曼 Zygmunt Bauman', coverSrc: 'assets/covers/将熟悉变为陌生.jpg' },
-  { title: '云游', author: '奥尔加·托卡尔丘克 Olga Tokarczuk', coverSrc: 'assets/covers/云游.jpg' },
-  { title: '每一句话语都坐着别的眼睛', author: '赫塔·米勒 Herta Müller', coverSrc: 'assets/covers/每一句话语都坐着别的眼睛.jpg' },
-  { title: '刀锋', author: '毛姆 W. Somerset Maugham', coverSrc: 'assets/covers/刀锋.jpg' },
-  { title: '平面国', author: '埃德温·A.艾勃特', coverSrc: 'assets/covers/平面国.jpg' },
-];
+// Mock curated list — sourced from src/data/mock/curated-booklist.js (window.BOOKLIST_CURATED)
+const BOOKLIST_CURATED_DESC = window.BOOKLIST_CURATED || [];
 
 const BOOKLIST_HEATMAP_CACHE = new Map();
 let BOOKLIST_RESIZE_TIMER = 0;
 
-function initYearbook() {
+function initBooklist() {
   BOOKLIST_STATE.year = BOOKLIST_YEARS.includes(BOOKLIST_STATE.year)
     ? BOOKLIST_STATE.year
     : BOOKLIST_YEARS[BOOKLIST_YEARS.length - 1];
@@ -55,7 +46,7 @@ function initYearbook() {
   renderBooklistHeatmap();
 }
 
-function enterYearbook() {
+function enterBooklist() {
   if (BOOKLIST_STATE.isAnimating) return;
   hydrateBooklistData();
   renderBooklistContent();
@@ -63,11 +54,11 @@ function enterYearbook() {
 }
 
 function renderBooklistShell() {
-  const host = document.getElementById('view-yearbook');
+  const host = document.getElementById('view-booklist');
   if (!host) return;
 
   const sharedHeader = typeof window.renderPrimaryHeader === 'function'
-    ? window.renderPrimaryHeader('yearbook', { showNewEntry: true, actionLabel: '↗ Share', actionId: 'yearbookShareBtn' })
+    ? window.renderPrimaryHeader('booklist', { showNewEntry: true, actionLabel: '↗ Share', actionId: 'booklistShareBtn' })
     : '';
 
   host.innerHTML = `
@@ -150,7 +141,7 @@ function bindBooklistEvents() {
   if (BOOKLIST_STATE.bound) return;
   BOOKLIST_STATE.bound = true;
 
-  const host = document.getElementById('view-yearbook');
+  const host = document.getElementById('view-booklist');
   if (!host) return;
 
   host.addEventListener('click', (event) => {
@@ -178,7 +169,7 @@ function bindBooklistEvents() {
     const slot = event.target.closest('.booklist-slot');
     if (slot) {
       event.preventDefault();
-      if (!document.querySelector('#view-yearbook .booklist-main')?.classList.contains('is-showcase')) return;
+      if (!document.querySelector('#view-booklist .booklist-main')?.classList.contains('is-showcase')) return;
       setBooklistPreviewByUid(slot.dataset.slotId || '', { renderStatic: true });
       return;
     }
@@ -202,7 +193,7 @@ function renderBooklistHeatmap() {
   const yearLabel = document.getElementById('ybYearLabel');
   const monthHost = document.getElementById('ybHeatmapMonths');
   const grid = document.getElementById('ybHeatmapGrid');
-  const shell = document.querySelector('#view-yearbook .booklist-heatmap-shell');
+  const shell = document.querySelector('#view-booklist .booklist-heatmap-shell');
   if (!yearLabel || !monthHost || !grid || !shell) return;
 
   const year = BOOKLIST_STATE.year;
@@ -353,7 +344,7 @@ function renderBooklistContent() {
   const annualHost = document.getElementById('ybAnnualRacks');
   const annualCounter = document.getElementById('ybAnnualCounter');
   const playBtn = document.getElementById('ybPlayBtn');
-  const main = document.querySelector('#view-yearbook .booklist-main');
+  const main = document.querySelector('#view-booklist .booklist-main');
   if (!sourceHost || !annualHost || !annualCounter || !playBtn || !main) return;
 
   main.classList.remove('is-showcase');
@@ -381,25 +372,22 @@ function renderBooklistContent() {
 function renderSourceShelf(host, books) {
   host.innerHTML = '';
   books.forEach((book) => {
-    const spine = document.createElement('button');
-    spine.type = 'button';
-    spine.className = 'booklist-spine';
-    if (BOOKLIST_STATE.selectedByUid.has(book.uid)) spine.classList.add('is-picked');
-    spine.dataset.sourceId = book.uid;
-
-    const size = getSourceSpineSize(book);
-    spine.style.width = `${size.width}px`;
-    spine.style.height = `${size.height}px`;
-    spine.style.background = book.spine;
-    spine.style.color = book.text;
-
-    const titleClass = `booklist-spine-title${containsCJK(book.spineTitle) ? ' is-cjk' : ''}`;
-    const authorClass = `booklist-spine-author${containsCJK(book.spineAuthor) ? ' is-cjk' : ''}`;
-    spine.innerHTML = `
-      <span class="${titleClass}">${escapeHTML(shorten(book.spineTitle, 34))}</span>
-      <span class="${authorClass}">${escapeHTML(shorten(book.spineAuthor, 22))}</span>
-    `;
-    spine.setAttribute('aria-label', `${book.title} by ${book.author}`);
+    const size  = getSourceSpineSize(book);
+    const isPicked = BOOKLIST_STATE.selectedByUid.has(book.uid);
+    const spine = window.SpineCard.create({
+      title:        shorten(book.spineTitle,  34),
+      author:       shorten(book.spineAuthor, 22),
+      spine:        book.spine,
+      text:         book.text,
+      width:        size.width,
+      height:       size.height,
+      className:    'booklist-spine',
+      extraClasses: isPicked ? ['is-picked'] : [],
+      dataAttrs:    { sourceId: book.uid },
+      ariaLabel:    `${book.title} by ${book.author}`,
+      titleClass:   `booklist-spine-title${containsCJK(book.spineTitle)  ? ' is-cjk' : ''}`,
+      authorClass:  `booklist-spine-author${containsCJK(book.spineAuthor) ? ' is-cjk' : ''}`,
+    });
     host.appendChild(spine);
   });
 }
@@ -471,7 +459,7 @@ async function startBooklistAnimation(playBtn) {
   const isReplay = mode === 'replay';
   if (isReplay) prepareReplayState();
 
-  const main = document.querySelector('#view-yearbook .booklist-main');
+  const main = document.querySelector('#view-booklist .booklist-main');
   if (main) {
     main.classList.remove('is-preplay');
     main.classList.add('is-showcase');
@@ -1177,5 +1165,5 @@ function waitFrame() {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
 }
 
-window.initYearbook = initYearbook;
-window.enterYearbook = enterYearbook;
+window.initBooklist = initBooklist;
+window.enterBooklist = enterBooklist;

@@ -15,19 +15,19 @@
 
 const App = (() => {
   const NAV_ITEMS = [
-    { view: 'home',     label: 'Shelf',    icon: 'shelf', href: '#shelf' },
+    { view: 'shelf',    label: 'Shelf',    icon: 'shelf', href: '#shelf' },
     { view: 'map',      label: 'Map',      icon: 'map', href: '#map' },
     { view: 'web',      label: 'Graph',    icon: 'graph', href: '#web' },
-    { view: 'yearbook', label: 'Booklist', icon: 'list', href: '#yearbook' },
+    { view: 'booklist', label: 'Booklist', icon: 'list', href: '#booklist' },
   ];
 
   const views = {
     preloader: document.getElementById('view-preloader'),
-    home:      document.getElementById('view-home'),
+    shelf:     document.getElementById('view-shelf'),
     book:      document.getElementById('view-book'),      // may be null until built
     map:       document.getElementById('view-map'),
     web:       document.getElementById('view-web'),
-    yearbook:  document.getElementById('view-yearbook'),
+    booklist:  document.getElementById('view-booklist'),
   };
 
   const initialized = new Set();
@@ -63,22 +63,22 @@ const App = (() => {
   }
 
   let transitioning = false;
-  function showHome() {
+  function showShelf() {
     if (transitioning) return;
     transitioning = true;
 
     const preloader = views.preloader;
-    const home      = views.home;
+    const shelf     = views.shelf;
 
-    // Reveal home underneath the preloader, then fade preloader out
-    home.hidden = false;
-    document.body.dataset.view = 'home';
+    // Reveal shelf underneath the preloader, then fade preloader out
+    shelf.hidden = false;
+    document.body.dataset.view = 'shelf';
     document.querySelectorAll('.nav-link[data-view]').forEach(a => {
-      a.classList.toggle('active', a.dataset.view === 'home');
+      a.classList.toggle('active', a.dataset.view === 'shelf');
     });
-    if (typeof initHome === 'function' && !initialized.has('home')) {
-      initHome();
-      initialized.add('home');
+    if (typeof initShelf === 'function' && !initialized.has('shelf')) {
+      try { initShelf(); } catch(e) { console.error('[App] initShelf threw:', e); }
+      initialized.add('shelf');
     }
 
     preloader.style.position   = 'fixed';
@@ -126,12 +126,13 @@ const App = (() => {
       <a href="${item.href}" class="nav-link${item.view === activeView ? ' active' : ''}" data-view="${item.view}">${renderNavIcon(item.icon)}${item.label}</a>
     `).join('');
 
-    const actionBtn = (actionLabel)
-      ? `<button class="nav-action-btn"${actionId ? ` id="${actionId}"` : ''}>${actionLabel}</button>`
+    const resolvedActionLabel = actionLabel || (showNewEntry ? 'Add Book' : '');
+    const actionBtn = (resolvedActionLabel)
+      ? `<button class="nav-action-btn"${actionId ? ` id="${actionId}"` : ''}>${toServiceTitleCase(resolvedActionLabel)}</button>`
       : '';
 
     return `
-      <header class="home-masthead shared-masthead">
+      <header class="app-masthead shared-masthead">
         <div>
           <div class="wordmark">Marginalia</div>
           <span class="wordmark-sub">Margins are where thinking happens</span>
@@ -146,8 +147,22 @@ const App = (() => {
 
   window.renderPrimaryHeader = renderPrimaryHeader;
 
+  function toServiceTitleCase(text) {
+    return String(text || '')
+      .trim()
+      .split(/\s+/)
+      .map((chunk) => {
+        const match = chunk.match(/^([^A-Za-z0-9]*)([A-Za-z][A-Za-z'’-]*)([^A-Za-z0-9]*)$/);
+        if (!match) return chunk;
+        const [, prefix, core, suffix] = match;
+        if (core === core.toUpperCase() && core.length <= 4) return `${prefix}${core}${suffix}`;
+        return `${prefix}${core.charAt(0).toUpperCase()}${core.slice(1).toLowerCase()}${suffix}`;
+      })
+      .join(' ');
+  }
+
   // Start on preloader
   show('preloader');
 
-  return { show, showHome };
+  return { show, showShelf };
 })();

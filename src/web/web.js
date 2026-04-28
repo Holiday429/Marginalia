@@ -28,7 +28,7 @@ function enterWeb() {
 
 function webShellHTML() {
   const sharedHeader = typeof window.renderPrimaryHeader === 'function'
-    ? window.renderPrimaryHeader('web', { actionLabel: '◈ New concept', actionId: 'webNewConceptBtn' })
+    ? window.renderPrimaryHeader('web', { actionLabel: '◈ New Concept', actionId: 'webNewConceptBtn' })
     : '';
 
   return `
@@ -350,7 +350,7 @@ function buildWebFilters(snapshot) {
   allBtn.className = `web-filter-item${!__webFocusConceptId ? ' active' : ''}`;
   allBtn.type = 'button';
   allBtn.style.setProperty('--i', '0');
-  allBtn.textContent = __webMode === 'suggested' ? 'All suggested links' : 'Top concepts';
+  allBtn.textContent = __webMode === 'suggested' ? 'All Suggested Links' : 'Top Concepts';
   allBtn.addEventListener('click', () => {
     __webFocusConceptId = '';
     renderWebGraph();
@@ -441,7 +441,7 @@ function getWebSafeViewport() {
 }
 
 function webShowConceptTip(event, concept) {
-  document.getElementById('ttTag').textContent = concept.hasSuggested ? 'Concept · evolving' : 'Concept';
+  document.getElementById('ttTag').textContent = concept.hasSuggested ? 'Concept · Evolving' : 'Concept';
   document.getElementById('ttName').textContent = concept.name;
   document.getElementById('ttBody').textContent = `${concept.bookCount} book link${concept.bookCount !== 1 ? 's' : ''} · click for reading history`;
   const container = document.getElementById('ttBooks');
@@ -464,14 +464,14 @@ function webShowBookTip(event, book) {
   container.innerHTML = '';
   const chip = document.createElement('span');
   chip.className = 'web-tt-book';
-  chip.textContent = 'Open book';
+  chip.textContent = 'Open Book';
   container.appendChild(chip);
   document.getElementById('webTooltip').classList.add('show');
   webMoveTip(event);
 }
 
 function webShowContextTip(event, context) {
-  document.getElementById('ttTag').textContent = 'Cultural context';
+  document.getElementById('ttTag').textContent = 'Cultural Context';
   document.getElementById('ttName').textContent = context.label;
   document.getElementById('ttBody').textContent = context.description || `${context.conceptCount} connected concepts`;
   const container = document.getElementById('ttBooks');

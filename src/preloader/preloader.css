@@ -229,7 +229,7 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 8px;
   letter-spacing: 0.2em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--book-text, #fff);
   opacity: 0.7;
   white-space: nowrap;
@@ -270,7 +270,6 @@ body[data-view="preloader"] {
 .book.hero-3d .cover,
 .book.hero-3d .spine,
 .book.hero-3d .back {
-  visibility: visible;
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
@@ -289,6 +288,21 @@ body[data-view="preloader"] {
   transform: translateZ(calc(var(--spine-half, 20px) * -1)) rotateY(180deg);
   background: var(--cover-bg, var(--book-color, #333));
   box-shadow: inset 0 0 30px rgba(0,0,0,0.2);
+}
+
+/* Hide generated hero faces by default to avoid flashing a placeholder spine
+   before the GLB model mounts. */
+.book.hero-3d .cover,
+.book.hero-3d .spine,
+.book.hero-3d .back {
+  visibility: hidden;
+}
+
+/* If GLB fails, allow CSS hero faces as explicit fallback. */
+.book.hero-3d.hero-fallback .cover,
+.book.hero-3d.hero-fallback .spine,
+.book.hero-3d.hero-fallback .back {
+  visibility: visible;
 }
 
 /* ---- Hero cover art (Visible Signs) ---- */
@@ -314,7 +328,7 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: clamp(8px,2.2%,11px);
   letter-spacing: 0.3em;
-  text-transform: uppercase;
+  text-transform: none;
   opacity: 0.6;
 }
 .cover.cover-visible-signs .cover-title-stack {
@@ -323,7 +337,7 @@ body[data-view="preloader"] {
   font-size: clamp(28px,11%,56px);
   line-height: 0.95;
   letter-spacing: -0.01em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .cover.cover-visible-signs .cover-art {
   margin: 14px 0 0;
@@ -339,7 +353,7 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: clamp(8px,2.2%,11px);
   letter-spacing: 0.26em;
-  text-transform: uppercase;
+  text-transform: none;
   opacity: 0.75;
   text-align: center;
 }
@@ -359,7 +373,7 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 9px;
   letter-spacing: 0.2em;
-  text-transform: uppercase;
+  text-transform: none;
   opacity: 0.85;
   width: 100%;
   text-align: var(--cover-align, left);
@@ -368,7 +382,7 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 8px;
   letter-spacing: 0.25em;
-  text-transform: uppercase;
+  text-transform: none;
   opacity: 0.6;
   width: 100%;
   text-align: var(--cover-align, left);
@@ -463,7 +477,7 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.3em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--ink);
   opacity: 0;
   transition: opacity 0.5s ease 0.3s, box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
@@ -498,7 +512,6 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.28em;
-  text-transform: uppercase;
   color: var(--ink);
   opacity: 0.5;
   cursor: pointer;
@@ -544,7 +557,7 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 9px;
   letter-spacing: 0.24em;
-  text-transform: uppercase;
+  text-transform: none;
   opacity: 0.5;
   font-weight: 400;
 }
@@ -554,7 +567,6 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
   letter-spacing: 0.18em;
-  text-transform: uppercase;
   opacity: 0.7;
   margin-bottom: 5px;
 }
@@ -580,7 +592,7 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
+  text-transform: none;
   padding: 4px 9px;
   border: 1px solid rgba(26,23,20,0.3);
   cursor: pointer;
@@ -601,7 +613,6 @@ body[data-view="preloader"] {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.28em;
-  text-transform: uppercase;
   color: var(--ink);
   opacity: 0.5;
   cursor: pointer;

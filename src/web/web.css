@@ -21,8 +21,8 @@ body[data-view="web"] {
   --paper:      var(--color-ink-soft);
   --rule:       rgba(232,223,200,0.14);
   --rule-soft:  rgba(232,223,200,0.08);
-  --muted:      rgba(232,223,200,0.55);
-  --muted-soft: rgba(232,223,200,0.35);
+  --muted:      rgba(232,223,200,0.72);
+  --muted-soft: rgba(232,223,200,0.52);
   --accent:     var(--color-accent-gold);
 }
 
@@ -57,9 +57,8 @@ body[data-view="web"] {
   font-family: var(--font-mono);
   font-size: var(--fs-10);
   letter-spacing: 0.3em;
-  text-transform: uppercase;
   color: var(--ink);
-  opacity: 0.65;
+  opacity: 0.86;
   cursor: pointer;
   pointer-events: auto;
   transition: opacity var(--dur-fast), color var(--dur-fast);
@@ -110,11 +109,10 @@ body[data-view="web"] {
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.18em;
-  text-transform: uppercase;
 }
 
 .web-search span {
-  color: rgba(232,223,200,0.5);
+  color: rgba(232,223,200,0.78);
 }
 
 .web-search input {
@@ -154,7 +152,6 @@ body[data-view="web"] {
   font-family: var(--font-mono);
   font-size: var(--fs-10);
   letter-spacing: 0.22em;
-  text-transform: uppercase;
   color: var(--ink);
   opacity: 0.6;
   padding: 5px var(--space-3);
@@ -181,7 +178,6 @@ body[data-view="web"] {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
   fill: rgba(232,223,200,0.88);
   pointer-events: none;
   user-select: none;
@@ -250,7 +246,6 @@ body[data-view="web"] {
   font-family: var(--font-mono);
   font-size: var(--fs-10);
   letter-spacing: 0.22em;
-  text-transform: uppercase;
   color: var(--ink);
   opacity: 0.5;
 }
@@ -290,7 +285,6 @@ body[data-view="web"] {
   font-family: var(--font-mono);
   font-size: var(--fs-10);
   letter-spacing: 0.28em;
-  text-transform: uppercase;
   color: var(--ink);
   opacity: 0;
   background: rgba(30,26,21,0.88);
@@ -326,7 +320,6 @@ body[data-view="web"] {
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.28em;
-  text-transform: uppercase;
   color: var(--accent);
   margin-bottom: 5px;
 }
@@ -357,7 +350,6 @@ body[data-view="web"] {
   font-family: var(--font-mono);
   font-size: 8.5px;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
   padding: 2px 7px;
   border: 1px solid rgba(232,223,200,0.2);
   border-radius: 1px;
@@ -395,7 +387,6 @@ body[data-view="web"] {
   font-family: var(--font-mono);
   font-size: var(--fs-9);
   letter-spacing: 0.18em;
-  text-transform: uppercase;
   color: rgba(232,223,200,0.72);
   opacity: 0;
   padding: 9px 0 9px 12px;

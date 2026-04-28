@@ -9,7 +9,15 @@
       "Bash(open \"http://localhost:9016\")",
       "Bash(pkill -f \"python3 -m http.server 9016\")",
       "Bash(curl -s \"http://localhost:8765/index.html\")",
-      "Bash(curl -s \"http://localhost:8765/index.html\" -o /dev/null -w \"%{http_code}\\\\n\")"
+      "Bash(curl -s \"http://localhost:8765/index.html\" -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(sed -n '200,210p' /Users/Holiday_1/Desktop/Growth/Marginalia/src/preloader/preloader.js)",
+      "Bash(sed -n '400,406p' /Users/Holiday_1/Desktop/Growth/Marginalia/src/preloader/preloader.js)",
+      "Bash(cat)",
+      "Bash(npx playwright *)",
+      "Bash(node -e \"const {chromium} = require\\('@playwright/test'\\); console.log\\('playwright available'\\)\")",
+      "Bash(ls /Users/Holiday_1/Desktop/Growth/Marginalia/node_modules/.bin/playwright)",
+      "Read(//Users/Holiday_1/.npm/**)",
+      "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia show 771fdac:src/home/home.js)"
     ]
   }
 }

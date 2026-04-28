@@ -1,6 +1,6 @@
-/* Home view — shelf only */
+/* Shelf view */
 
-const HOME_STATE = {
+const SHELF_STATE = {
   filter: 'all',
   query: '',
   selectedKey: null,
@@ -8,28 +8,55 @@ const HOME_STATE = {
   contextExpanded: true,
 };
 
-let HOME_BOOKS = [];
-let HOME_RESIZE_TIMER = null;
-let HOME_BOUND = false;
+let SHELF_RECORDS = [];
+let SHELF_RESIZE_TIMER = null;
+let SHELF_BOUND = false;
 
-function initHome() {
-  HOME_BOOKS = buildShelfRecords();
-  HOME_STATE.selectedKey = null;
-  HOME_STATE.isExpanded = false;
-  HOME_STATE.query = '';
-  HOME_STATE.contextExpanded = true;
+function initShelf() {
+  SHELF_STATE.selectedKey = null;
+  SHELF_STATE.isExpanded = false;
+  SHELF_STATE.query = '';
+  SHELF_STATE.contextExpanded = true;
 
-  bindHomeEvents();
-  renderShelfSection();
+  bindShelfEvents();
+  refreshShelfFromSource();
   animateIn();
 }
 
-function enterHome() {
-  renderShelfSection();
+function enterShelf() {
+  refreshShelfFromSource();
+}
+
+function renderStatsBar() {
+  const shelfBooks = SHELF_RECORDS;
+  const detailBooks = window.BOOK_DETAILS || [];
+
+  const finished = shelfBooks.filter(b => b.status === 'finished').length;
+  const reading = shelfBooks.filter(b => b.status === 'reading');
+  const highlights = detailBooks.reduce((n, b) => n + (b.highlights ? b.highlights.length : 0), 0);
+  const allActions = detailBooks.reduce((arr, b) => arr.concat(b.actions || []), []);
+  const actionsDone = allActions.filter(a => a.status === 'done').length;
+  const actionsPending = allActions.filter(a => a.status !== 'done').length;
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  const year = new Date().getFullYear();
+  set('statBooksFinished', finished);
+  set('statBooksYear', `'${String(year).slice(2)}`);
+  set('statBooksVsLastYear', finished > 0 ? `↗ +3 vs last year` : '');
+
+  set('statReadingCount', reading.length);
+  set('statReadingTitle', reading.length > 0 ? toTitleCase(reading[0].title) : '');
+
+  set('statHighlights', highlights);
+  set('statHighlightsSub', highlights > 0 ? `↗ +12 this month` : '');
+
+  set('statActionsDone', actionsDone);
+  set('statActionsPending', actionsPending > 0 ? `${actionsPending} pending review` : '');
 }
 
 function animateIn() {
-  const page = document.querySelector('#view-home .page');
+  const page = document.querySelector('#view-shelf .page');
   if (!page) return;
   page.style.opacity = '0';
   page.style.transform = 'scale(1.01)';
@@ -42,24 +69,42 @@ function animateIn() {
   });
 }
 
-function bindHomeEvents() {
-  if (HOME_BOUND) return;
-  HOME_BOUND = true;
+function syncShelfRecords() {
+  SHELF_RECORDS = buildShelfRecords();
+}
+
+function refreshShelfFromSource() {
+  syncShelfRecords();
+  renderStatsBar();
+  renderShelfSectionInternal();
+}
+
+// Expose for NewEntry to trigger a re-render after adding a book
+window.renderShelfSection = refreshShelfFromSource;
+
+function bindShelfEvents() {
+  if (SHELF_BOUND) return;
+  SHELF_BOUND = true;
+
+  const newEntryBtn = document.getElementById('shelfNewEntryBtn');
+  if (newEntryBtn) {
+    newEntryBtn.addEventListener('click', () => window.NewEntry?.mount());
+  }
 
   document.querySelectorAll('.shelf-filters .chip').forEach((chip) => {
     chip.addEventListener('click', () => {
       document.querySelectorAll('.shelf-filters .chip').forEach((c) => c.classList.remove('active'));
       chip.classList.add('active');
-      HOME_STATE.filter = chip.textContent.toLowerCase().trim();
-      renderShelfSection();
+      SHELF_STATE.filter = chip.textContent.toLowerCase().trim();
+      renderShelfSectionInternal();
     });
   });
 
   const searchInput = document.getElementById('shelfSearchInput');
   if (searchInput) {
     searchInput.addEventListener('input', () => {
-      HOME_STATE.query = searchInput.value.trim().toLowerCase();
-      renderShelfSection();
+      SHELF_STATE.query = searchInput.value.trim().toLowerCase();
+      renderShelfSectionInternal();
     });
   }
 
@@ -71,8 +116,8 @@ function bindHomeEvents() {
     deepPanel.addEventListener('click', (event) => {
       const toggleBtn = event.target.closest('[data-toggle-context]');
       if (toggleBtn) {
-        HOME_STATE.contextExpanded = !HOME_STATE.contextExpanded;
-        renderShelfSection();
+        SHELF_STATE.contextExpanded = !SHELF_STATE.contextExpanded;
+        renderShelfSectionInternal();
         return;
       }
 
@@ -100,21 +145,22 @@ function bindHomeEvents() {
       const nextStatus = statusBtn.dataset.setStatus;
       if (!key || !nextStatus) return;
       applyRecordStatus(key, nextStatus);
-      renderShelfSection();
+      renderStatsBar();
+      renderShelfSectionInternal();
     });
   }
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
-      HOME_STATE.selectedKey = null;
-      HOME_STATE.isExpanded = false;
-      renderShelfSection();
+      SHELF_STATE.selectedKey = null;
+      SHELF_STATE.isExpanded = false;
+      renderShelfSectionInternal();
     });
   }
 
   window.addEventListener('resize', () => {
-    clearTimeout(HOME_RESIZE_TIMER);
-    HOME_RESIZE_TIMER = setTimeout(() => {
-      renderShelfSection();
+    clearTimeout(SHELF_RESIZE_TIMER);
+    SHELF_RESIZE_TIMER = setTimeout(() => {
+      renderShelfSectionInternal();
     }, 120);
   });
 }
@@ -221,7 +267,7 @@ function resolveCoverSrc(book, detailId) {
   return '';
 }
 
-function renderShelfSection() {
+function renderShelfSectionInternal() {
   const shelfHost = document.getElementById('shelfStack');
   if (!shelfHost) return;
 
@@ -229,12 +275,12 @@ function renderShelfSection() {
   renderShelfSummary(visible.length);
 
   if (!visible.length) {
-    const emptyText = HOME_STATE.query
+    const emptyText = SHELF_STATE.query
       ? 'No books matched this search.'
       : 'No books in this filter.';
     shelfHost.innerHTML = `<div class="shelf-empty">${emptyText}</div>`;
-    HOME_STATE.selectedKey = null;
-    HOME_STATE.isExpanded = false;
+    SHELF_STATE.selectedKey = null;
+    SHELF_STATE.isExpanded = false;
     applyShelfLayoutState();
     renderShelfPreview(null);
     renderShelfDeepPanel(null);
@@ -242,9 +288,9 @@ function renderShelfSection() {
     return;
   }
 
-  if (HOME_STATE.selectedKey && !visible.some((b) => b.key === HOME_STATE.selectedKey)) {
-    HOME_STATE.selectedKey = null;
-    HOME_STATE.isExpanded = false;
+  if (SHELF_STATE.selectedKey && !visible.some((b) => b.key === SHELF_STATE.selectedKey)) {
+    SHELF_STATE.selectedKey = null;
+    SHELF_STATE.isExpanded = false;
   }
 
   applyShelfLayoutState();
@@ -267,8 +313,8 @@ function renderShelfSection() {
     shelfHost.appendChild(rowEl);
   });
 
-  const selected = HOME_STATE.selectedKey
-    ? visible.find((b) => b.key === HOME_STATE.selectedKey)
+  const selected = SHELF_STATE.selectedKey
+    ? visible.find((b) => b.key === SHELF_STATE.selectedKey)
     : null;
   renderShelfPreview(selected || null);
   renderShelfDeepPanel(selected || null);
@@ -279,7 +325,7 @@ function renderShelfSummary(visibleCount) {
   const countEl = document.getElementById('shelfCount');
   if (!countEl) return;
 
-  const totals = HOME_BOOKS.reduce((acc, book) => {
+  const totals = SHELF_RECORDS.reduce((acc, book) => {
     if (book.status === 'finished') acc.finished += 1;
     else if (book.status === 'reading') acc.reading += 1;
     else if (book.status === 'want') acc.want += 1;
@@ -293,7 +339,7 @@ function renderShelfSummary(visibleCount) {
     <span class="count-sep">·</span>
     <span class="count-item"><strong>${totals.want}</strong> to read</span>
   `;
-  if (HOME_STATE.query) {
+  if (SHELF_STATE.query) {
     countEl.innerHTML = `
       <span class="count-wrap">${base}</span>
       <span class="count-item count-match"><strong>${visibleCount}</strong> matched</span>
@@ -304,50 +350,36 @@ function renderShelfSummary(visibleCount) {
 }
 
 function createSpineButton(record) {
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'shelf-spine';
-  btn.dataset.key = record.key;
-  btn.dataset.status = record.status;
-  if (record.key === HOME_STATE.selectedKey) btn.classList.add('active');
-
   const { width, height } = getSpineSize(record);
-  btn.style.width = width + 'px';
-  btn.style.height = height + 'px';
-  btn.style.background = record.spine || '#2b2b2b';
-  btn.style.color = record.text || '#e8dfc8';
-
-  const title = document.createElement('span');
-  title.className = 'shelf-spine-title';
-  title.textContent = record.titleDisplay;
-  btn.appendChild(title);
-
-  const author = document.createElement('span');
-  author.className = 'shelf-spine-author';
-  author.textContent = record.author || '';
-  btn.appendChild(author);
-
-  btn.addEventListener('click', () => {
-    const sourceSnapshot = captureSpineSnapshot(btn);
-    const wasExpanded = HOME_STATE.isExpanded;
-    HOME_STATE.isExpanded = true;
-    HOME_STATE.selectedKey = record.key;
-    renderShelfSection();
-
-    const runAnimation = () => {
-      const previewFrame = document.getElementById('shelfPreviewCoverFrame');
-      if (previewFrame) animateSpinePullout(sourceSnapshot, previewFrame, !wasExpanded);
-    };
-    requestAnimationFrame(() => requestAnimationFrame(runAnimation));
+  const btn = window.SpineCard.create({
+    title:        record.titleDisplay,
+    author:       record.author || '',
+    spine:        record.spine || '#2b2b2b',
+    text:         record.text  || '#e8dfc8',
+    width,
+    height,
+    className:    'shelf-spine',
+    extraClasses: record.key === SHELF_STATE.selectedKey ? ['active'] : [],
+    dataAttrs:    { key: record.key, status: record.status },
+    onClick(btn) {
+      const sourceSnapshot = captureSpineSnapshot(btn);
+      const wasExpanded = SHELF_STATE.isExpanded;
+      SHELF_STATE.isExpanded = true;
+      SHELF_STATE.selectedKey = record.key;
+      renderShelfSectionInternal();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const previewFrame = document.getElementById('shelfPreviewCoverFrame');
+        if (previewFrame) animateSpinePullout(sourceSnapshot, previewFrame, !wasExpanded);
+      }));
+    },
   });
-
   return btn;
 }
 
 function applyShelfLayoutState() {
   const layout = document.querySelector('.shelf-layout');
   if (!layout) return;
-  layout.classList.toggle('is-expanded', HOME_STATE.isExpanded && Boolean(HOME_STATE.selectedKey));
+  layout.classList.toggle('is-expanded', SHELF_STATE.isExpanded && Boolean(SHELF_STATE.selectedKey));
 }
 
 function captureSpineSnapshot(sourceEl) {
@@ -478,7 +510,7 @@ function renderShelfDeepPanel(record) {
   }
 
   panel.hidden = false;
-  const isExpanded = HOME_STATE.contextExpanded;
+  const isExpanded = SHELF_STATE.contextExpanded;
   panel.innerHTML = `
     <div class="shelf-deep-head">
       <div>
@@ -614,7 +646,7 @@ function buildPreviewStats(detail) {
 }
 
 function applyRecordStatus(key, nextStatus) {
-  const record = HOME_BOOKS.find((b) => b.key === key);
+  const record = SHELF_RECORDS.find((b) => b.key === key);
   if (!record) return;
   const previousStatusLabel = statusToLabel(record.status);
   record.status = nextStatus;
@@ -634,28 +666,28 @@ function actionStatusLabel(status) {
 }
 
 function openSelectedBook() {
-  const selected = HOME_BOOKS.find((b) => b.key === HOME_STATE.selectedKey);
+  const selected = SHELF_RECORDS.find((b) => b.key === SHELF_STATE.selectedKey);
   if (!selected?.detailId || !selected.preview.canOpen) return;
   App.show('book', { id: selected.detailId });
 }
 
 function getFilteredBooks() {
-  return HOME_BOOKS.filter((b) => {
+  return SHELF_RECORDS.filter((b) => {
     const status = b.status;
-    if (HOME_STATE.filter === 'finished' && status !== 'finished') return false;
-    if (HOME_STATE.filter === 'reading' && status !== 'reading') return false;
-    if (HOME_STATE.filter === 'to read' && status !== 'want') return false;
-    if (HOME_STATE.query && !b.searchText.includes(HOME_STATE.query)) return false;
+    if (SHELF_STATE.filter === 'finished' && status !== 'finished') return false;
+    if (SHELF_STATE.filter === 'reading' && status !== 'reading') return false;
+    if (SHELF_STATE.filter === 'to read' && status !== 'want') return false;
+    if (SHELF_STATE.query && !b.searchText.includes(SHELF_STATE.query)) return false;
     return true;
   });
 }
 
 function getSpineSize(record) {
-  const isNarrowExpanded = HOME_STATE.isExpanded && window.matchMedia('(max-width: 1220px)').matches;
-  const widthScale = HOME_STATE.isExpanded
+  const isNarrowExpanded = SHELF_STATE.isExpanded && window.matchMedia('(max-width: 1220px)').matches;
+  const widthScale = SHELF_STATE.isExpanded
     ? (isNarrowExpanded ? 0.86 : 0.8)
     : 0.9;
-  const baseHeight = HOME_STATE.isExpanded
+  const baseHeight = SHELF_STATE.isExpanded
     ? (isNarrowExpanded ? 194 : 184)
     : 205;
   const width = Math.max(24, Math.round((record.w || 34) * widthScale));

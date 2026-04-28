@@ -38,7 +38,7 @@
   --muted-soft:         rgba(26,23,20,0.40);
   --muted-faint:        rgba(26,23,20,0.18);
 
-  /* ── Semantic aliases — default (home / book) ────────────────────────── */
+  /* ── Semantic aliases — default (shelf / book) ───────────────────────── */
   --bg:        var(--color-taupe);
   --bg-soft:   var(--color-taupe-soft);
   --bg-deep:   var(--color-taupe-deep);
@@ -54,8 +54,9 @@
   --font-serif:  'Fraunces', Georgia, serif;
   --font-mono:   'IBM Plex Mono', ui-monospace, monospace;
   --font-display:'Bodoni Moda', 'Fraunces', serif;   /* covers / large display only */
+  --font-service-ui: var(--font-mono);
 
-  /* Sizes (use sparingly; prefer the named scale below) */
+  /* ── Fixed sizes (legacy; use sparingly) ─────────────────────────────── */
   --fs-9:   9px;
   --fs-10:  10px;
   --fs-11:  11px;
@@ -73,14 +74,31 @@
   --fs-48:  48px;
   --fs-72:  72px;
 
+  /* ── Fluid type scale ────────────────────────────────────────────────── */
+  /* Prefer these for new components — auto-shrink on small viewports.
+     Pattern: clamp(min, preferred-with-vw, max). Tuned at 360px / 1440px. */
+  --fs-fluid-xs:      clamp(10px, 0.7vw + 8px,  12px);   /* mono labels */
+  --fs-fluid-sm:      clamp(12px, 0.5vw + 10px, 14px);   /* small body */
+  --fs-fluid-base:    clamp(14px, 0.4vw + 12.5px, 16px); /* body */
+  --fs-fluid-md:      clamp(16px, 0.6vw + 14px, 18px);   /* lead */
+  --fs-fluid-lg:      clamp(18px, 1vw + 14px,   22px);   /* h3 / panel title */
+  --fs-fluid-xl:      clamp(22px, 1.5vw + 16px, 28px);   /* h2 / section title */
+  --fs-fluid-2xl:     clamp(28px, 2.5vw + 18px, 40px);   /* h1 */
+  --fs-fluid-display: clamp(36px, 5vw + 16px,   72px);   /* hero / wordmark */
+  --fs-fluid-stat:    clamp(36px, 4vw + 16px,   56px);   /* stat numerals */
+
   /* Letter-spacing for caps mono labels */
   --track-tight:  -0.02em;
   --track-normal:  0;
   --track-mono-s:  0.22em;
   --track-mono-m:  0.28em;
   --track-mono-l:  0.34em;
+  --track-service-ui: 0.045em;
+  --track-service-ui-label: 0.075em;
+  --weight-service-ui: 500;
+  --weight-service-ui-label: 560;
 
-  /* ── Spacing ─────────────────────────────────────────────────────────── */
+  /* ── Spacing — fixed (legacy) ────────────────────────────────────────── */
   --space-1:  4px;
   --space-2:  8px;
   --space-3:  12px;
@@ -94,11 +112,26 @@
   --space-16: 64px;
   --space-20: 80px;
 
-  /* Layout */
-  --gutter:        56px;          /* page horizontal padding */
-  --section-y:     64px;          /* section vertical rhythm */
+  /* ── Spacing — fluid (preferred for new components) ──────────────────── */
+  --sp-fluid-xs:  clamp(4px,  0.4vw + 2px,  6px);
+  --sp-fluid-sm:  clamp(8px,  0.5vw + 6px,  12px);
+  --sp-fluid-md:  clamp(12px, 1vw + 8px,    20px);
+  --sp-fluid-lg:  clamp(16px, 1.5vw + 10px, 28px);
+  --sp-fluid-xl:  clamp(24px, 2vw + 16px,   40px);
+  --sp-fluid-2xl: clamp(32px, 3vw + 20px,   64px);
+
+  /* Layout — gutter and section rhythm shrink on small screens */
+  --gutter:        clamp(20px, 4vw + 4px, 56px);   /* page horizontal padding */
+  --section-y:     clamp(32px, 4vw + 8px, 64px);   /* section vertical rhythm */
   --max-width:     1280px;
   --max-width-narrow: 1160px;
+
+  /* ── Breakpoints (use as @media (min-width: var(--bp-...))) ──────────── */
+  /* CSS doesn't support var() in media queries directly. Reference values
+     for documentation; mirror in @media expressions. */
+  --bp-mobile:  640px;
+  --bp-tablet:  900px;
+  --bp-desktop: 1200px;
 
   /* Motion */
   --ease-out:  cubic-bezier(.2,.8,.2,1);
@@ -110,16 +143,16 @@
   /* Shared section subtitles (Search / panel titles across views) */
   --section-subtitle-size: var(--fs-20);
   --section-subtitle-line-height: 1.1;
-  --section-subtitle-tracking: -0.01em;
-  --section-subtitle-weight: 400;
+  --section-subtitle-tracking: var(--track-service-ui);
+  --section-subtitle-weight: var(--weight-service-ui-label);
   --section-subtitle-minor-size: var(--fs-18);
   --section-title-gap-from-divider: 20px;
 }
 
 /* ── Per-view theme overrides ──────────────────────────────────────────── */
 
-/* Home — dark ink background, paper text */
-body[data-view="home"] {
+/* Shelf — dark ink background, paper text */
+body[data-view="shelf"] {
   --bg:        var(--color-ink);
   --bg-soft:   var(--color-ink-soft);
   --ink:       var(--color-paper);
@@ -127,11 +160,11 @@ body[data-view="home"] {
   --paper:     var(--color-ink-soft);
   --rule:      rgba(232,223,200,0.14);
   --rule-soft: rgba(232,223,200,0.08);
-  --muted:     rgba(232,223,200,0.52);
-  --muted-soft:rgba(232,223,200,0.32);
+  --muted:     rgba(232,223,200,0.7);
+  --muted-soft:rgba(232,223,200,0.5);
 }
 
-/* Book detail — same dark theme as home */
+/* Book detail — same dark theme as shelf */
 body[data-view="book"] {
   --bg:        var(--color-ink);
   --bg-soft:   var(--color-ink-soft);
@@ -140,12 +173,12 @@ body[data-view="book"] {
   --paper:     var(--color-ink-soft);
   --rule:      rgba(232,223,200,0.14);
   --rule-soft: rgba(232,223,200,0.08);
-  --muted:     rgba(232,223,200,0.52);
-  --muted-soft:rgba(232,223,200,0.32);
+  --muted:     rgba(232,223,200,0.7);
+  --muted-soft:rgba(232,223,200,0.5);
 }
 
-/* Yearbook — same dark theme as home */
-body[data-view="yearbook"] {
+/* Booklist — same dark theme as shelf */
+body[data-view="booklist"] {
   --bg:        var(--color-ink);
   --bg-soft:   var(--color-ink-soft);
   --ink:       var(--color-paper);
@@ -153,8 +186,8 @@ body[data-view="yearbook"] {
   --paper:     var(--color-ink-soft);
   --rule:      rgba(232,223,200,0.14);
   --rule-soft: rgba(232,223,200,0.08);
-  --muted:     rgba(232,223,200,0.52);
-  --muted-soft:rgba(232,223,200,0.32);
+  --muted:     rgba(232,223,200,0.7);
+  --muted-soft:rgba(232,223,200,0.5);
 }
 
 /* Map — immersive dark mode */
@@ -164,8 +197,8 @@ body[data-view="map"] {
   --paper: var(--color-ink-soft);
   --rule:        rgba(232,223,200,0.14);
   --rule-soft:   rgba(232,223,200,0.08);
-  --muted:       rgba(232,223,200,0.55);
-  --muted-soft:  rgba(232,223,200,0.35);
+  --muted:       rgba(232,223,200,0.72);
+  --muted-soft:  rgba(232,223,200,0.52);
   --accent:      var(--color-accent-gold);
 }
 
@@ -188,17 +221,47 @@ body {
 
 /* ── Shared primitives ─────────────────────────────────────────────────── */
 
-/* Mono caps label — used everywhere for tags, breadcrumbs, k/v keys */
+/* Mono label — used for tags, breadcrumbs, and metadata keys */
 .label-mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-service-ui);
   font-size: var(--fs-9);
-  letter-spacing: var(--track-mono-m);
-  text-transform: uppercase;
-  color: var(--muted);
+  letter-spacing: var(--track-service-ui-label);
+  font-weight: var(--weight-service-ui-label);
+  text-transform: none;
+  color: var(--ink-soft);
+}
+
+/* Service UI primitives
+   Use these in future forms/panels/buttons so typography + casing stay consistent.
+   Service UI defaults to Title Case text content and never forces all-caps. */
+.service-ui-text {
+  font-family: var(--font-service-ui);
+  letter-spacing: var(--track-service-ui);
+  font-weight: var(--weight-service-ui);
+  text-transform: none;
+  color: var(--ink);
+}
+
+.service-ui-label {
+  font-family: var(--font-service-ui);
+  font-size: var(--fs-fluid-xs);
+  letter-spacing: var(--track-service-ui-label);
+  font-weight: var(--weight-service-ui-label);
+  text-transform: none;
+  color: var(--ink-soft);
+}
+
+.service-ui-control {
+  font-family: var(--font-service-ui);
+  font-size: var(--fs-fluid-sm);
+  letter-spacing: var(--track-service-ui);
+  font-weight: var(--weight-service-ui);
+  text-transform: none;
+  color: var(--ink);
 }
 
 .section-subtitle {
-  font-family: var(--font-serif);
+  font-family: var(--font-service-ui);
   font-size: var(--section-subtitle-size);
   line-height: var(--section-subtitle-line-height);
   letter-spacing: var(--section-subtitle-tracking);

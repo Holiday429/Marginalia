@@ -1,6 +1,6 @@
 /* Booklist view */
 
-#view-yearbook {
+#view-booklist {
   min-height: 100vh;
   background: var(--bg);
   color: var(--ink);
@@ -556,14 +556,13 @@
 .booklist-preview-placeholder {
   position: absolute;
   inset: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.42);
   border-radius: 4px;
   display: grid;
   place-items: center;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.75);
 }
 
@@ -719,7 +718,7 @@
 .booklist-slot-placeholder {
   position: absolute;
   inset: 10px 8px 10px 15px;
-  border: 1px dashed rgba(255, 255, 255, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.36);
   border-radius: 3px;
   display: grid;
   place-items: center;
@@ -729,8 +728,7 @@
 .booklist-slot-placeholder span {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 9px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.65);
 }
 
@@ -872,7 +870,7 @@
 .booklist-empty {
   padding: 20px 8px;
   border-radius: 12px;
-  border: 1px dashed rgba(232, 223, 200, 0.24);
+  border: 1px solid rgba(232, 223, 200, 0.24);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.08em;

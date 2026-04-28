@@ -56,7 +56,7 @@ body[data-view="map"] { overflow: hidden; }
 .map-geo-btn {
   border: 1px solid rgba(232,223,200,0.22);
   background: rgba(13,17,24,0.86);
-  color: rgba(232,223,200,0.62);
+  color: rgba(232,223,200,0.82);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.03em;
@@ -85,13 +85,13 @@ body[data-view="map"] { overflow: hidden; }
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
-  color: rgba(232,223,200,0.45);
+  color: rgba(232,223,200,0.72);
   pointer-events: auto;
 }
 .crumb { transition: color 0.2s; }
 .crumb-link {
   cursor: pointer;
-  color: rgba(232,223,200,0.55);
+  color: rgba(232,223,200,0.78);
 }
 .crumb-link:hover { color: #e8dfc8; }
 .crumb.active { color: #c4903a; }
@@ -107,8 +107,8 @@ body[data-view="map"] { overflow: hidden; }
 .map-chip {
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.08em;
-  color: rgba(232,223,200,0.6);
+  letter-spacing: 0.06em;
+  color: rgba(232,223,200,0.82);
   padding: 5px 14px;
   border: 1px solid rgba(232,223,200,0.22);
   border-radius: 2px;
@@ -181,7 +181,7 @@ body.map-panel-open #mapChart { width: calc(100% - 540px); }
 
 .map-hover-meta {
   padding: 10px 12px 9px;
-  border: 1.6px dashed rgba(232,223,200,0.64);
+  border: 1.6px solid rgba(232,223,200,0.64);
   border-radius: 18px;
   background: rgba(12,15,22,0.28);
   backdrop-filter: blur(1px);

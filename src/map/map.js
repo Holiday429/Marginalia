@@ -60,17 +60,17 @@ const MAP_BOOKS = [
 
 const MAP_MODE_META = {
   authorOrigin: {
-    label: 'Author origin',
+    label: 'Author Origin',
     short: 'Author',
     empty: 'No author-origin books in this region yet.',
   },
   contentLocation: {
-    label: 'Content location',
+    label: 'Content Location',
     short: 'Content',
     empty: 'No content-location books in this region yet.',
   },
   readerLocation: {
-    label: 'Reader anchor',
+    label: 'Reader Anchor',
     short: 'Reader',
     empty: 'No reader-anchor books in this region yet.',
   }
@@ -101,21 +101,21 @@ const REGION_PROFILES = {
         title: '红楼梦',
         author: '曹雪芹',
         note: '先建立“中国叙事”的母体：家族结构、礼法秩序、情感伦理与衰败意识。',
-        type: 'Classic baseline',
+        type: 'Classic Baseline',
         cover: 'assets/covers/红楼梦.jpg',
       },
       {
         title: '活着',
         author: '余华',
         note: '把宏大历史压回个体命运，最适合作为现代中国经验的第一入口。',
-        type: 'Modern entry',
+        type: 'Modern Entry',
         cover: 'assets/covers/活着.jpg',
       },
       {
         title: '边城',
         author: '沈从文',
         note: '补上地方经验与乡土审美，理解现代化来临前后的伦理与节奏变化。',
-        type: 'Regional lens',
+        type: 'Regional Lens',
         cover: 'assets/covers/边城.jpg',
       },
       {
@@ -1542,7 +1542,7 @@ function renderPanelBooks(books, { showProvinceLabels = true } = {}) {
     const modeMeta = MAP_MODE_META[__mapPanelState.filterMode];
     container.innerHTML = `
       <div class="map-panel-empty">
-        <strong>${escapeHTML(modeMeta?.label || 'All locations')}</strong>
+        <strong>${escapeHTML(modeMeta?.label || 'All Locations')}</strong>
         <span>${escapeHTML(modeMeta?.empty || 'No mapped books in this region yet.')}</span>
       </div>
     `;
@@ -1608,8 +1608,8 @@ function buildPanelSubtitle(state) {
   if (state.type === 'province') return '';
   const total = state.books.length;
   const modeLabel = state.filterMode === 'all'
-    ? 'All locations'
-    : (MAP_MODE_META[state.filterMode]?.label || 'Current mode');
+    ? 'All Locations'
+    : (MAP_MODE_META[state.filterMode]?.label || 'Current Mode');
   return `${total} books in ${modeLabel.toLowerCase()} · culture + history + entry routes`;
 }
 
@@ -1681,7 +1681,7 @@ function buildStarterList(state) {
       title: book.title,
       author: book.author,
       note: `Already mapped in ${modeLabel}. Start here directly.`,
-      type: 'Mapped now'
+      type: 'Mapped Now'
     });
   });
   return starters.slice(0, 4);

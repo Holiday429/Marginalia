@@ -17,6 +17,11 @@ body.auth-locked {
   display: flex;
 }
 
+/* Preloader handles its own full-screen experience — hide auth gate behind it */
+body[data-view="preloader"] .auth-gate {
+  display: none;
+}
+
 .auth-shell {
   width: min(900px, 100%);
   border: 1px solid rgba(232,223,200,0.2);

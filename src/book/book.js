@@ -6,14 +6,23 @@ let __currentBookId = null;
 
 function initBook() {}
 
-function enterBook(params = {}) {
+async function enterBook(params = {}) {
   const id = params.id || __currentBookId || 'sapiens';
   const book = window.BOOK_BY_ID && window.BOOK_BY_ID[id];
   if (!book) { console.warn(`[book] No record for id="${id}"`); return; }
   __currentBookId = id;
 
+  // Wait for NotesStore, then merge user highlights + action statuses into a
+  // view-local copy so seed data is never mutated.
+  await window.NotesStore?.ready?.();
+  const userHighlights  = (await window.NotesStore?.getHighlights(id)) || [];
+  const mergedHighlights = [...(book.highlights || []), ...userHighlights];
+  const bookView = mergedHighlights.length
+    ? { ...book, highlights: mergedHighlights }
+    : book;
+
   const root = document.getElementById('view-book');
-  root.innerHTML = renderBook(book);
+  root.innerHTML = renderBook(bookView);
 
   // Wire up sidebar tabs
   root.querySelectorAll('.book-tab-btn').forEach(btn => {
@@ -52,12 +61,83 @@ function enterBook(params = {}) {
     });
   });
 
-  // Wire up action items
+  // Highlight add form
+  const hlAddBtn    = root.querySelector('#hlAddBtn');
+  const hlForm      = root.querySelector('#hlForm');
+  const hlFormCancel = root.querySelector('#hlFormCancel');
+  if (hlAddBtn && hlForm) {
+    hlAddBtn.addEventListener('click', () => {
+      hlForm.hidden = false;
+      hlAddBtn.hidden = true;
+      hlForm.querySelector('#hlFormQuote')?.focus();
+    });
+    hlFormCancel?.addEventListener('click', () => {
+      hlForm.hidden = true;
+      hlAddBtn.hidden = false;
+      hlForm.reset();
+    });
+    hlForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const quote = hlForm.querySelector('#hlFormQuote')?.value.trim();
+      if (!quote) return;
+      const highlight = {
+        quote,
+        page:       parseInt(hlForm.querySelector('#hlFormPage')?.value) || null,
+        kind:       hlForm.querySelector('#hlFormKind')?.value || null,
+        chapter:    hlForm.querySelector('#hlFormChapter')?.value.trim() || null,
+        annotation: hlForm.querySelector('#hlFormNote')?.value.trim() || null,
+      };
+      await window.NotesStore?.saveHighlight(id, highlight);
+      // Re-enter to rebuild merged list
+      enterBook({ id });
+    });
+  }
+
+  // Kindle import zone toggle
+  const hlKindleBtn  = root.querySelector('#hlKindleBtn');
+  const hlKindleZone = root.querySelector('#hlKindleZone');
+  if (hlKindleBtn && hlKindleZone && window.KindleImport) {
+    hlKindleBtn.addEventListener('click', () => {
+      const open = hlKindleZone.hidden;
+      hlKindleZone.hidden = !open;
+      if (open && !hlKindleZone.dataset.mounted) {
+        window.KindleImport.mountUI(hlKindleZone);
+        hlKindleZone.dataset.mounted = '1';
+      }
+    });
+    hlKindleZone.addEventListener('kindle:imported', () => enterBook({ id }));
+  }
+
+  // Highlight delete (user-created only)
+  root.querySelectorAll('[data-hl-delete]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const hlId = btn.dataset.hlDelete;
+      if (!hlId) return;
+      await window.NotesStore?.deleteHighlight(id, hlId);
+      enterBook({ id });
+    });
+  });
+
+  // Wire up action items — persist status to NotesStore
   root.querySelectorAll('.action-item').forEach(item => {
+    // Apply any persisted override immediately
+    const actionId = item.dataset.id;
+    if (actionId) {
+      window.NotesStore?.getActionStatus(id, actionId).then(saved => {
+        if (saved === null) return;
+        item.classList.toggle('done', saved === 'done');
+        const tag = item.querySelector('.action-tag');
+        if (tag) tag.textContent = saved === 'done' ? 'Completed' : saved === 'doing' ? 'In Progress' : 'Pending';
+      });
+    }
+
     item.addEventListener('click', () => {
       const done = item.classList.toggle('done');
+      const status = done ? 'done' : 'todo';
       const tag = item.querySelector('.action-tag');
       if (tag) tag.textContent = done ? 'Completed' : 'Pending';
+      if (actionId) window.NotesStore?.setActionStatus(id, actionId, status);
     });
   });
 
@@ -93,7 +173,7 @@ function enterBook(params = {}) {
         enterBook({ id });
       } catch (error) {
         console.error('[book] Cover upload failed.', error);
-        if (uploadStatus) uploadStatus.textContent = 'Upload failed';
+        if (uploadStatus) uploadStatus.textContent = 'Upload Failed';
       } finally {
         uploadInput.value = '';
       }
@@ -192,15 +272,15 @@ function getBookSections(b) {
 
 function renderMasthead(b) {
   if (typeof window.renderPrimaryHeader === 'function') {
-    return window.renderPrimaryHeader('home', { showNewEntry: true, actionLabel: 'New note', actionId: 'bookNewNoteBtn' });
+    return window.renderPrimaryHeader('shelf', { showNewEntry: true, actionLabel: 'New Note', actionId: 'bookNewNoteBtn' });
   }
   return `
     <header class="book-masthead">
-      <a href="#" class="wordmark" data-view="home">Marginalia
+      <a href="#" class="wordmark" data-view="shelf">Marginalia
         <span class="wordmark-sub">Margins are where thinking happens</span>
       </a>
       <nav class="book-breadcrumb">
-        <a data-view="home">Shelf</a>
+        <a data-view="shelf">Shelf</a>
         <span class="sep">›</span>
         <span class="current">${esc(b.titleZh || b.title)}</span>
       </nav>
@@ -219,12 +299,12 @@ function renderOverview(b) {
 
   const metaRows = [
     b.meta?.startedAt && b.meta?.finishedAt && {
-      k: 'Reading window',
+      k: 'Reading Window',
       v: `${formatDate(b.meta.startedAt)} – ${formatDate(b.meta.finishedAt)}`
     },
     b.context?.place && { k: 'Reading location', v: `<em>${truncate(b.context.place, 30)}</em>` },
     b.meta?.edition   && { k: 'Edition',      v: esc(b.meta.edition) },
-    b.meta?.pages     && { k: 'Total pages',   v: `${b.meta.pages} 页` },
+    b.meta?.pages     && { k: 'Total Pages',   v: `${b.meta.pages} 页` },
     b.meta?.readingHours && b.meta?.startedAt && b.meta?.finishedAt && {
       k: 'Reading time',
       v: `${daysBetween(b.meta.startedAt, b.meta.finishedAt)} 天 · 约 ${b.meta.readingHours} 小时`
@@ -253,7 +333,7 @@ function renderOverview(b) {
             }
           </div>
           <div class="book-cover-tools">
-            <button type="button" class="book-cover-upload-btn" data-upload-cover-btn>Upload cover</button>
+            <button type="button" class="book-cover-upload-btn" data-upload-cover-btn>Upload Cover</button>
             <span class="book-cover-upload-status" data-upload-cover-status></span>
             <input type="file" accept="image/*" data-upload-cover-input hidden>
           </div>
@@ -284,9 +364,9 @@ function renderOverview(b) {
 function renderIntegration(b) {
   const insight = b.insight || {};
   const stanceCards = [
-    { label: 'I agree',          items: insight.agree   || [] },
-    { label: 'I doubt',          items: insight.doubt   || [] },
-    { label: 'I want to pursue', items: insight.pursue  || [] },
+    { label: 'I Agree',          items: insight.agree   || [] },
+    { label: 'I Doubt',          items: insight.doubt   || [] },
+    { label: 'I Want to Pursue', items: insight.pursue  || [] },
   ].filter(c => c.items.length);
 
   return `
@@ -320,35 +400,81 @@ function renderIntegration(b) {
 }
 
 function renderHighlights(b) {
+  const items = b.highlights || [];
   return `
     <section class="highlights-section">
       <div class="section-head">
         <h2>Key Notes &amp; Highlights</h2>
-        <span class="sh-meta">${b.highlights.length} excerpts</span>
+        <span class="sh-meta">${items.length} excerpts</span>
       </div>
-      <ul class="highlight-list">
-        ${b.highlights.map((h, i) => `
-          <li class="hl-item">
-            <div class="hl-index">${String(i + 1).padStart(2, '0')}</div>
-            <div class="hl-body">
-              <p class="hl-quote">${esc(h.quote)}</p>
-              <span class="hl-location">${h.page ? `p. ${h.page} · ` : ''}${esc(h.chapter || '')}</span>
-              ${h.kind ? `<span class="hl-kind">${esc(normalizeHighlightKind(h.kind))}</span>` : ''}
-              ${h.conceptId ? `<button class="hl-concept-link" type="button" data-open-concept-id="${esc(h.conceptId)}">Open concept</button>` : ''}
-              ${h.annotation ? `
-                <br>
-                <button class="hl-annotation-toggle" type="button">
-                  <span class="tog-icon">+</span> Cultural note
-                </button>
-                <div class="hl-annotation">
-                  <div class="hl-annotation-tag">Note</div>
-                  <p>${esc(h.annotation)}</p>
-                </div>` : ''}
-            </div>
-          </li>`).join('')}
+      <ul class="highlight-list" id="hlList">
+        ${items.map((h, i) => renderHighlightItem(h, i)).join('')}
       </ul>
+      <div class="hl-add-row">
+        <button class="hl-add-btn" type="button" id="hlAddBtn">+ Add highlight</button>
+        <button class="hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
+      </div>
+      <div class="hl-kindle-zone" id="hlKindleZone" hidden data-book-id="${esc(b.id)}"></div>
+      <form class="hl-form" id="hlForm" hidden>
+        <div class="hl-form-row">
+          <label class="hl-form-label">Quote <span class="hl-form-req">*</span></label>
+          <textarea class="hl-form-textarea" id="hlFormQuote" rows="3" placeholder="Paste the passage here…"></textarea>
+        </div>
+        <div class="hl-form-meta-row">
+          <div class="hl-form-col">
+            <label class="hl-form-label">Page</label>
+            <input class="hl-form-input" id="hlFormPage" type="number" min="1" placeholder="—">
+          </div>
+          <div class="hl-form-col">
+            <label class="hl-form-label">Kind</label>
+            <select class="hl-form-select" id="hlFormKind">
+              <option value="">—</option>
+              <option value="concept">Concept</option>
+              <option value="argument">Argument</option>
+              <option value="critique">Critique</option>
+              <option value="action">Action trigger</option>
+            </select>
+          </div>
+          <div class="hl-form-col hl-form-col--wide">
+            <label class="hl-form-label">Chapter / section</label>
+            <input class="hl-form-input" id="hlFormChapter" type="text" placeholder="—">
+          </div>
+        </div>
+        <div class="hl-form-row">
+          <label class="hl-form-label">Note (optional)</label>
+          <textarea class="hl-form-textarea" id="hlFormNote" rows="2" placeholder="Your own annotation…"></textarea>
+        </div>
+        <div class="hl-form-actions">
+          <button class="hl-form-save" type="submit">Save</button>
+          <button class="hl-form-cancel" type="button" id="hlFormCancel">Cancel</button>
+        </div>
+      </form>
     </section>
   `;
+}
+
+function renderHighlightItem(h, i) {
+  const isUser = Boolean(h.bookId); // user-created highlights have bookId from store
+  return `
+    <li class="hl-item${isUser ? ' hl-item--user' : ''}" data-hl-id="${esc(String(h.id))}">
+      <div class="hl-index">${String(i + 1).padStart(2, '0')}</div>
+      <div class="hl-body">
+        <p class="hl-quote">${esc(h.quote)}</p>
+        <span class="hl-location">${h.page ? `p. ${h.page} · ` : ''}${esc(h.chapter || '')}</span>
+        ${h.kind ? `<span class="hl-kind">${esc(normalizeHighlightKind(h.kind))}</span>` : ''}
+        ${h.conceptId ? `<button class="hl-concept-link" type="button" data-open-concept-id="${esc(h.conceptId)}">Open concept</button>` : ''}
+        ${isUser ? `<button class="hl-delete-btn" type="button" data-hl-delete="${esc(String(h.id))}" aria-label="Delete highlight">×</button>` : ''}
+        ${h.annotation ? `
+          <br>
+          <button class="hl-annotation-toggle" type="button">
+            <span class="tog-icon">+</span> Cultural note
+          </button>
+          <div class="hl-annotation">
+            <div class="hl-annotation-tag">Note</div>
+            <p>${esc(h.annotation)}</p>
+          </div>` : ''}
+      </div>
+    </li>`;
 }
 
 function renderCultural(b) {
@@ -409,11 +535,11 @@ function renderMindmap(b) {
   const futurePaths  = mm.futurePaths  || [];
 
   const tabs = [
-    timeline.length    ? { id: 'timeline',    label: '时间线' }   : null,
-    revolutions.length ? { id: 'revolutions', label: '四大革命' } : null,
-    ideas.length       ? { id: 'ideas',        label: '核心论点' } : null,
-    (mm.happiness?.question || happinessViews.length) ? { id: 'happiness', label: '幸福之问' } : null,
-    futurePaths.length ? { id: 'future',       label: '未来路径' } : null,
+    timeline.length    ? { id: 'timeline',    label: 'Timeline' }    : null,
+    revolutions.length ? { id: 'revolutions', label: 'Revolutions' } : null,
+    ideas.length       ? { id: 'ideas',        label: 'Core Ideas' }  : null,
+    (mm.happiness?.question || happinessViews.length) ? { id: 'happiness', label: 'Happiness' } : null,
+    futurePaths.length ? { id: 'future',       label: 'Future Paths' } : null,
   ].filter(Boolean);
 
   const firstTabId = tabs[0]?.id || 'timeline';
@@ -643,12 +769,12 @@ function formatTitle(t) {
 }
 
 function statusLabel(s) {
-  return { done: 'Completed', doing: 'In progress', todo: 'Pending' }[s] || s;
+  return { done: 'Completed', doing: 'In Progress', todo: 'Pending' }[s] || s;
 }
 
 function normalizeActionTag(tag) {
   if (!tag) return '';
-  return { '已完成': 'Completed', '待执行': 'Pending', '进行中': 'In progress' }[tag] || tag;
+  return { '已完成': 'Completed', '待执行': 'Pending', '进行中': 'In Progress' }[tag] || tag;
 }
 
 function normalizeHighlightKind(kind) {

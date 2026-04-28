@@ -202,7 +202,7 @@ function runSequence() {
   clearTimers();
   sequenceStopped = false;
   document.getElementById('loaderMeta').classList.remove('done');
-  document.getElementById('loaderLabel').textContent = 'Arranging shelf';
+  document.getElementById('loaderLabel').textContent = 'Arranging Shelf';
 
   const books = [...track.querySelectorAll('.book')];
   resetBookStates(books);
@@ -215,7 +215,7 @@ function runSequence() {
     const T = animTimer = [];
     const vw = track.parentElement.clientWidth;
 
-    // Hero book is always clickable — skip animation and go to home
+    // Hero book is always clickable — skip animation and go to shelf
     const heroEl = books[heroIdx];
     if (heroEl) {
       heroEl.style.cursor = 'pointer';
@@ -400,7 +400,7 @@ function enterCTAState(books, heroIdx) {
 
   const label = document.createElement('div');
   label.className = 'cta-label';
-  label.textContent = 'Enter library';
+  label.textContent = 'Enter Library';
   target.appendChild(label);
 
   let entered = false;
@@ -414,7 +414,7 @@ function enterCTAState(books, heroIdx) {
     target.style.transition = 'transform 0.8s cubic-bezier(.77,0,.18,1)';
     target.style.transform  = 'translateY(-80px) scale(1.15)';
     target.classList.add('opening', 'opened');
-    setTimeout(() => App.showHome(), 700);
+    setTimeout(() => App.showShelf(), 700);
   }
 
   target.onclick = handleEnter;
@@ -467,7 +467,7 @@ window.enterPreloader = enterPreloader;
 
 document.getElementById('skipBtn').addEventListener('click', () => {
   clearTimers();
-  App.showHome();
+  App.showShelf();
 });
 
 // --- Tweaks -------------------------------------------------------
@@ -537,9 +537,32 @@ document.getElementById('preloaderWordmark').addEventListener('click', (e) => {
 
 // --- Init ---------------------------------------------------------
 
-applyDefaults();
-buildShelf(state.palette);
-setTimeout(runSequence, 400);
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForHeroGLBReady(timeoutMs = 2000) {
+  const startedAt = performance.now();
+  let maybePromise = window.__heroGLBReadyPromise;
+  while ((!maybePromise || typeof maybePromise.then !== 'function') && (performance.now() - startedAt) < 400) {
+    await wait(16);
+    maybePromise = window.__heroGLBReadyPromise;
+  }
+  if (!maybePromise || typeof maybePromise.then !== 'function') return;
+  await Promise.race([
+    maybePromise.catch(() => false),
+    wait(timeoutMs),
+  ]);
+}
+
+async function bootPreloader() {
+  applyDefaults();
+  await waitForHeroGLBReady(2000);
+  buildShelf(state.palette);
+  setTimeout(runSequence, 120);
+}
+
+bootPreloader();
 
 let resizeTimer;
 let lastW = window.innerWidth;

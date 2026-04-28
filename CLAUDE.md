@@ -64,11 +64,32 @@ Marginalia/
 Preloader 主题通过 `body.theme-xxx` 切换（ink / taupe / cream / sage / clay）。
 Home 视图通过 `body[data-view="home"]` 控制样式，不依赖 theme class。
 
-## 文案规则（全局）
+## UI 规则（全局强制）
 
-- 服务型 UI 文案默认使用英文：包括按钮、筛选标签、tabs、chips、breadcrumbs、状态标签、面板分类标题。
-- 服务型 UI 文案默认使用 Title Case 或 Sentence case，不使用全大写（除明确缩写如 API、AI）。
-- 内容型文本（书摘、文化背景、用户笔记）可按原语言显示，不受上述英文限制。
+### 语言
+- 所有功能性 UI 文案统一使用**英文**：按钮、标签、tabs、chips、breadcrumbs、状态标签、表单 label、面板标题、空状态提示、错误提示。
+- 内容型文本（用户笔记、书摘、书籍简介）保持原语言，不受此限制。
+- 不混用中英文于同一个功能性 UI 元素内。未来汉化版本会作为独立 i18n 层接入，现阶段不预埋中文。
+
+### 大小写
+- 使用 **Title Case** 或 **Sentence case**，**禁止全大写**（ALL CAPS）。
+- 例外：明确缩写（API、AI、URL、ISBN）可全大写。
+- 错误示范：`ADD HIGHLIGHT`、`IMPORT FROM KINDLE` → 正确：`Add highlight`、`Import from Kindle`
+
+### 边框
+- 所有边框默认使用**实线**（`solid`）。
+- **禁止虚线/点线**（`dashed`、`dotted`）用于按钮、输入框、卡片、容器的外边框。
+- 虚线/点线仅允许用于纯装饰性分隔线（如 highlight list 条目之间的分隔）。
+
+### 字体
+- 功能性 UI（按钮、标签、表单 label、状态文字）统一使用 **`var(--font-mono)`**（IBM Plex Mono）或 **`var(--font-serif)`**（Fraunces）。
+- 优先用 `var(--font-serif)`（Fraunces）作为主体 UI 字体，可读性高，风格统一。
+- `var(--font-mono)` 保留给：数字标注、编号、元数据 label（如 `p. 12`、`CONCEPT`、`01`）。
+- 禁止在 UI 中出现系统字体 fallback（如 `sans-serif` 独立使用）。
+
+### 文案规则补充
+- 按钮文案用 Sentence case：`Add highlight`、`Save`、`Cancel`、`Import from Kindle`。
+- 章节/面板标题用 Title Case：`Key Notes & Highlights`、`Action List`、`Cultural Annotations`。
 
 ## 注意事项
 

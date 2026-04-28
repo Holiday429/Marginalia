@@ -10,12 +10,12 @@ window.MarginaliaGraph = (() => {
   const STATUS_STORAGE_KEY = 'marginalia.bookConceptLink.status.v1';
 
   const RELATION_META = {
-    'core-thesis':   { label: 'Core thesis', color: '#d5aa64', strength: 1.0 },
+    'core-thesis':   { label: 'Core Thesis', color: '#d5aa64', strength: 1.0 },
     supports:        { label: 'Supports', color: '#87b6a7', strength: 0.8 },
     contrasts:       { label: 'Contrasts', color: '#b67d7d', strength: 0.74 },
     extends:         { label: 'Extends', color: '#7f97c6', strength: 0.72 },
     questions:       { label: 'Questions', color: '#c6945b', strength: 0.78 },
-    'action-trigger':{ label: 'Action trigger', color: '#d97b65', strength: 0.88 },
+    'action-trigger':{ label: 'Action Trigger', color: '#d97b65', strength: 0.88 },
   };
 
   const STATUS_META = {

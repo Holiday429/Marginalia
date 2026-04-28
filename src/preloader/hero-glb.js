@@ -17,6 +17,11 @@ function loadModel() {
   return cachedPromise;
 }
 
+// Start fetching immediately so hero can appear in sync with the shelf.
+window.__heroGLBReadyPromise = loadModel()
+  .then(() => true)
+  .catch(() => false);
+
 function projectBoxToPixels(box, camera, width, height) {
   const xs = [box.min.x, box.max.x];
   const ys = [box.min.y, box.max.y];
@@ -40,6 +45,7 @@ export function mountHeroGLB(bookEl) {
   const bookInner = bookEl.querySelector('.book-inner');
   if (!bookInner) return;
 
+  bookEl.classList.remove('hero-fallback');
   bookEl.classList.add('hero-glb');
 
   const stage = document.createElement('div');
@@ -233,6 +239,7 @@ export function mountHeroGLB(bookEl) {
     renderer.dispose();
     stage.remove();
     bookEl.classList.remove('hero-glb');
+    bookEl.classList.add('hero-fallback');
     bookEl.style.setProperty('--hero-dynamic-left',  '0px');
     bookEl.style.setProperty('--hero-dynamic-right', '0px');
   });
