@@ -24,6 +24,9 @@ async function enterBook(params = {}) {
   const root = document.getElementById('view-book');
   root.innerHTML = renderBook(bookView);
 
+  // Mount AI generate toolbars
+  window.AIGenerateUI?.mount(bookView, root);
+
   // Wire up sidebar tabs
   root.querySelectorAll('.book-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
