@@ -164,6 +164,19 @@ body[data-view="shelf"] {
   --muted-soft:rgba(232,223,200,0.5);
 }
 
+/* Shelf Studio — same dark base as shelf */
+body[data-view="studio"] {
+  --bg:        var(--color-ink);
+  --bg-soft:   var(--color-ink-soft);
+  --ink:       var(--color-paper);
+  --ink-soft:  #c8bfa8;
+  --paper:     var(--color-ink-soft);
+  --rule:      rgba(232,223,200,0.14);
+  --rule-soft: rgba(232,223,200,0.08);
+  --muted:     rgba(232,223,200,0.7);
+  --muted-soft:rgba(232,223,200,0.5);
+}
+
 /* Book detail — same dark theme as shelf */
 body[data-view="book"] {
   --bg:        var(--color-ink);

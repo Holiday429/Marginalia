@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="src/core/base.css">
   <link rel="stylesheet" href="src/preloader/preloader.css">
   <link rel="stylesheet" href="src/shelf/shelf.css">
+  <link rel="stylesheet" href="src/studio/studio.css">
   <link rel="stylesheet" href="src/booklist/booklist.css">
   <link rel="stylesheet" href="src/book/book.css">
   <link rel="stylesheet" href="src/map/map.css">
@@ -51,6 +52,11 @@
     <symbol id="icon-nav-map" viewBox="0 0 16 16">
       <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.4"/>
       <path d="M2.2 8h11.6M8 2.1c2 1.8 2 10 0 11.8M8 2.1c-2 1.8-2 10 0 11.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-nav-library" viewBox="0 0 16 16">
+      <rect x="1.8" y="2.2" width="4.1" height="11.6" rx="0.7" fill="none" stroke="currentColor" stroke-width="1.3"/>
+      <rect x="6.8" y="5" width="3.8" height="8.8" rx="0.6" fill="none" stroke="currentColor" stroke-width="1.3"/>
+      <rect x="11.5" y="3.2" width="2.7" height="10.6" rx="0.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
     </symbol>
     <symbol id="icon-nav-graph" viewBox="0 0 16 16">
       <circle cx="3" cy="3" r="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/>
@@ -140,10 +146,14 @@
       </div>
       <nav class="nav">
         <a href="#shelf"    class="nav-link active" data-view="shelf"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-shelf"></use></svg></span>Shelf</a>
+        <a href="#studio"   class="nav-link"        data-view="studio"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-library"></use></svg></span>Library</a>
         <a href="#map"      class="nav-link"        data-view="map"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-map"></use></svg></span>Map</a>
         <a href="#web"      class="nav-link"        data-view="web"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-graph"></use></svg></span>Graph</a>
         <a href="#booklist" class="nav-link"        data-view="booklist"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-list"></use></svg></span>Booklist</a>
         <button class="nav-action-btn" id="shelfNewEntryBtn"><span class="nav-icon">＋</span>Add Book</button>
+        <button class="auth-avatar-btn" type="button" data-auth-trigger aria-label="Open login panel" hidden>
+          <span class="auth-avatar" data-auth-avatar aria-hidden="true">L</span>
+        </button>
       </nav>
     </header>
 
@@ -224,6 +234,11 @@
   </div>
   </div><!-- /view-shelf -->
 
+  <!-- ============================================================
+       VIEW: SHELF STUDIO
+       ============================================================ -->
+  <div id="view-studio" hidden></div>
+
 
   <!-- ============================================================
        VIEW: BOOK (single-book detail) — populated in step 2
@@ -287,6 +302,7 @@
   <!-- 6. Views -->
   <script src="src/preloader/preloader.js"></script>
   <script src="src/shelf/shelf.js"></script>
+  <script src="src/studio/studio.js"></script>
   <script src="src/booklist/booklist.js"></script>
   <script src="src/book/book.js"></script>
   <script src="src/map/map.js"></script>
