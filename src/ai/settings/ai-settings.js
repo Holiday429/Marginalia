@@ -96,16 +96,13 @@
       window.MarginaliaAI.setModel(modelSelect.value);
     });
 
-    wireGearBtn();
-  }
-
-  function wireGearBtn() {
-    // Nav re-renders on every view switch, so re-query each time
-    document.querySelectorAll('#aiSettingsBtn').forEach(btn => {
-      btn.removeEventListener('click', openModal);
-      btn.addEventListener('click', openModal);
+    // Event delegation — works even after nav re-renders
+    document.addEventListener('click', e => {
+      if (e.target.closest('#aiSettingsBtn')) openModal();
     });
   }
+
+  function wireGearBtn() {} // kept for call sites, no-op
 
   function showStatus(msg) {
     const el = document.getElementById('aiKeyStatus');
