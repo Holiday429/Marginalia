@@ -1,13 +1,13 @@
 /* Library view — movable shelf room */
 
 const LIBRARY_STORAGE_KEY = 'marginalia:library-layout:v5';
-const LIBRARY_WORLD_WIDTH = 1540;
-const LIBRARY_WORLD_HEIGHT = 1560;
+const LIBRARY_WORLD_WIDTH = 2400;
+const LIBRARY_WORLD_HEIGHT = 2400;
 
 const LIBRARY_DEFAULT_SHELVES = [
-  { id: 'reading-now', name: 'Reading Now', rows: 2, color: '#8da6d9', viewMode: 'spine', status: 'reading', bookKeys: [], x: 80, y: 40, tilt: -3, pitch: 0.6, yaw: -1.4 },
-  { id: 'reading-plan', name: 'Reading Plan', rows: 2, color: '#d4a869', viewMode: 'cover', status: 'want', bookKeys: [], x: 540, y: 140, tilt: 2, pitch: 0.2, yaw: 1.2 },
-  { id: 'finished', name: 'Finished', rows: 2, color: '#95a78d', viewMode: 'mix', status: 'finished', bookKeys: [], x: 980, y: 70, tilt: -1, pitch: 0.3, yaw: -0.8 },
+  { id: 'reading-now', name: 'Reading Now', rows: 2, color: '#8da6d9', viewMode: 'spine', status: 'reading', bookKeys: [], x: 80, y: 40, tilt: 0, pitch: 0, yaw: 0 },
+  { id: 'reading-plan', name: 'Reading Plan', rows: 2, color: '#d4a869', viewMode: 'cover', status: 'want', bookKeys: [], x: 540, y: 140, tilt: 0, pitch: 0, yaw: 0 },
+  { id: 'finished', name: 'Finished', rows: 2, color: '#95a78d', viewMode: 'mix', status: 'finished', bookKeys: [], x: 980, y: 70, tilt: 0, pitch: 0, yaw: 0 },
 ];
 
 const LIBRARY_STATE = {
@@ -25,8 +25,11 @@ const LIBRARY_STATE = {
   searchMatches: [],
   searchIndex: 0,
   overlay: { playing: false, key: '', sourceShelfId: '', timers: [] },
+  activeShelfId: '',
   bound: false,
 };
+
+const LIBRARY_MAX_ROWS = 6;
 
 function initLibrary() {
   const host = document.getElementById('view-studio');
@@ -240,11 +243,29 @@ function bindLibraryEvents() {
 
     if (event.target.closest('[data-rotate-shelf]')) return;
 
+    const addRowBtn = event.target.closest('[data-add-row]');
+    if (addRowBtn) {
+      addShelfRow(addRowBtn.dataset.addRow || '');
+      return;
+    }
+
     const modeBtn = event.target.closest('[data-shelf-mode]');
     if (modeBtn) {
       const shelfId = modeBtn.dataset.shelfId || '';
       const mode = modeBtn.dataset.shelfMode || 'spine';
       setShelfMode(shelfId, mode);
+      setActiveShelf(shelfId);
+      return;
+    }
+
+    const bayClick = event.target.closest('.library-bay');
+    if (bayClick?.dataset.shelfId) {
+      setActiveShelf(bayClick.dataset.shelfId);
+      return;
+    }
+
+    if (event.target.closest('#libraryScene') && !event.target.closest('.library-bay')) {
+      setActiveShelf('');
     }
   });
 
@@ -297,6 +318,18 @@ function bindLibraryEvents() {
   root.addEventListener('pointerdown', (event) => {
     const dragNode = event.target.closest('.library-draggable');
     if (dragNode && event.button === 0) {
+      const owningBay = dragNode.closest('.library-bay');
+      const owningShelfId = owningBay?.dataset.shelfId || '';
+      const inPool = !owningBay && dragNode.closest('#libraryPool');
+      if (owningShelfId && LIBRARY_STATE.activeShelfId !== owningShelfId) {
+        setActiveShelf(owningShelfId);
+        event.preventDefault();
+        return;
+      }
+      if (owningShelfId || inPool) {
+        startBookDrag(event, dragNode);
+        return;
+      }
       startBookDrag(event, dragNode);
       return;
     }
@@ -305,6 +338,7 @@ function bindLibraryEvents() {
     if (rotateHandle && event.button === 0) {
       const shelfId = rotateHandle.dataset.rotateShelf || '';
       if (shelfId) {
+        setActiveShelf(shelfId);
         startShelfRotateDrag(event, shelfId);
         return;
       }
@@ -312,10 +346,11 @@ function bindLibraryEvents() {
 
     const shelfSurface = event.target.closest('.library-bay');
     const head = event.target.closest('.library-bay-head-drag');
-    const isShelfAction = event.target.closest('.library-bay-actions, .library-remove-btn, [data-shelf-mode], [data-remove-shelf], [data-rotate-shelf]');
+    const isShelfAction = event.target.closest('.library-bay-actions, .library-remove-btn, [data-shelf-mode], [data-remove-shelf], [data-rotate-shelf], [data-add-row], .library-overflow-notice');
     if ((head || shelfSurface) && !isShelfAction && event.button === 0) {
       const bay = shelfSurface || head.closest('.library-bay');
       if (bay?.dataset.shelfId) {
+        setActiveShelf(bay.dataset.shelfId);
         startShelfDrag(event, bay.dataset.shelfId);
         return;
       }
@@ -382,14 +417,14 @@ function hydrateLibraryLayout() {
     id: shelf.id,
     name: shelf.name,
     color: shelf.color || '#7a6040',
-    rows: clampInt(shelf.rows, 1, 3, 2),
+    rows: clampInt(shelf.rows, 1, LIBRARY_MAX_ROWS, 2),
     viewMode: normalizeShelfMode(shelf.viewMode || 'spine'),
     status: shelf.status || '',
     x: Number(shelf.x) || 0,
     y: Number(shelf.y) || 0,
-    tilt: clamp(Number(shelf.tilt), -12, 12, 0),
-    pitch: clamp(Number(shelf.pitch), -6, 6, 0),
-    yaw: clamp(Number(shelf.yaw), -8, 8, 0),
+    tilt: 0,
+    pitch: 0,
+    yaw: clamp(Number(shelf.yaw), -55, 55, 0),
     bookKeys: Array.isArray(shelf.bookKeys) ? shelf.bookKeys.slice() : [],
   }));
 
@@ -518,7 +553,8 @@ function renderShelves() {
 
   LIBRARY_STATE.shelves.forEach((shelf, index) => {
     const bay = document.createElement('article');
-    bay.className = `library-bay is-depth-${(index % 3) + 1}`;
+    const isActive = LIBRARY_STATE.activeShelfId === shelf.id;
+    bay.className = `library-bay is-depth-${(index % 3) + 1}${isActive ? ' is-active' : ''}`;
     bay.dataset.shelfId = shelf.id;
     bay.dataset.depth = String((index % 3) + 1);
     bay.style.setProperty('--shelf-tint', shelf.color || '#8f6f44');
@@ -527,26 +563,40 @@ function renderShelves() {
     setShelfTransform(bay, shelf);
 
     const canRemove = !LIBRARY_DEFAULT_SHELVES.some((base) => base.id === shelf.id);
+    const canAddRow = (shelf.rows || 2) < LIBRARY_MAX_ROWS;
 
     bay.innerHTML = `
-      <div class="library-bay-head library-bay-head-drag" data-drag-shelf="${escapeHTML(shelf.id)}">
-        <div>
-          <h3>${escapeHTML(shelf.name)}</h3>
-          <p>${shelf.bookKeys.length} books</p>
-        </div>
-        <div class="library-bay-actions">
-          <button type="button" class="library-rotate-handle" data-rotate-shelf="${escapeHTML(shelf.id)}" aria-label="Adjust shelf angle"></button>
-          <button type="button" class="chip chip-mini${shelf.viewMode === 'spine' ? ' active' : ''}" data-shelf-id="${escapeHTML(shelf.id)}" data-shelf-mode="spine">Spine</button>
-          <button type="button" class="chip chip-mini${shelf.viewMode === 'cover' ? ' active' : ''}" data-shelf-id="${escapeHTML(shelf.id)}" data-shelf-mode="cover">Cover</button>
-          <button type="button" class="chip chip-mini${shelf.viewMode === 'mix' ? ' active' : ''}" data-shelf-id="${escapeHTML(shelf.id)}" data-shelf-mode="mix">Mix</button>
-          ${canRemove ? `<button type="button" class="library-remove-btn" data-remove-shelf="${escapeHTML(shelf.id)}" aria-label="Remove shelf">×</button>` : ''}
+      <div class="library-bay-titlebar library-bay-head-drag" data-drag-shelf="${escapeHTML(shelf.id)}">
+        <div class="library-bay-head">
+          <button type="button" class="library-rotate-handle" data-rotate-shelf="${escapeHTML(shelf.id)}" aria-label="Adjust shelf angle">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M3.2 2.4h7.2c1 0 1.8.8 1.8 1.8v9.4H4.6c-.8 0-1.4-.6-1.4-1.4V2.4z" fill="currentColor" opacity="0.92"/>
+              <path d="M3.2 12.2c0-.7.6-1.2 1.3-1.2h7.7v2.6H4.6c-.8 0-1.4-.6-1.4-1.4z" fill="rgba(20,14,10,0.32)"/>
+              <line x1="5.2" y1="4.8" x2="9.6" y2="4.8" stroke="rgba(20,14,10,0.42)" stroke-width="0.7" stroke-linecap="round"/>
+              <line x1="5.2" y1="6.6" x2="9.0" y2="6.6" stroke="rgba(20,14,10,0.42)" stroke-width="0.7" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="library-bay-head-text">
+            <h3>${escapeHTML(shelf.name)}</h3>
+            <p>${shelf.bookKeys.length} books</p>
+          </div>
+          <div class="library-bay-actions">
+            <button type="button" class="chip chip-mini${shelf.viewMode === 'spine' ? ' active' : ''}" data-shelf-id="${escapeHTML(shelf.id)}" data-shelf-mode="spine">Spine</button>
+            <button type="button" class="chip chip-mini${shelf.viewMode === 'cover' ? ' active' : ''}" data-shelf-id="${escapeHTML(shelf.id)}" data-shelf-mode="cover">Cover</button>
+            <button type="button" class="chip chip-mini${shelf.viewMode === 'mix' ? ' active' : ''}" data-shelf-id="${escapeHTML(shelf.id)}" data-shelf-mode="mix">Mix</button>
+            ${canRemove ? `<button type="button" class="library-remove-btn" data-remove-shelf="${escapeHTML(shelf.id)}" aria-label="Remove shelf">×</button>` : ''}
+          </div>
         </div>
       </div>
       <div class="library-rows" data-shelf-id="${escapeHTML(shelf.id)}"></div>
+      <div class="library-overflow-notice" data-shelf-id="${escapeHTML(shelf.id)}" hidden>
+        <span class="library-overflow-text">This shelf is full. Add a row to fit all books.</span>
+        <button type="button" class="library-overflow-btn" data-add-row="${escapeHTML(shelf.id)}" ${canAddRow ? '' : 'disabled'}>+ Add row</button>
+      </div>
     `;
 
     const rowsHost = bay.querySelector('.library-rows');
-    const rowGroups = splitRows(shelf.bookKeys, shelf.rows || 2);
+    const rowGroups = splitRows(shelf.bookKeys, shelf.rows || 2, shelf);
     rowGroups.forEach((group, rowIndex) => {
       const rowEl = document.createElement('div');
       rowEl.className = 'library-row';
@@ -569,6 +619,52 @@ function renderShelves() {
     bay.style.left = `${Math.round(shelf.x)}px`;
     bay.style.top = `${Math.round(shelf.y)}px`;
   });
+
+  requestAnimationFrame(() => {
+    if (reflowIfMisestimated()) return;
+    checkAllShelvesOverflow();
+  });
+}
+
+function reflowIfMisestimated() {
+  if (LIBRARY_STATE._reflowingShelves) return false;
+  let needs = false;
+  document.querySelectorAll('#view-studio .library-bay').forEach((bay) => {
+    const rows = bay.querySelectorAll('.library-row');
+    const shelfId = bay.dataset.shelfId || '';
+    const shelf = getShelfById(shelfId);
+    if (!shelf) return;
+    rows.forEach((row, idx) => {
+      const total = row.scrollWidth;
+      const avail = row.clientWidth;
+      if (avail > 0 && total - avail > 2 && idx < (shelf.rows || 2) - 1) {
+        needs = true;
+      }
+    });
+  });
+  if (!needs) return false;
+  LIBRARY_STATE._reflowingShelves = true;
+  renderShelves();
+  LIBRARY_STATE._reflowingShelves = false;
+  return true;
+}
+
+function checkAllShelvesOverflow() {
+  document.querySelectorAll('#view-studio .library-bay').forEach((bay) => {
+    checkShelfOverflow(bay);
+  });
+}
+
+function checkShelfOverflow(bay) {
+  if (!bay) return;
+  const rows = bay.querySelectorAll('.library-row');
+  const notice = bay.querySelector('.library-overflow-notice');
+  if (!notice) return;
+  let overflow = false;
+  rows.forEach((row) => {
+    if (row.scrollWidth - row.clientWidth > 2) overflow = true;
+  });
+  notice.hidden = !overflow;
 }
 
 function createShelfBook(record, shelf, indexInShelf) {
@@ -774,6 +870,9 @@ function startShelfDrag(event, shelfId) {
 
   event.preventDefault();
 
+  const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
+  if (bay) bay.classList.add('is-shelf-dragging');
+
   LIBRARY_STATE.shelfDrag = {
     shelfId,
     startX: event.clientX,
@@ -820,6 +919,7 @@ function startShelfRotateDrag(event, shelfId) {
   event.stopPropagation();
 
   const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
+  if (bay) bay.classList.add('is-shelf-rotating');
   const rect = bay?.getBoundingClientRect();
   const centerX = rect ? rect.left + rect.width / 2 : event.clientX;
   const centerY = rect ? rect.top + rect.height / 2 : event.clientY;
@@ -858,9 +958,10 @@ function onShelfRotateMove(event) {
   const angleDelta = normalizeAngleDelta(angle - drag.lastAngle);
   drag.lastAngle = angle;
 
-  shelf.tilt = clamp((shelf.tilt || 0) + (angleDelta * 180 / Math.PI) * 0.55, -14, 14, shelf.tilt || 0);
-  shelf.yaw = clamp(drag.yaw + (dx / drag.radiusX) * 7.5, -8, 8, drag.yaw);
-  shelf.pitch = clamp(drag.pitch + (-dy / drag.radiusY) * 6.5, -6.5, 6.5, drag.pitch);
+  void angleDelta;
+  shelf.tilt = 0;
+  shelf.pitch = 0;
+  shelf.yaw = clamp(drag.yaw + (dx / drag.radiusX) * 60, -55, 55, drag.yaw);
 
   const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
   if (bay) setShelfTransform(bay, shelf);
@@ -868,6 +969,9 @@ function onShelfRotateMove(event) {
 
 function stopShelfRotateDrag() {
   if (!LIBRARY_STATE.shelfRotateDrag) return;
+  const shelfId = LIBRARY_STATE.shelfRotateDrag.shelfId;
+  const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
+  if (bay) bay.classList.remove('is-shelf-rotating');
   LIBRARY_STATE.shelfRotateDrag = null;
   window.removeEventListener('pointermove', onShelfRotateMove);
   window.removeEventListener('pointerup', stopShelfRotateDrag);
@@ -877,6 +981,9 @@ function stopShelfRotateDrag() {
 
 function stopShelfDrag() {
   if (!LIBRARY_STATE.shelfDrag) return;
+  const shelfId = LIBRARY_STATE.shelfDrag.shelfId;
+  const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
+  if (bay) bay.classList.remove('is-shelf-dragging');
   LIBRARY_STATE.shelfDrag = null;
   window.removeEventListener('pointermove', onShelfDragMove);
   window.removeEventListener('pointerup', stopShelfDrag);
@@ -888,6 +995,9 @@ function maybeStartPan(event) {
   if (event.button !== 0) return;
   if (!event.target.closest('#libraryScene')) return;
   if (event.target.closest('button, input, .library-bay, .library-draggable, .library-book-overlay')) return;
+
+  const viewport = document.getElementById('librarySceneViewport');
+  if (viewport) viewport.classList.add('is-panning');
 
   LIBRARY_STATE.lookDrag = {
     startX: event.clientX,
@@ -908,12 +1018,14 @@ function onPanMove(event) {
   const dx = event.clientX - pan.startX;
   const dy = event.clientY - pan.startY;
   LIBRARY_STATE.camera.yaw = clamp(pan.yaw + dx * 0.08, -24, 24, pan.yaw);
-  LIBRARY_STATE.camera.pitch = clamp(pan.pitch - dy * 0.05, -18, 18, pan.pitch);
+  LIBRARY_STATE.camera.pitch = 0;
   applyCameraTransform();
 }
 
 function stopPan() {
   if (!LIBRARY_STATE.lookDrag) return;
+  const viewport = document.getElementById('librarySceneViewport');
+  if (viewport) viewport.classList.remove('is-panning');
   LIBRARY_STATE.lookDrag = null;
   window.removeEventListener('pointermove', onPanMove);
   window.removeEventListener('pointerup', stopPan);
@@ -985,7 +1097,7 @@ function fitShelvesToViewport({ animated, padding = 70 }) {
 
   const scaleX = (rect.width - padding * 2) / worldW;
   const scaleY = (rect.height - padding * 2) / worldH;
-  const nextScale = clamp(Math.min(scaleX, scaleY), 0.72, 1.2, 1);
+  const nextScale = clamp(Math.min(scaleX, scaleY), 0.45, 1.2, 1);
 
   LIBRARY_STATE.view.scale = nextScale;
   LIBRARY_STATE.view.x = (rect.width / 2) - ((bounds.minX + bounds.maxX) / 2) * nextScale;
@@ -999,7 +1111,7 @@ function resetFrontView({ animated }) {
   LIBRARY_STATE.camera.yaw = 0;
   LIBRARY_STATE.camera.pitch = 0;
   applyCameraTransform();
-  fitShelvesToViewport({ animated, padding: 94 });
+  fitShelvesToViewport({ animated, padding: 56 });
 }
 
 function computeShelfBounds() {
@@ -1268,17 +1380,12 @@ function setShelfTransform(node, shelf) {
   const baseZ = depth === 1 ? -20 : depth === 3 ? -24 : 10;
   const baseYaw = depth === 1 ? -3.5 : depth === 3 ? 3.5 : 0;
   const cameraYaw = LIBRARY_STATE.camera.yaw || 0;
-  const cameraPitch = LIBRARY_STATE.camera.pitch || 0;
   const shelfYaw = shelf.yaw || 0;
-  const shelfPitch = shelf.pitch || 0;
-  const shelfTilt = shelf.tilt || 0;
 
   node.style.transform = [
     `perspective(1400px)`,
     `translateZ(${baseZ}px)`,
-    `rotateX(${cameraPitch + shelfPitch}deg)`,
     `rotateY(${cameraYaw + baseYaw + shelfYaw}deg)`,
-    `rotateZ(${shelfTilt}deg)`,
   ].join(' ');
 }
 
@@ -1461,7 +1568,7 @@ function createShelfFromForm() {
   LIBRARY_STATE.shelves.push({
     id,
     name,
-    rows: clampInt(Number(rowsInput.value), 1, 3, 2),
+    rows: clampInt(Number(rowsInput.value), 1, LIBRARY_MAX_ROWS, 2),
     color: colorInput.value || '#8f6f44',
     viewMode: 'spine',
     status: '',
@@ -1497,6 +1604,25 @@ function setShelfMode(shelfId, mode) {
   shelf.viewMode = normalizeShelfMode(mode);
   renderLibrary();
   saveLayout();
+}
+
+function addShelfRow(shelfId) {
+  const shelf = getShelfById(shelfId);
+  if (!shelf) return;
+  const current = clampInt(shelf.rows, 1, LIBRARY_MAX_ROWS, 2);
+  if (current >= LIBRARY_MAX_ROWS) return;
+  shelf.rows = current + 1;
+  renderLibrary();
+  requestAnimationFrame(() => fitShelvesToViewport({ animated: true, padding: 80 }));
+  saveLayout();
+}
+
+function setActiveShelf(shelfId) {
+  if (LIBRARY_STATE.activeShelfId === shelfId) return;
+  LIBRARY_STATE.activeShelfId = shelfId || '';
+  document.querySelectorAll('#view-studio .library-bay').forEach((bay) => {
+    bay.classList.toggle('is-active', bay.dataset.shelfId === LIBRARY_STATE.activeShelfId);
+  });
 }
 
 function applyArrangement(mode) {
@@ -1582,17 +1708,58 @@ function syncStatusToSource(bookKey, shelfId) {
   if (source) source.status = status;
 }
 
-function splitRows(bookKeys, rowCount) {
-  const rows = clampInt(rowCount, 1, 3, 2);
+function splitRows(bookKeys, rowCount, shelf) {
+  const rows = clampInt(rowCount, 1, LIBRARY_MAX_ROWS, 2);
   if (!bookKeys.length) return Array.from({ length: rows }, () => ({ start: 0, keys: [] }));
 
-  const each = Math.ceil(bookKeys.length / rows);
-  const list = [];
-  for (let i = 0; i < rows; i += 1) {
-    const start = i * each;
-    list.push({ start, keys: bookKeys.slice(start, start + each) });
-  }
+  const list = Array.from({ length: rows }, () => ({ start: 0, keys: [] }));
+  const widths = bookKeys.map((key, i) => estimateBookSlot(LIBRARY_STATE.recordByKey.get(key), shelf, i));
+  const rowCap = getRowCapacityPx();
+  const gap = 6;
+
+  let rowIndex = 0;
+  let used = 0;
+  let started = false;
+  bookKeys.forEach((key, i) => {
+    const w = widths[i];
+    const next = used === 0 ? w : used + gap + w;
+    if (next > rowCap && rowIndex < rows - 1 && used > 0) {
+      rowIndex += 1;
+      used = w;
+      list[rowIndex].start = i;
+      list[rowIndex].keys.push(key);
+      return;
+    }
+    if (!started) {
+      list[rowIndex].start = i;
+      started = true;
+    }
+    used = next;
+    list[rowIndex].keys.push(key);
+  });
+
   return list;
+}
+
+function estimateBookSlot(record, shelf, indexInShelf) {
+  if (!record) return 50;
+  const mode = resolveBookMode(shelf?.viewMode || 'spine', indexInShelf);
+  if (mode === 'cover') return clampInt(Math.round(record.w * 2.35), 58, 124, 86);
+  return clampInt(Math.round(record.w), 24, 62, 36);
+}
+
+function getRowCapacityPx() {
+  const bay = document.querySelector('#view-studio .library-bay');
+  if (bay) {
+    const row = bay.querySelector('.library-row');
+    if (row) {
+      const width = row.clientWidth;
+      if (width > 40) return Math.max(120, width - 18);
+    }
+    const bayWidth = bay.clientWidth;
+    if (bayWidth > 40) return Math.max(120, bayWidth - 38);
+  }
+  return 340;
 }
 
 function resolveCoverImage(record) {

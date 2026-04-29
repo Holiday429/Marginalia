@@ -4,39 +4,54 @@
 
 .ne-dialog {
   border: none;
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 0;
-  width: min(900px, 96vw);
-  max-height: 96vh;
+  width: min(940px, 96vw);
+  max-height: min(92vh, 820px);
   overflow: hidden;
-  background: var(--bg);
-  color: var(--ink);
-  box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+  background: #1c1814;
+  color: #e8dfc8;
+  box-shadow: 0 32px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(232,223,200,0.08);
+  /* Native <dialog> already centers — these ensure it stays perfectly centered */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
 }
 
 .ne-dialog::backdrop {
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(3px);
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(6px) saturate(0.8);
 }
 
 .ne-layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 310px 1fr;
   height: 100%;
-  max-height: 96vh;
+  max-height: min(92vh, 820px);
   overflow: hidden;
 }
 
 /* ── Left panel ── */
 
 .ne-spine-panel {
-  background: transparent;
-  border-right: 1px solid var(--rule);
-  padding: 28px 24px;
+  background: rgba(255,255,255,0.025);
+  border-right: 1px solid rgba(232,223,200,0.1);
+  padding: 28px 22px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+}
+
+.ne-sentiment-hint {
+  font-family: var(--font-service-ui);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(232,223,200,0.46);
+  line-height: 1.5;
+  margin-bottom: -4px;
 }
 
 .ne-spine-preview-wrap {
@@ -156,7 +171,7 @@
   font-size: var(--fs-fluid-xs);
   letter-spacing: var(--track-service-ui-label);
   text-transform: none;
-  color: var(--ink-soft);
+  color: rgba(232,223,200,0.6);
 }
 
 .ne-color-grid {
@@ -177,8 +192,8 @@
 
 .ne-color-swatch:hover   { transform: scale(1.15); }
 .ne-color-swatch.is-active {
-  border-color: var(--ink);
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--ink);
+  border-color: #e8dfc8;
+  box-shadow: 0 0 0 2px #1c1814, 0 0 0 3px #e8dfc8;
 }
 
 .ne-custom-color-row {
@@ -191,7 +206,7 @@
 .ne-color-picker {
   width: 32px;
   height: 22px;
-  border: 1px solid var(--rule);
+  border: 1px solid rgba(232,223,200,0.18);
   border-radius: 3px;
   padding: 1px;
   cursor: pointer;
@@ -209,19 +224,19 @@
   font-size: var(--fs-fluid-sm);
   letter-spacing: var(--track-service-ui);
   background: none;
-  border: 1px solid var(--rule);
-  color: var(--ink-soft);
-  border-radius: 4px;
+  border: 1px solid rgba(232,223,200,0.18);
+  color: rgba(232,223,200,0.6);
+  border-radius: 6px;
   padding: 5px 12px;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
-.ne-style-btn:hover { color: var(--ink); border-color: var(--ink); }
+.ne-style-btn:hover { color: #e8dfc8; border-color: rgba(232,223,200,0.4); }
 .ne-style-btn.is-active {
-  background: var(--ink);
-  color: var(--bg);
-  border-color: var(--ink);
+  background: rgba(232,223,200,0.12);
+  color: #e8dfc8;
+  border-color: rgba(232,223,200,0.5);
 }
 
 .ne-slider-row {
@@ -239,19 +254,35 @@
   font-family: var(--font-service-ui);
   font-size: 10px;
   letter-spacing: var(--track-service-ui);
-  color: var(--ink-soft);
+  color: rgba(232,223,200,0.54);
   min-width: 34px;
 }
 
 /* ── Right panel (form) ── */
 
 .ne-form {
-  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ne-form-scroll {
+  flex: 1;
   overflow-y: auto;
+  padding: 28px 32px 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 0;  /* required for overflow-y to work inside a grid/flex child */
+}
+
+.ne-form-footer {
+  flex-shrink: 0;
+  display: flex;
+  gap: 10px;
+  padding: 16px 32px 20px;
+  border-top: 1px solid rgba(232,223,200,0.1);
+  background: #1c1814;
 }
 
 .ne-form-head {
@@ -262,12 +293,11 @@
 }
 
 .ne-form-title {
-  font-family: var(--font-service-ui);
-  font-size: var(--fs-fluid-xl);
-  font-weight: var(--weight-service-ui-label);
-  letter-spacing: 0.04em;
-  text-transform: none;
-  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 430;
+  letter-spacing: -0.01em;
+  color: #e8dfc8;
 }
 
 .ne-close-btn {
@@ -275,12 +305,12 @@
   border: none;
   font-size: 22px;
   line-height: 1;
-  color: var(--ink-soft);
+  color: rgba(232,223,200,0.44);
   cursor: pointer;
   padding: 0;
   transition: color 0.15s;
 }
-.ne-close-btn:hover { color: var(--ink); }
+.ne-close-btn:hover { color: #e8dfc8; }
 
 .ne-field { display: flex; flex-direction: column; gap: 5px; }
 
@@ -295,21 +325,21 @@
   font-size: var(--fs-fluid-xs);
   letter-spacing: var(--track-service-ui-label);
   text-transform: none;
-  color: var(--ink-soft);
+  color: rgba(232,223,200,0.6);
 }
 
-.ne-req { color: var(--accent); }
-.ne-field-hint-inline { color: var(--muted); font-size: 0.9em; }
+.ne-req { color: #c68b4a; }
+.ne-field-hint-inline { color: rgba(232,223,200,0.38); font-size: 0.9em; }
 
 .ne-input,
 .ne-select {
   font-family: var(--font-service-ui);
   font-size: var(--fs-fluid-sm);
   letter-spacing: var(--track-service-ui);
-  background: transparent;
-  border: 1px solid rgba(232, 223, 200, 0.34);
-  border-radius: 4px;
-  color: var(--ink);
+  background: rgba(232,223,200,0.04);
+  border: 1px solid rgba(232,223,200,0.18);
+  border-radius: 6px;
+  color: #e8dfc8;
   padding: 9px 12px;
   transition: border-color 0.15s, box-shadow 0.15s;
   width: 100%;
@@ -317,27 +347,98 @@
 
 .ne-input:hover,
 .ne-select:hover {
-  border-color: rgba(232, 223, 200, 0.5);
+  border-color: rgba(232,223,200,0.32);
 }
 
 .ne-input::placeholder {
-  color: var(--ink-soft);
-  opacity: 0.72;
+  color: rgba(232,223,200,0.32);
+}
+
+.ne-select option {
+  background: #201c18;
+  color: #e8dfc8;
 }
 
 .ne-input:focus,
 .ne-select:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(198, 139, 74, 0.45);
+  border-color: rgba(198,139,74,0.6);
+  box-shadow: 0 0 0 3px rgba(198,139,74,0.12);
 }
 
 .ne-field-hint {
   font-family: var(--font-service-ui);
   font-size: var(--fs-fluid-xs);
   letter-spacing: var(--track-service-ui);
-  color: var(--ink-soft);
+  color: rgba(232,223,200,0.4);
   margin-top: 1px;
+}
+
+/* Auto-fill section */
+.ne-autofill-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: rgba(198,139,74,0.06);
+  border: 1px solid rgba(198,139,74,0.18);
+  border-radius: 8px;
+}
+
+.ne-autofill-label {
+  font-family: var(--font-service-ui);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(198,139,74,0.7);
+  text-transform: uppercase;
+}
+
+.ne-divider {
+  height: 1px;
+  background: rgba(232,223,200,0.08);
+  margin: 2px 0;
+}
+
+/* Country autocomplete */
+.ne-country-wrap {
+  position: relative;
+}
+
+.ne-country-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #201c18;
+  border: 1px solid rgba(232,223,200,0.18);
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+}
+
+.ne-country-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-family: var(--font-service-ui);
+  font-size: 13px;
+  color: rgba(232,223,200,0.88);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.ne-country-option:hover,
+.ne-country-option.is-focused {
+  background: rgba(198,139,74,0.15);
+}
+
+.ne-country-flag {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .ne-isbn-row {
@@ -351,63 +452,58 @@
   font-family: var(--font-service-ui);
   font-size: var(--fs-fluid-sm);
   letter-spacing: var(--track-service-ui);
-  background: none;
-  border: 1px solid var(--rule);
-  color: var(--ink);
-  border-radius: 4px;
+  background: rgba(198,139,74,0.15);
+  border: 1px solid rgba(198,139,74,0.4);
+  color: #c68b4a;
+  border-radius: 6px;
   padding: 9px 16px;
   cursor: pointer;
   white-space: nowrap;
   transition: border-color 0.15s, background 0.15s;
 }
-.ne-isbn-btn:hover { border-color: var(--accent); color: var(--accent); }
+.ne-isbn-btn:hover { background: rgba(198,139,74,0.25); border-color: rgba(198,139,74,0.6); }
 
 .ne-isbn-status {
   font-family: var(--font-service-ui);
   font-size: 10px;
   letter-spacing: var(--track-service-ui);
   min-height: 14px;
-  color: var(--ink-soft);
+  color: rgba(232,223,200,0.4);
 }
 .ne-isbn-status--ok      { color: #2d8a60; }
 .ne-isbn-status--error   { color: #c0392b; }
-.ne-isbn-status--loading { color: var(--muted); }
+.ne-isbn-status--loading { color: rgba(232,223,200,0.4); }
 
-.ne-form-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 4px;
-  padding-top: 16px;
-  border-top: 1px solid var(--rule);
-}
+/* .ne-form-actions removed — replaced by .ne-form-footer (pinned outside scroll) */
 
 .ne-submit-btn {
   font-family: var(--font-service-ui);
   font-size: var(--fs-fluid-sm);
   letter-spacing: var(--track-service-ui);
-  background: var(--ink);
-  color: var(--bg);
+  background: #c68b4a;
+  color: #1a1714;
   border: none;
-  border-radius: 4px;
-  padding: 11px 24px;
+  border-radius: 6px;
+  padding: 11px 28px;
   cursor: pointer;
-  transition: opacity 0.15s;
+  font-weight: 600;
+  transition: opacity 0.15s, background 0.15s;
 }
-.ne-submit-btn:hover { opacity: 0.82; }
+.ne-submit-btn:hover { background: #d4a060; }
 
 .ne-cancel-btn {
   font-family: var(--font-service-ui);
   font-size: var(--fs-fluid-sm);
   letter-spacing: var(--track-service-ui);
   background: none;
-  color: var(--ink-soft);
-  border: 1px solid var(--rule-strong);
-  border-radius: 4px;
+  color: rgba(232,223,200,0.54);
+  border: 1px solid rgba(232,223,200,0.18);
+  border-radius: 6px;
   padding: 11px 18px;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
 }
-.ne-cancel-btn:hover { color: var(--ink); border-color: var(--ink); }
+.ne-cancel-btn:hover { color: #e8dfc8; border-color: rgba(232,223,200,0.4); }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
@@ -417,7 +513,7 @@
   }
   .ne-spine-panel {
     border-right: none;
-    border-bottom: 1px solid var(--rule);
+    border-bottom: 1px solid rgba(232,223,200,0.1);
     padding: 20px;
   }
   .ne-form { padding: 20px; }

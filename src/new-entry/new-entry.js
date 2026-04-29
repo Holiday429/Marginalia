@@ -9,47 +9,47 @@ window.NewEntry = (() => {
   const SPINE_COLORS = [
     // Warm neutrals
     { hex: '#d4c4a0', label: 'Parchment' },
-    { hex: '#c8b99a', label: 'Sand' },
+    { hex: '#c4b090', label: 'Sand' },
     { hex: '#b8a882', label: 'Wheat' },
     { hex: '#c89f85', label: 'Clay' },
-    { hex: '#b87060', label: 'Terracotta' },
-    // Reds & burgundy
-    { hex: '#8b2a1a', label: 'Crimson' },
-    { hex: '#7a1f2a', label: 'Burgundy' },
-    { hex: '#c83a2a', label: 'Vermilion' },
-    { hex: '#a04040', label: 'Brick' },
-    { hex: '#d85a30', label: 'Rust' },
+    { hex: '#b87868', label: 'Terracotta' },
+    // Reds
+    { hex: '#a84040', label: 'Brick' },
+    { hex: '#9a3838', label: 'Crimson' },
+    { hex: '#7a3030', label: 'Burgundy' },
+    { hex: '#c05840', label: 'Vermilion' },
+    { hex: '#c47058', label: 'Rust' },
     // Greens
-    { hex: '#2d5a30', label: 'Forest' },
-    { hex: '#2f4a3a', label: 'Bottle' },
-    { hex: '#3d5a46', label: 'Sage' },
+    { hex: '#4a6e52', label: 'Forest' },
+    { hex: '#3d5a46', label: 'Bottle' },
+    { hex: '#5a7260', label: 'Sage' },
     { hex: '#aab39a', label: 'Fern' },
-    { hex: '#6a7a5a', label: 'Olive' },
-    // Blues & navy
-    { hex: '#14263e', label: 'Navy' },
-    { hex: '#1a2550', label: 'Midnight' },
-    { hex: '#2a3f4a', label: 'Slate' },
-    { hex: '#1e3a4a', label: 'Teal' },
-    { hex: '#378add', label: 'Cobalt' },
-    // Purples & violet
-    { hex: '#3a2a5a', label: 'Violet' },
-    { hex: '#3a2a4a', label: 'Plum' },
-    { hex: '#7f77dd', label: 'Lavender' },
-    { hex: '#2a1a3a', label: 'Aubergine' },
+    { hex: '#7a8c6a', label: 'Olive' },
+    // Blues
+    { hex: '#2a4468', label: 'Navy' },
+    { hex: '#3a5272', label: 'Slate' },
+    { hex: '#3a6080', label: 'Teal' },
+    { hex: '#5888c0', label: 'Cobalt' },
+    { hex: '#7aabcc', label: 'Sky' },
+    // Purples
+    { hex: '#5a487a', label: 'Violet' },
+    { hex: '#6a5070', label: 'Plum' },
+    { hex: '#9890c8', label: 'Lavender' },
+    { hex: '#7a6090', label: 'Mauve' },
     // Yellows & gold
-    { hex: '#d89f3a', label: 'Gold' },
+    { hex: '#c89836', label: 'Gold' },
     { hex: '#c68b4a', label: 'Amber' },
-    { hex: '#d4c068', label: 'Straw' },
-    { hex: '#8f6f2a', label: 'Ochre' },
+    { hex: '#ccc070', label: 'Straw' },
+    { hex: '#987830', label: 'Ochre' },
     // Pinks & rose
-    { hex: '#e8aabd', label: 'Rose' },
-    { hex: '#d4537e', label: 'Fuchsia' },
-    { hex: '#9a5a4a', label: 'Blush' },
-    // Darks & black
-    { hex: '#1a1714', label: 'Ink' },
-    { hex: '#2a2824', label: 'Charcoal' },
-    { hex: '#3a3a3a', label: 'Graphite' },
-    { hex: '#5a544a', label: 'Dusk' },
+    { hex: '#d4a8b8', label: 'Rose' },
+    { hex: '#c06880', label: 'Fuchsia' },
+    { hex: '#b0807a', label: 'Blush' },
+    // Neutrals mid-range
+    { hex: '#6a6260', label: 'Graphite' },
+    { hex: '#8a8278', label: 'Stone' },
+    { hex: '#a09890', label: 'Dusk' },
+    { hex: '#c0bab2', label: 'Fog' },
     // Lights
     { hex: '#ede5d4', label: 'Cream' },
     { hex: '#e8dfc8', label: 'Paper' },
@@ -109,6 +109,77 @@ window.NewEntry = (() => {
       topMark: '○',
     },
   ];
+
+  /* ── Countries with flag emoji ──────────────────────────────────────────── */
+
+  const COUNTRIES = [
+    { name: 'Afghanistan', flag: '🇦🇫' }, { name: 'Albania', flag: '🇦🇱' },
+    { name: 'Algeria', flag: '🇩🇿' }, { name: 'Argentina', flag: '🇦🇷' },
+    { name: 'Armenia', flag: '🇦🇲' }, { name: 'Australia', flag: '🇦🇺' },
+    { name: 'Austria', flag: '🇦🇹' }, { name: 'Azerbaijan', flag: '🇦🇿' },
+    { name: 'Bangladesh', flag: '🇧🇩' }, { name: 'Belarus', flag: '🇧🇾' },
+    { name: 'Belgium', flag: '🇧🇪' }, { name: 'Bolivia', flag: '🇧🇴' },
+    { name: 'Brazil', flag: '🇧🇷' }, { name: 'Bulgaria', flag: '🇧🇬' },
+    { name: 'Cambodia', flag: '🇰🇭' }, { name: 'Canada', flag: '🇨🇦' },
+    { name: 'Chile', flag: '🇨🇱' }, { name: 'China', flag: '🇨🇳' },
+    { name: 'Colombia', flag: '🇨🇴' }, { name: 'Croatia', flag: '🇭🇷' },
+    { name: 'Cuba', flag: '🇨🇺' }, { name: 'Czech Republic', flag: '🇨🇿' },
+    { name: 'Denmark', flag: '🇩🇰' }, { name: 'Ecuador', flag: '🇪🇨' },
+    { name: 'Egypt', flag: '🇪🇬' }, { name: 'Estonia', flag: '🇪🇪' },
+    { name: 'Ethiopia', flag: '🇪🇹' }, { name: 'Finland', flag: '🇫🇮' },
+    { name: 'France', flag: '🇫🇷' }, { name: 'Georgia', flag: '🇬🇪' },
+    { name: 'Germany', flag: '🇩🇪' }, { name: 'Ghana', flag: '🇬🇭' },
+    { name: 'Greece', flag: '🇬🇷' }, { name: 'Guatemala', flag: '🇬🇹' },
+    { name: 'Hungary', flag: '🇭🇺' }, { name: 'Iceland', flag: '🇮🇸' },
+    { name: 'India', flag: '🇮🇳' }, { name: 'Indonesia', flag: '🇮🇩' },
+    { name: 'Iran', flag: '🇮🇷' }, { name: 'Iraq', flag: '🇮🇶' },
+    { name: 'Ireland', flag: '🇮🇪' }, { name: 'Israel', flag: '🇮🇱' },
+    { name: 'Italy', flag: '🇮🇹' }, { name: 'Japan', flag: '🇯🇵' },
+    { name: 'Jordan', flag: '🇯🇴' }, { name: 'Kazakhstan', flag: '🇰🇿' },
+    { name: 'Kenya', flag: '🇰🇪' }, { name: 'South Korea', flag: '🇰🇷' },
+    { name: 'Latvia', flag: '🇱🇻' }, { name: 'Lebanon', flag: '🇱🇧' },
+    { name: 'Lithuania', flag: '🇱🇹' }, { name: 'Malaysia', flag: '🇲🇾' },
+    { name: 'Mexico', flag: '🇲🇽' }, { name: 'Morocco', flag: '🇲🇦' },
+    { name: 'Netherlands', flag: '🇳🇱' }, { name: 'New Zealand', flag: '🇳🇿' },
+    { name: 'Nigeria', flag: '🇳🇬' }, { name: 'Norway', flag: '🇳🇴' },
+    { name: 'Pakistan', flag: '🇵🇰' }, { name: 'Peru', flag: '🇵🇪' },
+    { name: 'Philippines', flag: '🇵🇭' }, { name: 'Poland', flag: '🇵🇱' },
+    { name: 'Portugal', flag: '🇵🇹' }, { name: 'Romania', flag: '🇷🇴' },
+    { name: 'Russia', flag: '🇷🇺' }, { name: 'Saudi Arabia', flag: '🇸🇦' },
+    { name: 'Serbia', flag: '🇷🇸' }, { name: 'Singapore', flag: '🇸🇬' },
+    { name: 'Slovakia', flag: '🇸🇰' }, { name: 'Slovenia', flag: '🇸🇮' },
+    { name: 'South Africa', flag: '🇿🇦' }, { name: 'Spain', flag: '🇪🇸' },
+    { name: 'Sri Lanka', flag: '🇱🇰' }, { name: 'Sweden', flag: '🇸🇪' },
+    { name: 'Switzerland', flag: '🇨🇭' }, { name: 'Syria', flag: '🇸🇾' },
+    { name: 'Taiwan', flag: '🇹🇼' }, { name: 'Thailand', flag: '🇹🇭' },
+    { name: 'Tunisia', flag: '🇹🇳' }, { name: 'Turkey', flag: '🇹🇷' },
+    { name: 'Ukraine', flag: '🇺🇦' }, { name: 'United Kingdom', flag: '🇬🇧' },
+    { name: 'United States', flag: '🇺🇸' }, { name: 'Uruguay', flag: '🇺🇾' },
+    { name: 'Uzbekistan', flag: '🇺🇿' }, { name: 'Venezuela', flag: '🇻🇪' },
+    { name: 'Vietnam', flag: '🇻🇳' }, { name: 'Yemen', flag: '🇾🇪' },
+    { name: 'Zimbabwe', flag: '🇿🇼' },
+  ];
+
+  const COUNTRY_TO_ISO = {
+    'Afghanistan':'AF','Albania':'AL','Algeria':'DZ','Argentina':'AR','Armenia':'AM',
+    'Australia':'AU','Austria':'AT','Azerbaijan':'AZ','Bangladesh':'BD','Belarus':'BY',
+    'Belgium':'BE','Bolivia':'BO','Brazil':'BR','Bulgaria':'BG','Cambodia':'KH',
+    'Canada':'CA','Chile':'CL','China':'CN','Colombia':'CO','Croatia':'HR',
+    'Cuba':'CU','Czech Republic':'CZ','Denmark':'DK','Ecuador':'EC','Egypt':'EG',
+    'Estonia':'EE','Ethiopia':'ET','Finland':'FI','France':'FR','Georgia':'GE',
+    'Germany':'DE','Ghana':'GH','Greece':'GR','Guatemala':'GT','Hungary':'HU',
+    'Iceland':'IS','India':'IN','Indonesia':'ID','Iran':'IR','Iraq':'IQ',
+    'Ireland':'IE','Israel':'IL','Italy':'IT','Japan':'JP','Jordan':'JO',
+    'Kazakhstan':'KZ','Kenya':'KE','South Korea':'KR','Latvia':'LV','Lebanon':'LB',
+    'Lithuania':'LT','Malaysia':'MY','Mexico':'MX','Morocco':'MA','Netherlands':'NL',
+    'New Zealand':'NZ','Nigeria':'NG','Norway':'NO','Pakistan':'PK','Peru':'PE',
+    'Philippines':'PH','Poland':'PL','Portugal':'PT','Romania':'RO','Russia':'RU',
+    'Saudi Arabia':'SA','Serbia':'RS','Singapore':'SG','Slovakia':'SK','Slovenia':'SI',
+    'South Africa':'ZA','Spain':'ES','Sri Lanka':'LK','Sweden':'SE','Switzerland':'CH',
+    'Syria':'SY','Taiwan':'TW','Thailand':'TH','Tunisia':'TN','Turkey':'TR',
+    'Ukraine':'UA','United Kingdom':'GB','United States':'US','Uruguay':'UY',
+    'Uzbekistan':'UZ','Venezuela':'VE','Vietnam':'VN','Yemen':'YE','Zimbabwe':'ZW',
+  };
 
   /* ── Text color auto-contrast ────────────────────────────────────────────── */
 
@@ -189,6 +260,7 @@ window.NewEntry = (() => {
           </div>
 
           <div class="ne-diy-section">
+            <p class="ne-sentiment-hint">Choose colors that capture how this book makes you feel — not just its cover.</p>
             <div class="ne-diy-label">Spine Color</div>
             <div class="ne-color-grid" id="neColorGrid">
               ${SPINE_COLORS.map(c => `
@@ -225,75 +297,84 @@ window.NewEntry = (() => {
 
         <!-- Right: Book info form -->
         <form class="ne-form" id="neForm" novalidate>
-          <div class="ne-form-head">
-            <h2 class="ne-form-title">Add Book</h2>
-            <button class="ne-close-btn" type="button" id="neCloseBtn" aria-label="Close">×</button>
-          </div>
+          <div class="ne-form-scroll">
+            <div class="ne-form-head">
+              <h2 class="ne-form-title">Add Book</h2>
+              <button class="ne-close-btn" type="button" id="neCloseBtn" aria-label="Close">×</button>
+            </div>
 
-          <div class="ne-field">
-            <label class="ne-label" for="neTitle">Title <span class="ne-req">*</span></label>
-            <input class="ne-input" id="neTitle" type="text" placeholder="Book Title" autocomplete="off">
-          </div>
+            <div class="ne-autofill-section">
+              <div class="ne-autofill-label">Auto-fill from lookup</div>
+              <div class="ne-isbn-row">
+                <input class="ne-input ne-isbn-input" id="neIsbn" type="text" placeholder="ISBN — paste to auto-fill">
+                <button class="ne-isbn-btn" type="button" id="neIsbnBtn">Lookup</button>
+              </div>
+              <div class="ne-isbn-status" id="neIsbnStatus"></div>
+              <div class="ne-field">
+                <label class="ne-label" for="neExternalLink">External Link</label>
+                <input class="ne-input" id="neExternalLink" type="url" placeholder="Douban / Amazon URL">
+              </div>
+            </div>
 
-          <div class="ne-field">
-            <label class="ne-label" for="neAuthor">Author</label>
-            <input class="ne-input" id="neAuthor" type="text" placeholder="Author Name">
-          </div>
+            <div class="ne-divider"></div>
 
-          <div class="ne-field-row">
             <div class="ne-field">
-              <label class="ne-label" for="neStatus">Status</label>
-              <select class="ne-select" id="neStatus">
-                <option value="reading">Reading</option>
-                <option value="finished">Finished</option>
-                <option value="want">To Read</option>
+              <label class="ne-label" for="neTitle">Title <span class="ne-req">*</span></label>
+              <input class="ne-input" id="neTitle" type="text" placeholder="Book Title" autocomplete="off">
+            </div>
+
+            <div class="ne-field">
+              <label class="ne-label" for="neAuthor">Author</label>
+              <input class="ne-input" id="neAuthor" type="text" placeholder="Author Name">
+            </div>
+
+            <div class="ne-field-row">
+              <div class="ne-field">
+                <label class="ne-label" for="neStatus">Status</label>
+                <select class="ne-select" id="neStatus">
+                  <option value="reading">Reading</option>
+                  <option value="finished">Finished</option>
+                  <option value="want">To Read</option>
+                </select>
+              </div>
+              <div class="ne-field">
+                <label class="ne-label" for="neLanguage">Language</label>
+                <select class="ne-select" id="neLanguage">
+                  <option value="en">English</option>
+                  <option value="zh">Chinese</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="ne-field">
+              <label class="ne-label" for="neBookType">Book Type <span class="ne-field-hint-inline">— determines AI features</span></label>
+              <select class="ne-select" id="neBookType">
+                <option value="nonfiction">Nonfiction — history, science, biography</option>
+                <option value="fiction">Fiction — novels, literary fiction</option>
+                <option value="social">Social Science — philosophy, sociology, economics</option>
+                <option value="essay">Essay / Self-help — personal essays, self-help</option>
+                <option value="travel">Travel — travel writing, cultural reportage</option>
               </select>
             </div>
+
             <div class="ne-field">
-              <label class="ne-label" for="neLanguage">Language</label>
-              <select class="ne-select" id="neLanguage">
-                <option value="en">English</option>
-                <option value="zh">Chinese</option>
-                <option value="other">Other</option>
-              </select>
+              <label class="ne-label" for="neOrigin">Country / Origin</label>
+              <div class="ne-country-wrap">
+                <input class="ne-input" id="neOrigin" type="text" placeholder="e.g. Japan, United States" autocomplete="off">
+                <div class="ne-country-dropdown" id="neCountryDropdown" hidden></div>
+              </div>
+            </div>
+
+            <div class="ne-field">
+              <label class="ne-label" for="neTags">Tags</label>
+              <input class="ne-input" id="neTags" type="text" placeholder="e.g. Fiction, History, Philosophy">
+              <div class="ne-field-hint">Separate with commas</div>
             </div>
           </div>
 
-          <div class="ne-field">
-            <label class="ne-label" for="neBookType">Book Type <span class="ne-field-hint-inline">— determines AI features</span></label>
-            <select class="ne-select" id="neBookType">
-              <option value="nonfiction">Nonfiction — history, science, biography</option>
-              <option value="fiction">Fiction — novels, literary fiction</option>
-              <option value="social">Social Science — philosophy, sociology, economics</option>
-              <option value="essay">Essay / Self-help — personal essays, self-help</option>
-              <option value="travel">Travel — travel writing, cultural reportage</option>
-            </select>
-          </div>
-
-          <div class="ne-field">
-            <label class="ne-label" for="neOrigin">Country / Origin</label>
-            <input class="ne-input" id="neOrigin" type="text" placeholder="e.g. Japan, United States">
-          </div>
-
-          <div class="ne-field">
-            <label class="ne-label" for="neTags">Tags</label>
-            <input class="ne-input" id="neTags" type="text" placeholder="e.g. Fiction, History, Philosophy">
-            <div class="ne-field-hint">Separate with Commas</div>
-          </div>
-
-          <div class="ne-field">
-            <label class="ne-label" for="neExternalLink">External Link</label>
-            <input class="ne-input" id="neExternalLink" type="url" placeholder="Douban / Amazon URL">
-          </div>
-
-          <div class="ne-isbn-row">
-            <input class="ne-input ne-isbn-input" id="neIsbn" type="text" placeholder="ISBN — paste to auto-fill">
-            <button class="ne-isbn-btn" type="button" id="neIsbnBtn">Lookup</button>
-          </div>
-          <div class="ne-isbn-status" id="neIsbnStatus"></div>
-
-          <div class="ne-form-actions">
-            <button class="ne-submit-btn" type="submit" id="neSubmitBtn">Add Book</button>
+          <div class="ne-form-footer">
+            <button class="ne-submit-btn" type="submit" id="neSubmitBtn">Add to library</button>
             <button class="ne-cancel-btn" type="button" id="neCancelBtn">Cancel</button>
           </div>
         </form>
@@ -431,6 +512,9 @@ window.NewEntry = (() => {
       });
     });
 
+    // Country autocomplete
+    bindCountryAutocomplete(dialog);
+
     // Cover upload
     dialog.querySelector('#neCoverInput')?.addEventListener('change', e => {
       const file = e.target.files?.[0];
@@ -458,6 +542,68 @@ window.NewEntry = (() => {
     });
   }
 
+  /* ── Country autocomplete ────────────────────────────────────────────────── */
+
+  function bindCountryAutocomplete(dialog) {
+    const input = dialog.querySelector('#neOrigin');
+    const dropdown = dialog.querySelector('#neCountryDropdown');
+    if (!input || !dropdown) return;
+
+    let focusedIndex = -1;
+
+    function showDropdown(matches) {
+      if (!matches.length) { dropdown.hidden = true; return; }
+      dropdown.innerHTML = matches.map((c, i) =>
+        `<div class="ne-country-option" data-name="${c.name}" tabindex="-1">
+          <span class="ne-country-flag">${c.flag}</span>
+          <span>${c.name}</span>
+        </div>`
+      ).join('');
+      dropdown.hidden = false;
+      focusedIndex = -1;
+    }
+
+    function pickCountry(name) {
+      input.value = name;
+      dropdown.hidden = true;
+    }
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      if (!q) { dropdown.hidden = true; return; }
+      const matches = COUNTRIES.filter(c => c.name.toLowerCase().startsWith(q)).slice(0, 8);
+      showDropdown(matches);
+    });
+
+    input.addEventListener('keydown', e => {
+      if (dropdown.hidden) return;
+      const opts = dropdown.querySelectorAll('.ne-country-option');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        focusedIndex = Math.min(focusedIndex + 1, opts.length - 1);
+        opts.forEach((o, i) => o.classList.toggle('is-focused', i === focusedIndex));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        focusedIndex = Math.max(focusedIndex - 1, 0);
+        opts.forEach((o, i) => o.classList.toggle('is-focused', i === focusedIndex));
+      } else if (e.key === 'Enter' && focusedIndex >= 0) {
+        e.preventDefault();
+        pickCountry(opts[focusedIndex].dataset.name);
+      } else if (e.key === 'Escape') {
+        dropdown.hidden = true;
+      }
+    });
+
+    dropdown.addEventListener('click', e => {
+      const opt = e.target.closest('.ne-country-option');
+      if (opt) pickCountry(opt.dataset.name);
+    });
+
+    document.addEventListener('click', e => {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.hidden = true;
+    });
+  }
+
   /* ── ISBN lookup (Open Library) ──────────────────────────────────────────── */
 
   async function lookupIsbn(dialog) {
@@ -478,8 +624,15 @@ window.NewEntry = (() => {
       if (gbItem) {
         const titleInput  = dialog.querySelector('#neTitle');
         const authorInput = dialog.querySelector('#neAuthor');
-        if (titleInput  && !titleInput.value)  titleInput.value  = gbItem.title || '';
-        if (authorInput && !authorInput.value) authorInput.value = (gbItem.authors || []).join(', ');
+        const lang = dialog.querySelector('#neLanguage')?.value || 'en';
+        const isChinese = lang === 'zh';
+        // Only fill title/author if empty; never overwrite CJK text with an English translation
+        if (titleInput && !titleInput.value && !(isChinese && isCJK(gbItem.title || ''))) {
+          titleInput.value = gbItem.title || '';
+        }
+        if (authorInput && !authorInput.value) {
+          authorInput.value = (gbItem.authors || []).join(', ');
+        }
 
         const coverUrl = gbItem.imageLinks?.thumbnail || gbItem.imageLinks?.smallThumbnail || '';
         if (coverUrl) {
@@ -506,7 +659,10 @@ window.NewEntry = (() => {
 
       const titleInput  = dialog.querySelector('#neTitle');
       const authorInput = dialog.querySelector('#neAuthor');
-      if (titleInput  && !titleInput.value)  titleInput.value  = olBook.title || '';
+      const lang2 = dialog.querySelector('#neLanguage')?.value || 'en';
+      if (titleInput && !titleInput.value && !(lang2 === 'zh' && isCJK(olBook.title || ''))) {
+        titleInput.value = olBook.title || '';
+      }
       if (authorInput && !authorInput.value) {
         authorInput.value = (olBook.authors || []).map(a => a.name).filter(Boolean).join(', ');
       }
@@ -546,80 +702,99 @@ window.NewEntry = (() => {
     const style    = SPINE_STYLES.find(s => s.id === state.styleId) || SPINE_STYLES[0];
     const lang     = dialog.querySelector('#neLanguage')?.value || 'en';
     const bookType = dialog.querySelector('#neBookType')?.value || 'nonfiction';
+    const author   = dialog.querySelector('#neAuthor')?.value.trim() || '';
+    const status   = dialog.querySelector('#neStatus')?.value || 'reading';
+    const originRaw = dialog.querySelector('#neOrigin')?.value.trim() || '';
     const tags     = (dialog.querySelector('#neTags')?.value || '')
       .split(',').map(t => t.trim()).filter(Boolean);
 
-    // Generate a stable id from title + timestamp
     const id = 'book-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32)
       + '-' + Date.now().toString(36);
 
     const coverImgSrc = dialog.querySelector('#neCoverImg')?.src || null;
     const coverIsBlob = coverImgSrc?.startsWith('blob:');
 
-    // Resolve panels + aiFeatures from type registry
-    const typeConfig   = window.BOOK_TYPES?.[bookType] || {};
+    const typeConfig    = window.BOOK_TYPES?.[bookType] || {};
     const defaultPanels = typeConfig.defaultPanels || ['overview', 'highlights', 'notes', 'claude-import'];
     const aiFeatures    = typeConfig.defaultAiFeatures || [];
 
+    // Resolve ISO country code from typed name
+    const isoCode = originRaw ? resolveIso(originRaw) : null;
+
     const fullBook = {
-      id,
-      title,
-      author:   dialog.querySelector('#neAuthor')?.value.trim() || '',
-      status:   dialog.querySelector('#neStatus')?.value        || 'reading',
-      tags,
-      language: lang,
-      bookType,
-      panels:   defaultPanels,
-      aiFeatures,
-      year:     new Date().getFullYear(),
-      summary:  '',
+      id, title, author, status, tags,
+      language: lang, bookType,
+      panels: defaultPanels, aiFeatures,
+      year: new Date().getFullYear(),
+      summary: '',
       cover: {
-        bg:     state.spineColor,
-        text:   state.textColor,
-        font:   style.font,
-        weight: style.weight,
-        // Only store non-blob URLs (blob URLs don't survive page reload)
-        image:  (coverImgSrc && !coverIsBlob) ? coverImgSrc : null,
+        bg: state.spineColor, text: state.textColor,
+        font: style.font, weight: style.weight,
+        image: (coverImgSrc && !coverIsBlob) ? coverImgSrc : null,
       },
-      meta: {
-        startedAt: new Date().toISOString().slice(0, 10),
-      },
-      highlights: [],
-      actions:    [],
+      location: isoCode ? { country: isoCode, city: originRaw } : null,
+      geo: isoCode ? {
+        authorOrigin:    { country: isoCode, city: originRaw },
+        contentLocation: { country: isoCode, city: originRaw },
+        readerLocation:  null,
+      } : null,
+      meta: { startedAt: new Date().toISOString().slice(0, 10) },
+      highlights: [], actions: [],
     };
 
-    // Register into BOOK_BY_ID and BOOK_DETAILS so book.js can render it
+    // Register globally
     if (!window.BOOK_DETAILS) window.BOOK_DETAILS = [];
     if (!window.BOOK_BY_ID)   window.BOOK_BY_ID   = {};
     window.BOOK_DETAILS.unshift(fullBook);
     window.BOOK_BY_ID[id] = fullBook;
 
-    // Persist to IndexedDB so the book survives page reload
+    // Persist to IndexedDB
     window.NotesStore?.saveBook(fullBook);
 
-    // Inject into SHELF_BOOKS so the shelf shows the spine
-    if (window.SHELF_BOOKS) {
-      window.SHELF_BOOKS.unshift({
-        id,
-        title:  fullBook.title,
-        author: fullBook.author,
-        spine:  state.spineColor,
-        text:   state.textColor,
-        w:      state.thickness,
-        h:      0.88,
-        status: fullBook.status,
-        font:   style.font,
-        weight: style.weight,
-      });
-    }
+    // Spine entry for shelf + library
+    const spineEntry = {
+      id, title, author,
+      spine: state.spineColor,
+      text:  state.textColor,
+      w:     state.thickness,
+      h:     0.88,
+      status,
+      font:  style.font,
+      weight: style.weight,
+      loc:   isoCode || undefined,
+    };
 
-    // Re-render shelf
+    // Sync to SHELF_BOOKS + re-render shelf
+    if (window.SHELF_BOOKS) {
+      window.SHELF_BOOKS.unshift(spineEntry);
+    }
     if (typeof window.renderShelfSection === 'function') window.renderShelfSection();
 
-    close();
+    // Sync to Library (arrival pool)
+    if (typeof window.enterStudio === 'function') {
+      window.enterStudio();
+    }
 
-    // Navigate directly to the new book's detail page
+    // Sync to Map — push into MAP_BOOKS array if accessible
+    if (typeof window.mapAddBook === 'function') {
+      window.mapAddBook({ ...spineEntry, bg: state.spineColor });
+    }
+
+    close();
     App.show('book', { id });
+  }
+
+  function resolveIso(raw) {
+    const cleaned = raw.trim();
+    // Direct match (exact country name)
+    if (COUNTRY_TO_ISO[cleaned]) return COUNTRY_TO_ISO[cleaned];
+    // Case-insensitive match
+    const lower = cleaned.toLowerCase();
+    for (const [name, iso] of Object.entries(COUNTRY_TO_ISO)) {
+      if (name.toLowerCase() === lower) return iso;
+      if (name.toLowerCase().startsWith(lower)) return iso;
+    }
+    return null;
   }
 
   /* ── Public ──────────────────────────────────────────────────────────────── */

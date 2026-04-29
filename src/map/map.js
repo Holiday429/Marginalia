@@ -301,6 +301,35 @@ function buildGeoBuckets(books) {
 const MAP_LIBRARY = buildMapLibrary(MAP_BOOKS);
 const MAP_GEO = buildGeoBuckets(MAP_LIBRARY);
 
+window.mapAddBook = function(spineEntry) {
+  if (!spineEntry?.loc) return;
+  const entry = {
+    id:    spineEntry.id,
+    title: spineEntry.title,
+    author: spineEntry.author,
+    bg:    spineEntry.bg || spineEntry.spine || '#3a3a3a',
+    text:  spineEntry.text || '#e8dfc8',
+    loc:   spineEntry.loc,
+    year:  new Date().getFullYear(),
+    tags:  [],
+    coverImage: null,
+    geo: {
+      authorOrigin:    { country: spineEntry.loc },
+      contentLocation: { country: spineEntry.loc },
+      readerLocation:  null,
+    },
+  };
+  MAP_LIBRARY.push(entry);
+  MAP_BOOKS.push(entry);
+  // Insert into live geo buckets
+  ['authorOrigin', 'contentLocation'].forEach(mode => {
+    const countryId = spineEntry.loc;
+    if (!MAP_GEO[mode].countries[countryId]) MAP_GEO[mode].countries[countryId] = [];
+    MAP_GEO[mode].countries[countryId].push(entry);
+    MAP_GEO.allCountries.add(countryId);
+  });
+};
+
 function activeCountryMap() {
   if (__mapGeoMode === 'all') return mergedCountryMap();
   return MAP_GEO[__mapGeoMode].countries;
