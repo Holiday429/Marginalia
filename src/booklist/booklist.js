@@ -1258,7 +1258,7 @@ function toggleBooklistPick(uid) {
 
 /* ── Export / Share ──────────────────────────────────────────────────────── */
 
-function exportBooklist() {
+async function exportBooklist() {
   const year = BOOKLIST_STATE.year;
   const picks = BOOKLIST_STATE.selectedBooks;
   if (!picks.length) {
@@ -1266,55 +1266,165 @@ function exportBooklist() {
     return;
   }
 
-  const spineRows = picks.map((b, i) => `
-    <div class="book-row">
-      <div class="rank">${String(i + 1).padStart(2, '0')}</div>
-      <div class="spine" style="background:${escapeHTML(b.spine)};color:${escapeHTML(b.text)}">
-        ${b.coverSrc ? `<img src="${escapeHTML(b.coverSrc)}" alt="">` : ''}
-      </div>
-      <div class="info">
-        <div class="title">${escapeHTML(b.title)}</div>
-        <div class="author">${escapeHTML(b.author)}</div>
-      </div>
-    </div>
-  `).join('');
+  // Update button label while rendering
+  const shareBtn = document.getElementById('booklistShareBtn');
+  const origLabel = shareBtn?.textContent;
+  if (shareBtn) shareBtn.textContent = 'Rendering…';
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>${year} Reading List — Marginalia</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #b8ad9e; color: #1a1714; font-family: 'IBM Plex Mono', monospace, sans-serif; padding: 40px 24px; max-width: 640px; margin: 0 auto; }
-  h1 { font-family: Georgia, serif; font-size: 28px; font-weight: 400; margin-bottom: 8px; }
-  .sub { font-size: 11px; letter-spacing: 0.08em; color: rgba(26,23,20,0.55); margin-bottom: 40px; }
-  .book-row { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid rgba(26,23,20,0.15); }
-  .rank { font-size: 10px; letter-spacing: 0.08em; color: rgba(26,23,20,0.45); width: 24px; flex-shrink: 0; }
-  .spine { width: 32px; height: 80px; flex-shrink: 0; position: relative; overflow: hidden; }
-  .spine img { width: 100%; height: 100%; object-fit: cover; }
-  .title { font-family: Georgia, serif; font-size: 15px; margin-bottom: 4px; }
-  .author { font-size: 11px; color: rgba(26,23,20,0.55); }
-  footer { margin-top: 48px; font-size: 10px; color: rgba(26,23,20,0.4); letter-spacing: 0.06em; }
-</style>
-</head>
-<body>
-  <h1>${year} in Reading</h1>
-  <div class="sub">Marginalia · ${picks.length} books · Generated ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-  ${spineRows}
-  <footer>Made with Marginalia — margins are where thinking happens</footer>
-</body>
-</html>`;
+  try {
+    const dataUrl = await renderBooklistToImage(year, picks);
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `marginalia-${year}-reading-list.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } finally {
+    if (shareBtn) shareBtn.textContent = origLabel;
+  }
+}
 
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `marginalia-${year}-reading-list.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+async function renderBooklistToImage(year, picks) {
+  // Layout constants (2× for retina)
+  const SCALE   = 2;
+  const W       = 480;
+  const PAD     = 40;
+  const ROW_H   = 72;
+  const SPINE_W = 28;
+  const SPINE_H = 60;
+  const HEADER_H = 120;
+  const FOOTER_H = 56;
+  const H = HEADER_H + picks.length * ROW_H + FOOTER_H;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W * SCALE;
+  canvas.height = H * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Background
+  ctx.fillStyle = '#b8ad9e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle texture overlay — horizontal lines
+  ctx.strokeStyle = 'rgba(26,23,20,0.04)';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < H; y += 6) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Header
+  ctx.fillStyle = '#1a1714';
+  ctx.font = `300 32px Georgia, serif`;
+  ctx.fillText(String(year), PAD, 58);
+
+  ctx.fillStyle = 'rgba(26,23,20,0.5)';
+  ctx.font = `400 10px "IBM Plex Mono", monospace`;
+  ctx.letterSpacing = '0.08em';
+  ctx.fillText(`IN READING  ·  MARGINALIA`, PAD, 78);
+  ctx.letterSpacing = '0';
+
+  // Divider under header
+  ctx.strokeStyle = 'rgba(26,23,20,0.2)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD, HEADER_H - 8);
+  ctx.lineTo(W - PAD, HEADER_H - 8);
+  ctx.stroke();
+
+  // Load all cover images in parallel (best-effort — failures fall back to spine color)
+  const images = await Promise.all(picks.map(b => loadCoverImage(b.coverSrc)));
+
+  // Rows
+  picks.forEach((book, i) => {
+    const y = HEADER_H + i * ROW_H;
+
+    // Row divider (skip first — header divider covers it)
+    if (i > 0) {
+      ctx.strokeStyle = 'rgba(26,23,20,0.1)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(PAD, y);
+      ctx.lineTo(W - PAD, y);
+      ctx.stroke();
+    }
+
+    const spineX = PAD;
+    const spineY = y + (ROW_H - SPINE_H) / 2;
+
+    // Spine rectangle
+    ctx.fillStyle = book.spine || '#14263e';
+    ctx.fillRect(spineX, spineY, SPINE_W, SPINE_H);
+
+    // Cover image over spine
+    const img = images[i];
+    if (img) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(spineX, spineY, SPINE_W, SPINE_H);
+      ctx.clip();
+      const aspect = img.naturalWidth / img.naturalHeight;
+      const drawH  = SPINE_H;
+      const drawW  = drawH * aspect;
+      ctx.drawImage(img, spineX + (SPINE_W - drawW) / 2, spineY, drawW, drawH);
+      ctx.restore();
+    }
+
+    // Rank
+    ctx.fillStyle = 'rgba(26,23,20,0.35)';
+    ctx.font = `400 9px "IBM Plex Mono", monospace`;
+    const rankStr = String(i + 1).padStart(2, '0');
+    ctx.fillText(rankStr, spineX + SPINE_W + 12, spineY + 12);
+
+    // Title
+    ctx.fillStyle = '#1a1714';
+    ctx.font = `400 14px Georgia, serif`;
+    const titleX = spineX + SPINE_W + 12;
+    const titleY = spineY + 30;
+    ctx.fillText(truncateCanvas(ctx, book.title, W - titleX - PAD), titleX, titleY);
+
+    // Author
+    ctx.fillStyle = 'rgba(26,23,20,0.5)';
+    ctx.font = `400 10px "IBM Plex Mono", monospace`;
+    ctx.fillText(truncateCanvas(ctx, book.author, W - titleX - PAD), titleX, titleY + 18);
+  });
+
+  // Footer
+  const footerY = HEADER_H + picks.length * ROW_H + 24;
+  ctx.strokeStyle = 'rgba(26,23,20,0.15)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD, footerY - 12);
+  ctx.lineTo(W - PAD, footerY - 12);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(26,23,20,0.35)';
+  ctx.font = `400 9px "IBM Plex Mono", monospace`;
+  ctx.fillText('Margins are where thinking happens', PAD, footerY + 4);
+
+  return canvas.toDataURL('image/png');
+}
+
+function loadCoverImage(src) {
+  if (!src) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => resolve(img);
+    img.onerror = () => resolve(null);
+    // Force https — canvas taints on http
+    img.src = src.replace(/^http:\/\//i, 'https://');
+    setTimeout(() => resolve(null), 4000);
+  });
+}
+
+function truncateCanvas(ctx, text, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) {
+    t = t.slice(0, -1);
+  }
+  return t + '…';
 }
 
 window.initBooklist = initBooklist;
