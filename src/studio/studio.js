@@ -901,14 +901,38 @@ function onShelfDragMove(event) {
   const dy = (event.clientY - drag.startY) / scale;
   const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
   const bounds = getShelfMovementBounds(bay);
-  shelf.x = clamp(drag.shelfX + dx, bounds.minX, bounds.maxX, drag.shelfX);
-  shelf.y = clamp(drag.shelfY + dy, bounds.minY, bounds.maxY, drag.shelfY);
+
+  const candidateX = clamp(drag.shelfX + dx, bounds.minX, bounds.maxX, drag.shelfX);
+  const candidateY = clamp(drag.shelfY + dy, bounds.minY, bounds.maxY, drag.shelfY);
+
+  const w = bay?.offsetWidth || 420;
+  const h = bay?.offsetHeight || 360;
+  if (!shelfCollides(shelf.id, candidateX, candidateY, w, h)) {
+    shelf.x = candidateX;
+    shelf.y = candidateY;
+  }
 
   if (bay) {
     bay.style.left = `${Math.round(shelf.x)}px`;
     bay.style.top = `${Math.round(shelf.y)}px`;
     setShelfTransform(bay, shelf);
   }
+}
+
+function shelfCollides(movingId, x, y, w, h) {
+  const gap = 20;
+  return LIBRARY_STATE.shelves.some((other) => {
+    if (other.id === movingId) return false;
+    const node = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(other.id)}"]`);
+    const ow = node?.offsetWidth || 420;
+    const oh = node?.offsetHeight || 360;
+    return (
+      x < other.x + ow + gap &&
+      x + w + gap > other.x &&
+      y < other.y + oh + gap &&
+      y + h + gap > other.y
+    );
+  });
 }
 
 function startShelfRotateDrag(event, shelfId) {
