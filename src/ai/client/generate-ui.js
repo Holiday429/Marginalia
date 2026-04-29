@@ -4,9 +4,8 @@
    Injects "Generate with AI" buttons into panels that have a registered
    AI feature. Handles loading state, error display, and AI-label stamping.
 
-   Each panel's book-section div gets a .ai-toolbar appended.
-   On success the generated content is rendered into the panel and stamped
-   with an .ai-badge.
+   Results are persisted to IndexedDB (NotesStore) and restored on re-enter
+   without re-calling the API.
 
    Called after enterBook() renders the DOM:
      window.AIGenerateUI.mount(book, rootEl)
@@ -14,29 +13,28 @@
 
 window.AIGenerateUI = (() => {
 
-  function mount(book, root) {
+  async function mount(book, root) {
     if (!window.AIFeatureRegistry || !window.BookTypes) return;
 
     const features = window.AIFeatureRegistry.forBook(book);
     if (!features.length) return;
 
-    features.forEach(feature => {
-      // Find the panel section this feature targets
-      const panelId = feature.panel;
-      const section = root.querySelector(`.book-section#${CSS.escape(panelId)}`)
-        || root.querySelector(`.book-section#knowledge`)   // mindmap uses id="knowledge"
-        || root.querySelector(`.book-section#concepts`);   // concept-cards uses id="concepts"
-
-      // More precise matching by feature→panel
+    for (const feature of features) {
       const targetSection = findTargetSection(root, feature);
-      if (!targetSection) return;
+      if (!targetSection) continue;
 
       // Don't add duplicate toolbars
-      if (targetSection.querySelector('.ai-toolbar')) return;
+      if (targetSection.querySelector('.ai-toolbar')) continue;
 
       const toolbar = buildToolbar(feature, book, targetSection);
       targetSection.prepend(toolbar);
-    });
+
+      // Restore previously generated result (no API call)
+      const saved = await window.NotesStore?.getAiResult(book.id, feature.id);
+      if (saved) {
+        injectResult(feature, book, targetSection, saved, { fromCache: true });
+      }
+    }
   }
 
   function findTargetSection(root, feature) {
@@ -102,11 +100,14 @@ window.AIGenerateUI = (() => {
 
     if (!result) return;
 
-    injectResult(feature, book, section, result);
+    // Persist before rendering so a reload will show it
+    await window.NotesStore?.saveAiResult(book.id, feature.id, result);
+
+    injectResult(feature, book, section, result, { fromCache: false });
     showStatus(statusEl, 'Generated', 'ok');
   }
 
-  function injectResult(feature, book, section, result) {
+  function injectResult(feature, book, section, result, { fromCache = false } = {}) {
     // Remove any previous AI-generated content block
     section.querySelector('.ai-generated-block')?.remove();
 
@@ -115,7 +116,8 @@ window.AIGenerateUI = (() => {
     block.innerHTML = `
       <div class="ai-generated-header">
         <span class="ai-badge">✦ AI Generated</span>
-        <span class="ai-generated-model">${window.MarginaliaAI.getModel()}</span>
+        <span class="ai-generated-model">${fromCache ? 'cached' : window.MarginaliaAI.getModel()}</span>
+        <button class="ai-regen-btn" type="button" title="Regenerate">↺ Regenerate</button>
         <button class="ai-generated-dismiss" type="button" title="Dismiss">×</button>
       </div>
       <div class="ai-generated-content">
@@ -123,9 +125,21 @@ window.AIGenerateUI = (() => {
       </div>
     `;
 
-    block.querySelector('.ai-generated-dismiss').addEventListener('click', () => block.remove());
+    block.querySelector('.ai-generated-dismiss').addEventListener('click', async () => {
+      await window.NotesStore?.deleteAiResult(book.id, feature.id);
+      block.remove();
+    });
+
+    block.querySelector('.ai-regen-btn').addEventListener('click', async () => {
+      block.remove();
+      const toolbar = section.querySelector('.ai-toolbar');
+      const btn = toolbar?.querySelector('.ai-generate-btn');
+      const statusEl = toolbar?.querySelector('.ai-toolbar-status');
+      if (btn && statusEl) await run(feature, book, section, btn, statusEl);
+    });
+
     section.appendChild(block);
-    block.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!fromCache) block.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function renderResult(feature, result) {
@@ -166,7 +180,7 @@ window.AIGenerateUI = (() => {
         return `<ul class="ai-action-list">${items.map(a => `
           <li class="ai-action-item">
             <div class="ai-action-check"></div>
-            <div class="ai-action-text">${esc(a.text || '')}</div>
+            <div class="ai-action-text">${esc(a.text || a)}</div>
           </li>
         `).join('')}</ul>`;
       }

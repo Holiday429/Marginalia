@@ -311,6 +311,24 @@
   min-height: 10px;
 }
 
+/* Delete book (user-created only) */
+.book-delete-btn {
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  background: none;
+  border: 1px solid rgba(180,60,50,0.3);
+  color: rgba(180,60,50,0.65);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.book-delete-btn:hover {
+  border-color: rgba(180,60,50,0.7);
+  color: rgba(180,60,50,1);
+}
+
 /* Meta */
 .book-title-big {
   font-family: var(--font-serif);

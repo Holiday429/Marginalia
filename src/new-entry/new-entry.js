@@ -594,6 +594,9 @@ window.NewEntry = (() => {
     window.BOOK_DETAILS.unshift(fullBook);
     window.BOOK_BY_ID[id] = fullBook;
 
+    // Persist to IndexedDB so the book survives page reload
+    window.NotesStore?.saveBook(fullBook);
+
     // Inject into SHELF_BOOKS so the shelf shows the spine
     if (window.SHELF_BOOKS) {
       window.SHELF_BOOKS.unshift({
