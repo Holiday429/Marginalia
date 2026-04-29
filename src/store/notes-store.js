@@ -1,7 +1,7 @@
 /* ==========================================================================
    Marginalia · Notes Store
    --------------------------------------------------------------------------
-   Persists user-created highlights and action statuses to IndexedDB.
+   Persists user-created highlights, action statuses, and book notes to IndexedDB.
    Firebase flush happens when user is signed in (via db.js).
 
    Public surface:
@@ -11,14 +11,19 @@
      NotesStore.saveHighlight(bookId, highlight) → Promise
      NotesStore.deleteHighlight(bookId, highlightId) → Promise
      NotesStore.importHighlights(bookId, highlights) → Promise  (for Kindle import)
+     NotesStore.getNote(bookId) → { content, updatedAt } | null
+     NotesStore.saveNote(bookId, content) → Promise
      NotesStore.onChange(fn) — subscribe to any change
    ========================================================================== */
 
 window.NotesStore = (() => {
   const DB_NAME    = 'marginalia-notes';
-  const DB_VERSION = 1;
+  const DB_VERSION = 3;
   const STORE_ACTIONS    = 'action-status';
   const STORE_HIGHLIGHTS = 'highlights';
+  const STORE_NOTES      = 'book-notes';
+  const STORE_AI         = 'ai-results';
+  const STORE_BOOKS      = 'user-books';
 
   let _db     = null;
   let _ready  = false;
@@ -39,6 +44,18 @@ window.NotesStore = (() => {
         if (!db.objectStoreNames.contains(STORE_HIGHLIGHTS)) {
           const hs = db.createObjectStore(STORE_HIGHLIGHTS, { keyPath: 'id' });
           hs.createIndex('bookId', 'bookId', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(STORE_NOTES)) {
+          // key: bookId, one note doc per book
+          db.createObjectStore(STORE_NOTES, { keyPath: 'bookId' });
+        }
+        if (!db.objectStoreNames.contains(STORE_AI)) {
+          // key: "bookId::featureId"
+          db.createObjectStore(STORE_AI, { keyPath: 'key' });
+        }
+        if (!db.objectStoreNames.contains(STORE_BOOKS)) {
+          // key: book.id — stores full user-created book objects
+          db.createObjectStore(STORE_BOOKS, { keyPath: 'id' });
         }
       };
 
@@ -178,6 +195,66 @@ window.NotesStore = (() => {
     _emit();
   }
 
+  /* ── Book notes ──────────────────────────────────────────────────────────── */
+
+  async function getNote(bookId) {
+    if (!_db) return null;
+    return _idbGet(_tx(STORE_NOTES), bookId);
+  }
+
+  async function saveNote(bookId, content) {
+    const record = { bookId, content, updatedAt: Date.now() };
+    if (_db) {
+      await _idbPut(_tx(STORE_NOTES, 'readwrite'), record);
+    }
+    _emit();
+    return record;
+  }
+
+  /* ── AI results ─────────────────────────────────────────────────────────── */
+
+  async function getAiResult(bookId, featureId) {
+    if (!_db) return null;
+    const key = `${bookId}::${featureId}`;
+    const record = await _idbGet(_tx(STORE_AI), key);
+    return record ? record.data : null;
+  }
+
+  async function saveAiResult(bookId, featureId, data) {
+    const key = `${bookId}::${featureId}`;
+    if (_db) {
+      await _idbPut(_tx(STORE_AI, 'readwrite'), { key, bookId, featureId, data, savedAt: Date.now() });
+    }
+  }
+
+  async function deleteAiResult(bookId, featureId) {
+    if (!_db) return;
+    const key = `${bookId}::${featureId}`;
+    await _idbDelete(_tx(STORE_AI, 'readwrite'), key);
+  }
+
+  /* ── User books ──────────────────────────────────────────────────────────── */
+
+  async function saveBook(book) {
+    if (!_db) return;
+    await _idbPut(_tx(STORE_BOOKS, 'readwrite'), { ...book, _savedAt: Date.now() });
+  }
+
+  async function deleteBook(bookId) {
+    if (!_db) return;
+    await _idbDelete(_tx(STORE_BOOKS, 'readwrite'), bookId);
+  }
+
+  async function getAllBooks() {
+    if (!_db) return [];
+    return new Promise((resolve) => {
+      const tx = _db.transaction(STORE_BOOKS, 'readonly');
+      const req = tx.objectStore(STORE_BOOKS).getAll();
+      req.onsuccess = () => resolve(req.result ?? []);
+      req.onerror   = () => resolve([]);
+    });
+  }
+
   /* ── Subscriptions ───────────────────────────────────────────────────────── */
 
   function onChange(fn) {
@@ -197,6 +274,14 @@ window.NotesStore = (() => {
     saveHighlight,
     deleteHighlight,
     importHighlights,
+    getNote,
+    saveNote,
+    getAiResult,
+    saveAiResult,
+    deleteAiResult,
+    saveBook,
+    deleteBook,
+    getAllBooks,
     onChange,
   };
 })();

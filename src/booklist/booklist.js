@@ -34,21 +34,23 @@ const BOOKLIST_CURATED_DESC = window.BOOKLIST_CURATED || [];
 const BOOKLIST_HEATMAP_CACHE = new Map();
 let BOOKLIST_RESIZE_TIMER = 0;
 
-function initBooklist() {
+async function initBooklist() {
   BOOKLIST_STATE.year = BOOKLIST_YEARS.includes(BOOKLIST_STATE.year)
     ? BOOKLIST_STATE.year
     : BOOKLIST_YEARS[BOOKLIST_YEARS.length - 1];
 
-  hydrateBooklistData();
+  const savedPicks = await loadPicksForYear(BOOKLIST_STATE.year);
+  hydrateBooklistData(savedPicks);
   renderBooklistShell();
   bindBooklistEvents();
   renderBooklistContent();
   renderBooklistHeatmap();
 }
 
-function enterBooklist() {
+async function enterBooklist() {
   if (BOOKLIST_STATE.isAnimating) return;
-  hydrateBooklistData();
+  const savedPicks = await loadPicksForYear(BOOKLIST_STATE.year);
+  hydrateBooklistData(savedPicks);
   renderBooklistContent();
   renderBooklistHeatmap();
 }
@@ -178,7 +180,22 @@ function bindBooklistEvents() {
     if (previewCover) {
       event.preventDefault();
       openPreviewBookDetail();
+      return;
     }
+
+    // Toggle pick: click a source shelf spine to add/remove from annual picks
+    const sourceSpine = event.target.closest('[data-source-id]');
+    if (sourceSpine) {
+      const uid = sourceSpine.dataset.sourceId;
+      if (!uid) return;
+      toggleBooklistPick(uid);
+      return;
+    }
+  });
+
+  // Share / Export button (lives in nav, use event delegation)
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#booklistShareBtn')) exportBooklist();
   });
 
   window.addEventListener('resize', debounceBooklistHeatmap);
@@ -262,7 +279,10 @@ function shiftBooklistYear(delta) {
   const next = idx + delta;
   if (next < 0 || next >= BOOKLIST_YEARS.length) return;
   BOOKLIST_STATE.year = BOOKLIST_YEARS[next];
+  BOOKLIST_HEATMAP_CACHE.delete(BOOKLIST_STATE.year);
+  hydrateBooklistData();
   renderBooklistHeatmap();
+  renderBooklistContent();
 }
 
 function buildBooklistHeatmap(year) {
@@ -328,9 +348,29 @@ function formatYBDate(date) {
   return `${y}-${m}-${d}`;
 }
 
-function hydrateBooklistData() {
+function hydrateBooklistData(savedPickUids = null) {
   const sourceBooks = buildSourceBooks();
-  const selectedBase = selectAnnualBooks(sourceBooks, BOOKLIST_TARGET_COUNT);
+  let selectedBase;
+
+  if (savedPickUids && savedPickUids.length) {
+    // Restore picks from saved uids (order preserved)
+    const byUid = new Map(sourceBooks.map(b => [b.uid, b]));
+    const restored = savedPickUids.map(uid => byUid.get(uid)).filter(Boolean);
+    // Fill remaining slots from auto-selection if fewer than target
+    if (restored.length < BOOKLIST_TARGET_COUNT) {
+      const restoredSet = new Set(savedPickUids);
+      const extras = selectAnnualBooks(
+        sourceBooks.filter(b => !restoredSet.has(b.uid)),
+        BOOKLIST_TARGET_COUNT - restored.length
+      );
+      selectedBase = [...restored, ...extras];
+    } else {
+      selectedBase = restored;
+    }
+  } else {
+    selectedBase = selectAnnualBooks(sourceBooks, BOOKLIST_TARGET_COUNT);
+  }
+
   const selectedBooks = applyCuratedBooksToSelection(selectedBase);
   const selectedMap = new Map(selectedBooks.map((book) => [book.uid, book]));
 
@@ -819,51 +859,62 @@ function buildCenterPreviewFrame(book) {
 
 function applyCuratedBooksToSelection(selectedBooks) {
   if (!Array.isArray(selectedBooks) || !selectedBooks.length) return [];
+  return selectedBooks.map((book, index) => ({
+    ...book,
+    rank: index,
+    isFeatured: index === 0,
+  }));
+}
 
-  return selectedBooks.map((book, index) => {
-    if (index === 0) {
-      return {
-        ...book,
-        rank: 0,
-        isFeatured: true,
-      };
-    }
+/* ── Picks persistence (IndexedDB via NotesStore ai-results store reused) ── */
 
-    const desc = BOOKLIST_CURATED_DESC[index - 1];
-    if (!desc) {
-      return {
-        ...book,
-        rank: index,
-        isFeatured: false,
-      };
-    }
+function picksKey(year) { return `booklist-picks::${year}`; }
 
-    return {
-      ...book,
-      id: '',
-      detail: null,
-      title: desc.title,
-      author: desc.author,
-      spineTitle: desc.title,
-      spineAuthor: desc.author.split(/\s+[A-Za-z]/)[0]?.trim() || desc.author,
-      coverSrc: desc.coverSrc || book.coverSrc,
-      rank: index,
-      isFeatured: false,
-    };
-  });
+async function savePicksForYear(year, uids) {
+  await window.NotesStore?.ready?.();
+  await window.NotesStore?.saveAiResult('__booklist__', picksKey(year), uids);
+}
+
+async function loadPicksForYear(year) {
+  await window.NotesStore?.ready?.();
+  return window.NotesStore?.getAiResult('__booklist__', picksKey(year)) || null;
 }
 
 function buildSourceBooks() {
+  const year = BOOKLIST_STATE.year;
   const shelfBooks = Array.isArray(window.SHELF_BOOKS) ? window.SHELF_BOOKS : [];
-  const detailBooks = Array.isArray(window.BOOK_DETAILS) ? window.BOOK_DETAILS : [];
+  const allDetailBooks = Array.isArray(window.BOOK_DETAILS) ? window.BOOK_DETAILS : [];
+
+  // Filter detail books to those started or finished in the selected year
+  const yearStr = String(year);
+  const detailBooks = allDetailBooks.filter((b) => {
+    const started  = String(b.meta?.startedAt  || '');
+    const finished = String(b.meta?.finishedAt || '');
+    const added    = String(b.meta?.addedAt    || b._savedAt || '');
+    // include if any date field matches the year, or if no date at all (show all)
+    if (!started && !finished && !added) return true;
+    return started.startsWith(yearStr) || finished.startsWith(yearStr) || added.startsWith(yearStr);
+  });
+
   const titleMap = createDetailLookup(detailBooks);
 
   if (!shelfBooks.length && detailBooks.length) {
     return detailBooks.map((detail, index) => normalizeBookRecord({ id: detail.id }, index, detail, null));
   }
 
-  return shelfBooks.map((entry, index) => {
+  // Filter shelf books to those whose linked detail is in this year
+  const yearDetailIds = new Set(detailBooks.map(b => b.id).filter(Boolean));
+  const filteredShelf = shelfBooks.filter((entry) => {
+    if (!entry.id && !entry.title) return false;
+    if (entry.id && yearDetailIds.has(entry.id)) return true;
     const detail = resolveDetail(entry, titleMap);
+    return Boolean(detail);
+  });
+
+  // If year filter yields nothing, fall back to all shelf books
+  const source = filteredShelf.length ? filteredShelf : shelfBooks;
+  return source.map((entry, index) => {
+    const detail = resolveDetail(entry, createDetailLookup(allDetailBooks));
     return normalizeBookRecord(entry, index, detail, entry);
   });
 }
@@ -1163,6 +1214,217 @@ function delay(ms) {
 
 function waitFrame() {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+/* ── Toggle pick ─────────────────────────────────────────────────────────── */
+
+function toggleBooklistPick(uid) {
+  const book = BOOKLIST_STATE.sourceBooks.find(b => b.uid === uid);
+  if (!book) return;
+
+  const alreadyPicked = BOOKLIST_STATE.selectedByUid.has(uid);
+
+  if (alreadyPicked) {
+    // Remove
+    BOOKLIST_STATE.selectedBooks = BOOKLIST_STATE.selectedBooks.filter(b => b.uid !== uid);
+    BOOKLIST_STATE.selectedByUid.delete(uid);
+  } else {
+    // Add at end
+    const pick = { ...book, rank: BOOKLIST_STATE.selectedBooks.length, isFeatured: BOOKLIST_STATE.selectedBooks.length === 0 };
+    BOOKLIST_STATE.selectedBooks.push(pick);
+    BOOKLIST_STATE.selectedByUid.set(uid, pick);
+  }
+
+  // Re-assign ranks
+  BOOKLIST_STATE.selectedBooks = BOOKLIST_STATE.selectedBooks.map((b, i) => ({
+    ...b, rank: i, isFeatured: i === 0,
+  }));
+  BOOKLIST_STATE.selectedByUid = new Map(BOOKLIST_STATE.selectedBooks.map(b => [b.uid, b]));
+  BOOKLIST_STATE.sourceBooks = BOOKLIST_STATE.sourceBooks.map(b =>
+    BOOKLIST_STATE.selectedByUid.get(b.uid) || b
+  );
+
+  // Persist picks for this year
+  savePicksForYear(BOOKLIST_STATE.year, BOOKLIST_STATE.selectedBooks.map(b => b.uid));
+
+  // Re-render without resetting animation state
+  const sourceHost = document.getElementById('ybSourceShelf');
+  const annualHost = document.getElementById('ybAnnualRacks');
+  const counter = document.getElementById('ybAnnualCounter');
+  if (sourceHost) renderSourceShelf(sourceHost, BOOKLIST_STATE.sourceBooks);
+  if (annualHost) renderAnnualRacks(annualHost, BOOKLIST_STATE.selectedBooks);
+  if (counter) counter.textContent = `${BOOKLIST_STATE.selectedBooks.length} / ${BOOKLIST_TARGET_COUNT} shelved`;
+}
+
+/* ── Export / Share ──────────────────────────────────────────────────────── */
+
+async function exportBooklist() {
+  const year = BOOKLIST_STATE.year;
+  const picks = BOOKLIST_STATE.selectedBooks;
+  if (!picks.length) {
+    alert('No books selected for this year yet. Use the source shelf to pick your favourites.');
+    return;
+  }
+
+  // Update button label while rendering
+  const shareBtn = document.getElementById('booklistShareBtn');
+  const origLabel = shareBtn?.textContent;
+  if (shareBtn) shareBtn.textContent = 'Rendering…';
+
+  try {
+    const dataUrl = await renderBooklistToImage(year, picks);
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `marginalia-${year}-reading-list.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } finally {
+    if (shareBtn) shareBtn.textContent = origLabel;
+  }
+}
+
+async function renderBooklistToImage(year, picks) {
+  // Layout constants (2× for retina)
+  const SCALE   = 2;
+  const W       = 480;
+  const PAD     = 40;
+  const ROW_H   = 72;
+  const SPINE_W = 28;
+  const SPINE_H = 60;
+  const HEADER_H = 120;
+  const FOOTER_H = 56;
+  const H = HEADER_H + picks.length * ROW_H + FOOTER_H;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W * SCALE;
+  canvas.height = H * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Background
+  ctx.fillStyle = '#b8ad9e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle texture overlay — horizontal lines
+  ctx.strokeStyle = 'rgba(26,23,20,0.04)';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < H; y += 6) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Header
+  ctx.fillStyle = '#1a1714';
+  ctx.font = `300 32px Georgia, serif`;
+  ctx.fillText(String(year), PAD, 58);
+
+  ctx.fillStyle = 'rgba(26,23,20,0.5)';
+  ctx.font = `400 10px "IBM Plex Mono", monospace`;
+  ctx.letterSpacing = '0.08em';
+  ctx.fillText(`IN READING  ·  MARGINALIA`, PAD, 78);
+  ctx.letterSpacing = '0';
+
+  // Divider under header
+  ctx.strokeStyle = 'rgba(26,23,20,0.2)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD, HEADER_H - 8);
+  ctx.lineTo(W - PAD, HEADER_H - 8);
+  ctx.stroke();
+
+  // Load all cover images in parallel (best-effort — failures fall back to spine color)
+  const images = await Promise.all(picks.map(b => loadCoverImage(b.coverSrc)));
+
+  // Rows
+  picks.forEach((book, i) => {
+    const y = HEADER_H + i * ROW_H;
+
+    // Row divider (skip first — header divider covers it)
+    if (i > 0) {
+      ctx.strokeStyle = 'rgba(26,23,20,0.1)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(PAD, y);
+      ctx.lineTo(W - PAD, y);
+      ctx.stroke();
+    }
+
+    const spineX = PAD;
+    const spineY = y + (ROW_H - SPINE_H) / 2;
+
+    // Spine rectangle
+    ctx.fillStyle = book.spine || '#14263e';
+    ctx.fillRect(spineX, spineY, SPINE_W, SPINE_H);
+
+    // Cover image over spine
+    const img = images[i];
+    if (img) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(spineX, spineY, SPINE_W, SPINE_H);
+      ctx.clip();
+      const aspect = img.naturalWidth / img.naturalHeight;
+      const drawH  = SPINE_H;
+      const drawW  = drawH * aspect;
+      ctx.drawImage(img, spineX + (SPINE_W - drawW) / 2, spineY, drawW, drawH);
+      ctx.restore();
+    }
+
+    // Rank
+    ctx.fillStyle = 'rgba(26,23,20,0.35)';
+    ctx.font = `400 9px "IBM Plex Mono", monospace`;
+    const rankStr = String(i + 1).padStart(2, '0');
+    ctx.fillText(rankStr, spineX + SPINE_W + 12, spineY + 12);
+
+    // Title
+    ctx.fillStyle = '#1a1714';
+    ctx.font = `400 14px Georgia, serif`;
+    const titleX = spineX + SPINE_W + 12;
+    const titleY = spineY + 30;
+    ctx.fillText(truncateCanvas(ctx, book.title, W - titleX - PAD), titleX, titleY);
+
+    // Author
+    ctx.fillStyle = 'rgba(26,23,20,0.5)';
+    ctx.font = `400 10px "IBM Plex Mono", monospace`;
+    ctx.fillText(truncateCanvas(ctx, book.author, W - titleX - PAD), titleX, titleY + 18);
+  });
+
+  // Footer
+  const footerY = HEADER_H + picks.length * ROW_H + 24;
+  ctx.strokeStyle = 'rgba(26,23,20,0.15)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD, footerY - 12);
+  ctx.lineTo(W - PAD, footerY - 12);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(26,23,20,0.35)';
+  ctx.font = `400 9px "IBM Plex Mono", monospace`;
+  ctx.fillText('Margins are where thinking happens', PAD, footerY + 4);
+
+  return canvas.toDataURL('image/png');
+}
+
+function loadCoverImage(src) {
+  if (!src) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => resolve(img);
+    img.onerror = () => resolve(null);
+    // Force https — canvas taints on http
+    img.src = src.replace(/^http:\/\//i, 'https://');
+    setTimeout(() => resolve(null), 4000);
+  });
+}
+
+function truncateCanvas(ctx, text, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) {
+    t = t.slice(0, -1);
+  }
+  return t + '…';
 }
 
 window.initBooklist = initBooklist;

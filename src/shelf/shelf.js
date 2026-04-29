@@ -86,6 +86,11 @@ function bindShelfEvents() {
   if (SHELF_BOUND) return;
   SHELF_BOUND = true;
 
+  // Re-render when persisted user books finish loading asynchronously
+  window.addEventListener('marginalia:books-changed', () => {
+    refreshShelfFromSource();
+  });
+
   const newEntryBtn = document.getElementById('shelfNewEntryBtn');
   if (newEntryBtn) {
     newEntryBtn.addEventListener('click', () => window.NewEntry?.mount());

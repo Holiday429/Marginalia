@@ -311,6 +311,24 @@
   min-height: 10px;
 }
 
+/* Delete book (user-created only) */
+.book-delete-btn {
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  background: none;
+  border: 1px solid rgba(180,60,50,0.3);
+  color: rgba(180,60,50,0.65);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.book-delete-btn:hover {
+  border-color: rgba(180,60,50,0.7);
+  color: rgba(180,60,50,1);
+}
+
 /* Meta */
 .book-title-big {
   font-family: var(--font-serif);
@@ -1728,3 +1746,138 @@
   color: var(--bg);
 }
 .kindle-preview-import:disabled { opacity: 0.5; cursor: default; }
+
+/* ── Notes panel ─────────────────────────────────────────────────────────── */
+.notes-panel {
+  padding: 0;
+}
+.notes-panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.notes-panel-head h2 {
+  margin: 0;
+}
+.notes-save-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.notes-editor {
+  min-height: 320px;
+  width: 100%;
+  font-family: var(--font-serif);
+  font-size: var(--fs-16);
+  line-height: 1.75;
+  color: var(--ink);
+  border: 1px solid rgba(26,23,20,0.15);
+  padding: 20px 24px;
+  outline: none;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+}
+.notes-editor:focus {
+  border-color: var(--accent);
+}
+.notes-editor:empty::before {
+  content: attr(placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ── Visual Notes panel (4C) ─────────────────────────────────────────────── */
+.vn-panel {
+  padding: 0;
+}
+.vn-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.vn-head h2 { margin: 0; }
+
+.vn-upload-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 7px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+.vn-upload-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+.vn-upload-btn--large {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 10px 20px;
+}
+
+.vn-empty {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--muted);
+  font-family: var(--font-serif);
+  font-size: var(--fs-16);
+}
+
+.vn-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(26,23,20,0.12);
+}
+.vn-tab {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: none;
+  color: var(--muted);
+  padding: 8px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  top: 1px;
+}
+.vn-tab.is-active {
+  border-color: rgba(26,23,20,0.12);
+  color: var(--ink);
+  background: var(--bg);
+}
+.vn-tab-delete {
+  opacity: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--muted);
+  padding: 0 2px;
+  transition: opacity 0.1s;
+}
+.vn-tab:hover .vn-tab-delete { opacity: 1; }
+
+.vn-frame-wrap { position: relative; }
+
+.vn-frame-slot { display: none; }
+.vn-frame-slot.is-active { display: block; }
+
+.vn-iframe {
+  width: 100%;
+  min-height: 400px;
+  border: 1px solid rgba(26,23,20,0.12);
+  border-top: none;
+  display: block;
+  overflow-x: auto;
+  background: #fff;
+}

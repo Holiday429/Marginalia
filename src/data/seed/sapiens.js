@@ -13,7 +13,9 @@ window.__SEED_SAPIENS = {
   // 'nonfiction' maps to: overview, highlights, notes, mindmap, timeline, claude-import
   // Override panels/aiFeatures here to customise for this specific book.
   bookType: 'nonfiction',
-  // panels: undefined,       ← inherits nonfiction default
+  // Explicit panel list — preserves all pre-4A sections for this book.
+  // New books that don't specify panels inherit the nonfiction default.
+  panels: ['overview', 'conclusion', 'highlights', 'notes', 'claude-import', 'geo-context', 'concept-cards', 'mindmap', 'related', 'actions', 'context'],
   aiFeatures: ['mindmap-gen', 'timeline-gen', 'concept-cards'],
   title: 'Sapiens: A Brief History of Humankind',
   titleZh: '人类简史',

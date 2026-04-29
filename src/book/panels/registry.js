@@ -41,8 +41,8 @@ window.PanelRegistry = (() => {
     },
 
     'claude-import': {
-      label: 'From Claude',
-      icon: '⟳',
+      label: 'Visual Notes',
+      icon: '⧉',
       universal: true,
       render: null,
     },
@@ -95,6 +95,29 @@ window.PanelRegistry = (() => {
     actions: {
       label: 'To Do',
       icon: '◻',
+      universal: false,
+      render: null,
+    },
+
+    /* ── Legacy / per-book panels (pre-4A, kept for backward compat) ─────── */
+
+    conclusion: {
+      label: 'My Conclusion',
+      icon: '◑',
+      universal: false,
+      render: null,
+    },
+
+    related: {
+      label: 'Related Books',
+      icon: '◎',
+      universal: false,
+      render: null,
+    },
+
+    context: {
+      label: 'Reading Context',
+      icon: '◐',
       universal: false,
       render: null,
     },

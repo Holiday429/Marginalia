@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="src/core/concept-ui.css">
   <link rel="stylesheet" href="src/web/web.css">
   <link rel="stylesheet" href="src/new-entry/new-entry.css">
+  <link rel="stylesheet" href="src/ai/ai.css">
 
   <!-- amCharts (used by map view) — loaded eagerly so first visit boots fast -->
   <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
@@ -299,9 +300,24 @@
   <script src="src/components/spine-card.js"></script>
   <script src="src/new-entry/new-entry.js"></script>
 
+  <!-- 6a. AI layer (load before panels and book.js) -->
+  <script src="src/ai/client/api.js"></script>
+  <script src="src/ai/client/generate-ui.js"></script>
+  <script src="src/ai/features/prompts/mindmap-gen.js"></script>
+  <script src="src/ai/features/prompts/concept-cards.js"></script>
+  <script src="src/ai/features/prompts/argument-breakdown.js"></script>
+  <script src="src/ai/features/prompts/timeline-gen.js"></script>
+  <script src="src/ai/features/prompts/action-suggest.js"></script>
+  <script src="src/ai/settings/ai-settings.js"></script>
+
+  <!-- 6b. Panel scripts (load before book.js so PanelRegistry.set() runs first) -->
+  <script src="src/book/panels/notes.js"></script>
+  <script src="src/book/panels/claude-import.js"></script>
+
   <!-- 6. Views -->
   <script src="src/preloader/preloader.js"></script>
   <script src="src/shelf/shelf.js"></script>
+  <script type="module" src="src/studio/room-scene.js"></script>
   <script src="src/studio/studio.js"></script>
   <script src="src/booklist/booklist.js"></script>
   <script src="src/book/book.js"></script>

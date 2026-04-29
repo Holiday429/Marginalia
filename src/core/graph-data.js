@@ -326,6 +326,51 @@ window.MarginaliaGraph = (() => {
       });
   }
 
+  /**
+   * Inject AI-generated concepts into a book's graph and rebuild state.
+   * concepts: array from concept-cards prompt output — each needs id, name,
+   * contextTag, relationType, strength, description, readerUnderstanding.
+   */
+  function addConceptsFromAI(bookId, concepts) {
+    const book = graphState.booksById[bookId] || window.BOOK_BY_ID?.[bookId];
+    if (!book) return false;
+
+    if (!book.graph) book.graph = {};
+    if (!Array.isArray(book.graph.suggestedConcepts)) book.graph.suggestedConcepts = [];
+
+    const existingIds = new Set(book.graph.suggestedConcepts.map(c => c.id));
+    let added = 0;
+    for (const c of concepts) {
+      const id = c.id || slugify(c.name || 'concept');
+      if (existingIds.has(id)) continue;
+      book.graph.suggestedConcepts.push({
+        id,
+        name:               c.name || '',
+        aliases:            c.aliases || [],
+        description:        c.description || '',
+        contextTag:         c.contextTag || '',
+        relationType:       RELATION_META[c.relationType] ? c.relationType : 'supports',
+        strength:           typeof c.strength === 'number' ? c.strength : 0.72,
+        readerUnderstanding: c.readerUnderstanding || '',
+        status:             'suggested',
+        origin:             'ai',
+      });
+      existingIds.add(id);
+      added++;
+    }
+
+    if (added === 0) return false;
+
+    // Persist updated book record so graph survives reload
+    window.NotesStore?.saveBook(book);
+
+    graphState = buildGraphState();
+    window.dispatchEvent(new CustomEvent('marginalia:graph-links-changed', {
+      detail: { source: 'ai-import', bookId, added },
+    }));
+    return true;
+  }
+
   function setBookConceptLinkStatus(linkId, status) {
     if (!STATUS_META[status]) return false;
     const overrides = getStatusOverrides();
@@ -468,6 +513,7 @@ window.MarginaliaGraph = (() => {
     getRelationMeta,
     getLinkStatusMeta,
     setBookConceptLinkStatus,
+    addConceptsFromAI,
     useRemoteStatusOverrides,
     clearRemoteStatusOverrides,
     setStatusPersistence,
