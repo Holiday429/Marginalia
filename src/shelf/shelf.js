@@ -12,6 +12,10 @@ let SHELF_RECORDS = [];
 let SHELF_RESIZE_TIMER = null;
 let SHELF_BOUND = false;
 
+function containsCJK(value) {
+  return /[一-鿿぀-ヿ]/.test(String(value || ''));
+}
+
 function initShelf() {
   SHELF_STATE.selectedKey = null;
   SHELF_STATE.isExpanded = false;
@@ -365,6 +369,8 @@ function createSpineButton(record) {
     height,
     className:    'shelf-spine',
     extraClasses: record.key === SHELF_STATE.selectedKey ? ['active'] : [],
+    titleClass:   `shelf-spine-title${containsCJK(record.titleDisplay) ? ' is-cjk' : ''}`,
+    authorClass:  `shelf-spine-author${containsCJK(record.author) ? ' is-cjk' : ''}`,
     dataAttrs:    { key: record.key, status: record.status },
     onClick(btn) {
       const sourceSnapshot = captureSpineSnapshot(btn);

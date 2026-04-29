@@ -247,6 +247,7 @@ window.NewEntry = (() => {
 
         <!-- Left: Spine preview + DIY controls -->
         <div class="ne-spine-panel">
+          <p class="ne-sentiment-hint">Choose colors that capture how this book makes you feel — not just its cover.</p>
           <div class="ne-spine-preview-wrap">
             <div class="ne-spine-preview" id="neSpinePreview"></div>
             <div class="ne-cover-preview" id="neCoverPreview">
@@ -260,7 +261,6 @@ window.NewEntry = (() => {
           </div>
 
           <div class="ne-diy-section">
-            <p class="ne-sentiment-hint">Choose colors that capture how this book makes you feel — not just its cover.</p>
             <div class="ne-diy-label">Spine Color</div>
             <div class="ne-color-grid" id="neColorGrid">
               ${SPINE_COLORS.map(c => `
@@ -269,11 +269,13 @@ window.NewEntry = (() => {
                   style="background:${c.hex}"
                   title="${c.label}"></button>
               `).join('')}
+              <button class="ne-color-swatch ne-color-swatch--rainbow${SPINE_COLORS.some(c => c.hex === state.spineColor) ? '' : ' is-active'}"
+                type="button"
+                id="neCustomColorTrigger"
+                title="Custom Color"
+                aria-label="Custom Color"></button>
             </div>
-            <div class="ne-custom-color-row">
-              <label class="ne-diy-label" for="neCustomColor">Custom</label>
-              <input type="color" id="neCustomColor" value="${state.spineColor}" class="ne-color-picker">
-            </div>
+            <input type="color" id="neCustomColor" value="${state.spineColor}" class="ne-color-picker" hidden>
           </div>
 
           <div class="ne-diy-section">
@@ -309,11 +311,7 @@ window.NewEntry = (() => {
                 <input class="ne-input ne-isbn-input" id="neIsbn" type="text" placeholder="ISBN — paste to auto-fill">
                 <button class="ne-isbn-btn" type="button" id="neIsbnBtn">Lookup</button>
               </div>
-              <div class="ne-isbn-status" id="neIsbnStatus"></div>
-              <div class="ne-field">
-                <label class="ne-label" for="neExternalLink">External Link</label>
-                <input class="ne-input" id="neExternalLink" type="url" placeholder="Douban / Amazon URL">
-              </div>
+              <div class="ne-isbn-status" id="neIsbnStatus" hidden></div>
             </div>
 
             <div class="ne-divider"></div>
@@ -374,8 +372,17 @@ window.NewEntry = (() => {
           </div>
 
           <div class="ne-form-footer">
-            <button class="ne-submit-btn" type="submit" id="neSubmitBtn">Add to library</button>
-            <button class="ne-cancel-btn" type="button" id="neCancelBtn">Cancel</button>
+            <div class="ne-footer-link-row">
+              <label class="ne-label" for="neExternalLink">External Link</label>
+              <div class="ne-external-row">
+                <input class="ne-input" id="neExternalLink" type="url" placeholder="Douban / Amazon URL">
+                <button class="ne-external-btn" type="button" id="neExternalOpenBtn">Open</button>
+              </div>
+            </div>
+            <div class="ne-footer-actions">
+              <button class="ne-submit-btn" type="submit" id="neSubmitBtn">Add to library</button>
+              <button class="ne-cancel-btn" type="button" id="neCancelBtn">Cancel</button>
+            </div>
           </div>
         </form>
 
@@ -467,11 +474,17 @@ window.NewEntry = (() => {
 
     // Color swatches
     dialog.querySelector('#neColorGrid')?.addEventListener('click', e => {
+      const customTrigger = e.target.closest('#neCustomColorTrigger');
+      if (customTrigger) {
+        dialog.querySelector('#neCustomColor')?.click();
+        return;
+      }
       const swatch = e.target.closest('[data-color]');
       if (!swatch) return;
       state.spineColor = swatch.dataset.color;
       state.textColor  = autoTextColor(state.spineColor);
       dialog.querySelector('#neCustomColor').value = state.spineColor;
+      dialog.querySelector('#neCustomColorTrigger')?.classList.remove('is-active');
       dialog.querySelectorAll('.ne-color-swatch').forEach(s =>
         s.classList.toggle('is-active', s.dataset.color === state.spineColor));
       renderSpinePreview();
@@ -482,6 +495,7 @@ window.NewEntry = (() => {
       state.spineColor = e.target.value;
       state.textColor  = autoTextColor(state.spineColor);
       dialog.querySelectorAll('.ne-color-swatch').forEach(s => s.classList.remove('is-active'));
+      dialog.querySelector('#neCustomColorTrigger')?.classList.add('is-active');
       renderSpinePreview();
     });
 
@@ -534,6 +548,9 @@ window.NewEntry = (() => {
     dialog.querySelector('#neIsbn')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); lookupIsbn(dialog); }
     });
+    dialog.querySelector('#neExternalOpenBtn')?.addEventListener('click', () => openExternalLink(dialog));
+    dialog.querySelector('#neExternalLink')?.addEventListener('input', () => syncExternalLinkButton(dialog));
+    syncExternalLinkButton(dialog);
 
     // Form submit
     dialog.querySelector('#neForm')?.addEventListener('submit', e => {
@@ -607,87 +624,155 @@ window.NewEntry = (() => {
   /* ── ISBN lookup (Open Library) ──────────────────────────────────────────── */
 
   async function lookupIsbn(dialog) {
-    const isbnInput = dialog.querySelector('#neIsbn');
-    const status    = dialog.querySelector('#neIsbnStatus');
-    const isbn = (isbnInput?.value || '').replace(/[^0-9X]/gi, '');
+    const status = dialog.querySelector('#neIsbnStatus');
+    const rawIsbn = dialog.querySelector('#neIsbn')?.value || '';
+    const isbn = rawIsbn.replace(/[^0-9X]/gi, '');
     if (isbn.length < 10) {
-      showIsbnStatus(status, 'Enter a valid ISBN-10 or ISBN-13.', 'error');
+      showLookupStatus(status, 'Enter a valid ISBN-10 or ISBN-13.', 'error');
       return;
     }
-    showIsbnStatus(status, 'Looking up…', 'loading');
+    showLookupStatus(status, 'Looking up by ISBN…', 'loading');
     try {
-      // Try Google Books first (best coverage including Chinese books)
-      const gbRes  = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-      const gbJson = await gbRes.json();
-      const gbItem = gbJson.items?.[0]?.volumeInfo;
-
-      if (gbItem) {
-        const titleInput  = dialog.querySelector('#neTitle');
-        const authorInput = dialog.querySelector('#neAuthor');
-        const lang = dialog.querySelector('#neLanguage')?.value || 'en';
-        const isChinese = lang === 'zh';
-        // Only fill title/author if empty; never overwrite CJK text with an English translation
-        if (titleInput && !titleInput.value && !(isChinese && isCJK(gbItem.title || ''))) {
-          titleInput.value = gbItem.title || '';
-        }
-        if (authorInput && !authorInput.value) {
-          authorInput.value = (gbItem.authors || []).join(', ');
-        }
-
-        const coverUrl = gbItem.imageLinks?.thumbnail || gbItem.imageLinks?.smallThumbnail || '';
-        if (coverUrl) {
-          const img = dialog.querySelector('#neCoverImg');
-          const placeholder = dialog.querySelector('#neCoverPlaceholder');
-          const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
-          if (img) { img.src = coverUrl.replace('http://', 'https://'); img.hidden = false; }
-          if (placeholder) placeholder.hidden = true;
-          if (uploadBtn) uploadBtn.textContent = 'Change Cover';
-        }
-
-        state.title  = titleInput?.value  || '';
-        state.author = authorInput?.value || '';
-        renderSpinePreview();
-        showIsbnStatus(status, `Found: ${gbItem.title}`, 'ok');
+      const lookupData = await fetchBookByIsbn(isbn);
+      if (!lookupData) {
+        showLookupStatus(status, 'No match found. Enter details manually.', 'error');
         return;
       }
-
-      // Fallback: Open Library
-      const olRes  = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-      const olJson = await olRes.json();
-      const olBook = olJson[`ISBN:${isbn}`];
-      if (!olBook) { showIsbnStatus(status, 'Not found in database. Enter title manually.', 'error'); return; }
-
-      const titleInput  = dialog.querySelector('#neTitle');
-      const authorInput = dialog.querySelector('#neAuthor');
-      const lang2 = dialog.querySelector('#neLanguage')?.value || 'en';
-      if (titleInput && !titleInput.value && !(lang2 === 'zh' && isCJK(olBook.title || ''))) {
-        titleInput.value = olBook.title || '';
-      }
-      if (authorInput && !authorInput.value) {
-        authorInput.value = (olBook.authors || []).map(a => a.name).filter(Boolean).join(', ');
-      }
-      const coverUrl = olBook.cover?.medium || olBook.cover?.large || '';
-      if (coverUrl) {
-        const img = dialog.querySelector('#neCoverImg');
-        const placeholder = dialog.querySelector('#neCoverPlaceholder');
-        const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
-        if (img) { img.src = coverUrl; img.hidden = false; }
-        if (placeholder) placeholder.hidden = true;
-        if (uploadBtn) uploadBtn.textContent = 'Change Cover';
-      }
-      state.title  = titleInput?.value  || '';
-      state.author = authorInput?.value || '';
-      renderSpinePreview();
-      showIsbnStatus(status, `Found: ${olBook.title}`, 'ok');
+      applyLookupData(dialog, lookupData);
+      showLookupStatus(status, `Auto-filled from ISBN: ${lookupData.title || 'book record found'}`, 'ok');
     } catch {
-      showIsbnStatus(status, 'Lookup failed. Check your connection.', 'error');
+      showLookupStatus(status, 'Lookup failed. Check your connection.', 'error');
     }
   }
 
-  function showIsbnStatus(el, msg, type) {
+  function showLookupStatus(el, msg, type) {
     if (!el) return;
+    if (!msg) {
+      el.hidden = true;
+      el.textContent = '';
+      el.className = 'ne-isbn-status';
+      return;
+    }
+    el.hidden = false;
     el.textContent = msg;
     el.className = `ne-isbn-status ne-isbn-status--${type}`;
+  }
+
+  async function fetchBookByIsbn(isbn) {
+    const gbRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`);
+    const gbJson = await gbRes.json();
+    const gbInfo = gbJson.items?.[0]?.volumeInfo;
+    if (gbInfo) return mapGoogleBookToLookup(gbInfo);
+
+    const olRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&format=json&jscmd=data`);
+    const olJson = await olRes.json();
+    const olBook = olJson[`ISBN:${isbn}`];
+    if (!olBook) return null;
+    return mapOpenLibraryBookToLookup(olBook);
+  }
+
+  function mapGoogleBookToLookup(info) {
+    return {
+      title: info.title || '',
+      author: (info.authors || []).filter(Boolean).join(', '),
+      language: normalizeLanguage(info.language),
+      tags: (info.categories || []).slice(0, 4),
+      coverUrl: (info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || '').replace('http://', 'https://'),
+      origin: '',
+      bookType: inferBookType(info.categories || []),
+    };
+  }
+
+  function mapOpenLibraryBookToLookup(book) {
+    return {
+      title: book.title || '',
+      author: (book.authors || []).map(a => a?.name).filter(Boolean).join(', '),
+      language: normalizeLanguage(book.languages?.[0]?.key?.split('/').pop()),
+      tags: (book.subjects || []).slice(0, 4).map(s => typeof s === 'string' ? s : s?.name).filter(Boolean),
+      coverUrl: book.cover?.large || book.cover?.medium || '',
+      origin: '',
+      bookType: inferBookType((book.subjects || []).map(s => typeof s === 'string' ? s : s?.name).filter(Boolean)),
+    };
+  }
+
+  function applyLookupData(dialog, data, opts = {}) {
+    const keepExistingCover = Boolean(opts.keepExistingCover);
+    const titleInput = dialog.querySelector('#neTitle');
+    const authorInput = dialog.querySelector('#neAuthor');
+    const languageInput = dialog.querySelector('#neLanguage');
+    const bookTypeInput = dialog.querySelector('#neBookType');
+    const tagsInput = dialog.querySelector('#neTags');
+    const originInput = dialog.querySelector('#neOrigin');
+
+    if (titleInput && data.title) titleInput.value = data.title;
+    if (authorInput && data.author) authorInput.value = data.author;
+    if (languageInput && data.language) languageInput.value = data.language;
+    if (bookTypeInput && data.bookType) bookTypeInput.value = data.bookType;
+    if (tagsInput && Array.isArray(data.tags) && data.tags.length) tagsInput.value = data.tags.join(', ');
+    if (originInput && data.origin) originInput.value = data.origin;
+
+    const img = dialog.querySelector('#neCoverImg');
+    const hasCurrentCover = Boolean(img?.src);
+    if (data.coverUrl && (!keepExistingCover || !hasCurrentCover)) {
+      const placeholder = dialog.querySelector('#neCoverPlaceholder');
+      const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
+      if (img) {
+        img.src = data.coverUrl;
+        img.hidden = false;
+      }
+      if (placeholder) placeholder.hidden = true;
+      if (uploadBtn) uploadBtn.textContent = 'Change Cover';
+    }
+
+    state.title = titleInput?.value || '';
+    state.author = authorInput?.value || '';
+    renderSpinePreview();
+  }
+
+  function inferBookType(tags) {
+    const joined = (tags || []).join(' ').toLowerCase();
+    if (!joined) return 'nonfiction';
+    if (/(novel|fiction|literary|story)/.test(joined)) return 'fiction';
+    if (/(philosophy|economics|sociology|politics|social)/.test(joined)) return 'social';
+    if (/(travel|journey|place|city|geography)/.test(joined)) return 'travel';
+    if (/(essay|self-help|memoir|life)/.test(joined)) return 'essay';
+    return 'nonfiction';
+  }
+
+  function normalizeLanguage(lang) {
+    const raw = String(lang || '').toLowerCase();
+    if (raw.startsWith('zh') || raw === 'chi' || raw === 'zho') return 'zh';
+    if (raw.startsWith('en') || raw === 'eng') return 'en';
+    if (!raw) return '';
+    return 'other';
+  }
+
+  function normalizeUrl(raw) {
+    try {
+      const maybePrefixed = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+      const url = new URL(maybePrefixed);
+      return url.toString();
+    } catch {
+      return '';
+    }
+  }
+
+  function syncExternalLinkButton(dialog) {
+    const btn = dialog.querySelector('#neExternalOpenBtn');
+    const raw = dialog.querySelector('#neExternalLink')?.value || '';
+    if (!btn) return;
+    btn.disabled = !normalizeUrl(raw);
+  }
+
+  function openExternalLink(dialog) {
+    const status = dialog.querySelector('#neIsbnStatus');
+    const raw = (dialog.querySelector('#neExternalLink')?.value || '').trim();
+    const url = normalizeUrl(raw);
+    if (!url) {
+      showLookupStatus(status, 'Enter a valid external link first.', 'error');
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   /* ── Submit ──────────────────────────────────────────────────────────────── */
@@ -705,6 +790,7 @@ window.NewEntry = (() => {
     const author   = dialog.querySelector('#neAuthor')?.value.trim() || '';
     const status   = dialog.querySelector('#neStatus')?.value || 'reading';
     const originRaw = dialog.querySelector('#neOrigin')?.value.trim() || '';
+    const externalLink = normalizeUrl(dialog.querySelector('#neExternalLink')?.value || '');
     const tags     = (dialog.querySelector('#neTags')?.value || '')
       .split(',').map(t => t.trim()).filter(Boolean);
 
@@ -733,6 +819,7 @@ window.NewEntry = (() => {
         image: (coverImgSrc && !coverIsBlob) ? coverImgSrc : null,
       },
       location: isoCode ? { country: isoCode, city: originRaw } : null,
+      externalLink: externalLink || null,
       geo: isoCode ? {
         authorOrigin:    { country: isoCode, city: originRaw },
         contentLocation: { country: isoCode, city: originRaw },

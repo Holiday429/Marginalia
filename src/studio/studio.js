@@ -3,6 +3,9 @@
 const LIBRARY_STORAGE_KEY = 'marginalia:library-layout:v5';
 const LIBRARY_WORLD_WIDTH = 2400;
 const LIBRARY_WORLD_HEIGHT = 2400;
+const LIBRARY_ZOOM_MIN = 0.36;
+const LIBRARY_ZOOM_MAX = 2.05;
+const LIBRARY_DRAG_THRESHOLD = 8;
 
 const LIBRARY_DEFAULT_SHELVES = [
   { id: 'reading-now', name: 'Reading Now', rows: 2, color: '#8da6d9', viewMode: 'spine', status: 'reading', bookKeys: [], x: 80, y: 40, tilt: 0, pitch: 0, yaw: 0 },
@@ -19,8 +22,10 @@ const LIBRARY_STATE = {
   shelfDrag: null,
   shelfRotateDrag: null,
   lookDrag: null,
+  interaction: { type: 'idle', pointerId: null, target: null },
   view: { x: 0, y: 0, scale: 1 },
   camera: { yaw: 0, pitch: 0 },
+  sceneMode: 'spatial',
   searchQuery: '',
   searchMatches: [],
   searchIndex: 0,
@@ -31,6 +36,10 @@ const LIBRARY_STATE = {
 
 const LIBRARY_MAX_ROWS = 6;
 
+function containsCJK(value) {
+  return /[一-鿿぀-ヿ]/.test(String(value || ''));
+}
+
 function initLibrary() {
   const host = document.getElementById('view-studio');
   if (!host) return;
@@ -38,17 +47,12 @@ function initLibrary() {
   host.innerHTML = `
     <div class="page library-page">
       ${typeof window.renderPrimaryHeader === 'function'
-        ? window.renderPrimaryHeader('studio', { actionLabel: 'Add Book', actionId: 'libraryAddBookBtn' })
+        ? window.renderPrimaryHeader('studio', { actionLabel: 'Add Shelf', actionId: 'libraryAddShelfBtn' })
         : ''
       }
 
       <section class="library-main">
-        <header class="library-head section-head">
-          <div class="library-head-copy">
-            <h2 class="section-subtitle">Library Room</h2>
-            <p class="library-subtitle">Move shelves like furniture, zoom through your room, and organize by touch.</p>
-          </div>
-
+        <header class="library-head">
           <div class="library-head-tools">
             <form class="library-search" id="librarySearchForm" autocomplete="off">
               <label class="service-ui-label" for="librarySearchInput">Search In Library</label>
@@ -56,14 +60,20 @@ function initLibrary() {
                 <input id="librarySearchInput" type="search" placeholder="Title, author" />
                 <button type="submit" class="chip">Locate</button>
               </div>
+              <p class="library-search-feedback" id="librarySearchFeedback" aria-live="polite"></p>
             </form>
 
-            <div class="library-toolbar-row">
-              <button type="button" class="chip active" data-arrange="status">Auto By Status</button>
-              <button type="button" class="chip" data-arrange="color">Auto By Color</button>
-              <button type="button" class="chip" data-arrange="size">Auto By Size</button>
-              <button type="button" class="chip" data-arrange="reset">Reset</button>
-              <button type="button" class="chip chip-ghost" id="libraryToggleShelfPanel">Add Shelf</button>
+            <div class="library-toolbar">
+              <div class="library-toolbar-row">
+                <button type="button" class="chip active" data-arrange="status">Auto By Status</button>
+                <button type="button" class="chip" data-arrange="color">Auto By Color</button>
+                <button type="button" class="chip" data-arrange="size">Auto By Size</button>
+                <button type="button" class="chip" data-arrange="reset">Reset</button>
+              </div>
+              <div class="library-view-buttons" role="tablist" aria-label="Library view mode">
+                <button type="button" class="chip" data-library-scene-mode="flat" role="tab" aria-selected="false">Flat View</button>
+                <button type="button" class="chip" data-library-scene-mode="spatial" role="tab" aria-selected="true">Spatial View</button>
+              </div>
             </div>
           </div>
         </header>
@@ -104,6 +114,9 @@ function initLibrary() {
         </section>
 
         <section class="library-scene-wrap">
+          <div class="library-scene-head">
+            <h2>Organize Shelf</h2>
+          </div>
           <div class="library-scene" id="libraryScene">
             <div class="library-scene-viewport" id="librarySceneViewport">
               <div class="library-wall-grid" id="libraryShelves"></div>
@@ -160,8 +173,8 @@ function bindLibraryEvents() {
   if (!root) return;
 
   root.addEventListener('click', (event) => {
-    if (event.target.closest('#libraryAddBookBtn')) {
-      window.NewEntry?.mount?.();
+    if (event.target.closest('#libraryAddShelfBtn, #libraryToggleShelfPanel')) {
+      toggleShelfCreatePanel();
       return;
     }
 
@@ -178,9 +191,10 @@ function bindLibraryEvents() {
       return;
     }
 
-    if (event.target.closest('#libraryToggleShelfPanel')) {
-      const panel = document.getElementById('libraryShelfCreate');
-      if (panel) panel.hidden = !panel.hidden;
+    const sceneModeBtn = event.target.closest('[data-library-scene-mode]');
+    if (sceneModeBtn) {
+      const mode = normalizeSceneMode(sceneModeBtn.dataset.librarySceneMode || 'spatial');
+      setSceneMode(mode);
       return;
     }
 
@@ -298,7 +312,7 @@ function bindLibraryEvents() {
       event.preventDefault();
       LIBRARY_STATE.searchIndex = (LIBRARY_STATE.searchIndex + 1) % LIBRARY_STATE.searchMatches.length;
       updateSearchHighlight();
-      renderStatusLine();
+      renderSearchFeedback();
       return;
     }
 
@@ -306,7 +320,7 @@ function bindLibraryEvents() {
       event.preventDefault();
       LIBRARY_STATE.searchIndex = (LIBRARY_STATE.searchIndex - 1 + LIBRARY_STATE.searchMatches.length) % LIBRARY_STATE.searchMatches.length;
       updateSearchHighlight();
-      renderStatusLine();
+      renderSearchFeedback();
     }
   });
 
@@ -316,15 +330,15 @@ function bindLibraryEvents() {
   }
 
   root.addEventListener('pointerdown', (event) => {
+    if (!event.isPrimary || event.button !== 0 || hasActiveInteraction()) return;
+
     const dragNode = event.target.closest('.library-draggable');
-    if (dragNode && event.button === 0) {
+    if (dragNode) {
       const owningBay = dragNode.closest('.library-bay');
       const owningShelfId = owningBay?.dataset.shelfId || '';
       const inPool = !owningBay && dragNode.closest('#libraryPool');
       if (owningShelfId && LIBRARY_STATE.activeShelfId !== owningShelfId) {
         setActiveShelf(owningShelfId);
-        event.preventDefault();
-        return;
       }
       if (owningShelfId || inPool) {
         startBookDrag(event, dragNode);
@@ -335,7 +349,7 @@ function bindLibraryEvents() {
     }
 
     const rotateHandle = event.target.closest('[data-rotate-shelf]');
-    if (rotateHandle && event.button === 0) {
+    if (rotateHandle && isSpatialSceneMode()) {
       const shelfId = rotateHandle.dataset.rotateShelf || '';
       if (shelfId) {
         setActiveShelf(shelfId);
@@ -347,7 +361,7 @@ function bindLibraryEvents() {
     const shelfSurface = event.target.closest('.library-bay');
     const head = event.target.closest('.library-bay-head-drag');
     const isShelfAction = event.target.closest('.library-bay-actions, .library-remove-btn, [data-shelf-mode], [data-remove-shelf], [data-rotate-shelf], [data-add-row], .library-overflow-notice');
-    if ((head || shelfSurface) && !isShelfAction && event.button === 0) {
+    if (head && shelfSurface && !isShelfAction) {
       const bay = shelfSurface || head.closest('.library-bay');
       if (bay?.dataset.shelfId) {
         setActiveShelf(bay.dataset.shelfId);
@@ -431,9 +445,10 @@ function hydrateLibraryLayout() {
   LIBRARY_STATE.pool = Array.isArray(saved.pool) ? saved.pool.slice() : [];
   LIBRARY_STATE.view.x = Number(saved.view?.x) || 0;
   LIBRARY_STATE.view.y = Number(saved.view?.y) || 0;
-  LIBRARY_STATE.view.scale = clamp(Number(saved.view?.scale), 0.72, 1.35, 1);
+  LIBRARY_STATE.view.scale = clamp(Number(saved.view?.scale), LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, 1);
   LIBRARY_STATE.camera.yaw = clamp(Number(saved.camera?.yaw), -24, 24, 0);
   LIBRARY_STATE.camera.pitch = clamp(Number(saved.camera?.pitch), -18, 18, 0);
+  LIBRARY_STATE.sceneMode = normalizeSceneMode(saved.sceneMode || 'spatial');
 
   ensureBaseShelves();
   mergeLayoutWithRecords();
@@ -466,8 +481,10 @@ function mergeLayoutWithRecords() {
 }
 
 function renderLibrary() {
+  applySceneModeState();
   renderStats();
   renderStatusLine();
+  renderSearchFeedback();
   renderPool();
   renderShelves();
   updateSearchHighlight();
@@ -503,15 +520,6 @@ function renderStatusLine(customText) {
     return;
   }
 
-  if (LIBRARY_STATE.searchQuery && LIBRARY_STATE.searchMatches.length) {
-    const current = LIBRARY_STATE.searchMatches[LIBRARY_STATE.searchIndex] || LIBRARY_STATE.searchMatches[0];
-    const record = current ? LIBRARY_STATE.recordByKey.get(current.key) : null;
-    if (record) {
-      line.textContent = `Match ${LIBRARY_STATE.searchIndex + 1}/${LIBRARY_STATE.searchMatches.length}: ${record.title}`;
-      return;
-    }
-  }
-
   if (LIBRARY_STATE.pool.length) {
     line.textContent = `${LIBRARY_STATE.pool.length} books are waiting in Arrival. Drag them onto a shelf.`;
     return;
@@ -528,7 +536,39 @@ function renderStatusLine(customText) {
     return;
   }
 
-  line.textContent = 'Drag books across shelves. Drag shelf titles to move shelves.';
+  line.textContent = isSpatialSceneMode()
+    ? 'Spatial view keeps shelf rotation. Drag shelf titles to move shelves.'
+    : 'Flat view keeps every shelf front-facing for easier sorting.';
+}
+
+function renderSearchFeedback(customText) {
+  const feedback = document.getElementById('librarySearchFeedback');
+  if (!feedback) return;
+
+  if (customText) {
+    feedback.textContent = customText;
+    feedback.hidden = false;
+    return;
+  }
+
+  if (!LIBRARY_STATE.searchQuery) {
+    feedback.textContent = '';
+    feedback.hidden = true;
+    return;
+  }
+
+  if (!LIBRARY_STATE.searchMatches.length) {
+    feedback.textContent = 'No matching books found.';
+    feedback.hidden = false;
+    return;
+  }
+
+  const current = LIBRARY_STATE.searchMatches[LIBRARY_STATE.searchIndex] || LIBRARY_STATE.searchMatches[0];
+  const record = current ? LIBRARY_STATE.recordByKey.get(current.key) : null;
+  feedback.textContent = record
+    ? `Match ${LIBRARY_STATE.searchIndex + 1}/${LIBRARY_STATE.searchMatches.length}: ${record.title}`
+    : `${LIBRARY_STATE.searchMatches.length} matches`;
+  feedback.hidden = false;
 }
 
 function renderPool() {
@@ -554,7 +594,7 @@ function renderShelves() {
   LIBRARY_STATE.shelves.forEach((shelf, index) => {
     const bay = document.createElement('article');
     const isActive = LIBRARY_STATE.activeShelfId === shelf.id;
-    bay.className = `library-bay is-depth-${(index % 3) + 1}${isActive ? ' is-active' : ''}`;
+    bay.className = `library-bay is-depth-${(index % 3) + 1}${isActive ? ' is-active' : ''}${isFlatSceneMode() ? ' is-flat-mode' : ''}`;
     bay.dataset.shelfId = shelf.id;
     bay.dataset.depth = String((index % 3) + 1);
     bay.style.setProperty('--shelf-tint', shelf.color || '#8f6f44');
@@ -568,7 +608,7 @@ function renderShelves() {
     bay.innerHTML = `
       <div class="library-bay-titlebar library-bay-head-drag" data-drag-shelf="${escapeHTML(shelf.id)}">
         <div class="library-bay-head">
-          <button type="button" class="library-rotate-handle" data-rotate-shelf="${escapeHTML(shelf.id)}" aria-label="Adjust shelf angle">
+          <button type="button" class="library-rotate-handle" data-rotate-shelf="${escapeHTML(shelf.id)}" aria-label="Adjust shelf angle" ${isSpatialSceneMode() ? '' : 'hidden aria-hidden="true" tabindex="-1"'}>
             <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
               <path d="M3.2 2.4h7.2c1 0 1.8.8 1.8 1.8v9.4H4.6c-.8 0-1.4-.6-1.4-1.4V2.4z" fill="currentColor" opacity="0.92"/>
               <path d="M3.2 12.2c0-.7.6-1.2 1.3-1.2h7.7v2.6H4.6c-.8 0-1.4-.6-1.4-1.4z" fill="rgba(20,14,10,0.32)"/>
@@ -681,6 +721,8 @@ function resolveBookMode(mode, index) {
 
 function createSpineCard(record, shelfId) {
   const size = getSpineSize(record);
+  const titleIsCJK = containsCJK(record.title);
+  const authorIsCJK = containsCJK(record.author);
   const node = window.SpineCard.create({
     title: record.title,
     author: record.author,
@@ -691,8 +733,8 @@ function createSpineCard(record, shelfId) {
     className: 'library-spine library-draggable',
     dataAttrs: { bookKey: record.key, shelfId },
     ariaLabel: `${record.title} by ${record.author}`,
-    titleClass: 'library-spine-title',
-    authorClass: 'library-spine-author',
+    titleClass: `library-spine-title${titleIsCJK ? ' is-cjk' : ''}`,
+    authorClass: `library-spine-author${authorIsCJK ? ' is-cjk' : ''}`,
     fontFamily: record.font,
     fontWeight: record.weight,
     fontSize: clampInt(record.size, 9, 18, 11),
@@ -748,24 +790,119 @@ function createArrivalCard(record, index) {
   return el;
 }
 
+function hasActiveInteraction() {
+  return LIBRARY_STATE.interaction.type !== 'idle';
+}
+
+function normalizeSceneMode(value) {
+  return value === 'flat' ? 'flat' : 'spatial';
+}
+
+function isFlatSceneMode() {
+  return LIBRARY_STATE.sceneMode === 'flat';
+}
+
+function isSpatialSceneMode() {
+  return LIBRARY_STATE.sceneMode === 'spatial';
+}
+
+function applySceneModeState() {
+  const host = document.getElementById('view-studio');
+  if (host) host.dataset.sceneMode = LIBRARY_STATE.sceneMode;
+
+  document.querySelectorAll('#view-studio [data-library-scene-mode]').forEach((button) => {
+    const active = normalizeSceneMode(button.dataset.librarySceneMode || 'spatial') === LIBRARY_STATE.sceneMode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+}
+
+function setSceneMode(mode) {
+  const nextMode = normalizeSceneMode(mode);
+  if (LIBRARY_STATE.sceneMode === nextMode) return;
+
+  LIBRARY_STATE.sceneMode = nextMode;
+  if (isFlatSceneMode()) {
+    LIBRARY_STATE.camera.yaw = 0;
+    LIBRARY_STATE.camera.pitch = 0;
+  }
+
+  closeBookInspector({ immediate: true });
+  renderLibrary();
+  requestAnimationFrame(() => {
+    applyCameraTransform();
+    applyViewTransform(true);
+  });
+  saveLayout();
+}
+
+function toggleShelfCreatePanel(forceOpen) {
+  const panel = document.getElementById('libraryShelfCreate');
+  if (!panel) return;
+  panel.hidden = typeof forceOpen === 'boolean' ? !forceOpen : !panel.hidden;
+}
+
+function beginInteraction(type, event, target) {
+  if (hasActiveInteraction()) return false;
+  LIBRARY_STATE.interaction = {
+    type,
+    pointerId: event.pointerId,
+    target: target || event.currentTarget || event.target || null,
+  };
+  try {
+    LIBRARY_STATE.interaction.target?.setPointerCapture?.(event.pointerId);
+  } catch {}
+  return true;
+}
+
+function endInteraction(type) {
+  const active = LIBRARY_STATE.interaction;
+  if (type && active.type !== type) return;
+  try {
+    active.target?.releasePointerCapture?.(active.pointerId);
+  } catch {}
+  LIBRARY_STATE.interaction = { type: 'idle', pointerId: null, target: null };
+}
+
+function matchesActivePointer(event, type) {
+  const active = LIBRARY_STATE.interaction;
+  return active.type === type && (!event || active.pointerId === event.pointerId);
+}
+
 function startBookDrag(event, sourceEl) {
   if (LIBRARY_STATE.overlay.playing) return;
+  if (!beginInteraction('book-drag', event, sourceEl)) return;
+  event.preventDefault();
+
   if (LIBRARY_STATE.overlay.key && LIBRARY_STATE.overlay.key === (sourceEl.dataset.bookKey || '')) {
     closeBookInspector();
+    endInteraction('book-drag');
     return;
   }
 
   const lane = sourceEl.closest('[data-lane="true"]');
-  if (!lane) return;
+  if (!lane) {
+    endInteraction('book-drag');
+    return;
+  }
 
   const bookKey = sourceEl.dataset.bookKey || '';
   const sourceShelfId = sourceEl.dataset.shelfId || 'pool';
-  if (!bookKey) return;
+  if (!bookKey) {
+    endInteraction('book-drag');
+    return;
+  }
 
   const list = getShelfList(sourceShelfId);
-  if (!list) return;
+  if (!list) {
+    endInteraction('book-drag');
+    return;
+  }
   const sourceIndex = list.indexOf(bookKey);
-  if (sourceIndex === -1) return;
+  if (sourceIndex === -1) {
+    endInteraction('book-drag');
+    return;
+  }
 
   const rect = sourceEl.getBoundingClientRect();
   const ghost = sourceEl.cloneNode(true);
@@ -796,6 +933,7 @@ function startBookDrag(event, sourceEl) {
     offsetY: event.clientY - rect.top,
     startX: event.clientX,
     startY: event.clientY,
+    pointerId: event.pointerId,
     moved: false,
   };
 
@@ -808,9 +946,9 @@ function startBookDrag(event, sourceEl) {
 
 function onBookDragMove(event) {
   const drag = LIBRARY_STATE.drag;
-  if (!drag) return;
+  if (!drag || !matchesActivePointer(event, 'book-drag')) return;
 
-  const movedEnough = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 6;
+  const movedEnough = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > LIBRARY_DRAG_THRESHOLD;
   if (movedEnough) drag.moved = true;
 
   positionGhost(event.clientX, event.clientY);
@@ -822,9 +960,9 @@ function onBookDragMove(event) {
   movePlaceholderToLane(lane, event.clientX);
 }
 
-function onBookDragEnd() {
+function onBookDragEnd(event) {
   const drag = LIBRARY_STATE.drag;
-  if (!drag) return;
+  if (!drag || !matchesActivePointer(event, 'book-drag')) return;
 
   const lane = drag.placeholder.parentElement;
 
@@ -852,6 +990,7 @@ function cleanupBookDrag() {
   drag.ghost.remove();
 
   LIBRARY_STATE.drag = null;
+  endInteraction('book-drag');
   window.removeEventListener('pointermove', onBookDragMove);
   window.removeEventListener('pointerup', onBookDragEnd);
   window.removeEventListener('pointercancel', onBookDragEnd);
@@ -868,6 +1007,7 @@ function startShelfDrag(event, shelfId) {
   const shelf = getShelfById(shelfId);
   if (!shelf) return;
 
+  if (!beginInteraction('shelf-move', event, event.target.closest('.library-bay-head-drag'))) return;
   event.preventDefault();
 
   const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
@@ -882,6 +1022,7 @@ function startShelfDrag(event, shelfId) {
     tilt: shelf.tilt || 0,
     pitch: shelf.pitch || 0,
     yaw: shelf.yaw || 0,
+    pointerId: event.pointerId,
   };
 
   window.addEventListener('pointermove', onShelfDragMove);
@@ -891,7 +1032,7 @@ function startShelfDrag(event, shelfId) {
 
 function onShelfDragMove(event) {
   const drag = LIBRARY_STATE.shelfDrag;
-  if (!drag) return;
+  if (!drag || !matchesActivePointer(event, 'shelf-move')) return;
 
   const shelf = getShelfById(drag.shelfId);
   if (!shelf) return;
@@ -936,32 +1077,27 @@ function shelfCollides(movingId, x, y, w, h) {
 }
 
 function startShelfRotateDrag(event, shelfId) {
+  if (!isSpatialSceneMode()) return;
   const shelf = getShelfById(shelfId);
   if (!shelf) return;
 
+  if (!beginInteraction('shelf-rotate', event, event.target.closest('[data-rotate-shelf]'))) return;
   event.preventDefault();
   event.stopPropagation();
 
   const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
   if (bay) bay.classList.add('is-shelf-rotating');
   const rect = bay?.getBoundingClientRect();
-  const centerX = rect ? rect.left + rect.width / 2 : event.clientX;
-  const centerY = rect ? rect.top + rect.height / 2 : event.clientY;
-  const dx = event.clientX - centerX;
-  const dy = event.clientY - centerY;
 
   LIBRARY_STATE.shelfRotateDrag = {
     shelfId,
     startX: event.clientX,
     startY: event.clientY,
-    centerX,
-    centerY,
     radiusX: Math.max(140, (rect?.width || 420) * 0.58),
-    radiusY: Math.max(120, (rect?.height || 320) * 0.56),
-    lastAngle: Math.atan2(dy, dx),
     tilt: shelf.tilt || 0,
     pitch: shelf.pitch || 0,
     yaw: shelf.yaw || 0,
+    pointerId: event.pointerId,
   };
 
   window.addEventListener('pointermove', onShelfRotateMove);
@@ -971,44 +1107,40 @@ function startShelfRotateDrag(event, shelfId) {
 
 function onShelfRotateMove(event) {
   const drag = LIBRARY_STATE.shelfRotateDrag;
-  if (!drag) return;
+  if (!drag || !matchesActivePointer(event, 'shelf-rotate')) return;
 
   const shelf = getShelfById(drag.shelfId);
   if (!shelf) return;
 
-  const dx = event.clientX - drag.centerX;
-  const dy = event.clientY - drag.centerY;
-  const angle = Math.atan2(dy, dx);
-  const angleDelta = normalizeAngleDelta(angle - drag.lastAngle);
-  drag.lastAngle = angle;
-
-  void angleDelta;
+  const dx = event.clientX - drag.startX;
   shelf.tilt = 0;
   shelf.pitch = 0;
-  shelf.yaw = clamp(drag.yaw + (dx / drag.radiusX) * 60, -55, 55, drag.yaw);
+  shelf.yaw = clamp(drag.yaw + (dx / drag.radiusX) * 70, -55, 55, drag.yaw);
 
   const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
   if (bay) setShelfTransform(bay, shelf);
 }
 
-function stopShelfRotateDrag() {
-  if (!LIBRARY_STATE.shelfRotateDrag) return;
+function stopShelfRotateDrag(event) {
+  if (!LIBRARY_STATE.shelfRotateDrag || !matchesActivePointer(event, 'shelf-rotate')) return;
   const shelfId = LIBRARY_STATE.shelfRotateDrag.shelfId;
   const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
   if (bay) bay.classList.remove('is-shelf-rotating');
   LIBRARY_STATE.shelfRotateDrag = null;
+  endInteraction('shelf-rotate');
   window.removeEventListener('pointermove', onShelfRotateMove);
   window.removeEventListener('pointerup', stopShelfRotateDrag);
   window.removeEventListener('pointercancel', stopShelfRotateDrag);
   saveLayout();
 }
 
-function stopShelfDrag() {
-  if (!LIBRARY_STATE.shelfDrag) return;
+function stopShelfDrag(event) {
+  if (!LIBRARY_STATE.shelfDrag || !matchesActivePointer(event, 'shelf-move')) return;
   const shelfId = LIBRARY_STATE.shelfDrag.shelfId;
   const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
   if (bay) bay.classList.remove('is-shelf-dragging');
   LIBRARY_STATE.shelfDrag = null;
+  endInteraction('shelf-move');
   window.removeEventListener('pointermove', onShelfDragMove);
   window.removeEventListener('pointerup', stopShelfDrag);
   window.removeEventListener('pointercancel', stopShelfDrag);
@@ -1016,9 +1148,12 @@ function stopShelfDrag() {
 }
 
 function maybeStartPan(event) {
+  if (!isSpatialSceneMode()) return;
   if (event.button !== 0) return;
   if (!event.target.closest('#libraryScene')) return;
   if (event.target.closest('button, input, .library-bay, .library-draggable, .library-book-overlay')) return;
+  if (!beginInteraction('room-pan', event, document.getElementById('librarySceneViewport'))) return;
+  event.preventDefault();
 
   const viewport = document.getElementById('librarySceneViewport');
   if (viewport) viewport.classList.add('is-panning');
@@ -1028,6 +1163,7 @@ function maybeStartPan(event) {
     startY: event.clientY,
     yaw: LIBRARY_STATE.camera.yaw,
     pitch: LIBRARY_STATE.camera.pitch,
+    pointerId: event.pointerId,
   };
 
   window.addEventListener('pointermove', onPanMove);
@@ -1037,7 +1173,7 @@ function maybeStartPan(event) {
 
 function onPanMove(event) {
   const pan = LIBRARY_STATE.lookDrag;
-  if (!pan) return;
+  if (!pan || !matchesActivePointer(event, 'room-pan')) return;
 
   const dx = event.clientX - pan.startX;
   const dy = event.clientY - pan.startY;
@@ -1046,11 +1182,12 @@ function onPanMove(event) {
   applyCameraTransform();
 }
 
-function stopPan() {
-  if (!LIBRARY_STATE.lookDrag) return;
+function stopPan(event) {
+  if (!LIBRARY_STATE.lookDrag || !matchesActivePointer(event, 'room-pan')) return;
   const viewport = document.getElementById('librarySceneViewport');
   if (viewport) viewport.classList.remove('is-panning');
   LIBRARY_STATE.lookDrag = null;
+  endInteraction('room-pan');
   window.removeEventListener('pointermove', onPanMove);
   window.removeEventListener('pointerup', stopPan);
   window.removeEventListener('pointercancel', stopPan);
@@ -1078,7 +1215,7 @@ function zoomAtClientPoint(clientX, clientY, factor) {
 
   const rect = viewport.getBoundingClientRect();
   const oldScale = LIBRARY_STATE.view.scale;
-  const newScale = clamp(oldScale * factor, 0.72, 1.35, 1);
+  const newScale = clamp(oldScale * factor, LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, 1);
   if (Math.abs(newScale - oldScale) < 0.0001) return;
 
   const pointX = clientX - rect.left;
@@ -1121,7 +1258,7 @@ function fitShelvesToViewport({ animated, padding = 70 }) {
 
   const scaleX = (rect.width - padding * 2) / worldW;
   const scaleY = (rect.height - padding * 2) / worldH;
-  const nextScale = clamp(Math.min(scaleX, scaleY), 0.45, 1.2, 1);
+  const nextScale = clamp(Math.min(scaleX, scaleY), LIBRARY_ZOOM_MIN, Math.min(1.2, LIBRARY_ZOOM_MAX), 1);
 
   LIBRARY_STATE.view.scale = nextScale;
   LIBRARY_STATE.view.x = (rect.width / 2) - ((bounds.minX + bounds.maxX) / 2) * nextScale;
@@ -1131,7 +1268,7 @@ function fitShelvesToViewport({ animated, padding = 70 }) {
 }
 
 function resetFrontView({ animated }) {
-  arrangeShelvesForFrontView();
+  if (isFlatSceneMode()) arrangeShelvesForFrontView();
   LIBRARY_STATE.camera.yaw = 0;
   LIBRARY_STATE.camera.pitch = 0;
   applyCameraTransform();
@@ -1172,6 +1309,7 @@ function applyViewTransform(animated) {
 }
 
 function applyCameraTransform() {
+  applySceneModeState();
   document.querySelectorAll('#view-studio .library-bay').forEach((node) => {
     const shelf = getShelfById(node.dataset.shelfId || '');
     if (shelf) setShelfTransform(node, shelf);
@@ -1292,8 +1430,8 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
   spineFace.style.background = record.spine;
   spineFace.style.color = record.text;
   spineFace.innerHTML = `
-    <span class="library-overlay-spine-title">${escapeHTML(record.title)}</span>
-    <span class="library-overlay-spine-author">${escapeHTML(record.author)}</span>
+    <span class="library-overlay-spine-title${containsCJK(record.title) ? ' is-cjk' : ''}">${escapeHTML(record.title)}</span>
+    <span class="library-overlay-spine-author${containsCJK(record.author) ? ' is-cjk' : ''}">${escapeHTML(record.author)}</span>
   `;
 
   const src = resolveCoverImage(record);
@@ -1400,6 +1538,10 @@ function syncOverlayWithRenderedBook() {
 }
 
 function setShelfTransform(node, shelf) {
+  if (isFlatSceneMode()) {
+    node.style.transform = 'none';
+    return;
+  }
   const depth = Number(node?.dataset.depth || 2);
   const baseZ = depth === 1 ? -20 : depth === 3 ? -24 : 10;
   const baseYaw = depth === 1 ? -3.5 : depth === 3 ? 3.5 : 0;
@@ -1488,7 +1630,7 @@ function setSearchQuery(value) {
   LIBRARY_STATE.searchMatches = findSearchMatches(LIBRARY_STATE.searchQuery);
   LIBRARY_STATE.searchIndex = 0;
   updateSearchHighlight();
-  renderStatusLine();
+  renderSearchFeedback();
 }
 
 function updateSearchHighlight() {
@@ -1508,7 +1650,7 @@ function focusSearchResult() {
   if (!LIBRARY_STATE.searchQuery) return;
 
   if (!LIBRARY_STATE.searchMatches.length) {
-    renderStatusLine('No matching books found.');
+    renderSearchFeedback('No matching books found.');
     return;
   }
 
@@ -1532,7 +1674,7 @@ function focusShelfForMatch(match) {
       const worldCenterX = (shelf?.x || 0) + (bayRect.width / 2);
       const worldCenterY = (shelf?.y || 0) + (bayRect.height / 2);
 
-      const targetScale = clamp(Math.max(LIBRARY_STATE.view.scale, 1.08), 0.72, 1.35, 1);
+      const targetScale = clamp(Math.max(LIBRARY_STATE.view.scale, 1.08), LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, 1);
       LIBRARY_STATE.view.scale = targetScale;
       LIBRARY_STATE.view.x = (vpRect.width / 2) - worldCenterX * targetScale;
       LIBRARY_STATE.view.y = (vpRect.height / 2) - worldCenterY * targetScale;
@@ -1540,7 +1682,7 @@ function focusShelfForMatch(match) {
     }
   }
 
-  renderStatusLine();
+  renderSearchFeedback();
 
   window.setTimeout(() => {
     const node = document.querySelector(`#view-studio .library-draggable[data-book-key="${cssEscape(key)}"]`);
@@ -1605,6 +1747,7 @@ function createShelfFromForm() {
   });
 
   nameInput.value = '';
+  toggleShelfCreatePanel(false);
   renderLibrary();
   saveLayout();
   requestAnimationFrame(() => fitShelvesToViewport({ animated: true, padding: 82 }));
@@ -1837,6 +1980,7 @@ function saveLayout() {
       yaw: LIBRARY_STATE.camera.yaw,
       pitch: LIBRARY_STATE.camera.pitch,
     },
+    sceneMode: LIBRARY_STATE.sceneMode,
   };
 
   try {
@@ -1930,13 +2074,6 @@ function clampInt(value, min, max, fallback) {
 function cssEscape(value) {
   if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(value);
   return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '\\$&');
-}
-
-function normalizeAngleDelta(value) {
-  let angle = value;
-  while (angle > Math.PI) angle -= Math.PI * 2;
-  while (angle < -Math.PI) angle += Math.PI * 2;
-  return angle;
 }
 
 window.initStudio = initLibrary;

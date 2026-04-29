@@ -528,6 +528,10 @@ body[data-view="shelf"] {
   overflow: hidden;
 }
 
+.shelf-spine-title.is-cjk {
+  transform: none;
+}
+
 .shelf-spine-author {
   position: absolute;
   left: 50%;
@@ -540,6 +544,10 @@ body[data-view="shelf"] {
   letter-spacing: 0.08em;
   opacity: 0.72;
   white-space: nowrap;
+}
+
+.shelf-spine-author.is-cjk {
+  transform: translateX(-50%);
 }
 
 .shelf-spine-ghost {
