@@ -225,6 +225,19 @@
   color: var(--muted);
   flex: 1;
 }
+.ai-graph-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  background: none;
+  border: 1px solid rgba(135,182,167,0.4);
+  color: #87b6a7;
+  padding: 3px 10px;
+  cursor: pointer;
+  margin-left: auto;
+}
+.ai-graph-btn:hover:not(:disabled) { background: rgba(135,182,167,0.08); }
+.ai-graph-btn:disabled { opacity: 0.6; cursor: default; }
 .ai-regen-btn {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -234,7 +247,6 @@
   color: var(--accent);
   padding: 3px 10px;
   cursor: pointer;
-  margin-left: auto;
 }
 .ai-regen-btn:hover { background: rgba(198,139,74,0.08); }
 .ai-generated-dismiss {

@@ -34,21 +34,23 @@ const BOOKLIST_CURATED_DESC = window.BOOKLIST_CURATED || [];
 const BOOKLIST_HEATMAP_CACHE = new Map();
 let BOOKLIST_RESIZE_TIMER = 0;
 
-function initBooklist() {
+async function initBooklist() {
   BOOKLIST_STATE.year = BOOKLIST_YEARS.includes(BOOKLIST_STATE.year)
     ? BOOKLIST_STATE.year
     : BOOKLIST_YEARS[BOOKLIST_YEARS.length - 1];
 
-  hydrateBooklistData();
+  const savedPicks = await loadPicksForYear(BOOKLIST_STATE.year);
+  hydrateBooklistData(savedPicks);
   renderBooklistShell();
   bindBooklistEvents();
   renderBooklistContent();
   renderBooklistHeatmap();
 }
 
-function enterBooklist() {
+async function enterBooklist() {
   if (BOOKLIST_STATE.isAnimating) return;
-  hydrateBooklistData();
+  const savedPicks = await loadPicksForYear(BOOKLIST_STATE.year);
+  hydrateBooklistData(savedPicks);
   renderBooklistContent();
   renderBooklistHeatmap();
 }
@@ -178,7 +180,22 @@ function bindBooklistEvents() {
     if (previewCover) {
       event.preventDefault();
       openPreviewBookDetail();
+      return;
     }
+
+    // Toggle pick: click a source shelf spine to add/remove from annual picks
+    const sourceSpine = event.target.closest('[data-source-id]');
+    if (sourceSpine) {
+      const uid = sourceSpine.dataset.sourceId;
+      if (!uid) return;
+      toggleBooklistPick(uid);
+      return;
+    }
+  });
+
+  // Share / Export button (lives in nav, use event delegation)
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#booklistShareBtn')) exportBooklist();
   });
 
   window.addEventListener('resize', debounceBooklistHeatmap);
@@ -262,7 +279,10 @@ function shiftBooklistYear(delta) {
   const next = idx + delta;
   if (next < 0 || next >= BOOKLIST_YEARS.length) return;
   BOOKLIST_STATE.year = BOOKLIST_YEARS[next];
+  BOOKLIST_HEATMAP_CACHE.delete(BOOKLIST_STATE.year);
+  hydrateBooklistData();
   renderBooklistHeatmap();
+  renderBooklistContent();
 }
 
 function buildBooklistHeatmap(year) {
@@ -328,9 +348,29 @@ function formatYBDate(date) {
   return `${y}-${m}-${d}`;
 }
 
-function hydrateBooklistData() {
+function hydrateBooklistData(savedPickUids = null) {
   const sourceBooks = buildSourceBooks();
-  const selectedBase = selectAnnualBooks(sourceBooks, BOOKLIST_TARGET_COUNT);
+  let selectedBase;
+
+  if (savedPickUids && savedPickUids.length) {
+    // Restore picks from saved uids (order preserved)
+    const byUid = new Map(sourceBooks.map(b => [b.uid, b]));
+    const restored = savedPickUids.map(uid => byUid.get(uid)).filter(Boolean);
+    // Fill remaining slots from auto-selection if fewer than target
+    if (restored.length < BOOKLIST_TARGET_COUNT) {
+      const restoredSet = new Set(savedPickUids);
+      const extras = selectAnnualBooks(
+        sourceBooks.filter(b => !restoredSet.has(b.uid)),
+        BOOKLIST_TARGET_COUNT - restored.length
+      );
+      selectedBase = [...restored, ...extras];
+    } else {
+      selectedBase = restored;
+    }
+  } else {
+    selectedBase = selectAnnualBooks(sourceBooks, BOOKLIST_TARGET_COUNT);
+  }
+
   const selectedBooks = applyCuratedBooksToSelection(selectedBase);
   const selectedMap = new Map(selectedBooks.map((book) => [book.uid, book]));
 
@@ -819,51 +859,62 @@ function buildCenterPreviewFrame(book) {
 
 function applyCuratedBooksToSelection(selectedBooks) {
   if (!Array.isArray(selectedBooks) || !selectedBooks.length) return [];
+  return selectedBooks.map((book, index) => ({
+    ...book,
+    rank: index,
+    isFeatured: index === 0,
+  }));
+}
 
-  return selectedBooks.map((book, index) => {
-    if (index === 0) {
-      return {
-        ...book,
-        rank: 0,
-        isFeatured: true,
-      };
-    }
+/* ── Picks persistence (IndexedDB via NotesStore ai-results store reused) ── */
 
-    const desc = BOOKLIST_CURATED_DESC[index - 1];
-    if (!desc) {
-      return {
-        ...book,
-        rank: index,
-        isFeatured: false,
-      };
-    }
+function picksKey(year) { return `booklist-picks::${year}`; }
 
-    return {
-      ...book,
-      id: '',
-      detail: null,
-      title: desc.title,
-      author: desc.author,
-      spineTitle: desc.title,
-      spineAuthor: desc.author.split(/\s+[A-Za-z]/)[0]?.trim() || desc.author,
-      coverSrc: desc.coverSrc || book.coverSrc,
-      rank: index,
-      isFeatured: false,
-    };
-  });
+async function savePicksForYear(year, uids) {
+  await window.NotesStore?.ready?.();
+  await window.NotesStore?.saveAiResult('__booklist__', picksKey(year), uids);
+}
+
+async function loadPicksForYear(year) {
+  await window.NotesStore?.ready?.();
+  return window.NotesStore?.getAiResult('__booklist__', picksKey(year)) || null;
 }
 
 function buildSourceBooks() {
+  const year = BOOKLIST_STATE.year;
   const shelfBooks = Array.isArray(window.SHELF_BOOKS) ? window.SHELF_BOOKS : [];
-  const detailBooks = Array.isArray(window.BOOK_DETAILS) ? window.BOOK_DETAILS : [];
+  const allDetailBooks = Array.isArray(window.BOOK_DETAILS) ? window.BOOK_DETAILS : [];
+
+  // Filter detail books to those started or finished in the selected year
+  const yearStr = String(year);
+  const detailBooks = allDetailBooks.filter((b) => {
+    const started  = String(b.meta?.startedAt  || '');
+    const finished = String(b.meta?.finishedAt || '');
+    const added    = String(b.meta?.addedAt    || b._savedAt || '');
+    // include if any date field matches the year, or if no date at all (show all)
+    if (!started && !finished && !added) return true;
+    return started.startsWith(yearStr) || finished.startsWith(yearStr) || added.startsWith(yearStr);
+  });
+
   const titleMap = createDetailLookup(detailBooks);
 
   if (!shelfBooks.length && detailBooks.length) {
     return detailBooks.map((detail, index) => normalizeBookRecord({ id: detail.id }, index, detail, null));
   }
 
-  return shelfBooks.map((entry, index) => {
+  // Filter shelf books to those whose linked detail is in this year
+  const yearDetailIds = new Set(detailBooks.map(b => b.id).filter(Boolean));
+  const filteredShelf = shelfBooks.filter((entry) => {
+    if (!entry.id && !entry.title) return false;
+    if (entry.id && yearDetailIds.has(entry.id)) return true;
     const detail = resolveDetail(entry, titleMap);
+    return Boolean(detail);
+  });
+
+  // If year filter yields nothing, fall back to all shelf books
+  const source = filteredShelf.length ? filteredShelf : shelfBooks;
+  return source.map((entry, index) => {
+    const detail = resolveDetail(entry, createDetailLookup(allDetailBooks));
     return normalizeBookRecord(entry, index, detail, entry);
   });
 }
@@ -1163,6 +1214,107 @@ function delay(ms) {
 
 function waitFrame() {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+/* ── Toggle pick ─────────────────────────────────────────────────────────── */
+
+function toggleBooklistPick(uid) {
+  const book = BOOKLIST_STATE.sourceBooks.find(b => b.uid === uid);
+  if (!book) return;
+
+  const alreadyPicked = BOOKLIST_STATE.selectedByUid.has(uid);
+
+  if (alreadyPicked) {
+    // Remove
+    BOOKLIST_STATE.selectedBooks = BOOKLIST_STATE.selectedBooks.filter(b => b.uid !== uid);
+    BOOKLIST_STATE.selectedByUid.delete(uid);
+  } else {
+    // Add at end
+    const pick = { ...book, rank: BOOKLIST_STATE.selectedBooks.length, isFeatured: BOOKLIST_STATE.selectedBooks.length === 0 };
+    BOOKLIST_STATE.selectedBooks.push(pick);
+    BOOKLIST_STATE.selectedByUid.set(uid, pick);
+  }
+
+  // Re-assign ranks
+  BOOKLIST_STATE.selectedBooks = BOOKLIST_STATE.selectedBooks.map((b, i) => ({
+    ...b, rank: i, isFeatured: i === 0,
+  }));
+  BOOKLIST_STATE.selectedByUid = new Map(BOOKLIST_STATE.selectedBooks.map(b => [b.uid, b]));
+  BOOKLIST_STATE.sourceBooks = BOOKLIST_STATE.sourceBooks.map(b =>
+    BOOKLIST_STATE.selectedByUid.get(b.uid) || b
+  );
+
+  // Persist picks for this year
+  savePicksForYear(BOOKLIST_STATE.year, BOOKLIST_STATE.selectedBooks.map(b => b.uid));
+
+  // Re-render without resetting animation state
+  const sourceHost = document.getElementById('ybSourceShelf');
+  const annualHost = document.getElementById('ybAnnualRacks');
+  const counter = document.getElementById('ybAnnualCounter');
+  if (sourceHost) renderSourceShelf(sourceHost, BOOKLIST_STATE.sourceBooks);
+  if (annualHost) renderAnnualRacks(annualHost, BOOKLIST_STATE.selectedBooks);
+  if (counter) counter.textContent = `${BOOKLIST_STATE.selectedBooks.length} / ${BOOKLIST_TARGET_COUNT} shelved`;
+}
+
+/* ── Export / Share ──────────────────────────────────────────────────────── */
+
+function exportBooklist() {
+  const year = BOOKLIST_STATE.year;
+  const picks = BOOKLIST_STATE.selectedBooks;
+  if (!picks.length) {
+    alert('No books selected for this year yet. Use the source shelf to pick your favourites.');
+    return;
+  }
+
+  const spineRows = picks.map((b, i) => `
+    <div class="book-row">
+      <div class="rank">${String(i + 1).padStart(2, '0')}</div>
+      <div class="spine" style="background:${escapeHTML(b.spine)};color:${escapeHTML(b.text)}">
+        ${b.coverSrc ? `<img src="${escapeHTML(b.coverSrc)}" alt="">` : ''}
+      </div>
+      <div class="info">
+        <div class="title">${escapeHTML(b.title)}</div>
+        <div class="author">${escapeHTML(b.author)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${year} Reading List — Marginalia</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #b8ad9e; color: #1a1714; font-family: 'IBM Plex Mono', monospace, sans-serif; padding: 40px 24px; max-width: 640px; margin: 0 auto; }
+  h1 { font-family: Georgia, serif; font-size: 28px; font-weight: 400; margin-bottom: 8px; }
+  .sub { font-size: 11px; letter-spacing: 0.08em; color: rgba(26,23,20,0.55); margin-bottom: 40px; }
+  .book-row { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid rgba(26,23,20,0.15); }
+  .rank { font-size: 10px; letter-spacing: 0.08em; color: rgba(26,23,20,0.45); width: 24px; flex-shrink: 0; }
+  .spine { width: 32px; height: 80px; flex-shrink: 0; position: relative; overflow: hidden; }
+  .spine img { width: 100%; height: 100%; object-fit: cover; }
+  .title { font-family: Georgia, serif; font-size: 15px; margin-bottom: 4px; }
+  .author { font-size: 11px; color: rgba(26,23,20,0.55); }
+  footer { margin-top: 48px; font-size: 10px; color: rgba(26,23,20,0.4); letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+  <h1>${year} in Reading</h1>
+  <div class="sub">Marginalia · ${picks.length} books · Generated ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+  ${spineRows}
+  <footer>Made with Marginalia — margins are where thinking happens</footer>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `marginalia-${year}-reading-list.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 window.initBooklist = initBooklist;

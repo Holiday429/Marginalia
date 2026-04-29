@@ -107,9 +107,13 @@ window.AIGenerateUI = (() => {
     showStatus(statusEl, 'Generated', 'ok');
   }
 
+  const CONCEPT_FEATURES = new Set(['concept-cards', 'argument-breakdown']);
+
   function injectResult(feature, book, section, result, { fromCache = false } = {}) {
     // Remove any previous AI-generated content block
     section.querySelector('.ai-generated-block')?.remove();
+
+    const canAddToGraph = CONCEPT_FEATURES.has(feature.id) && Array.isArray(result) && result.length > 0;
 
     const block = document.createElement('div');
     block.className = 'ai-generated-block';
@@ -117,6 +121,7 @@ window.AIGenerateUI = (() => {
       <div class="ai-generated-header">
         <span class="ai-badge">✦ AI Generated</span>
         <span class="ai-generated-model">${fromCache ? 'cached' : window.MarginaliaAI.getModel()}</span>
+        ${canAddToGraph ? `<button class="ai-graph-btn" type="button" title="Add concepts to concept graph">+ Graph</button>` : ''}
         <button class="ai-regen-btn" type="button" title="Regenerate">↺ Regenerate</button>
         <button class="ai-generated-dismiss" type="button" title="Dismiss">×</button>
       </div>
@@ -137,6 +142,20 @@ window.AIGenerateUI = (() => {
       const statusEl = toolbar?.querySelector('.ai-toolbar-status');
       if (btn && statusEl) await run(feature, book, section, btn, statusEl);
     });
+
+    if (canAddToGraph) {
+      const graphBtn = block.querySelector('.ai-graph-btn');
+      graphBtn.addEventListener('click', () => {
+        const added = window.MarginaliaGraph?.addConceptsFromAI(book.id, result);
+        if (added) {
+          graphBtn.textContent = '✓ Added';
+          graphBtn.disabled = true;
+        } else {
+          graphBtn.textContent = 'Already added';
+          graphBtn.disabled = true;
+        }
+      });
+    }
 
     section.appendChild(block);
     if (!fromCache) block.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
