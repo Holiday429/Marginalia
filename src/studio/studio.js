@@ -1,16 +1,17 @@
 /* Library view — movable shelf room */
 
 const LIBRARY_STORAGE_KEY = 'marginalia:library-layout:v5';
-const LIBRARY_WORLD_WIDTH = 2400;
-const LIBRARY_WORLD_HEIGHT = 2400;
+const LIBRARY_WORLD_WIDTH = 3200;
+const LIBRARY_WORLD_HEIGHT = 3200;
 const LIBRARY_ZOOM_MIN = 0.36;
 const LIBRARY_ZOOM_MAX = 2.05;
 const LIBRARY_DRAG_THRESHOLD = 8;
 
 const LIBRARY_DEFAULT_SHELVES = [
-  { id: 'reading-now', name: 'Reading Now', rows: 2, color: '#8da6d9', viewMode: 'spine', status: 'reading', bookKeys: [], x: 80, y: 40, tilt: 0, pitch: 0, yaw: 0 },
-  { id: 'reading-plan', name: 'Reading Plan', rows: 2, color: '#d4a869', viewMode: 'cover', status: 'want', bookKeys: [], x: 540, y: 140, tilt: 0, pitch: 0, yaw: 0 },
+  { id: 'reading', name: 'Reading', rows: 2, color: '#8da6d9', viewMode: 'spine', status: 'reading', bookKeys: [], x: 80, y: 40, tilt: 0, pitch: 0, yaw: 0 },
+  { id: 'to-read', name: 'To Read', rows: 2, color: '#d4a869', viewMode: 'cover', status: 'want', bookKeys: [], x: 540, y: 140, tilt: 0, pitch: 0, yaw: 0 },
   { id: 'finished', name: 'Finished', rows: 2, color: '#95a78d', viewMode: 'mix', status: 'finished', bookKeys: [], x: 980, y: 70, tilt: 0, pitch: 0, yaw: 0 },
+  { id: 'confirm-later', name: 'Confirm Later', rows: 2, color: '#7f7568', viewMode: 'spine', status: 'confirmed-later', bookKeys: [], x: 1420, y: 120, tilt: 0, pitch: 0, yaw: 0 },
 ];
 
 const LIBRARY_STATE = {
@@ -20,8 +21,6 @@ const LIBRARY_STATE = {
   pool: [],
   drag: null,
   shelfDrag: null,
-  shelfRotateDrag: null,
-  lookDrag: null,
   interaction: { type: 'idle', pointerId: null, target: null },
   view: { x: 0, y: 0, scale: 1 },
   camera: { yaw: 0, pitch: 0 },
@@ -55,26 +54,13 @@ function initLibrary() {
         <header class="library-head">
           <div class="library-head-tools">
             <form class="library-search" id="librarySearchForm" autocomplete="off">
-              <label class="service-ui-label" for="librarySearchInput">Search In Library</label>
+              <label class="service-ui-label" for="librarySearchInput">Search</label>
               <div class="library-search-row">
                 <input id="librarySearchInput" type="search" placeholder="Title, author" />
                 <button type="submit" class="chip">Locate</button>
               </div>
               <p class="library-search-feedback" id="librarySearchFeedback" aria-live="polite"></p>
             </form>
-
-            <div class="library-toolbar">
-              <div class="library-toolbar-row">
-                <button type="button" class="chip active" data-arrange="status">Auto By Status</button>
-                <button type="button" class="chip" data-arrange="color">Auto By Color</button>
-                <button type="button" class="chip" data-arrange="size">Auto By Size</button>
-                <button type="button" class="chip" data-arrange="reset">Reset</button>
-              </div>
-              <div class="library-view-buttons" role="tablist" aria-label="Library view mode">
-                <button type="button" class="chip" data-library-scene-mode="flat" role="tab" aria-selected="false">Flat View</button>
-                <button type="button" class="chip" data-library-scene-mode="spatial" role="tab" aria-selected="true">Spatial View</button>
-              </div>
-            </div>
           </div>
         </header>
 
@@ -104,30 +90,29 @@ function initLibrary() {
           <div class="library-stats" id="libraryStats"></div>
           <p class="library-status-line" id="libraryStatusLine">Drag books across shelves. Drag shelf titles to move shelves.</p>
         </div>
-
-        <section class="library-arrival-section">
-          <div class="library-arrival-head">
-            <h3>Arrival Books</h3>
-            <span id="libraryPoolCount">0 waiting</span>
-          </div>
-          <div class="library-arrival-pile" id="libraryPool" data-shelf-id="pool" data-lane="true"></div>
-        </section>
-
         <section class="library-scene-wrap">
           <div class="library-scene-head">
-            <h2>Organize Shelf</h2>
+            <h2 class="service-ui-label">Organize</h2>
+            <div class="library-toolbar">
+              <div class="library-toolbar-row">
+                <button type="button" class="chip active" data-arrange="status">Auto By Status</button>
+                <button type="button" class="chip" data-arrange="color">Auto By Color</button>
+                <button type="button" class="chip" data-arrange="size">Auto By Size</button>
+                <button type="button" class="chip" data-arrange="reset">Reset</button>
+              </div>
+            </div>
           </div>
           <div class="library-scene" id="libraryScene">
             <div class="library-scene-viewport" id="librarySceneViewport">
               <div class="library-wall-grid" id="libraryShelves"></div>
             </div>
-          </div>
-          <div class="library-zoom" aria-label="Library zoom controls">
-            <button type="button" class="library-zoom-btn" id="libraryZoomIn">+</button>
-            <button type="button" class="library-zoom-btn" id="libraryZoomOut">−</button>
-            <div class="library-zoom-sep"></div>
-            <button type="button" class="library-zoom-btn library-zoom-fit" id="libraryZoomFit">Fit</button>
-            <button type="button" class="library-zoom-btn library-zoom-fit" id="libraryCenterView">Ctr</button>
+            <div class="library-zoom" aria-label="Library zoom controls">
+              <button type="button" class="library-zoom-btn" id="libraryZoomIn">+</button>
+              <button type="button" class="library-zoom-btn" id="libraryZoomOut">−</button>
+              <div class="library-zoom-sep"></div>
+              <button type="button" class="library-zoom-btn library-zoom-fit" id="libraryZoomFit">Fit</button>
+              <button type="button" class="library-zoom-btn library-zoom-fit" id="libraryCenterView">Ctr</button>
+            </div>
           </div>
 
           <div class="library-book-overlay" id="libraryBookOverlay" hidden>
@@ -173,7 +158,7 @@ function bindLibraryEvents() {
   if (!root) return;
 
   root.addEventListener('click', (event) => {
-    if (event.target.closest('#libraryAddShelfBtn, #libraryToggleShelfPanel')) {
+    if (event.target.closest('#libraryAddShelfBtn')) {
       toggleShelfCreatePanel();
       return;
     }
@@ -191,20 +176,13 @@ function bindLibraryEvents() {
       return;
     }
 
-    const sceneModeBtn = event.target.closest('[data-library-scene-mode]');
-    if (sceneModeBtn) {
-      const mode = normalizeSceneMode(sceneModeBtn.dataset.librarySceneMode || 'spatial');
-      setSceneMode(mode);
-      return;
-    }
-
     if (event.target.closest('#libraryZoomIn')) {
-      zoomAtViewportCenter(1.1);
+      zoomAtViewportCenter(1.05);
       return;
     }
 
     if (event.target.closest('#libraryZoomOut')) {
-      zoomAtViewportCenter(1 / 1.1);
+      zoomAtViewportCenter(1 / 1.05);
       return;
     }
 
@@ -254,8 +232,6 @@ function bindLibraryEvents() {
       }
       return;
     }
-
-    if (event.target.closest('[data-rotate-shelf]')) return;
 
     const addRowBtn = event.target.closest('[data-add-row]');
     if (addRowBtn) {
@@ -328,6 +304,10 @@ function bindLibraryEvents() {
   if (scene) {
     scene.addEventListener('wheel', onSceneWheel, { passive: false });
   }
+  const viewport = document.getElementById('librarySceneViewport');
+  if (viewport) {
+    viewport.addEventListener('scroll', onViewportScroll, { passive: true });
+  }
 
   root.addEventListener('pointerdown', (event) => {
     if (!event.isPrimary || event.button !== 0 || hasActiveInteraction()) return;
@@ -336,11 +316,10 @@ function bindLibraryEvents() {
     if (dragNode) {
       const owningBay = dragNode.closest('.library-bay');
       const owningShelfId = owningBay?.dataset.shelfId || '';
-      const inPool = !owningBay && dragNode.closest('#libraryPool');
       if (owningShelfId && LIBRARY_STATE.activeShelfId !== owningShelfId) {
         setActiveShelf(owningShelfId);
       }
-      if (owningShelfId || inPool) {
+      if (owningShelfId) {
         startBookDrag(event, dragNode);
         return;
       }
@@ -348,19 +327,9 @@ function bindLibraryEvents() {
       return;
     }
 
-    const rotateHandle = event.target.closest('[data-rotate-shelf]');
-    if (rotateHandle && isSpatialSceneMode()) {
-      const shelfId = rotateHandle.dataset.rotateShelf || '';
-      if (shelfId) {
-        setActiveShelf(shelfId);
-        startShelfRotateDrag(event, shelfId);
-        return;
-      }
-    }
-
     const shelfSurface = event.target.closest('.library-bay');
     const head = event.target.closest('.library-bay-head-drag');
-    const isShelfAction = event.target.closest('.library-bay-actions, .library-remove-btn, [data-shelf-mode], [data-remove-shelf], [data-rotate-shelf], [data-add-row], .library-overflow-notice');
+    const isShelfAction = event.target.closest('.library-bay-actions, .library-remove-btn, [data-shelf-mode], [data-remove-shelf], [data-add-row], .library-overflow-notice');
     if (head && shelfSurface && !isShelfAction) {
       const bay = shelfSurface || head.closest('.library-bay');
       if (bay?.dataset.shelfId) {
@@ -370,7 +339,6 @@ function bindLibraryEvents() {
       }
     }
 
-    maybeStartPan(event);
   });
 }
 
@@ -392,7 +360,7 @@ function syncLibraryRecords() {
       id: book.id || '',
       title: toTitleCase(book.title || `Book ${index + 1}`),
       author: toTitleCase(book.author || ''),
-      status: book.status || 'want',
+      status: normalizeReadingStatus(book.status || 'confirmed-later'),
       spine: book.spine || '#2b2b2b',
       text: book.text || '#e8dfc8',
       w: Number(book.w) || 34,
@@ -405,7 +373,7 @@ function syncLibraryRecords() {
       band: book.band || '',
       coverPreview: book.coverPreview || '',
       coverImage: detail?.cover?.image || '',
-      tags: Array.isArray(detail?.tags) ? detail.tags.slice(0, 4) : [statusToLabel(book.status || 'want')],
+      tags: Array.isArray(detail?.tags) ? detail.tags.slice(0, 4) : [statusToLabel(book.status || 'confirmed-later')],
       summary: detail?.summary || `${toTitleCase(book.title || '')} is part of your library collection.`,
       sourceIndex: index,
       searchText: [book.title || '', book.author || '', detail?.title || '', detail?.author || '', ...(detail?.tags || [])].join(' ').toLowerCase(),
@@ -428,12 +396,12 @@ function hydrateLibraryLayout() {
   }
 
   LIBRARY_STATE.shelves = (saved.shelves || []).map((shelf) => ({
-    id: shelf.id,
-    name: shelf.name,
+    id: normalizeShelfId(shelf.id),
+    name: normalizeShelfName(shelf.name, shelf.id),
     color: shelf.color || '#7a6040',
     rows: clampInt(shelf.rows, 1, LIBRARY_MAX_ROWS, 2),
     viewMode: normalizeShelfMode(shelf.viewMode || 'spine'),
-    status: shelf.status || '',
+    status: normalizeReadingStatus(shelf.status || ''),
     x: Number(shelf.x) || 0,
     y: Number(shelf.y) || 0,
     tilt: 0,
@@ -442,16 +410,59 @@ function hydrateLibraryLayout() {
     bookKeys: Array.isArray(shelf.bookKeys) ? shelf.bookKeys.slice() : [],
   }));
 
-  LIBRARY_STATE.pool = Array.isArray(saved.pool) ? saved.pool.slice() : [];
-  LIBRARY_STATE.view.x = Number(saved.view?.x) || 0;
-  LIBRARY_STATE.view.y = Number(saved.view?.y) || 0;
+  LIBRARY_STATE.shelves = dedupeShelvesById(LIBRARY_STATE.shelves);
+  LIBRARY_STATE.pool = [];
+  const rawViewX = Number(saved.view?.x) || 0;
+  const rawViewY = Number(saved.view?.y) || 0;
+  // v5 and earlier stored translate offsets (can be negative). v6 uses scroll offsets.
+  LIBRARY_STATE.view.x = Math.max(0, rawViewX < 0 ? Math.abs(rawViewX) : rawViewX);
+  LIBRARY_STATE.view.y = Math.max(0, rawViewY < 0 ? Math.abs(rawViewY) : rawViewY);
   LIBRARY_STATE.view.scale = clamp(Number(saved.view?.scale), LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, 1);
-  LIBRARY_STATE.camera.yaw = clamp(Number(saved.camera?.yaw), -24, 24, 0);
-  LIBRARY_STATE.camera.pitch = clamp(Number(saved.camera?.pitch), -18, 18, 0);
-  LIBRARY_STATE.sceneMode = normalizeSceneMode(saved.sceneMode || 'spatial');
+  LIBRARY_STATE.camera.yaw = 0;
+  LIBRARY_STATE.camera.pitch = 0;
+  LIBRARY_STATE.sceneMode = 'flat';
 
   ensureBaseShelves();
+
+  const legacyPool = Array.isArray(saved.pool) ? saved.pool : [];
+  if (legacyPool.length) {
+    const confirmShelf = getShelfById('confirm-later');
+    if (confirmShelf) confirmShelf.bookKeys.push(...legacyPool);
+  }
+
   mergeLayoutWithRecords();
+}
+
+function dedupeShelvesById(input) {
+  const out = [];
+  const seen = new Set();
+  input.forEach((shelf) => {
+    if (seen.has(shelf.id)) return;
+    seen.add(shelf.id);
+    out.push(shelf);
+  });
+  return out;
+}
+
+function normalizeShelfId(id) {
+  if (id === 'reading-now') return 'reading';
+  if (id === 'reading-plan') return 'to-read';
+  return id || '';
+}
+
+function normalizeShelfName(name, id) {
+  if (id === 'reading-now' || id === 'reading') return 'Reading';
+  if (id === 'reading-plan' || id === 'to-read') return 'To Read';
+  if (id === 'confirm-later') return 'Confirm Later';
+  return name || 'Shelf';
+}
+
+function normalizeReadingStatus(status) {
+  if (status === 'reading') return 'reading';
+  if (status === 'finished') return 'finished';
+  if (status === 'want' || status === 'to-read') return 'want';
+  if (status === 'confirmed-later' || status === 'confirm-later') return 'confirmed-later';
+  return 'confirmed-later';
 }
 
 function ensureBaseShelves() {
@@ -469,14 +480,12 @@ function mergeLayoutWithRecords() {
   LIBRARY_STATE.shelves.forEach((shelf) => {
     shelf.bookKeys = shelf.bookKeys.filter((key) => valid.has(key));
   });
-  LIBRARY_STATE.pool = LIBRARY_STATE.pool.filter((key) => valid.has(key));
-
   const used = new Set();
   LIBRARY_STATE.shelves.forEach((shelf) => shelf.bookKeys.forEach((key) => used.add(key)));
-  LIBRARY_STATE.pool.forEach((key) => used.add(key));
+  const confirmShelf = getShelfById('confirm-later');
 
   LIBRARY_STATE.records.forEach((record) => {
-    if (!used.has(record.key)) LIBRARY_STATE.pool.push(record.key);
+    if (!used.has(record.key)) confirmShelf?.bookKeys.push(record.key);
   });
 }
 
@@ -485,7 +494,6 @@ function renderLibrary() {
   renderStats();
   renderStatusLine();
   renderSearchFeedback();
-  renderPool();
   renderShelves();
   updateSearchHighlight();
   applyViewTransform(false);
@@ -498,7 +506,7 @@ function renderStats() {
 
   const total = LIBRARY_STATE.records.length;
   const shelved = LIBRARY_STATE.shelves.reduce((sum, shelf) => sum + shelf.bookKeys.length, 0);
-  const pool = LIBRARY_STATE.pool.length;
+  const confirmLater = getShelfById('confirm-later')?.bookKeys.length || 0;
 
   el.innerHTML = `
     <span><strong>${total}</strong> Books</span>
@@ -507,7 +515,7 @@ function renderStats() {
     <span>·</span>
     <span><strong>${shelved}</strong> Placed</span>
     <span>·</span>
-    <span><strong>${pool}</strong> Arrival</span>
+    <span><strong>${confirmLater}</strong> Confirm Later</span>
   `;
 }
 
@@ -520,12 +528,7 @@ function renderStatusLine(customText) {
     return;
   }
 
-  if (LIBRARY_STATE.pool.length) {
-    line.textContent = `${LIBRARY_STATE.pool.length} books are waiting in Arrival. Drag them onto a shelf.`;
-    return;
-  }
-
-  const queue = getShelfById('reading-plan');
+  const queue = getShelfById('to-read');
   const nextThree = (queue?.bookKeys || [])
     .slice(0, 3)
     .map((key) => LIBRARY_STATE.recordByKey.get(key)?.title)
@@ -536,9 +539,7 @@ function renderStatusLine(customText) {
     return;
   }
 
-  line.textContent = isSpatialSceneMode()
-    ? 'Spatial view keeps shelf rotation. Drag shelf titles to move shelves.'
-    : 'Flat view keeps every shelf front-facing for easier sorting.';
+  line.textContent = 'Drag shelf titles to move shelves.';
 }
 
 function renderSearchFeedback(customText) {
@@ -571,21 +572,6 @@ function renderSearchFeedback(customText) {
   feedback.hidden = false;
 }
 
-function renderPool() {
-  const poolHost = document.getElementById('libraryPool');
-  const countEl = document.getElementById('libraryPoolCount');
-  if (!poolHost || !countEl) return;
-
-  poolHost.innerHTML = '';
-  LIBRARY_STATE.pool.forEach((key, index) => {
-    const record = LIBRARY_STATE.recordByKey.get(key);
-    if (!record) return;
-    poolHost.appendChild(createArrivalCard(record, index));
-  });
-
-  countEl.textContent = `${LIBRARY_STATE.pool.length} waiting`;
-}
-
 function renderShelves() {
   const host = document.getElementById('libraryShelves');
   if (!host) return;
@@ -594,7 +580,7 @@ function renderShelves() {
   LIBRARY_STATE.shelves.forEach((shelf, index) => {
     const bay = document.createElement('article');
     const isActive = LIBRARY_STATE.activeShelfId === shelf.id;
-    bay.className = `library-bay is-depth-${(index % 3) + 1}${isActive ? ' is-active' : ''}${isFlatSceneMode() ? ' is-flat-mode' : ''}`;
+    bay.className = `library-bay is-depth-${(index % 3) + 1}${isActive ? ' is-active' : ''}`;
     bay.dataset.shelfId = shelf.id;
     bay.dataset.depth = String((index % 3) + 1);
     bay.style.setProperty('--shelf-tint', shelf.color || '#8f6f44');
@@ -608,14 +594,6 @@ function renderShelves() {
     bay.innerHTML = `
       <div class="library-bay-titlebar library-bay-head-drag" data-drag-shelf="${escapeHTML(shelf.id)}">
         <div class="library-bay-head">
-          <button type="button" class="library-rotate-handle" data-rotate-shelf="${escapeHTML(shelf.id)}" aria-label="Adjust shelf angle" ${isSpatialSceneMode() ? '' : 'hidden aria-hidden="true" tabindex="-1"'}>
-            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-              <path d="M3.2 2.4h7.2c1 0 1.8.8 1.8 1.8v9.4H4.6c-.8 0-1.4-.6-1.4-1.4V2.4z" fill="currentColor" opacity="0.92"/>
-              <path d="M3.2 12.2c0-.7.6-1.2 1.3-1.2h7.7v2.6H4.6c-.8 0-1.4-.6-1.4-1.4z" fill="rgba(20,14,10,0.32)"/>
-              <line x1="5.2" y1="4.8" x2="9.6" y2="4.8" stroke="rgba(20,14,10,0.42)" stroke-width="0.7" stroke-linecap="round"/>
-              <line x1="5.2" y1="6.6" x2="9.0" y2="6.6" stroke="rgba(20,14,10,0.42)" stroke-width="0.7" stroke-linecap="round"/>
-            </svg>
-          </button>
           <div class="library-bay-head-text">
             <h3>${escapeHTML(shelf.name)}</h3>
             <p>${shelf.bookKeys.length} books</p>
@@ -773,67 +751,13 @@ function createCoverCard(record, shelfId) {
   return cover;
 }
 
-function createArrivalCard(record, index) {
-  const el = document.createElement('button');
-  el.type = 'button';
-  el.className = 'arrival-book library-draggable';
-  el.dataset.bookKey = record.key;
-  el.dataset.shelfId = 'pool';
-  el.style.setProperty('--arrival-tilt', `${((index % 5) - 2) * 1.5}deg`);
-  el.style.setProperty('--arrival-shift', `${Math.max(0, 12 - (index % 6) * 2)}px`);
-  el.style.background = record.spine;
-  el.style.color = record.text;
-  el.innerHTML = `
-    <span class="arrival-book-title">${escapeHTML(record.title)}</span>
-    <span class="arrival-book-author">${escapeHTML(record.author)}</span>
-  `;
-  return el;
-}
-
 function hasActiveInteraction() {
   return LIBRARY_STATE.interaction.type !== 'idle';
 }
 
-function normalizeSceneMode(value) {
-  return value === 'flat' ? 'flat' : 'spatial';
-}
-
-function isFlatSceneMode() {
-  return LIBRARY_STATE.sceneMode === 'flat';
-}
-
-function isSpatialSceneMode() {
-  return LIBRARY_STATE.sceneMode === 'spatial';
-}
-
 function applySceneModeState() {
   const host = document.getElementById('view-studio');
-  if (host) host.dataset.sceneMode = LIBRARY_STATE.sceneMode;
-
-  document.querySelectorAll('#view-studio [data-library-scene-mode]').forEach((button) => {
-    const active = normalizeSceneMode(button.dataset.librarySceneMode || 'spatial') === LIBRARY_STATE.sceneMode;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-selected', active ? 'true' : 'false');
-  });
-}
-
-function setSceneMode(mode) {
-  const nextMode = normalizeSceneMode(mode);
-  if (LIBRARY_STATE.sceneMode === nextMode) return;
-
-  LIBRARY_STATE.sceneMode = nextMode;
-  if (isFlatSceneMode()) {
-    LIBRARY_STATE.camera.yaw = 0;
-    LIBRARY_STATE.camera.pitch = 0;
-  }
-
-  closeBookInspector({ immediate: true });
-  renderLibrary();
-  requestAnimationFrame(() => {
-    applyCameraTransform();
-    applyViewTransform(true);
-  });
-  saveLayout();
+  if (host) host.dataset.sceneMode = 'flat';
 }
 
 function toggleShelfCreatePanel(forceOpen) {
@@ -887,7 +811,7 @@ function startBookDrag(event, sourceEl) {
   }
 
   const bookKey = sourceEl.dataset.bookKey || '';
-  const sourceShelfId = sourceEl.dataset.shelfId || 'pool';
+  const sourceShelfId = sourceEl.dataset.shelfId || '';
   if (!bookKey) {
     endInteraction('book-drag');
     return;
@@ -1076,64 +1000,6 @@ function shelfCollides(movingId, x, y, w, h) {
   });
 }
 
-function startShelfRotateDrag(event, shelfId) {
-  if (!isSpatialSceneMode()) return;
-  const shelf = getShelfById(shelfId);
-  if (!shelf) return;
-
-  if (!beginInteraction('shelf-rotate', event, event.target.closest('[data-rotate-shelf]'))) return;
-  event.preventDefault();
-  event.stopPropagation();
-
-  const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
-  if (bay) bay.classList.add('is-shelf-rotating');
-  const rect = bay?.getBoundingClientRect();
-
-  LIBRARY_STATE.shelfRotateDrag = {
-    shelfId,
-    startX: event.clientX,
-    startY: event.clientY,
-    radiusX: Math.max(140, (rect?.width || 420) * 0.58),
-    tilt: shelf.tilt || 0,
-    pitch: shelf.pitch || 0,
-    yaw: shelf.yaw || 0,
-    pointerId: event.pointerId,
-  };
-
-  window.addEventListener('pointermove', onShelfRotateMove);
-  window.addEventListener('pointerup', stopShelfRotateDrag);
-  window.addEventListener('pointercancel', stopShelfRotateDrag);
-}
-
-function onShelfRotateMove(event) {
-  const drag = LIBRARY_STATE.shelfRotateDrag;
-  if (!drag || !matchesActivePointer(event, 'shelf-rotate')) return;
-
-  const shelf = getShelfById(drag.shelfId);
-  if (!shelf) return;
-
-  const dx = event.clientX - drag.startX;
-  shelf.tilt = 0;
-  shelf.pitch = 0;
-  shelf.yaw = clamp(drag.yaw + (dx / drag.radiusX) * 70, -55, 55, drag.yaw);
-
-  const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
-  if (bay) setShelfTransform(bay, shelf);
-}
-
-function stopShelfRotateDrag(event) {
-  if (!LIBRARY_STATE.shelfRotateDrag || !matchesActivePointer(event, 'shelf-rotate')) return;
-  const shelfId = LIBRARY_STATE.shelfRotateDrag.shelfId;
-  const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
-  if (bay) bay.classList.remove('is-shelf-rotating');
-  LIBRARY_STATE.shelfRotateDrag = null;
-  endInteraction('shelf-rotate');
-  window.removeEventListener('pointermove', onShelfRotateMove);
-  window.removeEventListener('pointerup', stopShelfRotateDrag);
-  window.removeEventListener('pointercancel', stopShelfRotateDrag);
-  saveLayout();
-}
-
 function stopShelfDrag(event) {
   if (!LIBRARY_STATE.shelfDrag || !matchesActivePointer(event, 'shelf-move')) return;
   const shelfId = LIBRARY_STATE.shelfDrag.shelfId;
@@ -1147,59 +1013,20 @@ function stopShelfDrag(event) {
   saveLayout();
 }
 
-function maybeStartPan(event) {
-  if (!isSpatialSceneMode()) return;
-  if (event.button !== 0) return;
-  if (!event.target.closest('#libraryScene')) return;
-  if (event.target.closest('button, input, .library-bay, .library-draggable, .library-book-overlay')) return;
-  if (!beginInteraction('room-pan', event, document.getElementById('librarySceneViewport'))) return;
-  event.preventDefault();
-
-  const viewport = document.getElementById('librarySceneViewport');
-  if (viewport) viewport.classList.add('is-panning');
-
-  LIBRARY_STATE.lookDrag = {
-    startX: event.clientX,
-    startY: event.clientY,
-    yaw: LIBRARY_STATE.camera.yaw,
-    pitch: LIBRARY_STATE.camera.pitch,
-    pointerId: event.pointerId,
-  };
-
-  window.addEventListener('pointermove', onPanMove);
-  window.addEventListener('pointerup', stopPan);
-  window.addEventListener('pointercancel', stopPan);
-}
-
-function onPanMove(event) {
-  const pan = LIBRARY_STATE.lookDrag;
-  if (!pan || !matchesActivePointer(event, 'room-pan')) return;
-
-  const dx = event.clientX - pan.startX;
-  const dy = event.clientY - pan.startY;
-  LIBRARY_STATE.camera.yaw = clamp(pan.yaw + dx * 0.08, -24, 24, pan.yaw);
-  LIBRARY_STATE.camera.pitch = 0;
-  applyCameraTransform();
-}
-
-function stopPan(event) {
-  if (!LIBRARY_STATE.lookDrag || !matchesActivePointer(event, 'room-pan')) return;
-  const viewport = document.getElementById('librarySceneViewport');
-  if (viewport) viewport.classList.remove('is-panning');
-  LIBRARY_STATE.lookDrag = null;
-  endInteraction('room-pan');
-  window.removeEventListener('pointermove', onPanMove);
-  window.removeEventListener('pointerup', stopPan);
-  window.removeEventListener('pointercancel', stopPan);
-  saveLayout();
-}
-
 function onSceneWheel(event) {
   if (!event.target.closest('#libraryScene')) return;
   event.preventDefault();
 
-  const factor = event.deltaY > 0 ? 1 / 1.08 : 1.08;
+  const factor = event.deltaY > 0 ? 1 / 1.035 : 1.035;
   zoomAtClientPoint(event.clientX, event.clientY, factor);
+}
+
+function onViewportScroll() {
+  syncViewFromViewport();
+  window.clearTimeout(LIBRARY_STATE._scrollSaveTimer);
+  LIBRARY_STATE._scrollSaveTimer = window.setTimeout(() => {
+    saveLayout();
+  }, 160);
 }
 
 function zoomAtViewportCenter(factor) {
@@ -1220,15 +1047,14 @@ function zoomAtClientPoint(clientX, clientY, factor) {
 
   const pointX = clientX - rect.left;
   const pointY = clientY - rect.top;
-
-  const worldX = (pointX - LIBRARY_STATE.view.x) / oldScale;
-  const worldY = (pointY - LIBRARY_STATE.view.y) / oldScale;
+  const worldX = (viewport.scrollLeft + pointX) / oldScale;
+  const worldY = (viewport.scrollTop + pointY) / oldScale;
 
   LIBRARY_STATE.view.scale = newScale;
-  LIBRARY_STATE.view.x = pointX - (worldX * newScale);
-  LIBRARY_STATE.view.y = pointY - (worldY * newScale);
-
   applyViewTransform(true);
+  viewport.scrollLeft = Math.max(0, worldX * newScale - pointX);
+  viewport.scrollTop = Math.max(0, worldY * newScale - pointY);
+  syncViewFromViewport();
   saveLayout();
 }
 
@@ -1240,12 +1066,12 @@ function centerViewport({ animated }) {
   const bounds = computeShelfBounds();
   if (!bounds) return;
 
-  LIBRARY_STATE.view.x = (rect.width / 2) - ((bounds.minX + bounds.maxX) / 2) * LIBRARY_STATE.view.scale;
-  LIBRARY_STATE.view.y = (rect.height / 2) - ((bounds.minY + bounds.maxY) / 2) * LIBRARY_STATE.view.scale;
+  LIBRARY_STATE.view.x = Math.max(0, ((bounds.minX + bounds.maxX) / 2) * LIBRARY_STATE.view.scale - (rect.width / 2));
+  LIBRARY_STATE.view.y = Math.max(0, ((bounds.minY + bounds.maxY) / 2) * LIBRARY_STATE.view.scale - (rect.height / 2));
   applyViewTransform(Boolean(animated));
 }
 
-function fitShelvesToViewport({ animated, padding = 70 }) {
+function fitShelvesToViewport({ animated, padding = 28 }) {
   const viewport = document.getElementById('librarySceneViewport');
   if (!viewport) return;
 
@@ -1256,23 +1082,23 @@ function fitShelvesToViewport({ animated, padding = 70 }) {
   const worldW = Math.max(320, bounds.maxX - bounds.minX);
   const worldH = Math.max(220, bounds.maxY - bounds.minY);
 
-  const scaleX = (rect.width - padding * 2) / worldW;
-  const scaleY = (rect.height - padding * 2) / worldH;
-  const nextScale = clamp(Math.min(scaleX, scaleY), LIBRARY_ZOOM_MIN, Math.min(1.2, LIBRARY_ZOOM_MAX), 1);
+  const availW = Math.max(120, rect.width - (padding * 2));
+  const availH = Math.max(120, rect.height - (padding * 2));
+  const scaleX = availW / worldW;
+  const scaleY = availH / worldH;
+  const nextScale = clamp(Math.min(scaleX, scaleY), LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, 1);
 
   LIBRARY_STATE.view.scale = nextScale;
-  LIBRARY_STATE.view.x = (rect.width / 2) - ((bounds.minX + bounds.maxX) / 2) * nextScale;
-  LIBRARY_STATE.view.y = (rect.height / 2) - ((bounds.minY + bounds.maxY) / 2) * nextScale;
+  LIBRARY_STATE.view.x = Math.max(0, ((bounds.minX + bounds.maxX) / 2) * nextScale - (rect.width / 2));
+  LIBRARY_STATE.view.y = Math.max(0, ((bounds.minY + bounds.maxY) / 2) * nextScale - (rect.height / 2));
 
   applyViewTransform(Boolean(animated));
 }
 
 function resetFrontView({ animated }) {
-  if (isFlatSceneMode()) arrangeShelvesForFrontView();
-  LIBRARY_STATE.camera.yaw = 0;
-  LIBRARY_STATE.camera.pitch = 0;
+  arrangeShelvesForFrontView();
   applyCameraTransform();
-  fitShelvesToViewport({ animated, padding: 56 });
+  fitShelvesToViewport({ animated, padding: 24 });
 }
 
 function computeShelfBounds() {
@@ -1302,10 +1128,21 @@ function computeShelfBounds() {
 }
 
 function applyViewTransform(animated) {
+  const viewport = document.getElementById('librarySceneViewport');
   const world = document.getElementById('libraryShelves');
-  if (!world) return;
+  if (!world || !viewport) return;
   world.classList.toggle('is-animated', !!animated);
-  world.style.transform = `translate(${LIBRARY_STATE.view.x}px, ${LIBRARY_STATE.view.y}px) scale(${LIBRARY_STATE.view.scale})`;
+  world.style.transform = `scale(${LIBRARY_STATE.view.scale})`;
+  viewport.scrollLeft = Math.max(0, LIBRARY_STATE.view.x);
+  viewport.scrollTop = Math.max(0, LIBRARY_STATE.view.y);
+  syncViewFromViewport();
+}
+
+function syncViewFromViewport() {
+  const viewport = document.getElementById('librarySceneViewport');
+  if (!viewport) return;
+  LIBRARY_STATE.view.x = Math.max(0, viewport.scrollLeft || 0);
+  LIBRARY_STATE.view.y = Math.max(0, viewport.scrollTop || 0);
 }
 
 function applyCameraTransform() {
@@ -1349,11 +1186,11 @@ function computeTargetIndex(lane, placeholder) {
   const drag = LIBRARY_STATE.drag;
   const children = Array.from(lane.children).filter((node) => node !== drag?.sourceEl);
   const localIndex = Math.max(0, children.indexOf(placeholder));
-  return lane.dataset.shelfId === 'pool' ? localIndex : startIndex + localIndex;
+  return startIndex + localIndex;
 }
 
 function moveBookToShelf(bookKey, targetShelfId, targetIndex) {
-  const allLists = [LIBRARY_STATE.pool, ...LIBRARY_STATE.shelves.map((shelf) => shelf.bookKeys)];
+  const allLists = LIBRARY_STATE.shelves.map((shelf) => shelf.bookKeys);
   allLists.forEach((list) => {
     const idx = list.indexOf(bookKey);
     if (idx !== -1) list.splice(idx, 1);
@@ -1538,20 +1375,14 @@ function syncOverlayWithRenderedBook() {
 }
 
 function setShelfTransform(node, shelf) {
-  if (isFlatSceneMode()) {
-    node.style.transform = 'none';
-    return;
-  }
   const depth = Number(node?.dataset.depth || 2);
   const baseZ = depth === 1 ? -20 : depth === 3 ? -24 : 10;
   const baseYaw = depth === 1 ? -3.5 : depth === 3 ? 3.5 : 0;
-  const cameraYaw = LIBRARY_STATE.camera.yaw || 0;
-  const shelfYaw = shelf.yaw || 0;
 
   node.style.transform = [
     `perspective(1400px)`,
     `translateZ(${baseZ}px)`,
-    `rotateY(${cameraYaw + baseYaw + shelfYaw}deg)`,
+    `rotateY(${baseYaw}deg)`,
   ].join(' ');
 }
 
@@ -1663,34 +1494,38 @@ function focusShelfForMatch(match) {
   const key = match?.key;
   if (!shelfId || !key) return;
 
-  if (shelfId !== 'pool') {
-    const shelfEl = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
-    const viewport = document.getElementById('librarySceneViewport');
-    if (shelfEl && viewport) {
-      const bayRect = shelfEl.getBoundingClientRect();
-      const vpRect = viewport.getBoundingClientRect();
-      const shelf = getShelfById(shelfId);
+  const shelfEl = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
+  const viewport = document.getElementById('librarySceneViewport');
+  if (shelfEl && viewport) {
+    const bayRect = shelfEl.getBoundingClientRect();
+    const vpRect = viewport.getBoundingClientRect();
+    const shelf = getShelfById(shelfId);
 
-      const worldCenterX = (shelf?.x || 0) + (bayRect.width / 2);
-      const worldCenterY = (shelf?.y || 0) + (bayRect.height / 2);
+    const worldCenterX = (shelf?.x || 0) + (bayRect.width / 2);
+    const worldCenterY = (shelf?.y || 0) + (bayRect.height / 2);
 
-      const targetScale = clamp(Math.max(LIBRARY_STATE.view.scale, 1.08), LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, 1);
-      LIBRARY_STATE.view.scale = targetScale;
-      LIBRARY_STATE.view.x = (vpRect.width / 2) - worldCenterX * targetScale;
-      LIBRARY_STATE.view.y = (vpRect.height / 2) - worldCenterY * targetScale;
-      applyViewTransform(true);
-    }
+    const targetScale = clamp(Math.max(LIBRARY_STATE.view.scale, 1.08), LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, 1);
+    LIBRARY_STATE.view.scale = targetScale;
+    LIBRARY_STATE.view.x = Math.max(0, worldCenterX * targetScale - (vpRect.width / 2));
+    LIBRARY_STATE.view.y = Math.max(0, worldCenterY * targetScale - (vpRect.height / 2));
+    applyViewTransform(true);
   }
 
-  renderSearchFeedback();
-
-  window.setTimeout(() => {
-    const node = document.querySelector(`#view-studio .library-draggable[data-book-key="${cssEscape(key)}"]`);
-    const record = LIBRARY_STATE.recordByKey.get(key);
-    if (node && record) playBookInteraction(node, record, match.shelfId);
-  }, 320);
+  setActiveShelf(shelfId);
+  const found = LIBRARY_STATE.recordByKey.get(key);
+  renderSearchFeedback(`Located: ${found?.title || 'Book'}`);
+  window.setTimeout(() => triggerLocateLift(key), 120);
 
   saveLayout();
+}
+
+function triggerLocateLift(bookKey) {
+  const node = document.querySelector(`#view-studio .library-draggable[data-book-key="${cssEscape(bookKey)}"]`);
+  if (!node) return;
+  node.classList.remove('is-locate-lift');
+  void node.offsetWidth;
+  node.classList.add('is-locate-lift');
+  window.setTimeout(() => node.classList.remove('is-locate-lift'), 760);
 }
 
 function findSearchMatches(query) {
@@ -1703,12 +1538,6 @@ function findSearchMatches(query) {
       if (!record || !record.searchText.includes(query)) return;
       matches.push({ key, shelfId: shelf.id });
     });
-  });
-
-  LIBRARY_STATE.pool.forEach((key) => {
-    const record = LIBRARY_STATE.recordByKey.get(key);
-    if (!record || !record.searchText.includes(query)) return;
-    matches.push({ key, shelfId: 'pool' });
   });
 
   return matches;
@@ -1757,7 +1586,10 @@ function removeShelf(shelfId) {
   const shelf = getShelfById(shelfId);
   if (!shelf) return;
 
-  LIBRARY_STATE.pool.push(...shelf.bookKeys);
+  const confirmShelf = getShelfById('confirm-later');
+  if (confirmShelf && confirmShelf.id !== shelfId) {
+    confirmShelf.bookKeys.push(...shelf.bookKeys);
+  }
   LIBRARY_STATE.shelves = LIBRARY_STATE.shelves.filter((item) => item.id !== shelfId);
 
   renderLibrary();
@@ -1809,7 +1641,6 @@ function applyArrangement(mode) {
         shelf.bookKeys.push(record.key);
         syncStatusToSource(record.key, shelf.id);
       });
-    LIBRARY_STATE.pool = [];
     return;
   }
 
@@ -1824,7 +1655,6 @@ function applyArrangement(mode) {
         shelf.bookKeys.push(record.key);
         syncStatusToSource(record.key, shelf.id);
       });
-    LIBRARY_STATE.pool = [];
   }
 }
 
@@ -1836,7 +1666,6 @@ function arrangeByStatus() {
     const targetId = mapStatusToShelfId(record.status);
     const shelf = getShelfById(targetId);
     if (shelf) shelf.bookKeys.push(record.key);
-    else LIBRARY_STATE.pool.push(record.key);
   });
 }
 
@@ -1849,11 +1678,9 @@ function clearLayoutBooks() {
   LIBRARY_STATE.shelves.forEach((shelf) => {
     shelf.bookKeys = [];
   });
-  LIBRARY_STATE.pool = [];
 }
 
 function getShelfList(shelfId) {
-  if (shelfId === 'pool') return LIBRARY_STATE.pool;
   const shelf = getShelfById(shelfId);
   return shelf ? shelf.bookKeys : null;
 }
@@ -1941,16 +1768,17 @@ function getSpineSize(record) {
 }
 
 function mapStatusToShelfId(status) {
-  if (status === 'reading') return 'reading-now';
+  if (status === 'reading') return 'reading';
   if (status === 'finished') return 'finished';
-  if (status === 'want') return 'reading-plan';
-  return '';
+  if (status === 'want' || status === 'to-read') return 'to-read';
+  return 'confirm-later';
 }
 
 function statusToLabel(status) {
   if (status === 'reading') return 'Reading';
   if (status === 'finished') return 'Finished';
   if (status === 'want') return 'To Read';
+  if (status === 'confirmed-later' || status === 'confirm-later') return 'Confirmed Later';
   return 'Library';
 }
 
@@ -1970,17 +1798,16 @@ function saveLayout() {
       yaw: shelf.yaw,
       bookKeys: shelf.bookKeys.slice(),
     })),
-    pool: LIBRARY_STATE.pool.slice(),
     view: {
       x: LIBRARY_STATE.view.x,
       y: LIBRARY_STATE.view.y,
       scale: LIBRARY_STATE.view.scale,
     },
     camera: {
-      yaw: LIBRARY_STATE.camera.yaw,
-      pitch: LIBRARY_STATE.camera.pitch,
+      yaw: 0,
+      pitch: 0,
     },
-    sceneMode: LIBRARY_STATE.sceneMode,
+    sceneMode: 'flat',
   };
 
   try {
@@ -1995,7 +1822,7 @@ function readStoredLayout() {
     const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || !Array.isArray(parsed.shelves) || !Array.isArray(parsed.pool)) return null;
+    if (!parsed || !Array.isArray(parsed.shelves)) return null;
     return parsed;
   } catch {
     return null;

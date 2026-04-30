@@ -2,10 +2,7 @@
 
 #view-studio {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 12% 10%, rgba(196, 144, 58, 0.08), transparent 22%),
-    radial-gradient(circle at 84% 8%, rgba(232, 223, 200, 0.06), transparent 20%),
-    linear-gradient(180deg, #181512 0%, #14110f 52%, #100e0c 100%);
+  background: var(--bg);
 }
 
 body[data-view='studio'] {
@@ -61,6 +58,19 @@ body[data-view='studio'] {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+#view-studio .library-search .service-ui-label,
+#view-studio .library-scene-head .service-ui-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  text-transform: none;
+  color: var(--ink);
 }
 
 #view-studio .library-search-row {
@@ -231,122 +241,39 @@ body[data-view='studio'] {
   font-size: var(--fs-fluid-sm);
 }
 
-#view-studio .library-arrival-section {
-  padding: 2px 0 0;
-}
-
-#view-studio .library-arrival-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-#view-studio .library-arrival-head h3 {
-  font-family: var(--font-service-ui);
-  font-size: var(--section-subtitle-minor-size);
-  line-height: 1.1;
-  letter-spacing: var(--track-service-ui);
-  font-weight: var(--weight-service-ui-label);
-}
-
-#view-studio .library-arrival-head span {
-  font-family: var(--font-service-ui);
-  font-size: 11px;
-  letter-spacing: var(--track-service-ui);
-  color: var(--library-ink-faint);
-}
-
-#view-studio .library-arrival-pile {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  min-height: 92px;
-  padding: 12px 2px 14px;
-  background: transparent;
-}
-
-#view-studio .library-arrival-pile::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 18px;
-  background: radial-gradient(ellipse 45% 100% at 50% 0%, rgba(198, 139, 74, 0.18), transparent 70%);
-  pointer-events: none;
-}
-
-#view-studio .arrival-book {
-  position: relative;
-  width: clamp(120px, 12vw, 160px);
-  min-height: 30px;
-  padding: 5px 10px 6px;
-  border: 0;
-  border-radius: 6px;
-  text-align: left;
-  cursor: grab;
-  transform: translateY(var(--arrival-shift, 0px)) rotate(var(--arrival-tilt, 0deg));
-  box-shadow:
-    0 8px 18px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-#view-studio .arrival-book:hover {
-  transform: translateY(calc(var(--arrival-shift, 0px) - 3px)) rotate(var(--arrival-tilt, 0deg));
-}
-
-#view-studio .arrival-book-title {
-  display: block;
-  font-family: var(--font-serif);
-  font-size: 11px;
-  line-height: 1.15;
-}
-
-#view-studio .arrival-book-author {
-  display: block;
-  margin-top: 2px;
-  opacity: 0.72;
-  font-family: var(--font-service-ui);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-}
-
 #view-studio .library-scene-wrap {
   position: relative;
-  min-height: calc(100vh - 240px);
-  padding: 4px 0 14px;
-  overflow: hidden;
+  min-height: clamp(680px, calc(100vh - 180px), 980px);
+  padding: 4px 28px 14px;
+  overflow: visible;
 }
 
 #view-studio .library-scene-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 10px;
   margin-bottom: 12px;
 }
 
 #view-studio .library-scene-head h2 {
   font-family: var(--font-service-ui);
-  font-size: clamp(28px, 3.2vw, 40px);
-  line-height: 0.95;
-  letter-spacing: -0.01em;
-  font-weight: 500;
+  font-size: var(--fs-fluid-xs);
+  line-height: 1;
+  letter-spacing: var(--track-service-ui-label);
+  font-weight: var(--weight-service-ui-label);
   color: var(--ink);
+  text-transform: none;
 }
 
 #view-studio .library-scene {
   position: relative;
-  min-height: calc(100vh - 254px);
+  min-height: clamp(660px, calc(100vh - 196px), 940px);
   overflow: hidden;
   user-select: none;
   border: 1px solid rgba(232, 223, 200, 0.08);
-  background:
-    linear-gradient(180deg, rgba(232, 223, 200, 0.02), rgba(232, 223, 200, 0)),
-    linear-gradient(180deg, rgba(10, 9, 8, 0.24), rgba(10, 9, 8, 0.08));
+  background: transparent;
 }
 
 #view-studio .library-scene::before {
@@ -356,7 +283,8 @@ body[data-view='studio'] {
 #view-studio .library-scene-viewport {
   position: absolute;
   inset: 0;
-  overflow: hidden;
+  overflow: auto;
+  scrollbar-gutter: stable both-edges;
   cursor: grab;
 }
 
@@ -380,8 +308,8 @@ body[data-view='studio'] {
   position: absolute;
   left: 0;
   top: 0;
-  width: 2400px;
-  height: 2400px;
+  width: 3200px;
+  height: 3200px;
   transform-origin: 0 0;
   transform-style: preserve-3d;
 }
@@ -391,9 +319,9 @@ body[data-view='studio'] {
 }
 
 #view-studio .library-zoom {
-  position: fixed;
-  right: 28px;
-  bottom: 36px;
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -448,7 +376,7 @@ body[data-view='studio'] {
 #view-studio .library-bay {
   position: absolute;
   width: clamp(360px, 30vw, 500px);
-  padding: 12px 10px 20px;
+  padding: 30px 10px 20px;
   transform-origin: center center;
   transform-style: preserve-3d;
   transition: transform 0.18s ease;
@@ -463,10 +391,6 @@ body[data-view='studio'] {
 
 #view-studio .library-bay.is-shelf-dragging {
   cursor: grabbing;
-}
-
-#view-studio .library-bay.is-shelf-rotating {
-  cursor: copy;
 }
 
 #view-studio .library-bay.is-depth-1 {
@@ -486,8 +410,8 @@ body[data-view='studio'] {
   position: absolute;
   left: 0;
   right: 0;
+  top: 22px;
   bottom: 0;
-  height: calc(100% - 28px);
   background:
     linear-gradient(90deg,
       color-mix(in oklab, var(--shelf-tint, #8f6f44) 56%, #3b2b1c 44%) 0,
@@ -514,10 +438,11 @@ body[data-view='studio'] {
 #view-studio .library-bay-titlebar {
   position: relative;
   z-index: 4;
-  margin-bottom: 6px;
+  margin: -18px 10px 14px;
   padding: 10px 12px 12px;
   border-radius: 8px 8px 4px 4px;
-  background: rgba(232, 223, 200, 0.94);
+  background: rgba(232, 223, 200, 0.90);
+  backdrop-filter: blur(3px);
   box-shadow:
     0 6px 14px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
@@ -567,44 +492,6 @@ body[data-view='studio'] {
 #view-studio .library-bay-head-text {
   flex: 1;
   min-width: 0;
-}
-
-#view-studio .library-rotate-handle {
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px;
-  border-radius: 6px;
-  border: 1px solid rgba(20, 14, 10, 0.28);
-  background: var(--shelf-tint, #8f6f44);
-  color: rgba(20, 14, 10, 0.78);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  cursor: copy;
-  margin-right: 6px;
-  touch-action: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-#view-studio[data-scene-mode='flat'] .library-rotate-handle {
-  display: none;
-}
-
-#view-studio .library-rotate-handle:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 3px 6px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24);
-}
-
-#view-studio .library-rotate-handle svg {
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
 #view-studio .library-bay-head h3 {
@@ -860,6 +747,14 @@ body[data-view='studio'] {
   transform: translateY(-7px) scale(1.02);
 }
 
+#view-studio .library-draggable.is-locate-lift {
+  transform: translateY(-14px) scale(1.03);
+  box-shadow:
+    0 0 0 2px rgba(198, 139, 74, 0.82),
+    0 18px 30px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(198, 139, 74, 0.24);
+}
+
 #view-studio .library-draggable.is-lift-origin {
   opacity: 0.24;
 }
@@ -1104,12 +999,17 @@ body[data-view='studio'] {
   #view-studio .library-bay {
     width: min(460px, 88vw);
   }
+
+  #view-studio .library-scene-wrap {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
 }
 
 @media (max-width: 860px) {
   #view-studio .library-scene,
   #view-studio .library-scene-wrap {
-    min-height: 640px;
+    min-height: 700px;
   }
 
   #view-studio .library-overlay-info {
@@ -1135,15 +1035,6 @@ body[data-view='studio'] {
     min-height: 132px;
     gap: 5px;
     padding: 4px 4px 14px;
-  }
-
-  #view-studio .library-arrival-pile {
-    min-height: 80px;
-    padding: 8px 6px 10px;
-  }
-
-  #view-studio .arrival-book {
-    width: 116px;
   }
 
   #view-studio .library-bay-head h3 {
