@@ -9,7 +9,7 @@
 - **Current phase:** 1 of 8 (in progress)
 - **Last session ended at:** N/A — migration begun this session
 - **Last commit relevant to migration:** p0(phase-1): add package.json and vite config
-- **Next concrete action:** Phase 1, Task 4 — create `src/main.js` and update `index.html`
+- **Next concrete action:** Phase 1, verification — run `npm run dev` and confirm all views boot
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -46,11 +46,11 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 - [x] Install `vite`, `@types/three` (dev), `typescript` (dev) — pin versions
 - [x] Create `vite.config.js` (output to `dist/`, base `./`)
 - [x] Create `.gitignore` if missing — include `node_modules/`, `dist/`, `.env*.local`, `.DS_Store`
-- [ ] Move all `<script>` tags out of `index.html` into a single `src/main.js` entry that imports them in the same order
+- [x] Move all `<script>` tags out of `index.html` into a single `src/main.js` entry that imports them in the same order
   - Keep the CDN scripts (amCharts, Firebase compat) as `<script>` tags in `index.html` for now — they need global side effects
   - Keep the existing `type="module"` scripts (`room-scene.js`, `hero-glb.js`) as ES modules
   - All other `src/*.js` files: import from `src/main.js` in their original load order using bare `import './path/file.js'`
-- [ ] Add `<script type="module" src="/src/main.js"></script>` to `index.html` (after CDN scripts)
+- [x] Add `<script type="module" src="/src/main.js"></script>` to `index.html` (after CDN scripts)
 - [ ] Verify `npm run dev` boots, all six views (Shelf, Library, Map, Graph, Booklist, Book) load and don't throw
 - [ ] Verify `npm run build` produces a `dist/` that also works via `npm run preview`
 
