@@ -1,174 +1,199 @@
 # Marginalia — Product Specification
 
-## 项目定位
-
-**Marginalia** 是一个个人读书记录网站，不是阅读 App。  
-核心宗旨：**读书是为了内化知识、将感受化为行动。**
-
-目标用户：有意识地管理自己阅读系统的人，注重深度而非数量。
+> Engineering reference lives in `CLAUDE.md`. This document captures **product intent**: who Marginalia is for, what it does, and why.
 
 ---
 
-## 信息架构
+## What it is
 
-```
-Marginalia
-├── 书单 / 发现        ← 阅读前：筛选、预判
-├── 图书地图           ← 空间维度：读万卷书 × 行万里路
-├── 读书记录           ← 阅读中/后：笔记、视觉化、行动
-├── 书目联动           ← 知识网络：跨书概念连接
-├── 文化背景系统       ← 贯穿所有模块的上下文层
-└── 分享导出           ← 对外呈现：季度/年度书单
-```
+Marginalia is a personal reading-records platform. Not a reader, not a social network, not a collection. It owns the *after* of reading: cultural context, knowledge connection, and the conversion of insight into action.
 
----
+**Core thesis.** The point of reading is not to finish more books. It is to internalize what you read and convert it into action. Most reading apps optimize for the *before* (discovery, lists) or the *during* (the reading itself). Marginalia optimizes for the *after*.
 
-## 模块详细规格
+## Who it is for
 
-### 1. 书单 / 发现（阅读前）
+People who already read seriously and want a system that holds them accountable to their own thinking. They care about depth more than count. They have likely tried Notion or Obsidian and found the blank-canvas tax too high; they have likely used Readwise and felt that surfacing highlights isn't enough.
 
-**功能：**
-- 书单状态管理：`想读 → 在读 → 已读 → 搁置`
-- 每本书 AI 生成「入门卡」，内容包括：
-  - 核心论点 / 本书解答的问题
-  - 适读人群
-  - 阅读难度（1–5）
-  - 与用户已读书目的潜在关联
-  - 文化背景摘要（作者背景、写作时代）
-- 用户可在看完入门卡后决定是否加入阅读计划
+## What makes it different
 
-**数据源：**
-- 元数据：Open Library API / Google Books API
-- AI 补充：主观评估 + 文化语境（调用 Claude API）
+| Adjacent product | What they do                          | Why Marginalia is different               |
+|------------------|---------------------------------------|-------------------------------------------|
+| Goodreads        | Social book tracking                  | Not a social product. No follows or feeds. |
+| Douban Book      | Catalog + ratings                     | Not a collection. Rewards depth, not count. |
+| Notion           | Blank database                        | Opinionated structure for reading.        |
+| Readwise         | Highlight resurfacing                 | Highlights are an input, not the output.  |
+| Obsidian         | Personal knowledge graph              | Pre-built mechanics; no setup tax.        |
+| Apple Books      | Reader + library                      | Not a reader. Works alongside one.        |
 
-**UI 要点：**
-- 入门卡应是轻量弹出层，不打断浏览节奏
-- 状态变更动作要快，单击即可切换
+Marginalia's protected position is the **after-reading layer plus cultural context**: pulling reading out of isolation into time and place, and converting reflection into action.
 
 ---
 
-### 2. 图书地图
+## Modules
 
-**功能：**
-- 可交互 SVG 世界地图（D3.js）
-- 地图着色依据：该国家/地区对应书目数量（密度热图）
-- 书目关联维度（双维度）：
-  - 作者国籍
-  - 故事/内容发生地（支持手动标注）
-- 点击国家/省份展开：
-  - 该地区书单
-  - AI 生成的地区文化/历史背景（200–300字）
-  - 推荐「入门该地区」的书目
-- 支持省级粒度（中国、美国、日本等大国）
+### 1. Shelf
 
-**文化坐标系（子功能）：**
-- 二维散点图：X 轴 = 时代（年份），Y 轴 = 地域
-- 所有已读书目在图中分布
-- 用于可视化阅读盲区（如「未读过非洲当代文学」）
+Browse all books, filter by status (`want`, `reading`, `finished`, `shelved`). The fast utility view — find a book quickly, change its status, jump to detail.
 
----
+### 2. Library
 
-### 3. 读书记录（核心模块）
+The signature view. A 3D room with planar surfaces holding 2D content:
 
-#### 3a. 数据导入
-- **Notion 集成**：通过 Notion API 同步高亮、笔记、数据库
-- **Apple Books 集成**：解析用户手动导出的 `.epub` 注释文件（Apple 无官方 API）
-- 支持手动录入笔记和高亮
+- **North wall** — shelves of books (the same component used by Library 2D), drag-to-arrange.
+- **West wall** — sticky-note wall of recent or pinned highlights.
+- **Desk** — covers of currently-reading books, with reading-session controls.
+- **Future walls** — map snapshots, year-end recaps, and other planar views.
 
-#### 3b. 单书页面结构
-```
-[概况卡]
-  书名 / 作者 / 封面 / 阅读时间 / 阅读地点（可选）
-  
-[文化背景注释]
-  作者背景 + 写作时代语境（AI 生成，可编辑）
+**Why this exists.** E-book readers stripped away the physical sensation of arranging your books. The act of arranging triggered planning and habit formation; without it, casual readers forget they're reading. Library puts that ritual back, in a form that feels deliberate (not skeuomorphic-cute).
 
-[笔记 / 高亮]
-  来自 Notion / Apple Books / 手动录入
-  每条高亮可附加「文化注释」（手动或 AI 辅助）
+The 2D fallback (Library 2D) renders the same shelves flat — used on mobile, low-GPU devices, and as a fast path for users who don't want the cinematic view. Both views share one shelf component; features added to one appear in the other automatically.
 
-[视觉化]
-  AI 根据书籍类型生成不同视觉化：
-  - 知识类 → 概念地图 / 时间线
-  - 叙事类 → 人物关系图
-  - 论点类 → 论证树
+### 3. Map
 
-[收获]
-  自由文本，用户撰写
+Reading geography. Each book is placed at its author's origin and (optionally) its setting. Hover a country to see its books; click to see a short AI-generated cultural primer.
 
-[行动列表]
-  结构化清单，每条行动可标记状态：待执行 / 已完成
-  支持定期回顾提醒（30天 / 季度）
+A secondary cultural-coordinate view plots time × place to reveal reading blind spots ("you have never read contemporary African fiction").
 
-[阅读背景记录]
-  读这本书时的生活状态、地点、心境（增加记忆锚点）
-```
+### 4. Graph
+
+Concepts and books connected by tag. Intentionally minimal. Tags come from `book.tags`; the graph is computed at read time, not stored as an edge collection. The graph view is supportive, not central — knowledge graphs have a long history of looking impressive in screenshots and being unused daily.
+
+### 5. Booklist
+
+Yearly and quarterly digests. Auto-generated shareable cards (think Spotify Wrapped, but for what you read and what it changed). Public-profile owners can publish theirs to `marginalia.app/{slug}`.
+
+### 6. Book (detail)
+
+The single-book page. Sections:
+
+- **Overview** — title, author, cover, your reading dates, your reading location.
+- **Cultural context** — AI-generated background on the author and the period the book was written in. Editable.
+- **Highlights & notes** — imported from Notion / Apple Books / Kindle, or added manually. Each highlight can carry a note and an optional cultural annotation.
+- **Visualizations** — AI-generated and tailored to book type: concept cards / mind maps for nonfiction, character maps / timelines for fiction, argument breakdowns for argumentative work. Always editable.
+- **Takeaways** — free-text personal reflection.
+- **Action list** — structured next-actions, each with status and follow-up timing (30-day, quarterly).
+- **Reading context** — where you were in life when you read this. The memory anchor.
+
+### 7. Reading session
+
+Not a view, a cross-cutting feature. Start a session from the desk in Library, from a book detail page, or from anywhere a current book is shown. The session timer is an honor system — it does not read EPUB content. When the session ends, Marginalia prompts: "You read for 23 minutes. Want to note something?"
+
+Reading sessions create the daily-return habit. They are the single most important engagement mechanic in the product.
 
 ---
 
-### 4. 书目联动（知识网络）
+## AI features
 
-**功能：**
-- 用「概念标签」连接不同书目（如「权力」「记忆」「城市化」「儒家伦理」）
-- 可视化为知识图谱：节点 = 概念，边 = 书目
-- AI 辅助发现跨书潜在关联，用户确认后建立连接
-- 从单书页面可跳转至该概念下的所有相关书目
+All AI generation produces **editable** output. Each block stores `original` + `userEdited`; the view always shows the user's version when present. Users can edit, fork, or mark a block as "this is wrong" in one click.
 
----
+| Feature              | What it does                                          |
+|----------------------|-------------------------------------------------------|
+| Intro card           | Pre-read summary: argument, audience, difficulty       |
+| Cultural context     | Author + period + place, ~300 words                   |
+| Concept cards        | Key concepts from nonfiction                           |
+| Mind map             | Hierarchical structure of a nonfiction book            |
+| Character map        | Relationship graph for fiction                         |
+| Timeline             | Events ordered chronologically                         |
+| Argument breakdown   | Structured pro/con analysis                            |
+| Action suggestions   | "Things you might do because of this book"             |
 
-### 5. 文化背景系统（横向模块）
-
-> 这是 Marginalia 的差异化核心，贯穿所有模块。
-
-**文化背景嵌入层级：**
-
-| 层级 | 内容 |
-|------|------|
-| 书籍层 | 作者成长背景、写作时代的社会政治语境 |
-| 笔记层 | 高亮内容可附加文化注释，AI 辅助解释文化典故 |
-| 地图层 | 点击地区展示文化关键词 + 历史时间线 |
-| 联动层 | 文化背景作为跨书连接维度（如「拉美魔幻现实主义」） |
-
-**AI 生成规格（文化背景卡）：**
-- 字数：200–400字
-- 内容结构：时代背景 → 地域文化 → 对本书的影响
-- 应可编辑、可保存用户修改版本
+In v1, all cultural-context content is AI-generated. Human-curated content (UGC or editorial) is a far-future possibility, not a near-term commitment.
 
 ---
 
-### 6. 分享导出
+## Cross-cutting product mechanics
 
-**功能：**
-- 季度 / 年度书单自动生成精美卡片（类 Spotify Wrapped）
-- 导出格式：
-  - 图片（社交分享）
-  - PDF（存档）
-  - JSON（数据迁移）
-- 可选开启公开个人主页，展示：地图 + 书单 + 统计数据
+### Quote of the Day
 
----
+The home screen shows three of the user's past highlights, rotating daily. Drawn from their own library. Free users get a small daily set; Pro users get more controls (themed selection, per-tag filters).
 
-### 7. 补充功能
+The lowest-effort, highest-return engagement loop in the product. Also forms the basis of `marginalia.app/{slug}` public profiles.
 
-| 功能 | 说明 |
-|------|------|
-| 阅读节奏追踪 | 记录每次阅读时长、进度，生成阅读习惯报告 |
-| 行动回顾系统 | 30天 / 季度定时提醒，回看行动列表并标记执行情况 |
-| 引文库 | 跨书金句单独存放，按主题/标签检索 |
-| 书目推荐引擎 | 基于已读书目的概念标签推荐，非算法驱动 |
-| 阅读背景记录 | 地点、状态、心境，增强记忆锚点 |
+### Action follow-up
+
+Action items have due dates and review intervals. Thirty days after creation, Marginalia asks: "Is this still relevant? Did you do it?" Quarterly, the system surfaces a digest. Without follow-up, action lists die.
+
+### Cross-book full-text search
+
+Search spans every book, every highlight, every note. Once data accumulates this becomes the highest-frequency operation. Designed to feel instant.
+
+### Public profile
+
+Users can opt into a public profile at `marginalia.app/{slug}`. Read-only. Shows: map, recent finished books, year stats, optional Quote of the Day feed. The natural acquisition surface — every shared profile is marketing.
 
 ---
 
-## 设计原则
+## Import & export
 
-1. **内化优先**：每个功能都服务于「知识内化 → 行动」的闭环
-2. **不做书单收藏工具**：区别于豆瓣，重在深度而非数量
-3. **文化语境是护城河**：AI 生成的文化背景是差异化核心
-4. **个人性**：数据属于用户，支持完整导出迁移
+**Import.** Notion (two-way sync), Apple Books (`.epub` annotation export), Kindle (`.html` export), manual entry.
 
-## UI 文案规范（服务层）
+**Export** (in scope from day one):
 
-- 按钮、筛选标签、Tabs、Breadcrumb、统计 Chips、面板分类标题等服务型文案，默认使用英文。
-- 服务型文案默认使用 Title Case 或 Sentence case，不使用全大写（除 API、AI 等缩写）。
-- 内容型文案（书籍正文、笔记、文化背景内容）保留原语言表达。
+- JSON — full data dump (required for trust)
+- Markdown — per-book, for note-takers
+- PDF — year-end recap, Pro plan
+
+Account deletion exports user data first, then deletes — not the reverse.
+
+---
+
+## Internationalization
+
+UI is in English by default. Initial locales: `en`, `zh-CN`. Expansion (`ja`, `ko`, `es`, etc.) follows demand.
+
+User-generated content is locale-agnostic — users write in whatever language they want, including mixing languages within a single note. Functional UI text never mixes languages within one element.
+
+---
+
+## Monetization
+
+**Model.** Freemium with **usage gating**, not feature gating.
+
+A common mistake is to put the best features behind a paywall and watch free users never experience why the product is worth paying for. Marginalia does the opposite: every feature is available to free users, with usage caps that real readers will hit naturally if the product is working.
+
+### Free
+
+- Unlimited books, unlimited manual notes
+- Public profile, basic map, JSON export
+- AI: generous monthly cap (target: ~10 generations / month)
+- Cultural context: short version (~200 words)
+
+### Pro (~$5–8 / month or annual discount)
+
+- Unlimited AI
+- Full-length cultural context
+- PDF export, year-end recap
+- Custom domain for public profile
+- Notion two-way sync
+- 3D Library
+- Action-list reminder customization
+
+### Lifetime (early-adopter offer)
+
+- Equivalent to Pro, one-time payment
+
+No team or family plans. This is a personal product.
+
+---
+
+## What Marginalia is NOT
+
+These are deliberate scope decisions, not "things we haven't gotten to yet."
+
+- **Not a reader.** EPUB / PDF rendering is not Marginalia's job. Read where you already read; Marginalia captures the after.
+- **Not a social network.** No follows, comments, feeds, or DMs. Public profiles are read-only.
+- **Not a Mac or Android native app.** PWA is the cross-platform target. iPad app is on the table only if iPad usage justifies it.
+- **Not a heavy knowledge graph.** Graph view stays minimal; Marginalia is not Obsidian.
+- **Not a curated content corpus.** Cultural context comes from AI in v1; UGC is far future.
+- **Not a team product.** Reading is personal.
+
+---
+
+## Design principles
+
+1. **Internalization first.** Every feature serves the *read → internalize → action* loop. Features that feel cool but don't serve it get cut.
+2. **Depth over count.** No reading-streak gamification, no books-read counter on profile. Anything that turns reading into a numbers game is rejected.
+3. **Cultural context is the moat.** It is the layer competitors haven't built and won't easily build.
+4. **The user owns their data.** Full export from day one. Deletion exports first.
+5. **AI is a draft, not a verdict.** Every AI output is editable, and the user's edit takes precedence in the UI.
+6. **Manual ritual matters.** Drag-arrange-shelves is a product mechanic, not UI fluff. It exists to restore what e-readers took away.
