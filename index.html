@@ -268,8 +268,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <!-- room-scene and hero-glb use Three.js via importmap above — keep as module scripts outside Vite -->
-  <script type="module" src="src/studio/room-scene.js"></script>
+  <!-- hero-glb uses Three.js via full CDN URL — keep as module script so imports pass through -->
+  <!-- room-scene.js does not exist on disk (removed in earlier commit) -->
   <script type="module" src="src/preloader/hero-glb.js"></script>
 
   <!-- Vite entry: all other src/ scripts loaded in dependency order via src/main.js -->
