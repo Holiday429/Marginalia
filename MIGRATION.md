@@ -6,10 +6,10 @@
 
 ## Status
 
-- **Current phase:** 1 of 8 (not started)
-- **Last session ended at:** N/A — migration not yet begun
-- **Last commit relevant to migration:** N/A
-- **Next concrete action:** Phase 1, Task 1 — create `package.json` and install Vite
+- **Current phase:** 1 of 8 (in progress)
+- **Last session ended at:** N/A — migration begun this session
+- **Last commit relevant to migration:** p0(phase-1): add package.json and vite config
+- **Next concrete action:** Phase 1, Task 4 — create `src/main.js` and update `index.html`
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -42,10 +42,10 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 **Why this first:** Hot reload + a real dev server makes every later phase faster. Doesn't touch business logic, so risk is low.
 
 **Tasks:**
-- [ ] Create `package.json` with scripts: `dev`, `build`, `preview`, `typecheck` (typecheck stub for now)
-- [ ] Install `vite`, `@types/three` (dev), `typescript` (dev) — pin versions
-- [ ] Create `vite.config.js` (output to `dist/`, base `./`)
-- [ ] Create `.gitignore` if missing — include `node_modules/`, `dist/`, `.env*.local`, `.DS_Store`
+- [x] Create `package.json` with scripts: `dev`, `build`, `preview`, `typecheck` (typecheck stub for now)
+- [x] Install `vite`, `@types/three` (dev), `typescript` (dev) — pin versions
+- [x] Create `vite.config.js` (output to `dist/`, base `./`)
+- [x] Create `.gitignore` if missing — include `node_modules/`, `dist/`, `.env*.local`, `.DS_Store`
 - [ ] Move all `<script>` tags out of `index.html` into a single `src/main.js` entry that imports them in the same order
   - Keep the CDN scripts (amCharts, Firebase compat) as `<script>` tags in `index.html` for now — they need global side effects
   - Keep the existing `type="module"` scripts (`room-scene.js`, `hero-glb.js`) as ES modules
