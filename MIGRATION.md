@@ -6,10 +6,10 @@
 
 ## Status
 
-- **Current phase:** 1 of 8 (in progress)
-- **Last session ended at:** N/A — migration begun this session
-- **Last commit relevant to migration:** p0(phase-1): add package.json and vite config
-- **Next concrete action:** Phase 1, verification — run `npm run dev` and confirm all views boot
+- **Current phase:** 2 of 8 (not started)
+- **Last session ended at:** 2026-05-01 — Phase 1 complete
+- **Last commit relevant to migration:** 9ac23b3 — p0(phase-1): fix broken dynamic import path in booklist.js, verify build
+- **Next concrete action:** Phase 2, Task 1 — create `tsconfig.json` with `allowJs: true`
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -35,7 +35,7 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ## Phases
 
-### Phase 1: Vite + npm scripts ⬜ TODO
+### Phase 1: Vite + npm scripts ✅ DONE (9ac23b3)
 
 **Goal:** Replace the 30+ raw `<script>` tags in `index.html` with a Vite-driven build. No source code changes; just wire the build system around what already exists.
 
