@@ -51,8 +51,8 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
   - Keep the existing `type="module"` scripts (`room-scene.js`, `hero-glb.js`) as ES modules
   - All other `src/*.js` files: import from `src/main.js` in their original load order using bare `import './path/file.js'`
 - [x] Add `<script type="module" src="/src/main.js"></script>` to `index.html` (after CDN scripts)
-- [ ] Verify `npm run dev` boots, all six views (Shelf, Library, Map, Graph, Booklist, Book) load and don't throw
-- [ ] Verify `npm run build` produces a `dist/` that also works via `npm run preview`
+- [x] Verify `npm run dev` boots, all six views (Shelf, Library, Map, Graph, Booklist, Book) load and don't throw
+- [x] Verify `npm run build` produces a `dist/` that also works via `npm run preview`
 
 **Verification:**
 - `npm run dev` starts on http://localhost:5173 with hot reload
