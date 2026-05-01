@@ -123,6 +123,8 @@
     document.getElementById('aiSettingsModal')?.classList.remove('open');
   }
 
+  window.openAISettings = openModal;
+
   // Mount modal once on load, re-wire gear btn on every nav render
   window.addEventListener('marginalia:ui-refresh', wireGearBtn);
 

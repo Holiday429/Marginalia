@@ -6,10 +6,10 @@
 
 ## Status
 
-- **Current phase:** 1 of 8 (not started)
-- **Last session ended at:** N/A — migration not yet begun
-- **Last commit relevant to migration:** N/A
-- **Next concrete action:** Phase 1, Task 1 — create `package.json` and install Vite
+- **Current phase:** 2 of 8 (not started)
+- **Last session ended at:** 2026-05-01 — Phase 1 complete
+- **Last commit relevant to migration:** 9ac23b3 — p0(phase-1): fix broken dynamic import path in booklist.js, verify build
+- **Next concrete action:** Phase 2, Task 1 — create `tsconfig.json` with `allowJs: true`
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -35,24 +35,24 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ## Phases
 
-### Phase 1: Vite + npm scripts ⬜ TODO
+### Phase 1: Vite + npm scripts ✅ DONE (9ac23b3)
 
 **Goal:** Replace the 30+ raw `<script>` tags in `index.html` with a Vite-driven build. No source code changes; just wire the build system around what already exists.
 
 **Why this first:** Hot reload + a real dev server makes every later phase faster. Doesn't touch business logic, so risk is low.
 
 **Tasks:**
-- [ ] Create `package.json` with scripts: `dev`, `build`, `preview`, `typecheck` (typecheck stub for now)
-- [ ] Install `vite`, `@types/three` (dev), `typescript` (dev) — pin versions
-- [ ] Create `vite.config.js` (output to `dist/`, base `./`)
-- [ ] Create `.gitignore` if missing — include `node_modules/`, `dist/`, `.env*.local`, `.DS_Store`
-- [ ] Move all `<script>` tags out of `index.html` into a single `src/main.js` entry that imports them in the same order
+- [x] Create `package.json` with scripts: `dev`, `build`, `preview`, `typecheck` (typecheck stub for now)
+- [x] Install `vite`, `@types/three` (dev), `typescript` (dev) — pin versions
+- [x] Create `vite.config.js` (output to `dist/`, base `./`)
+- [x] Create `.gitignore` if missing — include `node_modules/`, `dist/`, `.env*.local`, `.DS_Store`
+- [x] Move all `<script>` tags out of `index.html` into a single `src/main.js` entry that imports them in the same order
   - Keep the CDN scripts (amCharts, Firebase compat) as `<script>` tags in `index.html` for now — they need global side effects
   - Keep the existing `type="module"` scripts (`room-scene.js`, `hero-glb.js`) as ES modules
   - All other `src/*.js` files: import from `src/main.js` in their original load order using bare `import './path/file.js'`
-- [ ] Add `<script type="module" src="/src/main.js"></script>` to `index.html` (after CDN scripts)
-- [ ] Verify `npm run dev` boots, all six views (Shelf, Library, Map, Graph, Booklist, Book) load and don't throw
-- [ ] Verify `npm run build` produces a `dist/` that also works via `npm run preview`
+- [x] Add `<script type="module" src="/src/main.js"></script>` to `index.html` (after CDN scripts)
+- [x] Verify `npm run dev` boots, all six views (Shelf, Library, Map, Graph, Booklist, Book) load and don't throw
+- [x] Verify `npm run build` produces a `dist/` that also works via `npm run preview`
 
 **Verification:**
 - `npm run dev` starts on http://localhost:5173 with hot reload

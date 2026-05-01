@@ -1772,3 +1772,7 @@ function escapeHTML(s) {
   return String(s).replace(/[&<>"]/g, ch =>
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[ch]);
 }
+
+// TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
+window.initMap = initMap;
+window.enterMap = enterMap;

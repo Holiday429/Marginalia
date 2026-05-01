@@ -783,3 +783,7 @@ function escapeHTML(str) {
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]
   ));
 }
+
+// TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
+window.initShelf = initShelf;
+window.enterShelf = enterShelf;

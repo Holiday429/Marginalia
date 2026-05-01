@@ -268,62 +268,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <!-- 1. Schema + type system (load first — everything else reads from these) -->
-  <script src="src/data/schema/book-types.js"></script>      <!-- window.BOOK_TYPES, window.BookTypes -->
-  <script src="src/book/panels/registry.js"></script>        <!-- window.PanelRegistry -->
-  <script src="src/ai/features/registry.js"></script>        <!-- window.AIFeatureRegistry -->
-
-  <!-- 1b. Mock / seed data (replace with real API adapters when ready) -->
-  <script src="src/data/mock/seed-spines.js"></script>       <!-- window.BOOKS, window.SHELF_BOOKS -->
-  <script src="src/data/mock/curated-booklist.js"></script>  <!-- window.BOOKLIST_CURATED -->
-  <script src="src/data/seed/sapiens.js"></script>           <!-- window.__SEED_SAPIENS -->
-  <script src="src/data/seed/index.js"></script>             <!-- window.BOOK_DETAILS, BOOK_BY_ID -->
-
-  <!-- 2. Firebase layer (config → auth → db) -->
-  <script src="src/firebase/config.js"></script>
-  <script src="src/firebase/auth.js"></script>
-  <script src="src/firebase/db.js"></script>
-
-  <!-- 3. State stores -->
-  <script src="src/store/books-store.js"></script>
-  <script src="src/store/notes-store.js"></script>
-
-  <!-- 4. Core app utilities -->
-  <script src="src/core/graph-data.js"></script>
-  <script src="src/core/app.js"></script>
-  <script src="src/core/concept-ui.js"></script>
-
-  <!-- 4b. API adapters -->
-  <script src="src/api/kindle-import.js"></script>
-
-  <!-- 5. Shared components -->
-  <script src="src/components/spine-card.js"></script>
-  <script src="src/new-entry/new-entry.js"></script>
-
-  <!-- 6a. AI layer (load before panels and book.js) -->
-  <script src="src/ai/client/api.js"></script>
-  <script src="src/ai/client/generate-ui.js"></script>
-  <script src="src/ai/features/prompts/mindmap-gen.js"></script>
-  <script src="src/ai/features/prompts/concept-cards.js"></script>
-  <script src="src/ai/features/prompts/argument-breakdown.js"></script>
-  <script src="src/ai/features/prompts/timeline-gen.js"></script>
-  <script src="src/ai/features/prompts/action-suggest.js"></script>
-  <script src="src/ai/settings/ai-settings.js"></script>
-
-  <!-- 6b. Panel scripts (load before book.js so PanelRegistry.set() runs first) -->
-  <script src="src/book/panels/notes.js"></script>
-  <script src="src/book/panels/claude-import.js"></script>
-
-  <!-- 6. Views -->
-  <script src="src/preloader/preloader.js"></script>
-  <script src="src/shelf/shelf.js"></script>
-  <script type="module" src="src/studio/room-scene.js"></script>
-  <script src="src/studio/studio.js"></script>
-  <script src="src/booklist/booklist.js"></script>
-  <script src="src/book/book.js"></script>
-  <script src="src/map/map.js"></script>
-  <script src="src/web/web.js"></script>
+  <!-- hero-glb uses Three.js via full CDN URL — keep as module script so imports pass through -->
+  <!-- room-scene.js does not exist on disk (removed in earlier commit) -->
   <script type="module" src="src/preloader/hero-glb.js"></script>
+
+  <!-- Vite entry: all other src/ scripts loaded in dependency order via src/main.js -->
+  <script type="module" src="/src/main.js"></script>
 
 </body>
 </html>

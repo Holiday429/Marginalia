@@ -205,7 +205,7 @@ window.NewEntry = (() => {
     author:       '',
     thickness:    34,   // px equivalent (w in SHELF_BOOKS)
     height:       0.88, // h ratio
-    status:       'reading',
+    status:       'confirmed-later',
     coverFile:    null,
     coverPreview: null,
   };
@@ -330,6 +330,7 @@ window.NewEntry = (() => {
               <div class="ne-field">
                 <label class="ne-label" for="neStatus">Status</label>
                 <select class="ne-select" id="neStatus">
+                  <option value="confirmed-later" selected>Confirmed Later</option>
                   <option value="reading">Reading</option>
                   <option value="finished">Finished</option>
                   <option value="want">To Read</option>
@@ -788,7 +789,7 @@ window.NewEntry = (() => {
     const lang     = dialog.querySelector('#neLanguage')?.value || 'en';
     const bookType = dialog.querySelector('#neBookType')?.value || 'nonfiction';
     const author   = dialog.querySelector('#neAuthor')?.value.trim() || '';
-    const status   = dialog.querySelector('#neStatus')?.value || 'reading';
+    const status   = dialog.querySelector('#neStatus')?.value || 'confirmed-later';
     const originRaw = dialog.querySelector('#neOrigin')?.value.trim() || '';
     const externalLink = normalizeUrl(dialog.querySelector('#neExternalLink')?.value || '');
     const tags     = (dialog.querySelector('#neTags')?.value || '')

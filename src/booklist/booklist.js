@@ -806,7 +806,7 @@ function teardownCenterBook() {
 async function getHeroMountFn() {
   if (BOOKLIST_STATE.heroMountFn !== undefined) return BOOKLIST_STATE.heroMountFn;
   if (!BOOKLIST_STATE.heroMountPromise) {
-    BOOKLIST_STATE.heroMountPromise = import('./src/preloader/hero-glb.js')
+    BOOKLIST_STATE.heroMountPromise = import('../preloader/hero-glb.js')
       .then((module) => (typeof module.mountHeroGLB === 'function' ? module.mountHeroGLB : null))
       .catch(() => null);
   }
