@@ -20,9 +20,9 @@ const POSES: Record<RoomPoseId, RoomPose> = {
     idleAmplitude: { x: 0.012, y: 0.018 },
   },
   approach: {
-    position: [0, 2.34, 1.92],
-    target: [0, 1.12, -1.56],
-    fov: 44,
+    position: [0, 3.4, 1.4],
+    target: [0, 0.95, -1.45],
+    fov: 46,
     defaultDurationMs: 940,
     idleAmplitude: { x: 0.004, y: 0.006 },
   },

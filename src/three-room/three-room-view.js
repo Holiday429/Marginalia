@@ -186,6 +186,7 @@ function mountRoomScene() {
       onLaptopSelect: () => exitRoomToShelf(),
       onOrganizeSelect: () => exitRoomToLayer('organize'),
       onSapiensSelect: () => exitRoomToBook('sapiens'),
+      onHeroBookSelect: () => exitRoomViaHeroFlip(),
     });
   }
 
@@ -322,6 +323,72 @@ function exitRoomToLayer(mode) {
     ROOM_VIEW_STATE.transitionTimer = null;
     App.show('studio', { source: 'room', mode: normalizedMode });
   }, 420);
+}
+
+function exitRoomViaHeroFlip() {
+  if (ROOM_VIEW_STATE.transitioning) return;
+  ROOM_VIEW_STATE.transitioning = true;
+
+  // Overlay fades in while pull animation plays
+  const overlay = document.createElement('div');
+  overlay.style.cssText = [
+    'position:fixed;inset:0;z-index:9999;',
+    'display:flex;align-items:center;justify-content:center;',
+    'background:rgba(0,0,0,0);',
+    'transition:background 0.6s ease;',
+    'pointer-events:none;',
+  ].join('');
+  document.body.appendChild(overlay);
+
+  const bookEl = document.createElement('div');
+  bookEl.className = 'book hero-3d';
+  // Hidden until 3D pull completes, then snaps in place of the pulled model
+  bookEl.style.cssText = [
+    '--spine-w:140px;--book-h:210px;--expand:260px;--hero-stage-clearance:0px;',
+    'width:140px;height:210px;position:relative;',
+    'visibility:hidden;',
+  ].join('');
+  const bookInner = document.createElement('div');
+  bookInner.className = 'book-inner';
+  bookEl.appendChild(bookInner);
+  overlay.appendChild(bookEl);
+
+  // Overlay darkens while pull plays
+  requestAnimationFrame(() => { overlay.style.background = 'rgba(0,0,0,0.78)'; });
+
+  import('/src/preloader/hero-glb.js').then(({ mountHeroGLB }) => {
+    // Pre-load GLB while pull is in progress
+    const teardown = mountHeroGLB(bookEl);
+
+    const onPullComplete = () => {
+      // 3D model is now hidden — reveal DOM book in its place
+      bookEl.style.visibility = 'visible';
+      // Flip from spine to cover
+      setTimeout(() => { bookEl.classList.add('opened'); }, 80);
+    };
+
+    if (ROOM_VIEW_STATE.handle) {
+      ROOM_VIEW_STATE.handle.animateHeroBookPull(onPullComplete, 600);
+    } else {
+      onPullComplete();
+    }
+
+    // After pull (600ms) + flip (~900ms) + small buffer = ~1650ms total
+    setTimeout(() => {
+      overlay.style.transition = 'opacity 0.5s ease';
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        if (teardown) teardown();
+        overlay.remove();
+        ROOM_VIEW_STATE.transitioning = false;
+        App.show('studio', { source: 'room-hero-book', mode: 'organize' });
+      }, 500);
+    }, 1650);
+  }).catch(() => {
+    overlay.remove();
+    ROOM_VIEW_STATE.transitioning = false;
+    exitRoomToLayer('organize');
+  });
 }
 
 window.initRoom = initRoom;

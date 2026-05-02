@@ -16,6 +16,7 @@ interface RoomSceneOptions {
   onLaptopSelect?: () => void;
   onOrganizeSelect?: () => void;
   onSapiensSelect?: () => void;
+  onHeroBookSelect?: () => void;
 }
 
 type CameraSpeedPreset = 'default' | 'quick';
@@ -54,7 +55,7 @@ interface DecorAssetSpec {
   photoTextureUrl?: string;
   photoMaterialNameIncludes?: string;
   surfaceTextureSet?: SurfaceTextureSetSpec;
-  interactiveAction?: 'map' | 'shelf' | 'organize' | 'sapiens';
+  interactiveAction?: 'map' | 'shelf' | 'organize' | 'sapiens' | 'heroBook';
 }
 
 interface SurfaceTextureSetSpec {
@@ -69,31 +70,41 @@ interface SurfaceTextureSetSpec {
 
 const DECOR_ASSETS: DecorAssetSpec[] = [
   {
+    id: 'hero-book-shelf',
+    url: '/book.glb',
+    position: [-4.5, 1.43, -0.35],
+    rotationY: Math.PI,
+    targetHeight: 0.38,
+    interactiveAction: 'heroBook',
+  },
+  {
     id: 'bookshelf-a',
     url: '/assets/3D%20room/book_shelf.glb',
-    position: [-5.06, 0, -1.74],
+    position: [-4.6, 0, 1.0],
     rotationY: Math.PI / 2,
     targetHeight: 2.46,
+    scaleMultiplier: 1.15,
     interactiveAction: 'organize',
   },
   {
     id: 'bookshelf-b',
     url: '/assets/3D%20room/bookshelf%20real.glb',
-    position: [-5.06, 0, 0.16],
+    position: [-4.6, 0, 2.6],
     rotationY: Math.PI / 2,
     targetHeight: 2.46,
+    scaleMultiplier: 1.15,
     interactiveAction: 'organize',
   },
   {
     url: '/assets/3D%20room/chair.glb',
-    position: [0.62, 0, 0.12],
-    rotationY: 0.5,
+    position: [0.62, 0, 1.1],
+    rotationY: 0.5 - Math.PI / 2,
     targetHeight: 1.22,
   },
   {
     id: 'globe',
     url: '/assets/3D%20room/antique_globe.glb',
-    position: [-1.28, 0.88, -1.86],
+    position: [-1.28, 1.01, -1.86],
     rotationY: -1.08,
     targetHeight: 0.58,
     interactiveAction: 'map',
@@ -111,7 +122,7 @@ const DECOR_ASSETS: DecorAssetSpec[] = [
   {
     id: 'picture-frame',
     url: '/assets/3D%20room/wooden_picture_frame.glb',
-    position: [1.34, 0.86, -1.96],
+    position: [1.34, 1.01, -1.96],
     liftY: 0.17,
     rotationY: -0.42,
     targetHeight: 0.4,
@@ -121,17 +132,17 @@ const DECOR_ASSETS: DecorAssetSpec[] = [
   {
     id: 'macbook',
     url: '/assets/3D%20room/macbook.glb',
-    position: [-0.18, 0.86, -1.28],
+    position: [0.3, 1.01, -1.22],
     liftY: 0.02,
-    rotationY: 0.18,
+    rotationY: -0.42,
     targetHeight: 0.46,
     interactiveAction: 'shelf',
   },
   {
     id: 'desk-book-sapiens',
     url: '/book.glb',
-    position: [0.74, 0.86, -1.22],
-    liftY: 0.006,
+    position: [-0.5, 1.09, -0.72],
+    liftY: 0,
     rotationX: -Math.PI / 2,
     rotationY: 0,
     rotationZ: 0,
@@ -249,6 +260,8 @@ export class RoomScene {
   private slotAnchors = new Map<RoomSlotId, THREE.Object3D>();
   private slotMounts = new Map<RoomSlotId, SlotMount>();
   private decorRoot = new THREE.Group();
+  private namedModels = new Map<string, THREE.Object3D>();
+  private pullTween: { model: THREE.Object3D; startX: number; targetX: number; startedAt: number; durationMs: number; onComplete: () => void } | null = null;
   private gltfLoader = new GLTFLoader();
   private textureLoader = new THREE.TextureLoader();
   private exrLoader = new EXRLoader();
@@ -260,6 +273,7 @@ export class RoomScene {
   private onLaptopSelect: (() => void) | null = null;
   private onOrganizeSelect: (() => void) | null = null;
   private onSapiensSelect: (() => void) | null = null;
+  private onHeroBookSelect: (() => void) | null = null;
   private envRenderTarget: THREE.WebGLRenderTarget | null = null;
   private hasWallSurfaceTexture = false;
   private hasFloorSurfaceTexture = false;
@@ -301,6 +315,7 @@ export class RoomScene {
     this.onLaptopSelect = typeof options.onLaptopSelect === 'function' ? options.onLaptopSelect : null;
     this.onOrganizeSelect = typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : null;
     this.onSapiensSelect = typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : null;
+    this.onHeroBookSelect = typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : null;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
@@ -483,6 +498,19 @@ export class RoomScene {
     this.fillLight.intensity = skin.lighting.key * 0.34;
     this.rimLight.intensity = skin.lighting.rim * 0.72;
     this.skyLight.intensity = 0.58;
+  }
+
+  animateHeroBookPull(onComplete: () => void, durationMs = 600): void {
+    const model = this.namedModels.get('hero-book-shelf');
+    if (!model) { onComplete(); return; }
+    this.pullTween = {
+      model,
+      startX: model.position.x,
+      targetX: model.position.x + 1.8,
+      startedAt: performance.now(),
+      durationMs,
+      onComplete,
+    };
   }
 
   destroy(): void {
@@ -799,17 +827,17 @@ export class RoomScene {
     room.add(notesBoard);
 
     const deskTop = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.12, 1.9), this.materials.desk);
-    deskTop.position.set(0, 0.8, -1.45);
+    deskTop.position.set(0, 0.95, -1.45);
     deskTop.castShadow = true;
     deskTop.receiveShadow = true;
     room.add(deskTop);
 
-    const legGeo = new THREE.BoxGeometry(0.1, 0.75, 0.1);
+    const legGeo = new THREE.BoxGeometry(0.1, 0.89, 0.1);
     const legOffsets = [
-      [-1.64, 0.38, -0.64],
-      [1.64, 0.38, -0.64],
-      [-1.64, 0.38, -2.26],
-      [1.64, 0.38, -2.26],
+      [-1.64, 0.445, -0.64],
+      [1.64, 0.445, -0.64],
+      [-1.64, 0.445, -2.26],
+      [1.64, 0.445, -2.26],
     ] as const;
 
     legOffsets.forEach(([x, y, z]) => {
@@ -853,7 +881,7 @@ export class RoomScene {
 
     this.registerSlot('shelfWall', [-5.22, 2.2, 0], [0, Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
     this.registerSlot('notesWall', [5.22, 2.2, 0], [0, -Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
-    this.registerSlot('desk', [0, 1.22, -1.45], [-Math.PI / 2, 0, 0], [0.0048, 0.0048, 0.0048]);
+    this.registerSlot('desk', [0, 1.07, -1.45], [-Math.PI / 2, 0, 0], [0.0048, 0.0048, 0.0048]);
   }
 
   private createWallProjectionPanel({
@@ -1046,6 +1074,8 @@ export class RoomScene {
           this.registerInteractiveTarget(model, () => this.onOrganizeSelect?.());
         } else if (asset.interactiveAction === 'sapiens') {
           this.registerInteractiveTarget(model, () => this.onSapiensSelect?.());
+        } else if (asset.interactiveAction === 'heroBook') {
+          this.registerInteractiveTarget(model, () => this.onHeroBookSelect?.());
         }
 
         model.traverse((child) => {
@@ -1063,6 +1093,7 @@ export class RoomScene {
           this.applyDecorPhotoTexture(model, asset.photoTextureUrl, asset.photoMaterialNameIncludes || 'Image');
         }
 
+        if (asset.id) this.namedModels.set(asset.id, model);
         this.decorRoot.add(model);
       },
       undefined,
@@ -1226,6 +1257,17 @@ export class RoomScene {
       this.desiredFov = this.camera.fov;
     } else {
       this.updateCameraFrame(performance.now());
+    }
+    if (this.pullTween) {
+      const t = Math.min(1, (performance.now() - this.pullTween.startedAt) / this.pullTween.durationMs);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      this.pullTween.model.position.x = this.pullTween.startX + (this.pullTween.targetX - this.pullTween.startX) * ease;
+      if (t >= 1) {
+        this.pullTween.model.visible = false;
+        const cb = this.pullTween.onComplete;
+        this.pullTween = null;
+        cb();
+      }
     }
     this.renderer.render(this.scene, this.camera);
     this.cssRenderer.render(this.scene, this.camera);

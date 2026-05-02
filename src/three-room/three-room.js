@@ -11,6 +11,7 @@ export function createThreeRoomPreview(host, options = {}) {
     onLaptopSelect: typeof options.onLaptopSelect === 'function' ? options.onLaptopSelect : undefined,
     onOrganizeSelect: typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : undefined,
     onSapiensSelect: typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : undefined,
+    onHeroBookSelect: typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : undefined,
   });
 
   // Keep wall slots unmounted for now.
@@ -54,6 +55,10 @@ export function createThreeRoomPreview(host, options = {}) {
 
     isFreeLookEnabled() {
       return scene.isFreeLookEnabled();
+    },
+
+    animateHeroBookPull(onComplete, durationMs = 600) {
+      scene.animateHeroBookPull(onComplete, durationMs);
     },
 
     destroy() {
