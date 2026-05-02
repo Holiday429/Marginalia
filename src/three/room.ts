@@ -39,6 +39,8 @@ interface SlotMount {
   component: SlotComponent;
 }
 
+type InteractiveAction = 'map' | 'shelf' | 'organize' | 'sapiens' | 'heroBook';
+
 interface DecorAssetSpec {
   id?: string;
   url: string;
@@ -55,7 +57,7 @@ interface DecorAssetSpec {
   photoTextureUrl?: string;
   photoMaterialNameIncludes?: string;
   surfaceTextureSet?: SurfaceTextureSetSpec;
-  interactiveAction?: 'map' | 'shelf' | 'organize' | 'sapiens' | 'heroBook';
+  interactiveAction?: InteractiveAction;
 }
 
 interface SurfaceTextureSetSpec {
@@ -68,7 +70,19 @@ interface SurfaceTextureSetSpec {
   bumpScale?: number;
 }
 
-const DECOR_ASSETS: DecorAssetSpec[] = [
+// Room geometry constants — positions derived from these, not magic numbers.
+const ROOM = {
+  LEFT_WALL_X: -5.26,
+  RIGHT_WALL_X: 5.26,
+  BACK_WALL_Z: -4.2,
+  FLOOR_Y: 0,
+  CEILING_Y: 4.6,
+  DESK_SURFACE_Y: 0.95,  // top face of desk geometry
+  DESK_CENTER_Z: -1.45,
+} as const;
+
+// Interactive objects — raycasted, each triggers a named action.
+const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   {
     id: 'hero-book-shelf',
     url: '/book.glb',
@@ -96,44 +110,18 @@ const DECOR_ASSETS: DecorAssetSpec[] = [
     interactiveAction: 'organize',
   },
   {
-    url: '/assets/3D%20room/chair.glb',
-    position: [0.62, 0, 1.1],
-    rotationY: 0.5 - Math.PI / 2,
-    targetHeight: 1.22,
-  },
-  {
     id: 'globe',
     url: '/assets/3D%20room/antique_globe.glb',
-    position: [-1.28, 1.01, -1.86],
+    position: [-1.28, ROOM.DESK_SURFACE_Y + 0.06, -1.86],
     rotationY: -1.08,
     targetHeight: 0.58,
     interactiveAction: 'map',
   },
   {
-    id: 'floor-lamp',
-    url: '/assets/3D%20room/floor_lamp.glb',
-    position: [-3.94, 0, -3.06],
-    liftY: 1.52,
-    rotationY: 0.68,
-    targetHeight: 4.5,
-    scaleMultiplier: 0.64,
-    preservePivotXZ: true,
-  },
-  {
-    id: 'picture-frame',
-    url: '/assets/3D%20room/wooden_picture_frame.glb',
-    position: [1.34, 1.01, -1.96],
-    liftY: 0.17,
-    rotationY: -0.42,
-    targetHeight: 0.4,
-    photoTextureUrl: '/assets/3D%20room/me.jpg',
-    photoMaterialNameIncludes: 'Image',
-  },
-  {
     id: 'macbook',
     url: '/assets/3D%20room/macbook.glb',
-    position: [0.3, 1.01, -1.22],
-    liftY: 0.02,
+    position: [0.3, ROOM.DESK_SURFACE_Y + 0.06, -1.22],
+    liftY: 0.02, // pivot compensation: model origin is not at base
     rotationY: -0.42,
     targetHeight: 0.46,
     interactiveAction: 'shelf',
@@ -141,7 +129,7 @@ const DECOR_ASSETS: DecorAssetSpec[] = [
   {
     id: 'desk-book-sapiens',
     url: '/book.glb',
-    position: [-0.5, 1.09, -0.72],
+    position: [-0.5, ROOM.DESK_SURFACE_Y + 0.14, -0.72],
     liftY: 0,
     rotationX: -Math.PI / 2,
     rotationY: 0,
@@ -151,6 +139,17 @@ const DECOR_ASSETS: DecorAssetSpec[] = [
     photoMaterialNameIncludes: '*',
     interactiveAction: 'sapiens',
   },
+];
+
+// Furniture — large structural pieces, not interactive.
+const FURNITURE_ASSETS: DecorAssetSpec[] = [
+  {
+    id: 'chair',
+    url: '/assets/3D%20room/chair.glb',
+    position: [0.62, 0, 1.1],
+    rotationY: 0.5 - Math.PI / 2,
+    targetHeight: 1.22,
+  },
   {
     id: 'sofa',
     url: '/assets/3D%20room/lounge_chair.glb',
@@ -158,6 +157,30 @@ const DECOR_ASSETS: DecorAssetSpec[] = [
     rotationY: -0.42,
     targetHeight: 0.96,
     scaleMultiplier: 1.2,
+  },
+];
+
+// Decorative props — ambient detail, not interactive.
+const PROP_ASSETS: DecorAssetSpec[] = [
+  {
+    id: 'picture-frame',
+    url: '/assets/3D%20room/wooden_picture_frame.glb',
+    position: [1.34, ROOM.DESK_SURFACE_Y + 0.06, -1.96],
+    liftY: 0.17, // pivot compensation: frame origin sits below visual base
+    rotationY: -0.42,
+    targetHeight: 0.4,
+    photoTextureUrl: '/assets/3D%20room/me.jpg',
+    photoMaterialNameIncludes: 'Image',
+  },
+  {
+    id: 'floor-lamp',
+    url: '/assets/3D%20room/floor_lamp.glb',
+    position: [-3.94, 0, -3.06],
+    liftY: 1.52, // pivot compensation: lamp GLB origin is mid-pole, not base
+    rotationY: 0.68,
+    targetHeight: 4.5,
+    scaleMultiplier: 0.64,
+    preservePivotXZ: true,
   },
   {
     id: 'floor-plant',
@@ -174,6 +197,12 @@ const DECOR_ASSETS: DecorAssetSpec[] = [
     rotationY: 0,
     targetHeight: 1.08,
   },
+];
+
+const DECOR_ASSETS: DecorAssetSpec[] = [
+  ...INTERACTIVE_ASSETS,
+  ...FURNITURE_ASSETS,
+  ...PROP_ASSETS,
 ];
 
 const WALL_TEXTURE_SET: SurfaceTextureSetSpec = {
@@ -827,7 +856,7 @@ export class RoomScene {
     room.add(notesBoard);
 
     const deskTop = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.12, 1.9), this.materials.desk);
-    deskTop.position.set(0, 0.95, -1.45);
+    deskTop.position.set(0, ROOM.DESK_SURFACE_Y, ROOM.DESK_CENTER_Z);
     deskTop.castShadow = true;
     deskTop.receiveShadow = true;
     room.add(deskTop);
@@ -881,7 +910,7 @@ export class RoomScene {
 
     this.registerSlot('shelfWall', [-5.22, 2.2, 0], [0, Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
     this.registerSlot('notesWall', [5.22, 2.2, 0], [0, -Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
-    this.registerSlot('desk', [0, 1.07, -1.45], [-Math.PI / 2, 0, 0], [0.0048, 0.0048, 0.0048]);
+    this.registerSlot('desk', [0, ROOM.DESK_SURFACE_Y + 0.12, ROOM.DESK_CENTER_Z], [-Math.PI / 2, 0, 0], [0.0048, 0.0048, 0.0048]);
   }
 
   private createWallProjectionPanel({
