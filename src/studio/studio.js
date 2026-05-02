@@ -30,16 +30,17 @@ const LIBRARY_STATE = {
   searchIndex: 0,
   overlay: { playing: false, key: '', sourceShelfId: '', timers: [] },
   activeShelfId: '',
+  entrySource: 'studio',
+  entryMode: 'organize',
   bound: false,
 };
 
 const LIBRARY_MAX_ROWS = 6;
-
 function containsCJK(value) {
   return /[一-鿿぀-ヿ]/.test(String(value || ''));
 }
 
-function initLibrary() {
+function initLibrary(params = {}) {
   const host = document.getElementById('view-studio');
   if (!host) return;
 
@@ -51,7 +52,7 @@ function initLibrary() {
       }
 
       <section class="library-main">
-        <header class="library-head">
+        <header class="library-head" id="librarySearchSection">
           <div class="library-head-tools">
             <form class="library-search" id="librarySearchForm" autocomplete="off">
               <label class="service-ui-label" for="librarySearchInput">Search</label>
@@ -61,6 +62,9 @@ function initLibrary() {
               </div>
               <p class="library-search-feedback" id="librarySearchFeedback" aria-live="polite"></p>
             </form>
+            <div class="library-view-buttons">
+              <button type="button" class="chip chip-ghost" id="libraryOpenRoomBtn">Back To 3D Room</button>
+            </div>
           </div>
         </header>
 
@@ -90,7 +94,7 @@ function initLibrary() {
           <div class="library-stats" id="libraryStats"></div>
           <p class="library-status-line" id="libraryStatusLine">Drag books across shelves. Drag shelf titles to move shelves.</p>
         </div>
-        <section class="library-scene-wrap">
+        <section class="library-scene-wrap" id="libraryOrganizeSection">
           <div class="library-scene-head">
             <h2 class="service-ui-label">Organize</h2>
             <div class="library-toolbar">
@@ -140,14 +144,57 @@ function initLibrary() {
   renderLibrary();
   requestAnimationFrame(() => fitShelvesToViewport({ animated: false }));
   applyCameraTransform();
+  applyLibraryEntry(params, { immediate: true });
 }
 
-function enterLibrary() {
+function enterLibrary(params = {}) {
   syncLibraryRecords();
   mergeLayoutWithRecords();
   renderLibrary();
   requestAnimationFrame(() => applyViewTransform(false));
   applyCameraTransform();
+  applyLibraryEntry(params);
+}
+
+function applyLibraryEntry(params = {}, { immediate = false } = {}) {
+  const source = params?.source === 'room' ? 'room' : 'studio';
+  const mode = params?.mode === 'search' ? 'search' : 'organize';
+  LIBRARY_STATE.entrySource = source;
+  LIBRARY_STATE.entryMode = mode;
+
+  const root = document.getElementById('view-studio');
+  if (root) {
+    root.dataset.entrySource = source;
+    root.dataset.entryMode = mode;
+  }
+
+  const roomBtn = document.getElementById('libraryOpenRoomBtn');
+  if (roomBtn) {
+    roomBtn.textContent = source === 'room' ? 'Back To 3D Room' : 'Open 3D Room';
+  }
+
+  markLibraryEntryFocus(mode);
+  if (source !== 'room') return;
+
+  if (immediate) {
+    focusLibraryMode(mode, false);
+    return;
+  }
+  requestAnimationFrame(() => focusLibraryMode(mode, true));
+}
+
+function markLibraryEntryFocus(mode) {
+  const search = document.getElementById('librarySearchSection');
+  const organize = document.getElementById('libraryOrganizeSection');
+  if (search) search.classList.toggle('is-entry-focus', mode === 'search');
+  if (organize) organize.classList.toggle('is-entry-focus', mode !== 'search');
+}
+
+function focusLibraryMode(mode, smooth = true) {
+  const targetId = mode === 'search' ? 'librarySearchSection' : 'libraryOrganizeSection';
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
 }
 
 function bindLibraryEvents() {
@@ -158,6 +205,11 @@ function bindLibraryEvents() {
   if (!root) return;
 
   root.addEventListener('click', (event) => {
+    if (event.target.closest('#libraryOpenRoomBtn')) {
+      App.show('room');
+      return;
+    }
+
     if (event.target.closest('#libraryAddShelfBtn')) {
       toggleShelfCreatePanel();
       return;

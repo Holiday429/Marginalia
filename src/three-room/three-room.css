@@ -1,0 +1,155 @@
+#view-room {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+}
+
+body[data-view='room'] {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#view-room .room-experience {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: 20px 56px 56px;
+  box-sizing: border-box;
+}
+
+#view-room .room-experience-header {
+  flex: 0 0 auto;
+}
+
+#view-room .room-experience-header .shared-masthead {
+  position: relative;
+  z-index: 2;
+  background: var(--bg);
+}
+
+#view-room .room-experience-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+#view-room .room-experience-stage-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#view-room .room-experience-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1px solid rgba(232, 223, 200, 0.18);
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgba(212, 194, 176, 0.94), rgba(191, 170, 150, 0.96));
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+}
+
+#view-room .room-experience-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(232, 223, 200, 0.2);
+  border-radius: 24px;
+  background: rgba(34, 30, 27, 0.96);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+  box-sizing: border-box;
+}
+
+#view-room .room-control-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+#view-room .room-control-group-views {
+  margin-right: 4px;
+}
+
+#view-room .room-controls-label {
+  margin-right: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: rgba(245, 239, 226, 0.88);
+}
+
+#view-room .room-control-btn,
+#view-room .room-control-select {
+  min-height: 42px;
+  border: 1px solid rgba(245, 239, 226, 0.16);
+  border-radius: 999px;
+  background: rgba(245, 239, 226, 0.16);
+  color: rgba(245, 239, 226, 0.96);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+#view-room .room-control-btn {
+  padding: 0 16px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+#view-room .room-control-select {
+  height: 42px;
+  padding: 0 14px;
+}
+
+#view-room .room-control-btn:hover,
+#view-room .room-control-btn.active,
+#view-room .room-control-select:hover {
+  border-color: rgba(245, 239, 226, 0.42);
+  background: rgba(245, 239, 226, 0.26);
+}
+
+#view-room .room-control-btn:hover,
+#view-room .room-control-btn.active {
+  transform: translateY(-1px);
+}
+
+#view-room .three-room-host {
+  position: relative;
+}
+
+#view-room .three-room-layer {
+  position: absolute;
+  inset: 0;
+}
+
+#view-room .three-room-layer canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+@media (max-width: 900px) {
+  #view-room .room-experience {
+    padding: 14px 18px 32px;
+  }
+
+  #view-room .room-experience-controls {
+    align-items: stretch;
+  }
+
+  #view-room .room-control-group {
+    width: 100%;
+  }
+}

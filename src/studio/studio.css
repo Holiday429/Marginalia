@@ -46,6 +46,13 @@ body[data-view='studio'] {
   gap: 18px;
 }
 
+#view-studio .library-head.is-entry-focus {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(232, 223, 200, 0.2);
+  background: rgba(232, 223, 200, 0.04);
+}
+
 #view-studio .library-head-tools {
   display: flex;
   flex-direction: column;
@@ -246,6 +253,13 @@ body[data-view='studio'] {
   min-height: clamp(680px, calc(100vh - 180px), 980px);
   padding: 4px 28px 14px;
   overflow: visible;
+}
+
+#view-studio .library-scene-wrap.is-entry-focus {
+  border-radius: 18px;
+  outline: 1px solid rgba(232, 223, 200, 0.18);
+  outline-offset: -1px;
+  background: linear-gradient(180deg, rgba(232, 223, 200, 0.04), rgba(232, 223, 200, 0.01));
 }
 
 #view-studio .library-scene-head {

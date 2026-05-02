@@ -16,7 +16,7 @@
 const App = (() => {
   const NAV_ITEMS = [
     { view: 'shelf',    label: 'Shelf',    icon: 'shelf', href: '#shelf' },
-    { view: 'studio',   label: 'Library', icon: 'library', href: '#studio' },
+    { view: 'studio',   label: 'Library', icon: 'library', href: '#room' },
     { view: 'map',      label: 'Map',      icon: 'map', href: '#map' },
     { view: 'web',      label: 'Graph',    icon: 'graph', href: '#web' },
     { view: 'booklist', label: 'Booklist', icon: 'list', href: '#booklist' },
@@ -26,6 +26,7 @@ const App = (() => {
     preloader: document.getElementById('view-preloader'),
     shelf:     document.getElementById('view-shelf'),
     studio:    document.getElementById('view-studio'),
+    room:      document.getElementById('view-room'),
     book:      document.getElementById('view-book'),      // may be null until built
     map:       document.getElementById('view-map'),
     web:       document.getElementById('view-web'),
@@ -57,8 +58,9 @@ const App = (() => {
     if (typeof enterFn === 'function') enterFn(params);
 
     // Highlight nav state
+    const navView = name === 'room' ? 'studio' : name;
     document.querySelectorAll('.nav-link[data-view]').forEach(a => {
-      a.classList.toggle('active', a.dataset.view === name);
+      a.classList.toggle('active', a.dataset.view === navView);
     });
 
     window.scrollTo({ top: 0 });
@@ -104,7 +106,12 @@ const App = (() => {
     const link = e.target.closest('[data-view]');
     if (!link || link === document.body) return;
     e.preventDefault();
-    show(link.dataset.view);
+    const requestedView = link.dataset.view;
+    if (requestedView === 'studio') {
+      show('room', { source: 'nav-library' });
+      return;
+    }
+    show(requestedView);
   });
 
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
