@@ -39,6 +39,10 @@ body[data-view='studio'] {
   gap: 20px;
 }
 
+#view-studio.is-room-entry .library-main {
+  animation: studioRoomEntry 0.46s cubic-bezier(.2, .8, .2, 1);
+}
+
 #view-studio .library-head {
   display: flex;
   justify-content: space-between;
@@ -260,6 +264,19 @@ body[data-view='studio'] {
   outline: 1px solid rgba(232, 223, 200, 0.18);
   outline-offset: -1px;
   background: linear-gradient(180deg, rgba(232, 223, 200, 0.04), rgba(232, 223, 200, 0.01));
+}
+
+@keyframes studioRoomEntry {
+  0% {
+    opacity: 0.56;
+    transform: scale(0.988) translateY(10px);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
 }
 
 #view-studio .library-scene-head {

@@ -1,5 +1,9 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { CSS3DObject, CSS3DRenderer } from 'https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS3DRenderer.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+import { EXRLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/EXRLoader.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'https://unpkg.com/three@0.160.0/examples/jsm/environments/RoomEnvironment.js';
 
 import { getRoomPose, type RoomPoseId } from './camera-paths.ts';
 import { getRoomSkinById } from './skins.ts';
@@ -8,6 +12,9 @@ import type { RoomSlotId, SlotComponent } from './slots.ts';
 interface RoomSceneOptions {
   host: HTMLElement;
   skinId?: string;
+  onGlobeSelect?: () => void;
+  onLaptopSelect?: () => void;
+  onHeroBookSelect?: () => void;
 }
 
 type CameraSpeedPreset = 'default' | 'quick';
@@ -30,31 +37,270 @@ interface SlotMount {
   component: SlotComponent;
 }
 
+interface DecorAssetSpec {
+  id?: string;
+  url: string;
+  position: [number, number, number];
+  liftY?: number;
+  yAlign?: 'bottom' | 'center' | 'top';
+  rotationX?: number;
+  rotationY: number;
+  rotationZ?: number;
+  targetHeight: number;
+  scaleMultiplier?: number;
+  preservePivotXZ?: boolean;
+  clampDepth?: number;
+  photoTextureUrl?: string;
+  photoMaterialNameIncludes?: string;
+  surfaceTextureSet?: SurfaceTextureSetSpec;
+  interactiveAction?: 'map' | 'shelf';
+}
+
+interface SurfaceTextureSetSpec {
+  colorMap: string;
+  normalMap?: string;
+  roughnessMap?: string;
+  bumpMap?: string;
+  repeat: [number, number];
+  normalScale?: number;
+  bumpScale?: number;
+}
+
+const SHELF_TEXTURE_SET: SurfaceTextureSetSpec = {
+  colorMap: '/assets/Texture/desk/plywood_diff_2k.jpg',
+  normalMap: '/assets/Texture/desk/plywood_nor_gl_2k.exr',
+  roughnessMap: '/assets/Texture/desk/plywood_rough_2k.exr',
+  repeat: [2.0, 1.2],
+  normalScale: 0.42,
+};
+
+const DECOR_ASSETS: DecorAssetSpec[] = [
+  {
+    url: '/assets/3D%20room/Bookcase%20Closed%20Wide.glb',
+    position: [-4.42, 0, 0.35],
+    rotationY: -Math.PI / 2,
+    targetHeight: 2.46,
+    clampDepth: 0.66,
+    surfaceTextureSet: SHELF_TEXTURE_SET,
+  },
+  {
+    url: '/assets/3D%20room/Bookcase%20Closed%20Wide.glb',
+    position: [-4.42, 0, 3.05],
+    rotationY: -Math.PI / 2,
+    targetHeight: 2.46,
+    clampDepth: 0.66,
+    surfaceTextureSet: SHELF_TEXTURE_SET,
+  },
+  {
+    url: '/assets/3D%20room/chair.glb',
+    position: [0.62, 0, 0.12],
+    rotationY: 0.5,
+    targetHeight: 1.22,
+  },
+  {
+    id: 'globe',
+    url: '/assets/3D%20room/antique_globe.glb',
+    position: [-0.94, 0.86, -1.44],
+    rotationY: -1.08,
+    targetHeight: 0.58,
+    interactiveAction: 'map',
+  },
+  {
+    id: 'floor-lamp',
+    url: '/assets/3D%20room/floor_lamp.glb',
+    position: [-3.94, 0, -3.06],
+    liftY: 1.52,
+    rotationY: 0.68,
+    targetHeight: 4.5,
+    scaleMultiplier: 0.64,
+    preservePivotXZ: true,
+  },
+  {
+    id: 'picture-frame',
+    url: '/assets/3D%20room/wooden_picture_frame.glb',
+    position: [0.96, 0.86, -1.72],
+    liftY: 0.17,
+    rotationY: -0.42,
+    targetHeight: 0.4,
+    photoTextureUrl: '/assets/3D%20room/me.jpg',
+    photoMaterialNameIncludes: 'Image',
+  },
+  {
+    id: 'macbook',
+    url: '/assets/3D%20room/macbook.glb',
+    position: [-0.18, 0.86, -1.28],
+    liftY: 0.02,
+    rotationY: 0.18,
+    targetHeight: 0.46,
+    interactiveAction: 'shelf',
+  },
+  {
+    id: 'shelf-plant-a',
+    url: '/assets/3D%20room/plant.glb',
+    position: [-4.56, 2.5, 0.72],
+    rotationY: 0.42,
+    targetHeight: 0.62,
+    scaleMultiplier: 1.18,
+  },
+  {
+    id: 'shelf-plant-b',
+    url: '/assets/3D%20room/plant.glb',
+    position: [-4.56, 2.5, 3.24],
+    rotationY: -0.3,
+    targetHeight: 0.58,
+    scaleMultiplier: 1.14,
+  },
+  {
+    id: 'shelf-frame-a',
+    url: '/assets/3D%20room/wooden_picture_frame.glb',
+    position: [-4.2, 2.46, 0.38],
+    liftY: 0.03,
+    rotationY: Math.PI / 2,
+    targetHeight: 0.34,
+    photoTextureUrl: '/assets/3D%20room/me.jpg',
+    photoMaterialNameIncludes: 'Image',
+  },
+  {
+    id: 'shelf-frame-b',
+    url: '/assets/3D%20room/wooden_picture_frame.glb',
+    position: [-4.2, 2.46, 3.08],
+    liftY: 0.03,
+    rotationY: Math.PI / 2,
+    targetHeight: 0.34,
+    photoTextureUrl: '/assets/3D%20room/me.jpg',
+    photoMaterialNameIncludes: 'Image',
+  },
+  {
+    id: 'floor-plant',
+    url: '/assets/3D%20room/bamboo_with_plant_pot.glb',
+    position: [4.64, 0, -3.42],
+    rotationY: -2.44,
+    targetHeight: 3.02,
+  },
+  {
+    id: 'sofa',
+    url: '/assets/3D%20room/lounge_chair.glb',
+    position: [4.44, 0, 2.62],
+    rotationY: -0.42,
+    targetHeight: 0.96,
+    scaleMultiplier: 1.2,
+  },
+  {
+    id: 'ceiling-light',
+    url: '/assets/3D%20room/roomlight.glb',
+    position: [0, 3.1, -0.18],
+    yAlign: 'top',
+    rotationY: 0,
+    targetHeight: 1.08,
+  },
+];
+
+const WALL_TEXTURE_SET: SurfaceTextureSetSpec = {
+  colorMap: '/assets/Texture/wall/beige_wall_001_diff_2k.jpg',
+  normalMap: '/assets/Texture/wall/beige_wall_001_nor_gl_2k.exr',
+  roughnessMap: '/assets/Texture/wall/beige_wall_001_rough_2k.jpg',
+  bumpMap: '/assets/Texture/wall/beige_wall_001_disp_2k.png',
+  repeat: [4.2, 2.2],
+  normalScale: 0.52,
+  bumpScale: 0.014,
+};
+
+const FLOOR_TEXTURE_SET: SurfaceTextureSetSpec = {
+  colorMap: '/assets/Texture/floor/laminate_floor_03_diff_2k.jpg',
+  normalMap: '/assets/Texture/floor/laminate_floor_03_nor_gl_2k.exr',
+  roughnessMap: '/assets/Texture/floor/laminate_floor_03_rough_2k.exr',
+  bumpMap: '/assets/Texture/floor/laminate_floor_03_disp_2k.png',
+  repeat: [6.8, 4.8],
+  normalScale: 0.7,
+  bumpScale: 0.03,
+};
+
+const CARPET_TEXTURE_SET: SurfaceTextureSetSpec = {
+  colorMap: '/assets/Texture/carpet/Carpet014_2K-JPG_Color.jpg',
+  normalMap: '/assets/Texture/carpet/Carpet014_2K-JPG_NormalGL.jpg',
+  roughnessMap: '/assets/Texture/carpet/Carpet014_2K-JPG_Roughness.jpg',
+  bumpMap: '/assets/Texture/carpet/Carpet014_2K-JPG_Displacement.jpg',
+  repeat: [2.2, 1.6],
+  normalScale: 0.46,
+  bumpScale: 0.02,
+};
+
+const BOARD_TEXTURE_SET: SurfaceTextureSetSpec = {
+  colorMap: '/assets/Texture/board/oriented_strand_board_diff_2k.jpg',
+  normalMap: '/assets/Texture/board/oriented_strand_board_nor_gl_2k.exr',
+  roughnessMap: '/assets/Texture/board/oriented_strand_board_rough_2k.exr',
+  bumpMap: '/assets/Texture/board/oriented_strand_board_disp_2k.png',
+  repeat: [1.1, 0.9],
+  normalScale: 0.62,
+  bumpScale: 0.02,
+};
+
+const DESK_TEXTURE_SET: SurfaceTextureSetSpec = {
+  colorMap: '/assets/Texture/desk/plywood_diff_2k.jpg',
+  normalMap: '/assets/Texture/desk/plywood_nor_gl_2k.exr',
+  roughnessMap: '/assets/Texture/desk/plywood_rough_2k.exr',
+  repeat: [2.0, 1.2],
+  normalScale: 0.42,
+};
+
 export class RoomScene {
   private host: HTMLElement;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private cssRenderer: CSS3DRenderer;
+  private orbitControls: OrbitControls;
   private frameHandle = 0;
   private disposed = false;
 
   private ambientLight: THREE.AmbientLight;
   private keyLight: THREE.DirectionalLight;
   private rimLight: THREE.DirectionalLight;
+  private fillLight: THREE.DirectionalLight;
+  private skyLight: THREE.HemisphereLight;
 
   private materials: {
     floor: THREE.MeshStandardMaterial;
     wall: THREE.MeshStandardMaterial;
     sideWall: THREE.MeshStandardMaterial;
+    ceiling: THREE.MeshStandardMaterial;
+    carpet: THREE.MeshStandardMaterial;
+    board: THREE.MeshStandardMaterial;
     wallPanel: THREE.MeshStandardMaterial;
     panelFrame: THREE.MeshStandardMaterial;
     desk: THREE.MeshStandardMaterial;
+    trim: THREE.MeshStandardMaterial;
+    blind: THREE.MeshStandardMaterial;
+    exterior: THREE.MeshStandardMaterial;
+    shadowCatcher: THREE.MeshBasicMaterial;
     windowGlow: THREE.MeshStandardMaterial;
   };
 
   private slotAnchors = new Map<RoomSlotId, THREE.Object3D>();
   private slotMounts = new Map<RoomSlotId, SlotMount>();
+  private decorRoot = new THREE.Group();
+  private gltfLoader = new GLTFLoader();
+  private textureLoader = new THREE.TextureLoader();
+  private exrLoader = new EXRLoader();
+  private raycaster = new THREE.Raycaster();
+  private pointer = new THREE.Vector2();
+  private interactiveTargets: THREE.Object3D[] = [];
+  private interactiveHandlers = new Map<THREE.Object3D, () => void>();
+  private onGlobeSelect: (() => void) | null = null;
+  private onLaptopSelect: (() => void) | null = null;
+  private onHeroBookSelect: (() => void) | null = null;
+  private shelfDisplayRoot = new THREE.Group();
+  private shelfHeroPivot: THREE.Group | null = null;
+  private heroBookFlipActive = false;
+  private heroBookFlipStartedAt = 0;
+  private heroBookSpineAngle = -Math.PI / 2;
+  private heroBookCoverAngle = 0;
+  private envRenderTarget: THREE.WebGLRenderTarget | null = null;
+  private hasWallSurfaceTexture = false;
+  private hasFloorSurfaceTexture = false;
+  private hasDeskSurfaceTexture = false;
+  private hasCarpetSurfaceTexture = false;
+  private hasBoardSurfaceTexture = false;
   private resizeObserver: ResizeObserver;
   private currentPoseId: RoomPoseId = 'front';
   private cameraSpeedPreset: CameraSpeedPreset = 'default';
@@ -82,9 +328,13 @@ export class RoomScene {
     toFov: 42,
   };
   private queuedCameraTween: CameraTween | null = null;
+  private freeLookEnabled = false;
 
   constructor(options: RoomSceneOptions) {
     this.host = options.host;
+    this.onGlobeSelect = typeof options.onGlobeSelect === 'function' ? options.onGlobeSelect : null;
+    this.onLaptopSelect = typeof options.onLaptopSelect === 'function' ? options.onLaptopSelect : null;
+    this.onHeroBookSelect = typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : null;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
@@ -92,27 +342,51 @@ export class RoomScene {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.04;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.cssRenderer = new CSS3DRenderer();
+    this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.orbitControls.enabled = false;
+    this.orbitControls.enablePan = true;
+    this.orbitControls.enableDamping = true;
+    this.orbitControls.dampingFactor = 0.08;
+    this.orbitControls.minDistance = 1.4;
+    this.orbitControls.maxDistance = 14;
+    this.orbitControls.minPolarAngle = 0.24;
+    this.orbitControls.maxPolarAngle = Math.PI / 2 - 0.04;
 
     this.materials = {
       floor: new THREE.MeshStandardMaterial({ roughness: 0.84, metalness: 0.03 }),
       wall: new THREE.MeshStandardMaterial({ roughness: 0.92, metalness: 0.02 }),
       sideWall: new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0.02 }),
+      ceiling: new THREE.MeshStandardMaterial({ roughness: 0.96, metalness: 0.01 }),
+      carpet: new THREE.MeshStandardMaterial({ roughness: 0.94, metalness: 0.01 }),
+      board: new THREE.MeshStandardMaterial({ roughness: 0.84, metalness: 0.02 }),
       wallPanel: new THREE.MeshStandardMaterial({ roughness: 0.76, metalness: 0.02 }),
       panelFrame: new THREE.MeshStandardMaterial({ roughness: 0.68, metalness: 0.03 }),
       desk: new THREE.MeshStandardMaterial({ roughness: 0.72, metalness: 0.05 }),
+      trim: new THREE.MeshStandardMaterial({ roughness: 0.82, metalness: 0.03 }),
+      blind: new THREE.MeshStandardMaterial({ roughness: 0.58, metalness: 0.04 }),
+      exterior: new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0, toneMapped: false }),
+      shadowCatcher: new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false }),
       windowGlow: new THREE.MeshStandardMaterial({ emissiveIntensity: 0.35, toneMapped: false }),
     };
 
-    this.ambientLight = new THREE.AmbientLight('#ffffff', 0.7);
-    this.keyLight = new THREE.DirectionalLight('#ffe2c5', 1.0);
-    this.rimLight = new THREE.DirectionalLight('#9ec1ff', 0.55);
+    this.ambientLight = new THREE.AmbientLight('#f6efe5', 0.32);
+    this.skyLight = new THREE.HemisphereLight('#d9e7ff', '#b59674', 0.58);
+    this.keyLight = new THREE.DirectionalLight('#fff4db', 1.7);
+    this.fillLight = new THREE.DirectionalLight('#e9d4bc', 0.5);
+    this.rimLight = new THREE.DirectionalLight('#adc7ff', 0.34);
 
+    this.setupImageBasedLighting();
     this.setupHost();
     this.buildRoom();
+    this.setupSurfaceTextures();
+    this.mountDecorAssets();
+    this.buildShelfSpineDisplay();
     this.applySkin(options.skinId || 'warm-study');
     this.applyPoseImmediately('front');
     this.enterCameraAnimation();
@@ -120,6 +394,9 @@ export class RoomScene {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.host);
     window.addEventListener('resize', this.resize);
+    this.renderer.domElement.addEventListener('pointermove', this.handlePointerMove);
+    this.renderer.domElement.addEventListener('pointerleave', this.handlePointerLeave);
+    this.renderer.domElement.addEventListener('click', this.handleCanvasClick);
 
     this.resize();
     this.renderLoop();
@@ -160,9 +437,11 @@ export class RoomScene {
   }
 
   goToPose(poseId: RoomPoseId, immediate = false): void {
+    if (this.freeLookEnabled) this.setFreeLookEnabled(false);
     const pose = getRoomPose(poseId);
     const previousPoseId = this.currentPoseId;
     this.currentPoseId = poseId;
+    this.updateShelfDisplayVisibility();
     this.idleStartedAt = performance.now();
 
     if (immediate) {
@@ -216,20 +495,30 @@ export class RoomScene {
 
     this.scene.background = new THREE.Color(skin.colors.background);
 
-    this.materials.floor.color.set(skin.colors.floor);
-    this.materials.wall.color.set(skin.colors.wall);
-    this.materials.sideWall.color.set(skin.colors.sideWall);
+    this.materials.floor.color.set(this.hasFloorSurfaceTexture ? '#ffffff' : skin.colors.floor);
+    this.materials.wall.color.set(this.hasWallSurfaceTexture ? '#ffffff' : skin.colors.wall);
+    this.materials.sideWall.color.set(this.hasWallSurfaceTexture ? '#ffffff' : skin.colors.sideWall);
+    this.materials.ceiling.color.set(skin.colors.ceiling);
+    this.materials.carpet.color.set(this.hasCarpetSurfaceTexture ? '#cbbba6' : '#ad9b88');
+    this.materials.board.color.set(this.hasBoardSurfaceTexture ? '#ffffff' : '#9a744e');
     this.materials.wallPanel.color.set(skin.colors.wall);
     this.materials.wallPanel.color.offsetHSL(0, -0.05, 0.08);
     this.materials.panelFrame.color.set(skin.colors.sideWall);
     this.materials.panelFrame.color.offsetHSL(0, 0.04, -0.08);
-    this.materials.desk.color.set(skin.colors.desk);
+    this.materials.desk.color.set(this.hasDeskSurfaceTexture ? '#ffffff' : skin.colors.desk);
+    this.materials.trim.color.set('#b7a791');
+    this.materials.blind.color.set('#c9b9a2');
+    this.materials.exterior.color.set('#edf3fb');
+    this.materials.shadowCatcher.color.set('#000000');
+    this.materials.shadowCatcher.opacity = 0.18;
     this.materials.windowGlow.color.set(skin.colors.windowGlow);
     this.materials.windowGlow.emissive = new THREE.Color(skin.colors.windowGlow);
 
     this.ambientLight.intensity = skin.lighting.ambient;
     this.keyLight.intensity = skin.lighting.key;
-    this.rimLight.intensity = skin.lighting.rim;
+    this.fillLight.intensity = skin.lighting.key * 0.34;
+    this.rimLight.intensity = skin.lighting.rim * 0.72;
+    this.skyLight.intensity = 0.58;
   }
 
   destroy(): void {
@@ -237,9 +526,21 @@ export class RoomScene {
     window.cancelAnimationFrame(this.frameHandle);
 
     this.slotMounts.forEach((_, slotId) => this.unmountSlot(slotId));
+    this.decorRoot.clear();
+    this.shelfDisplayRoot.clear();
+    this.scene.environment = null;
+    if (this.envRenderTarget) {
+      this.envRenderTarget.dispose();
+      this.envRenderTarget = null;
+    }
 
     window.removeEventListener('resize', this.resize);
     this.resizeObserver.disconnect();
+    this.renderer.domElement.removeEventListener('pointermove', this.handlePointerMove);
+    this.renderer.domElement.removeEventListener('pointerleave', this.handlePointerLeave);
+    this.renderer.domElement.removeEventListener('click', this.handleCanvasClick);
+    this.renderer.domElement.style.cursor = '';
+    this.orbitControls.dispose();
 
     this.renderer.dispose();
 
@@ -260,105 +561,661 @@ export class RoomScene {
 
     this.host.append(glWrap, cssWrap);
 
+    cssWrap.style.pointerEvents = 'none';
     this.cssRenderer.domElement.style.pointerEvents = 'none';
+  }
+
+  private setupImageBasedLighting(): void {
+    const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+    const envScene = new RoomEnvironment();
+    this.envRenderTarget = pmremGenerator.fromScene(envScene, 0.035);
+    this.scene.environment = this.envRenderTarget.texture;
+    envScene.dispose();
+    pmremGenerator.dispose();
+  }
+
+  private setupSurfaceTextures(): void {
+    const anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    this.applyTextureSetToMaterials([this.materials.wall], WALL_TEXTURE_SET, anisotropy, () => {
+      this.hasWallSurfaceTexture = true;
+      this.materials.wall.color.set('#ffffff');
+      this.materials.sideWall.color.set('#ffffff');
+    });
+    this.applyTextureSetToMaterials([this.materials.floor], FLOOR_TEXTURE_SET, anisotropy, () => {
+      this.hasFloorSurfaceTexture = true;
+      this.materials.floor.color.set('#ffffff');
+    });
+    this.applyTextureSetToMaterials([this.materials.desk], DESK_TEXTURE_SET, anisotropy, () => {
+      this.hasDeskSurfaceTexture = true;
+      this.materials.desk.color.set('#ffffff');
+    });
+    this.applyTextureSetToMaterials([this.materials.carpet], CARPET_TEXTURE_SET, anisotropy, () => {
+      this.hasCarpetSurfaceTexture = true;
+      this.materials.carpet.color.set('#cbbba6');
+    });
+    this.applyTextureSetToMaterials([this.materials.board], BOARD_TEXTURE_SET, anisotropy, () => {
+      this.hasBoardSurfaceTexture = true;
+      this.materials.board.color.set('#ffffff');
+    });
+  }
+
+  private applyTextureSetToMaterials(
+    materials: THREE.MeshStandardMaterial[],
+    textureSet: SurfaceTextureSetSpec,
+    anisotropy: number,
+    onReady?: () => void,
+  ): void {
+    const steps: Array<{ kind: string; url: string; apply: (texture: THREE.Texture) => void }> = [];
+    steps.push({
+      kind: 'color texture',
+      url: textureSet.colorMap,
+      apply: (texture) => {
+        materials.forEach((material) => {
+          material.map = texture;
+          material.needsUpdate = true;
+        });
+      },
+    });
+    if (textureSet.normalMap) {
+      steps.push({
+        kind: 'normal texture',
+        url: textureSet.normalMap,
+        apply: (texture) => {
+          materials.forEach((material) => {
+            material.normalMap = texture;
+            material.normalScale.setScalar(textureSet.normalScale ?? 0.5);
+            material.needsUpdate = true;
+          });
+        },
+      });
+    }
+    if (textureSet.roughnessMap) {
+      steps.push({
+        kind: 'roughness texture',
+        url: textureSet.roughnessMap,
+        apply: (texture) => {
+          materials.forEach((material) => {
+            material.roughnessMap = texture;
+            material.roughness = 1;
+            material.needsUpdate = true;
+          });
+        },
+      });
+    }
+    if (textureSet.bumpMap) {
+      steps.push({
+        kind: 'height texture',
+        url: textureSet.bumpMap,
+        apply: (texture) => {
+          materials.forEach((material) => {
+            material.bumpMap = texture;
+            material.bumpScale = textureSet.bumpScale ?? 0.01;
+            material.needsUpdate = true;
+          });
+        },
+      });
+    }
+
+    let remaining = steps.length;
+    if (remaining === 0) {
+      onReady?.();
+      return;
+    }
+    const done = () => {
+      remaining -= 1;
+      if (remaining === 0) onReady?.();
+    };
+    const onError = (kind: string, url: string, error: unknown) => {
+      console.warn(`[room] Failed to load ${kind}:`, url, error);
+      done();
+    };
+
+    steps.forEach((step) => {
+      const loader = step.url.toLowerCase().endsWith('.exr')
+        ? this.loadExrTexture.bind(this)
+        : this.loadBitmapTexture.bind(this);
+      const isColorTexture = step.kind === 'color texture';
+      loader(
+        step.url,
+        anisotropy,
+        textureSet.repeat,
+        isColorTexture,
+        (texture: THREE.Texture) => {
+          step.apply(texture);
+          done();
+        },
+        (error: unknown) => onError(step.kind, step.url, error),
+      );
+    });
+  }
+
+  private loadBitmapTexture(
+    url: string,
+    anisotropy: number,
+    repeat: [number, number],
+    isColorTexture: boolean,
+    onLoad: (texture: THREE.Texture) => void,
+    onError: (error: unknown) => void,
+  ): void {
+    this.textureLoader.load(
+      url,
+      (texture) => {
+        this.configureSurfaceTexture(texture, anisotropy, repeat, isColorTexture);
+        onLoad(texture);
+      },
+      undefined,
+      onError,
+    );
+  }
+
+  private loadExrTexture(
+    url: string,
+    anisotropy: number,
+    repeat: [number, number],
+    isColorTexture: boolean,
+    onLoad: (texture: THREE.Texture) => void,
+    onError: (error: unknown) => void,
+  ): void {
+    this.exrLoader.load(
+      url,
+      (texture) => {
+        this.configureSurfaceTexture(texture, anisotropy, repeat, isColorTexture);
+        onLoad(texture);
+      },
+      undefined,
+      onError,
+    );
+  }
+
+  private configureSurfaceTexture(
+    texture: THREE.Texture,
+    anisotropy: number,
+    repeat: [number, number],
+    isColorTexture: boolean,
+  ): void {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeat[0], repeat[1]);
+    texture.offset.set(0, 0);
+    texture.anisotropy = anisotropy;
+    texture.colorSpace = isColorTexture ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    texture.needsUpdate = true;
   }
 
   private buildRoom(): void {
     const room = new THREE.Group();
     this.scene.add(room);
 
+    const windowSpec = {
+      width: 5.35,
+      height: 2.35,
+      centerY: 2.55,
+      z: -4.12,
+      frameDepth: 0.2,
+    };
+
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(10.6, 8.4), this.materials.floor);
     floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = false;
+    floor.receiveShadow = true;
     room.add(floor);
 
-    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(10.6, 4.6), this.materials.wall);
-    backWall.position.set(0, 2.3, -4.2);
-    room.add(backWall);
+    const carpet = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 4.6), this.materials.carpet);
+    carpet.rotation.x = -Math.PI / 2;
+    carpet.position.set(0, 0.012, -0.72);
+    carpet.receiveShadow = true;
+    room.add(carpet);
 
-    const sideWallThickness = 0.32;
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(sideWallThickness, 4.6, 8.4), this.materials.sideWall);
-    leftWall.position.set(-5.45, 2.3, 0);
-    leftWall.castShadow = false;
+    const backWallPieces = [
+      { width: 10.6, height: 4.6 - (windowSpec.centerY + (windowSpec.height / 2)), x: 0, y: (windowSpec.centerY + (windowSpec.height / 2) + 4.6) / 2 },
+      { width: 10.6, height: windowSpec.centerY - (windowSpec.height / 2), x: 0, y: (windowSpec.centerY - (windowSpec.height / 2)) / 2 },
+      {
+        width: (10.6 - windowSpec.width) / 2,
+        height: windowSpec.height,
+        x: -((windowSpec.width / 2) + ((10.6 - windowSpec.width) / 4)),
+        y: windowSpec.centerY,
+      },
+      {
+        width: (10.6 - windowSpec.width) / 2,
+        height: windowSpec.height,
+        x: (windowSpec.width / 2) + ((10.6 - windowSpec.width) / 4),
+        y: windowSpec.centerY,
+      },
+    ];
+
+    backWallPieces.forEach(({ width, height, x, y }) => {
+      const piece = new THREE.Mesh(new THREE.PlaneGeometry(width, height), this.materials.wall);
+      piece.position.set(x, y, -4.2);
+      piece.receiveShadow = true;
+      room.add(piece);
+    });
+
+    const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(8.4, 4.6), this.materials.wall);
+    leftWall.position.set(-5.26, 2.3, 0);
+    leftWall.rotation.y = Math.PI / 2;
+    leftWall.receiveShadow = true;
     room.add(leftWall);
 
-    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(sideWallThickness, 4.6, 8.4), this.materials.sideWall);
-    rightWall.position.set(5.45, 2.3, 0);
-    rightWall.castShadow = false;
+    const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(8.4, 4.6), this.materials.wall);
+    rightWall.position.set(5.26, 2.3, 0);
+    rightWall.rotation.y = -Math.PI / 2;
+    rightWall.receiveShadow = true;
     room.add(rightWall);
 
-    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(10.6, 8.4), this.materials.wall);
+    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(10.6, 8.4), this.materials.ceiling);
     ceiling.position.set(0, 4.6, 0);
     ceiling.rotation.x = Math.PI / 2;
     room.add(ceiling);
 
-    const windowFrame = new THREE.Mesh(new THREE.PlaneGeometry(5.9, 2.9), this.materials.wall);
-    windowFrame.position.set(0, 2.55, -4.15);
-    windowFrame.renderOrder = 1;
-    room.add(windowFrame);
+    const windowAssembly = this.createWindowAssembly(windowSpec);
+    room.add(windowAssembly);
 
-    const windowGlow = new THREE.Mesh(new THREE.PlaneGeometry(5.35, 2.35), this.materials.windowGlow);
-    windowGlow.position.set(0, 2.55, -4.12);
-    windowGlow.renderOrder = 2;
-    room.add(windowGlow);
+    const deskShadow = this.createSoftShadowPlane(3.85, 1.5, 0.24, 0.7);
+    deskShadow.rotation.x = -Math.PI / 2;
+    deskShadow.position.set(0, 0.014, -1.52);
+    room.add(deskShadow);
 
-    const deskTop = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.12, 1.4), this.materials.desk);
+    const wallShadow = this.createSoftShadowPlane(3.9, 1.65, 0.12, 0.84);
+    wallShadow.position.set(0, 1.05, -4.06);
+    room.add(wallShadow);
+
+    const notesBoard = this.createWallProjectionPanel({
+      width: 2.92,
+      height: 1.92,
+      panelMaterial: this.materials.board,
+      frameMaterial: this.materials.panelFrame,
+    });
+    notesBoard.position.set(5.24, 2.28, -0.58);
+    notesBoard.rotation.y = -Math.PI / 2;
+    notesBoard.add(this.createPinnedNotesCluster());
+    notesBoard.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+    });
+    room.add(notesBoard);
+
+    const deskTop = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.12, 1.65), this.materials.desk);
     deskTop.position.set(0, 0.8, -1.45);
-    deskTop.castShadow = false;
+    deskTop.castShadow = true;
+    deskTop.receiveShadow = true;
     room.add(deskTop);
 
     const legGeo = new THREE.BoxGeometry(0.1, 0.75, 0.1);
     const legOffsets = [
-      [-1.25, 0.38, -0.84],
-      [1.25, 0.38, -0.84],
-      [-1.25, 0.38, -2.06],
-      [1.25, 0.38, -2.06],
+      [-1.45, 0.38, -0.73],
+      [1.45, 0.38, -0.73],
+      [-1.45, 0.38, -2.17],
+      [1.45, 0.38, -2.17],
     ] as const;
 
     legOffsets.forEach(([x, y, z]) => {
       const leg = new THREE.Mesh(legGeo, this.materials.desk);
       leg.position.set(x, y, z);
-      leg.castShadow = false;
+      leg.castShadow = true;
+      leg.receiveShadow = true;
       room.add(leg);
     });
 
-    const shelfPanel = this.createWallProjectionPanel({ width: 3.2, height: 3.3 });
-    shelfPanel.position.set(-5.28, 2.2, 0);
-    shelfPanel.rotation.y = Math.PI / 2;
-    room.add(shelfPanel);
+    this.keyLight.position.set(-0.8, 3.8, -5.45);
+    this.keyLight.castShadow = true;
+    this.keyLight.shadow.mapSize.set(2048, 2048);
+    this.keyLight.shadow.camera.near = 0.5;
+    this.keyLight.shadow.camera.far = 18;
+    this.keyLight.shadow.camera.left = -4.6;
+    this.keyLight.shadow.camera.right = 4.6;
+    this.keyLight.shadow.camera.top = 4.4;
+    this.keyLight.shadow.camera.bottom = -3.6;
+    this.keyLight.shadow.bias = -0.00022;
+    this.keyLight.shadow.normalBias = 0.012;
+    this.keyLight.target.position.set(0.15, 1.15, -1.45);
 
-    const notesPanel = this.createWallProjectionPanel({ width: 3.2, height: 3.3 });
-    notesPanel.position.set(5.28, 2.2, 0);
-    notesPanel.rotation.y = -Math.PI / 2;
-    room.add(notesPanel);
+    this.fillLight.position.set(4.4, 2.7, 2.5);
+    this.fillLight.target.position.set(0, 1.6, -1.3);
 
-    this.keyLight.position.set(0, 4.1, 2.8);
-    this.keyLight.castShadow = false;
+    this.rimLight.position.set(-3.6, 3.0, -2.2);
+    this.rimLight.target.position.set(2.3, 1.3, -0.4);
 
-    this.rimLight.position.set(-3.6, 2.8, -2.9);
-
-    this.scene.add(this.ambientLight, this.keyLight, this.rimLight);
+    this.scene.add(
+      this.ambientLight,
+      this.skyLight,
+      this.keyLight,
+      this.keyLight.target,
+      this.fillLight,
+      this.fillLight.target,
+      this.rimLight,
+      this.rimLight.target,
+    );
+    this.scene.add(this.decorRoot);
+    this.scene.add(this.shelfDisplayRoot);
 
     this.registerSlot('shelfWall', [-5.22, 2.2, 0], [0, Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
     this.registerSlot('notesWall', [5.22, 2.2, 0], [0, -Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
     this.registerSlot('desk', [0, 1.22, -1.45], [-Math.PI / 2, 0, 0], [0.0048, 0.0048, 0.0048]);
   }
 
-  private createWallProjectionPanel({ width, height }: { width: number; height: number }): THREE.Group {
+  private createWallProjectionPanel({
+    width,
+    height,
+    panelMaterial = this.materials.wallPanel,
+    frameMaterial = this.materials.panelFrame,
+  }: {
+    width: number;
+    height: number;
+    panelMaterial?: THREE.Material;
+    frameMaterial?: THREE.Material;
+  }): THREE.Group {
     const group = new THREE.Group();
 
-    const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), this.materials.wallPanel);
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), panelMaterial);
     panel.position.z = 0.001;
     group.add(panel);
 
     const frame = new THREE.Mesh(
       new THREE.PlaneGeometry(width + 0.24, height + 0.24),
-      this.materials.panelFrame,
+      frameMaterial,
     );
     frame.position.z = -0.003;
     group.add(frame);
 
     return group;
+  }
+
+  private createWindowAssembly(spec: {
+    width: number;
+    height: number;
+    centerY: number;
+    z: number;
+    frameDepth: number;
+  }): THREE.Group {
+    const group = new THREE.Group();
+    const outerWidth = spec.width + 0.44;
+    const outerHeight = spec.height + 0.34;
+    const revealDepth = spec.frameDepth;
+    const frameThickness = 0.11;
+    const slatCount = 18;
+
+    group.position.set(0, spec.centerY, spec.z);
+
+    const makeBox = (w: number, h: number, d: number, x: number, y: number, z: number, material: THREE.Material) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      group.add(mesh);
+      return mesh;
+    };
+
+    makeBox(outerWidth, frameThickness, revealDepth, 0, (outerHeight / 2) - (frameThickness / 2), -revealDepth / 2, this.materials.trim);
+    makeBox(outerWidth, frameThickness, revealDepth, 0, -(outerHeight / 2) + (frameThickness / 2), -revealDepth / 2, this.materials.trim);
+    makeBox(frameThickness, outerHeight, revealDepth, -(outerWidth / 2) + (frameThickness / 2), 0, -revealDepth / 2, this.materials.trim);
+    makeBox(frameThickness, outerHeight, revealDepth, (outerWidth / 2) - (frameThickness / 2), 0, -revealDepth / 2, this.materials.trim);
+
+    const sill = makeBox(outerWidth + 0.18, 0.08, 0.28, 0, -(outerHeight / 2) - 0.06, -0.04, this.materials.trim);
+    sill.receiveShadow = true;
+
+    const exterior = new THREE.Mesh(new THREE.PlaneGeometry(spec.width, spec.height), this.materials.exterior);
+    exterior.position.set(0, 0, -revealDepth - 0.05);
+    group.add(exterior);
+
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(spec.width - 0.06, spec.height - 0.06), this.materials.windowGlow);
+    glow.position.set(0, 0, -revealDepth + 0.014);
+    glow.renderOrder = 1;
+    group.add(glow);
+
+    const slatWidth = spec.width - 0.12;
+    const slatHeight = 0.026;
+    const slatGap = spec.height / (slatCount + 1);
+    for (let index = 0; index < slatCount; index += 1) {
+      const slat = new THREE.Mesh(
+        new THREE.BoxGeometry(slatWidth, slatHeight, 0.028),
+        this.materials.blind,
+      );
+      slat.position.set(0, (spec.height / 2) - ((index + 1) * slatGap), -revealDepth + 0.034);
+      slat.rotation.x = -0.07;
+      slat.castShadow = true;
+      slat.receiveShadow = true;
+      group.add(slat);
+    }
+
+    const mullion = new THREE.Mesh(new THREE.BoxGeometry(0.05, spec.height, 0.04), this.materials.trim);
+    mullion.position.set(0, 0, -revealDepth + 0.016);
+    mullion.castShadow = true;
+    mullion.receiveShadow = true;
+    group.add(mullion);
+
+    return group;
+  }
+
+  private createSoftShadowPlane(width: number, height: number, opacity: number, blur: number): THREE.Mesh {
+    const material = this.materials.shadowCatcher.clone();
+    material.map = createSoftShadowTexture(blur);
+    material.opacity = opacity;
+    material.needsUpdate = true;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material);
+    mesh.renderOrder = 3;
+    return mesh;
+  }
+
+  private createPinnedNotesCluster(): THREE.Group {
+    const group = new THREE.Group();
+    const noteGeo = new THREE.PlaneGeometry(0.32, 0.24);
+    const pinGeo = new THREE.SphereGeometry(0.015, 14, 14);
+    const pinMat = new THREE.MeshStandardMaterial({ color: '#d2b086', roughness: 0.38, metalness: 0.28 });
+    const notes = [
+      { x: -0.74, y: 0.34, z: 0.018, rot: -0.08, color: '#f0dc95' },
+      { x: -0.26, y: 0.38, z: 0.02, rot: 0.06, color: '#cddbb4' },
+      { x: 0.22, y: 0.29, z: 0.019, rot: -0.04, color: '#d4e0bf' },
+      { x: 0.66, y: 0.35, z: 0.017, rot: 0.09, color: '#ebd7a6' },
+      { x: -0.52, y: -0.03, z: 0.019, rot: 0.03, color: '#d5e6c7' },
+      { x: -0.04, y: -0.09, z: 0.021, rot: -0.07, color: '#f3de9b' },
+      { x: 0.44, y: -0.07, z: 0.019, rot: 0.05, color: '#c9d9b6' },
+    ];
+
+    notes.forEach((note) => {
+      const noteMat = new THREE.MeshStandardMaterial({ color: note.color, roughness: 0.88, metalness: 0.02 });
+      const paper = new THREE.Mesh(noteGeo, noteMat);
+      paper.position.set(note.x, note.y, note.z);
+      paper.rotation.z = note.rot;
+      group.add(paper);
+
+      const pin = new THREE.Mesh(pinGeo, pinMat);
+      pin.position.set(note.x, note.y + 0.082, note.z + 0.012);
+      group.add(pin);
+    });
+
+    return group;
+  }
+
+  private buildShelfSpineDisplay(): void {
+    this.shelfDisplayRoot.clear();
+    this.shelfHeroPivot = null;
+    this.heroBookFlipActive = false;
+
+    const shelfBooks = Array.isArray((window as any).SHELF_BOOKS) ? (window as any).SHELF_BOOKS : [];
+    if (!shelfBooks.length) {
+      this.updateShelfDisplayVisibility();
+      return;
+    }
+
+    const shelves = DECOR_ASSETS.filter((asset) => asset.url.includes('Bookcase%20Closed%20Wide')).slice(0, 2);
+    if (!shelves.length) {
+      this.updateShelfDisplayVisibility();
+      return;
+    }
+
+    const rowBaseY = [0.16, 0.84, 1.52];
+    const shelfSpan = 1.62;
+    const inset = 0.08;
+    let sourceIndex = 0;
+    let heroPlaced = false;
+
+    shelves.forEach((shelf, shelfIndex) => {
+      rowBaseY.forEach((baseY, rowIndex) => {
+        let zCursor = shelf.position[2] - (shelfSpan / 2) + inset;
+        const rowLimit = shelf.position[2] + (shelfSpan / 2) - inset;
+        let guard = 0;
+
+        while (zCursor < rowLimit && guard < 18) {
+          guard += 1;
+          const source = shelfBooks[sourceIndex % shelfBooks.length] || {};
+          const rawW = Number(source.w) || 36;
+          const rawH = Number(source.h) || 0.86;
+          const bookDepth = clamp(rawW * 0.0028, 0.07, 0.15);
+          const bookHeight = clamp(rawH * 0.46, 0.33, 0.52);
+          const gap = clamp(this.seedNoise(sourceIndex + 17) * 0.06, 0.02, 0.06);
+          if ((zCursor + bookDepth) > rowLimit) break;
+
+          const bookX = shelf.position[0] + 0.12;
+          const bookY = baseY + (bookHeight / 2);
+          const bookZ = zCursor + (bookDepth / 2);
+
+          const shouldPlaceHero = !heroPlaced && shelfIndex === 0 && rowIndex === 1 && (zCursor > (shelf.position[2] - 0.06));
+          if (shouldPlaceHero) {
+            this.mountShelfHeroBook(bookX, baseY, bookZ, bookDepth);
+            heroPlaced = true;
+          } else {
+            const spineColor = String(source.spine || '#2b2b2b');
+            const textColor = String(source.text || '#e8dfc8');
+            const title = String(source.title || '').trim() || 'UNTITLED';
+            const spineLabel = new THREE.Mesh(
+              new THREE.PlaneGeometry(bookDepth * 0.96, bookHeight * 0.96),
+              new THREE.MeshBasicMaterial({
+                map: this.createSpineLabelTexture(
+                  title,
+                  spineColor,
+                  textColor,
+                  String(source.author || '').trim(),
+                  String(source.font || ''),
+                  Number(source.weight) || 600,
+                ),
+                transparent: true,
+                side: THREE.DoubleSide,
+              }),
+            );
+            spineLabel.position.set(bookX, bookY, bookZ);
+            spineLabel.rotation.y = Math.PI / 2;
+            spineLabel.rotation.z = (this.seedNoise(sourceIndex + 3) - 0.5) * 0.08;
+            this.shelfDisplayRoot.add(spineLabel);
+          }
+
+          zCursor += bookDepth + gap;
+          sourceIndex += 1;
+        }
+      });
+    });
+
+    this.updateShelfDisplayVisibility();
+  }
+
+  private mountShelfHeroBook(x: number, rowBaseY: number, z: number, widthHint: number): void {
+    this.gltfLoader.load(
+      '/book.glb',
+      (gltf) => {
+        if (this.disposed) return;
+        const model = gltf.scene;
+        if (!model) return;
+
+        const normalized = this.normalizeModelPivot(model, false, 'bottom');
+        const targetHeight = 0.44;
+        const scale = targetHeight / Math.max(normalized.height, 0.001);
+        model.scale.setScalar(scale);
+        model.traverse((child) => {
+          const mesh = child as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+        });
+
+        const pivot = new THREE.Group();
+        pivot.position.set(x, rowBaseY, z);
+        pivot.rotation.y = this.heroBookSpineAngle;
+        model.position.set(0, 0, -widthHint * 0.18);
+        model.rotation.y = -Math.PI / 2;
+        pivot.add(model);
+        this.shelfDisplayRoot.add(pivot);
+        this.shelfHeroPivot = pivot;
+        this.registerInteractiveTarget(pivot, () => this.triggerHeroBookOpen());
+      },
+      undefined,
+      (error) => {
+        console.warn('[room] Failed to load shelf hero book:', error);
+      },
+    );
+  }
+
+  private triggerHeroBookOpen(): void {
+    if (this.heroBookFlipActive || !this.shelfHeroPivot) return;
+    this.heroBookFlipActive = true;
+    this.heroBookFlipStartedAt = performance.now();
+  }
+
+  private updateHeroBookFlip(nowMs: number): void {
+    if (!this.heroBookFlipActive || !this.shelfHeroPivot) return;
+    const progress = clamp((nowMs - this.heroBookFlipStartedAt) / 420, 0, 1);
+    const eased = easeInOutCubic(progress);
+    this.shelfHeroPivot.rotation.y = lerp(this.heroBookSpineAngle, this.heroBookCoverAngle, eased);
+    if (progress >= 1) {
+      this.heroBookFlipActive = false;
+      window.setTimeout(() => this.onHeroBookSelect?.(), 120);
+    }
+  }
+
+  private createSpineLabelTexture(
+    title: string,
+    spineColor: string,
+    textColor: string,
+    author = '',
+    fontFamily = '',
+    weight = 600,
+  ): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 1024;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    context.fillStyle = spineColor;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = 'rgba(255,255,255,0.08)';
+    context.fillRect(0, 12, canvas.width, 14);
+    context.fillRect(0, canvas.height - 26, canvas.width, 14);
+    context.fillStyle = 'rgba(255,255,255,0.06)';
+    context.fillRect(16, 20, 3, canvas.height - 40);
+    context.save();
+    context.translate(canvas.width / 2, canvas.height - 72);
+    context.rotate(-Math.PI / 2);
+    context.fillStyle = textColor;
+    const titleFont = fontFamily || "'Fraunces', serif";
+    context.font = `${Math.max(500, Math.min(900, weight))} 68px ${titleFont}`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(title.slice(0, 28), 0, -18);
+    if (author) {
+      context.font = "500 34px 'IBM Plex Mono', monospace";
+      context.globalAlpha = 0.72;
+      context.fillText(author.slice(0, 24).toUpperCase(), 0, 58);
+      context.globalAlpha = 1;
+    }
+    context.restore();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  private seedNoise(seed: number): number {
+    const raw = Math.sin((seed + 1) * 12.9898) * 43758.5453;
+    return raw - Math.floor(raw);
+  }
+
+  private updateShelfDisplayVisibility(): void {
+    this.shelfDisplayRoot.visible = this.currentPoseId === 'shelf';
   }
 
   private registerSlot(
@@ -375,10 +1232,226 @@ export class RoomScene {
     this.slotAnchors.set(slotId, anchor);
   }
 
+  private mountDecorAssets(): void {
+    DECOR_ASSETS.forEach((asset) => this.mountDecorAsset(asset));
+  }
+
+  private mountDecorAsset(asset: DecorAssetSpec): void {
+    this.gltfLoader.load(
+      asset.url,
+      (gltf) => {
+        if (this.disposed) return;
+        const model = gltf.scene;
+        if (!model) return;
+
+        const normalized = this.normalizeModelPivot(
+          model,
+          Boolean(asset.preservePivotXZ),
+          asset.yAlign || 'bottom',
+        );
+        const scale = asset.targetHeight / Math.max(normalized.height, 0.001);
+        model.scale.setScalar(scale);
+        if (asset.scaleMultiplier && Number.isFinite(asset.scaleMultiplier)) {
+          model.scale.multiplyScalar(Math.max(0.001, asset.scaleMultiplier));
+        }
+
+        if (asset.clampDepth) {
+          const scaledDepth = normalized.depth * scale;
+          if (scaledDepth > asset.clampDepth) {
+            const shrink = asset.clampDepth / Math.max(scaledDepth, 0.001);
+            model.scale.multiplyScalar(shrink);
+          }
+        }
+
+        model.position.set(...asset.position);
+        if (asset.liftY) model.position.y += asset.liftY;
+        model.rotation.set(asset.rotationX ?? 0, asset.rotationY, asset.rotationZ ?? 0);
+
+        if (asset.interactiveAction === 'map') {
+          this.registerInteractiveTarget(model, () => this.onGlobeSelect?.());
+        } else if (asset.interactiveAction === 'shelf') {
+          this.registerInteractiveTarget(model, () => this.onLaptopSelect?.());
+        }
+
+        model.traverse((child) => {
+          const mesh = child as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+        });
+
+        if (asset.surfaceTextureSet) {
+          this.applyDecorSurfaceTextureSet(model, asset.surfaceTextureSet);
+        }
+
+        if (asset.photoTextureUrl) {
+          this.applyDecorPhotoTexture(model, asset.photoTextureUrl, asset.photoMaterialNameIncludes || 'Image');
+        }
+
+        this.decorRoot.add(model);
+      },
+      undefined,
+      (error) => {
+        console.warn('[room] Failed to load decor model:', asset.url, error);
+      },
+    );
+  }
+
+  private normalizeModelPivot(
+    model: THREE.Object3D,
+    preservePivotXZ = false,
+    yAlign: 'bottom' | 'center' | 'top' = 'bottom',
+  ): { height: number; depth: number } {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    if (!preservePivotXZ) {
+      model.position.x -= center.x;
+      model.position.z -= center.z;
+    }
+    if (yAlign === 'top') {
+      model.position.y -= box.max.y;
+    } else if (yAlign === 'center') {
+      model.position.y -= center.y;
+    } else {
+      model.position.y -= box.min.y;
+    }
+
+    return {
+      height: Math.max(size.y, 0.001),
+      depth: Math.max(size.z, 0.001),
+    };
+  }
+
+  private registerInteractiveTarget(target: THREE.Object3D, onClick: () => void): void {
+    this.interactiveTargets.push(target);
+    this.interactiveHandlers.set(target, onClick);
+  }
+
+  private updatePointerFromEvent(event: MouseEvent | PointerEvent): void {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      this.pointer.set(-10, -10);
+      return;
+    }
+    const px = (event.clientX - rect.left) / rect.width;
+    const py = (event.clientY - rect.top) / rect.height;
+    this.pointer.set((px * 2) - 1, -(py * 2) + 1);
+  }
+
+  private pickInteractiveTarget(event: MouseEvent | PointerEvent): { object: THREE.Object3D; onClick: () => void } | null {
+    if (!this.interactiveTargets.length) return null;
+    this.updatePointerFromEvent(event);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const hits = this.raycaster.intersectObjects(this.interactiveTargets, true);
+    if (!hits.length) return null;
+    const rootTarget = this.interactiveTargets.find((target) => {
+      let node: THREE.Object3D | null = hits[0].object;
+      while (node) {
+        if (node === target) return true;
+        node = node.parent;
+      }
+      return false;
+    });
+    if (!rootTarget) return null;
+    const onClick = this.interactiveHandlers.get(rootTarget);
+    if (!onClick) return null;
+    return { object: rootTarget, onClick };
+  }
+
+  private handlePointerMove = (event: PointerEvent): void => {
+    if (this.disposed) return;
+    const hit = this.pickInteractiveTarget(event);
+    this.renderer.domElement.style.cursor = hit ? 'pointer' : '';
+  };
+
+  private handlePointerLeave = (): void => {
+    if (this.disposed) return;
+    this.renderer.domElement.style.cursor = '';
+  };
+
+  private handleCanvasClick = (event: MouseEvent): void => {
+    if (this.disposed) return;
+    const hit = this.pickInteractiveTarget(event);
+    if (!hit) return;
+    hit.onClick();
+  };
+
+  private applyDecorPhotoTexture(model: THREE.Object3D, textureUrl: string, materialNameHint: string): void {
+    this.textureLoader.load(
+      textureUrl,
+      (texture) => {
+        if (this.disposed) return;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.flipY = true;
+        texture.needsUpdate = true;
+
+        const hint = materialNameHint.toLowerCase();
+        model.traverse((child) => {
+          const mesh = child as THREE.Mesh;
+          if (!mesh.isMesh || !mesh.material) return;
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          materials.forEach((material) => {
+            const name = String(material.name || '').toLowerCase();
+            if (!name.includes(hint)) return;
+            const maybeTextured = material as THREE.MeshStandardMaterial;
+            maybeTextured.map = texture;
+            maybeTextured.needsUpdate = true;
+          });
+        });
+      },
+      undefined,
+      (error) => {
+        console.warn('[room] Failed to load frame photo texture:', textureUrl, error);
+      },
+    );
+  }
+
+  private applyDecorSurfaceTextureSet(model: THREE.Object3D, textureSet: SurfaceTextureSetSpec): void {
+    const materials = this.collectMeshStandardMaterials(model);
+    if (!materials.length) return;
+    materials.forEach((material) => {
+      material.color.set('#ffffff');
+      material.emissive.set('#000000');
+      material.roughness = Math.max(material.roughness, 0.72);
+      material.metalness = Math.min(material.metalness, 0.08);
+      material.needsUpdate = true;
+    });
+    const anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    this.applyTextureSetToMaterials(materials, textureSet, anisotropy);
+  }
+
+  private collectMeshStandardMaterials(model: THREE.Object3D): THREE.MeshStandardMaterial[] {
+    const bag = new Set<THREE.MeshStandardMaterial>();
+    model.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.material) return;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((material) => {
+        if ((material as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+          bag.add(material as THREE.MeshStandardMaterial);
+        }
+      });
+    });
+    return Array.from(bag);
+  }
+
   private renderLoop = (): void => {
     if (this.disposed) return;
     this.frameHandle = window.requestAnimationFrame(this.renderLoop);
-    this.updateCameraFrame(performance.now());
+    this.updateHeroBookFlip(performance.now());
+    if (this.freeLookEnabled) {
+      this.orbitControls.update();
+      this.currentLookTarget.copy(this.orbitControls.target);
+      this.desiredLookTarget.copy(this.orbitControls.target);
+      this.desiredPosition.copy(this.camera.position);
+      this.desiredFov = this.camera.fov;
+    } else {
+      this.updateCameraFrame(performance.now());
+    }
     this.renderer.render(this.scene, this.camera);
     this.cssRenderer.render(this.scene, this.camera);
   };
@@ -392,13 +1465,38 @@ export class RoomScene {
 
     this.renderer.setSize(width, height, false);
     this.cssRenderer.setSize(width, height);
+    this.orbitControls.update();
   };
+
+  setFreeLookEnabled(enabled: boolean): void {
+    const next = Boolean(enabled);
+    if (this.freeLookEnabled === next) return;
+
+    this.freeLookEnabled = next;
+    this.orbitControls.enabled = next;
+    if (next) {
+      this.cameraTween.active = false;
+      this.queuedCameraTween = null;
+      this.idleStartedAt = performance.now();
+      this.orbitControls.target.copy(this.currentLookTarget);
+      this.orbitControls.update();
+      return;
+    }
+
+    this.idleStartedAt = performance.now();
+    this.applyPoseImmediately(this.currentPoseId);
+  }
+
+  isFreeLookEnabled(): boolean {
+    return this.freeLookEnabled;
+  }
 
   private enterCameraAnimation(): void {
     const initialPos = new THREE.Vector3(0, 2.2, 9.5);
     const initialTarget = new THREE.Vector3(0, 1.5, -2.0);
     const frontPose = getRoomPose('front');
     this.currentPoseId = 'front';
+    this.updateShelfDisplayVisibility();
     this.idleStartedAt = performance.now();
 
     this.camera.position.copy(initialPos);
@@ -421,6 +1519,7 @@ export class RoomScene {
   private applyPoseImmediately(poseId: RoomPoseId): void {
     const pose = getRoomPose(poseId);
     this.currentPoseId = poseId;
+    this.updateShelfDisplayVisibility();
     this.idleStartedAt = performance.now();
 
     const posePosition = this.getPosePositionWithZoom(poseId);
@@ -606,4 +1705,29 @@ function lerp(from: number, to: number, t: number): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function createSoftShadowTexture(blur: number): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const context = canvas.getContext('2d');
+  if (!context) {
+    const fallback = new THREE.CanvasTexture(canvas);
+    fallback.colorSpace = THREE.NoColorSpace;
+    return fallback;
+  }
+
+  const radius = Math.max(0.18, Math.min(0.92, blur));
+  const gradient = context.createRadialGradient(128, 128, 16, 128, 128, 128);
+  gradient.addColorStop(0, 'rgba(0,0,0,0.82)');
+  gradient.addColorStop(radius, 'rgba(0,0,0,0.24)');
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 256, 256);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.NoColorSpace;
+  texture.needsUpdate = true;
+  return texture;
 }

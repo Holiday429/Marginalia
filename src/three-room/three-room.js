@@ -1,10 +1,16 @@
 import { RoomScene } from '../three/room.ts';
 import { ROOM_SKINS } from '../three/skins.ts';
 
-export function createThreeRoomPreview(host) {
+export function createThreeRoomPreview(host, options = {}) {
   if (!host) return null;
 
-  const scene = new RoomScene({ host, skinId: ROOM_SKINS[0]?.id || 'warm-study' });
+  const scene = new RoomScene({
+    host,
+    skinId: ROOM_SKINS[0]?.id || 'warm-study',
+    onGlobeSelect: typeof options.onGlobeSelect === 'function' ? options.onGlobeSelect : undefined,
+    onLaptopSelect: typeof options.onLaptopSelect === 'function' ? options.onLaptopSelect : undefined,
+    onHeroBookSelect: typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : undefined,
+  });
 
   // Keep wall slots unmounted for now.
   // Walls are real 3D structures; 2D components will be projected in later phases.
@@ -39,6 +45,14 @@ export function createThreeRoomPreview(host) {
 
     resetZoom() {
       scene.resetCurrentPoseZoom();
+    },
+
+    setFreeLookEnabled(enabled) {
+      scene.setFreeLookEnabled(Boolean(enabled));
+    },
+
+    isFreeLookEnabled() {
+      return scene.isFreeLookEnabled();
     },
 
     destroy() {

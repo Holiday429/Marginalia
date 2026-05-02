@@ -6,6 +6,7 @@ export interface RoomSkin {
     floor: string;
     wall: string;
     sideWall: string;
+    ceiling: string;
     desk: string;
     windowGlow: string;
   };
@@ -21,23 +22,25 @@ export const ROOM_SKINS: RoomSkin[] = [
     id: 'warm-study',
     label: 'Warm Study',
     colors: {
-      background: '#d4c2b0',
-      floor: '#c8b39f',
-      wall: '#d3beac',
-      sideWall: '#c59f77',
+      background: '#d8ccb9',
+      floor: '#b99572',
+      wall: '#b9ad98',
+      sideWall: '#b9ad98',
+      ceiling: '#ece3d5',
       desk: '#9c734d',
-      windowGlow: '#d8ecff',
+      windowGlow: '#e6f0ff',
     },
-    lighting: { ambient: 0.7, key: 1.0, rim: 0.55 },
+    lighting: { ambient: 0.78, key: 1.04, rim: 0.5 },
   },
   {
     id: 'mist-morning',
     label: 'Mist Morning',
     colors: {
-      background: '#d8d7d0',
-      floor: '#c5c0b5',
-      wall: '#dcd9d1',
-      sideWall: '#b8ac97',
+      background: '#d8d2c8',
+      floor: '#b69b7e',
+      wall: '#c6beb1',
+      sideWall: '#c6beb1',
+      ceiling: '#eeebe4',
       desk: '#8b7e6c',
       windowGlow: '#f2f6ff',
     },
@@ -48,9 +51,10 @@ export const ROOM_SKINS: RoomSkin[] = [
     label: 'Night Lamp',
     colors: {
       background: '#2a2520',
-      floor: '#44392e',
-      wall: '#4f4135',
-      sideWall: '#6a5038',
+      floor: '#5a4330',
+      wall: '#4f4338',
+      sideWall: '#4f4338',
+      ceiling: '#7a6b5b',
       desk: '#7b5f43',
       windowGlow: '#4f6a8a',
     },

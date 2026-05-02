@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="src/preloader/preloader.css">
   <link rel="stylesheet" href="src/shelf/shelf.css">
   <link rel="stylesheet" href="src/studio/studio.css">
+  <link rel="stylesheet" href="src/three-room/three-room.css">
   <link rel="stylesheet" href="src/booklist/booklist.css">
   <link rel="stylesheet" href="src/book/book.css">
   <link rel="stylesheet" href="src/map/map.css">
@@ -240,6 +241,11 @@
        ============================================================ -->
   <div id="view-studio" hidden></div>
 
+  <!-- ============================================================
+       VIEW: 3D ROOM
+       ============================================================ -->
+  <div id="view-room" hidden></div>
+
 
   <!-- ============================================================
        VIEW: BOOK (single-book detail) — populated in step 2
@@ -273,7 +279,7 @@
   <script type="module" src="src/preloader/hero-glb.js"></script>
 
   <!-- Vite entry: all other src/ scripts loaded in dependency order via src/main.js -->
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./src/main.js"></script>
 
 </body>
 </html>

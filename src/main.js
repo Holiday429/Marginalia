@@ -52,6 +52,7 @@ import './book/panels/claude-import.js';
 import './preloader/preloader.js';
 import './shelf/shelf.js';
 import './studio/studio.js';
+import './three-room/three-room-view.js';
 import './booklist/booklist.js';
 import './book/book.js';
 import './map/map.js';

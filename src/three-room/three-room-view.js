@@ -4,7 +4,10 @@ const ROOM_VIEW_STATE = {
   pose: 'front',
   skinId: 'warm-study',
   speedPreset: 'default',
+  freeLook: false,
   handle: null,
+  transitionTimer: null,
+  transitioning: false,
   bound: false,
 };
 
@@ -21,6 +24,7 @@ function buildRoomMarkup() {
       <main class="room-experience-main">
         <section class="room-experience-stage-wrap" aria-label="3D room preview">
           <div class="room-experience-stage" id="roomExperienceStage"></div>
+          <div class="room-transition-curtain" id="roomTransitionCurtain" aria-hidden="true"></div>
         </section>
 
         <section class="room-experience-controls" id="roomExperienceControls" aria-label="3D room controls">
@@ -46,6 +50,7 @@ function buildRoomMarkup() {
             <button type="button" class="room-control-btn" id="roomZoomInBtn">Zoom In</button>
             <button type="button" class="room-control-btn" id="roomZoomOutBtn">Zoom Out</button>
             <button type="button" class="room-control-btn" id="roomZoomResetBtn">Reset Zoom</button>
+            <button type="button" class="room-control-btn" id="roomFreeLookBtn">Free Look: Off</button>
           </div>
 
           <div class="room-control-group" aria-label="Room options">
@@ -100,8 +105,10 @@ function bindRoomEvents() {
   if (!root) return;
 
   root.addEventListener('click', (event) => {
+    if (ROOM_VIEW_STATE.transitioning) return;
+
     if (event.target.closest('#roomOpenOrganizeBtn')) {
-      App.show('studio', { source: 'room', mode: 'organize' });
+      exitRoomToLayer('organize');
       return;
     }
 
@@ -127,10 +134,17 @@ function bindRoomEvents() {
       return;
     }
 
+    if (event.target.closest('#roomFreeLookBtn')) {
+      ROOM_VIEW_STATE.freeLook = !ROOM_VIEW_STATE.freeLook;
+      if (ROOM_VIEW_STATE.handle) ROOM_VIEW_STATE.handle.setFreeLookEnabled(ROOM_VIEW_STATE.freeLook);
+      syncFreeLookButton();
+      return;
+    }
+
     const layerBtn = event.target.closest('[data-room-layer]');
     if (layerBtn) {
       const mode = layerBtn.dataset.roomLayer === 'search' ? 'search' : 'organize';
-      App.show('studio', { source: 'room', mode });
+      exitRoomToLayer(mode);
       return;
     }
 
@@ -167,20 +181,76 @@ function mountRoomScene() {
   if (!stage) return;
 
   if (!ROOM_VIEW_STATE.handle) {
-    ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage);
+    ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage, {
+      onGlobeSelect: () => exitRoomToMap(),
+      onLaptopSelect: () => exitRoomToShelf(),
+      onHeroBookSelect: () => exitRoomToLayer('organize'),
+    });
   }
 
   ROOM_VIEW_STATE.handle.setSpeedPreset(ROOM_VIEW_STATE.speedPreset);
   ROOM_VIEW_STATE.handle.setSkin(ROOM_VIEW_STATE.skinId);
   ROOM_VIEW_STATE.handle.goToPose(ROOM_VIEW_STATE.pose, true);
+  ROOM_VIEW_STATE.handle.setFreeLookEnabled(ROOM_VIEW_STATE.freeLook);
+  ROOM_VIEW_STATE.freeLook = ROOM_VIEW_STATE.handle.isFreeLookEnabled();
+  syncFreeLookButton();
+}
+
+function exitRoomToMap() {
+  if (ROOM_VIEW_STATE.transitioning) return;
+
+  ROOM_VIEW_STATE.transitioning = true;
+  const root = document.getElementById('view-room');
+  if (root) root.classList.add('is-room-exiting');
+
+  if (ROOM_VIEW_STATE.handle) {
+    ROOM_VIEW_STATE.pose = 'approach';
+    syncRoomPoseButtons();
+    ROOM_VIEW_STATE.handle.goToPose('approach', false);
+  }
+
+  if (ROOM_VIEW_STATE.transitionTimer) {
+    window.clearTimeout(ROOM_VIEW_STATE.transitionTimer);
+    ROOM_VIEW_STATE.transitionTimer = null;
+  }
+
+  ROOM_VIEW_STATE.transitionTimer = window.setTimeout(() => {
+    ROOM_VIEW_STATE.transitioning = false;
+    if (root) root.classList.remove('is-room-exiting');
+    ROOM_VIEW_STATE.transitionTimer = null;
+    App.show('map', { source: 'room' });
+  }, 460);
+}
+
+function exitRoomToShelf() {
+  if (ROOM_VIEW_STATE.transitioning) return;
+  ROOM_VIEW_STATE.transitioning = true;
+  const root = document.getElementById('view-room');
+  if (root) root.classList.add('is-room-exiting');
+
+  if (ROOM_VIEW_STATE.transitionTimer) {
+    window.clearTimeout(ROOM_VIEW_STATE.transitionTimer);
+    ROOM_VIEW_STATE.transitionTimer = null;
+  }
+
+  ROOM_VIEW_STATE.transitionTimer = window.setTimeout(() => {
+    ROOM_VIEW_STATE.transitioning = false;
+    if (root) root.classList.remove('is-room-exiting');
+    ROOM_VIEW_STATE.transitionTimer = null;
+    App.show('shelf', { source: 'room-laptop' });
+  }, 360);
 }
 
 function applyRoomPose(pose) {
   const normalized = pose === 'approach' || pose === 'shelf' || pose === 'notes' ? pose : 'front';
   ROOM_VIEW_STATE.pose = normalized;
+  ROOM_VIEW_STATE.freeLook = false;
+  syncFreeLookButton();
   syncRoomPoseButtons();
   if (!ROOM_VIEW_STATE.handle) return;
   ROOM_VIEW_STATE.handle.goToPose(normalized, false);
+  ROOM_VIEW_STATE.freeLook = ROOM_VIEW_STATE.handle.isFreeLookEnabled();
+  syncFreeLookButton();
 }
 
 function syncRoomControls() {
@@ -191,6 +261,7 @@ function syncRoomControls() {
   if (skinSelect) skinSelect.value = ROOM_VIEW_STATE.skinId;
 
   syncRoomPoseButtons();
+  syncFreeLookButton();
 }
 
 function syncRoomPoseButtons() {
@@ -199,6 +270,38 @@ function syncRoomPoseButtons() {
   root.querySelectorAll('[data-room-pose]').forEach((node) => {
     node.classList.toggle('active', node.dataset.roomPose === ROOM_VIEW_STATE.pose);
   });
+}
+
+function syncFreeLookButton() {
+  const btn = document.getElementById('roomFreeLookBtn');
+  if (!btn) return;
+  btn.textContent = ROOM_VIEW_STATE.freeLook ? 'Free Look: On' : 'Free Look: Off';
+  btn.classList.toggle('active', ROOM_VIEW_STATE.freeLook);
+}
+
+function exitRoomToLayer(mode) {
+  const normalizedMode = mode === 'search' ? 'search' : 'organize';
+  ROOM_VIEW_STATE.transitioning = true;
+  const root = document.getElementById('view-room');
+  if (root) root.classList.add('is-room-exiting');
+
+  if (ROOM_VIEW_STATE.handle) {
+    ROOM_VIEW_STATE.pose = 'shelf';
+    syncRoomPoseButtons();
+    ROOM_VIEW_STATE.handle.goToPose('shelf', false);
+  }
+
+  if (ROOM_VIEW_STATE.transitionTimer) {
+    window.clearTimeout(ROOM_VIEW_STATE.transitionTimer);
+    ROOM_VIEW_STATE.transitionTimer = null;
+  }
+
+  ROOM_VIEW_STATE.transitionTimer = window.setTimeout(() => {
+    ROOM_VIEW_STATE.transitioning = false;
+    if (root) root.classList.remove('is-room-exiting');
+    ROOM_VIEW_STATE.transitionTimer = null;
+    App.show('studio', { source: 'room', mode: normalizedMode });
+  }, 420);
 }
 
 window.initRoom = initRoom;

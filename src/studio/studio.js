@@ -166,6 +166,15 @@ function applyLibraryEntry(params = {}, { immediate = false } = {}) {
   if (root) {
     root.dataset.entrySource = source;
     root.dataset.entryMode = mode;
+    if (source === 'room') {
+      root.classList.add('is-room-entry');
+      window.setTimeout(() => {
+        if (document.body.dataset.view !== 'studio') return;
+        root.classList.remove('is-room-entry');
+      }, 520);
+    } else {
+      root.classList.remove('is-room-entry');
+    }
   }
 
   const roomBtn = document.getElementById('libraryOpenRoomBtn');
