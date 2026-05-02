@@ -9,7 +9,8 @@ export function createThreeRoomPreview(host, options = {}) {
     skinId: ROOM_SKINS[0]?.id || 'warm-study',
     onGlobeSelect: typeof options.onGlobeSelect === 'function' ? options.onGlobeSelect : undefined,
     onLaptopSelect: typeof options.onLaptopSelect === 'function' ? options.onLaptopSelect : undefined,
-    onHeroBookSelect: typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : undefined,
+    onOrganizeSelect: typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : undefined,
+    onSapiensSelect: typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : undefined,
   });
 
   // Keep wall slots unmounted for now.

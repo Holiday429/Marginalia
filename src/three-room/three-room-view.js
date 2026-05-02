@@ -184,7 +184,8 @@ function mountRoomScene() {
     ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage, {
       onGlobeSelect: () => exitRoomToMap(),
       onLaptopSelect: () => exitRoomToShelf(),
-      onHeroBookSelect: () => exitRoomToLayer('organize'),
+      onOrganizeSelect: () => exitRoomToLayer('organize'),
+      onSapiensSelect: () => exitRoomToBook('sapiens'),
     });
   }
 
@@ -238,6 +239,25 @@ function exitRoomToShelf() {
     if (root) root.classList.remove('is-room-exiting');
     ROOM_VIEW_STATE.transitionTimer = null;
     App.show('shelf', { source: 'room-laptop' });
+  }, 360);
+}
+
+function exitRoomToBook(bookId) {
+  if (ROOM_VIEW_STATE.transitioning) return;
+  ROOM_VIEW_STATE.transitioning = true;
+  const root = document.getElementById('view-room');
+  if (root) root.classList.add('is-room-exiting');
+
+  if (ROOM_VIEW_STATE.transitionTimer) {
+    window.clearTimeout(ROOM_VIEW_STATE.transitionTimer);
+    ROOM_VIEW_STATE.transitionTimer = null;
+  }
+
+  ROOM_VIEW_STATE.transitionTimer = window.setTimeout(() => {
+    ROOM_VIEW_STATE.transitioning = false;
+    if (root) root.classList.remove('is-room-exiting');
+    ROOM_VIEW_STATE.transitionTimer = null;
+    App.show('book', { id: bookId, source: 'room-desk-book' });
   }, 360);
 }
 
