@@ -2,8 +2,10 @@
 
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/meshopt_decoder.module.js';
 
-const MODEL_URL = 'book.glb';
+const MODEL_URL = '/book.glb';
 
 let cachedGltf    = null;
 let cachedPromise = null;
@@ -11,9 +13,19 @@ function loadModel() {
   if (cachedGltf)    return Promise.resolve(cachedGltf);
   if (cachedPromise) return cachedPromise;
   const loader = new GLTFLoader();
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/');
+  loader.setDRACOLoader(dracoLoader);
+  loader.setMeshoptDecoder(MeshoptDecoder);
   cachedPromise = new Promise((resolve, reject) => {
-    loader.load(MODEL_URL, (g) => { cachedGltf = g; resolve(g); }, undefined, reject);
+    loader.load(
+      MODEL_URL,
+      (g) => { cachedGltf = g; resolve(g); },
+      undefined,
+      (error) => { dracoLoader.dispose(); reject(error); }
+    );
   });
+  cachedPromise.finally(() => dracoLoader.dispose());
   return cachedPromise;
 }
 

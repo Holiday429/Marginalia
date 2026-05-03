@@ -73,13 +73,6 @@ interface SurfaceTextureSetSpec {
   bumpScale?: number;
 }
 
-function resolveSceneAssetUrl(url: string): string {
-  if (!url) return url;
-  if (/^(https?:|data:|blob:)/i.test(url)) return url;
-  const decoded = decodeURIComponent(url);
-  const normalized = decoded.startsWith('/') ? decoded.slice(1) : decoded;
-  return new URL(`../../${normalized}`, import.meta.url).href;
-}
 
 // Room geometry constants — positions derived from these, not magic numbers.
 const ROOM = {
@@ -104,7 +97,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'bookshelf-a',
-    url: '/assets/3D%20room/book_shelf.glb',
+    url: '/3d/book_shelf.glb',
     position: [-4.6, 0, 1.0],
     rotationY: Math.PI / 2,
     targetHeight: 2.46,
@@ -113,7 +106,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'bookshelf-b',
-    url: '/assets/3D%20room/bookshelf%20real.glb',
+    url: '/3d/bookshelf real.glb',
     position: [-4.6, 0, 2.6],
     rotationY: Math.PI / 2,
     targetHeight: 2.46,
@@ -122,7 +115,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'globe',
-    url: '/assets/3D%20room/antique_globe.glb',
+    url: '/3d/antique_globe.glb',
     position: [-1.28, ROOM.DESK_SURFACE_Y + 0.06, -1.86],
     rotationY: -1.08,
     targetHeight: 0.58,
@@ -130,7 +123,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'macbook',
-    url: '/assets/3D%20room/macbook.glb',
+    url: '/3d/macbook.glb',
     position: [0.3, ROOM.DESK_SURFACE_Y + 0.06, -1.22],
     liftY: 0.02, // pivot compensation: model origin is not at base
     rotationY: -0.42,
@@ -156,14 +149,14 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
 const FURNITURE_ASSETS: DecorAssetSpec[] = [
   {
     id: 'chair',
-    url: '/assets/3D%20room/chair.glb',
+    url: '/3d/chair.glb',
     position: [0.62, 0, 1.1],
     rotationY: 0.5 - Math.PI / 2,
     targetHeight: 1.22,
   },
   {
     id: 'sofa',
-    url: '/assets/3D%20room/lounge_chair.glb',
+    url: '/3d/lounge_chair.glb',
     position: [4.44, 0, 2.62],
     rotationY: -0.42,
     targetHeight: 0.96,
@@ -175,17 +168,17 @@ const FURNITURE_ASSETS: DecorAssetSpec[] = [
 const PROP_ASSETS: DecorAssetSpec[] = [
   {
     id: 'picture-frame',
-    url: '/assets/3D%20room/wooden_picture_frame.glb',
+    url: '/3d/wooden_picture_frame.glb',
     position: [1.34, ROOM.DESK_SURFACE_Y + 0.06, -1.96],
     liftY: 0.17, // pivot compensation: frame origin sits below visual base
     rotationY: -0.42,
     targetHeight: 0.4,
-    photoTextureUrl: '/assets/3D%20room/me.jpg',
+    photoTextureUrl: '/3d/me.jpg',
     photoMaterialNameIncludes: 'Image',
   },
   {
     id: 'floor-lamp',
-    url: '/assets/3D%20room/floor_lamp.glb',
+    url: '/3d/floor_lamp.glb',
     position: [-3.94, 0, -3.06],
     liftY: 1.52, // pivot compensation: lamp GLB origin is mid-pole, not base
     rotationY: 0.68,
@@ -195,14 +188,14 @@ const PROP_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'floor-plant',
-    url: '/assets/3D%20room/bamboo_with_plant_pot.glb',
+    url: '/3d/bamboo_with_plant_pot.glb',
     position: [4.64, 0, -3.42],
     rotationY: -2.44,
     targetHeight: 3.02,
   },
   {
     id: 'ceiling-light',
-    url: '/assets/3D%20room/roomlight.glb',
+    url: '/3d/roomlight.glb',
     position: [0, 3.1, -0.18],
     yAlign: 'top',
     rotationY: 0,
@@ -217,49 +210,49 @@ const DECOR_ASSETS: DecorAssetSpec[] = [
 ];
 
 const WALL_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/assets/Texture/wall/beige_wall_001_diff_2k.jpg',
-  normalMap: '/assets/Texture/wall/beige_wall_001_nor_gl_2k.exr',
-  roughnessMap: '/assets/Texture/wall/beige_wall_001_rough_2k.jpg',
-  bumpMap: '/assets/Texture/wall/beige_wall_001_disp_2k.png',
+  colorMap: '/textures/wall/beige_wall_001_diff_2k.jpg',
+  normalMap: '/textures/wall/beige_wall_001_nor_gl_2k.exr',
+  roughnessMap: '/textures/wall/beige_wall_001_rough_2k.jpg',
+  bumpMap: '/textures/wall/beige_wall_001_disp_2k.png',
   repeat: [4.2, 2.2],
   normalScale: 0.52,
   bumpScale: 0.014,
 };
 
 const FLOOR_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/assets/Texture/floor/laminate_floor_03_diff_2k.jpg',
-  normalMap: '/assets/Texture/floor/laminate_floor_03_nor_gl_2k.exr',
-  roughnessMap: '/assets/Texture/floor/laminate_floor_03_rough_2k.exr',
-  bumpMap: '/assets/Texture/floor/laminate_floor_03_disp_2k.png',
+  colorMap: '/textures/floor/laminate_floor_03_diff_2k.jpg',
+  normalMap: '/textures/floor/laminate_floor_03_nor_gl_2k.exr',
+  roughnessMap: '/textures/floor/laminate_floor_03_rough_2k.exr',
+  bumpMap: '/textures/floor/laminate_floor_03_disp_2k.png',
   repeat: [6.8, 4.8],
   normalScale: 0.7,
   bumpScale: 0.03,
 };
 
 const CARPET_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/assets/Texture/carpet/Carpet014_2K-JPG_Color.jpg',
-  normalMap: '/assets/Texture/carpet/Carpet014_2K-JPG_NormalGL.jpg',
-  roughnessMap: '/assets/Texture/carpet/Carpet014_2K-JPG_Roughness.jpg',
-  bumpMap: '/assets/Texture/carpet/Carpet014_2K-JPG_Displacement.jpg',
+  colorMap: '/textures/carpet/Carpet014_2K-JPG_Color.jpg',
+  normalMap: '/textures/carpet/Carpet014_2K-JPG_NormalGL.jpg',
+  roughnessMap: '/textures/carpet/Carpet014_2K-JPG_Roughness.jpg',
+  bumpMap: '/textures/carpet/Carpet014_2K-JPG_Displacement.jpg',
   repeat: [2.2, 1.6],
   normalScale: 0.46,
   bumpScale: 0.02,
 };
 
 const BOARD_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/assets/Texture/board/oriented_strand_board_diff_2k.jpg',
-  normalMap: '/assets/Texture/board/oriented_strand_board_nor_gl_2k.exr',
-  roughnessMap: '/assets/Texture/board/oriented_strand_board_rough_2k.exr',
-  bumpMap: '/assets/Texture/board/oriented_strand_board_disp_2k.png',
+  colorMap: '/textures/board/oriented_strand_board_diff_2k.jpg',
+  normalMap: '/textures/board/oriented_strand_board_nor_gl_2k.exr',
+  roughnessMap: '/textures/board/oriented_strand_board_rough_2k.exr',
+  bumpMap: '/textures/board/oriented_strand_board_disp_2k.png',
   repeat: [1.1, 0.9],
   normalScale: 0.62,
   bumpScale: 0.02,
 };
 
 const DESK_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/assets/Texture/desk/plywood_diff_2k.jpg',
-  normalMap: '/assets/Texture/desk/plywood_nor_gl_2k.exr',
-  roughnessMap: '/assets/Texture/desk/plywood_rough_2k.exr',
+  colorMap: '/textures/desk/plywood_diff_2k.jpg',
+  normalMap: '/textures/desk/plywood_nor_gl_2k.exr',
+  roughnessMap: '/textures/desk/plywood_rough_2k.exr',
   repeat: [2.0, 1.2],
   normalScale: 0.42,
 };
@@ -729,7 +722,7 @@ export class RoomScene {
         : this.loadBitmapTexture.bind(this);
       const isColorTexture = step.kind === 'color texture';
       loader(
-        resolveSceneAssetUrl(step.url),
+        step.url,
         anisotropy,
         textureSet.repeat,
         isColorTexture,
@@ -1098,10 +1091,8 @@ export class RoomScene {
   }
 
   private mountDecorAsset(asset: DecorAssetSpec): void {
-    const primaryUrl = resolveSceneAssetUrl(asset.url);
-    const fallbackUrl = asset.url;
-    const loadDecor = (url: string, isRetry: boolean) => this.gltfLoader.load(
-      url,
+    this.gltfLoader.load(
+      asset.url,
       (gltf) => {
         if (this.disposed) return;
         const model = gltf.scene;
@@ -1110,15 +1101,9 @@ export class RoomScene {
       },
       undefined,
       (error) => {
-        if (!isRetry && fallbackUrl && fallbackUrl !== url) {
-          console.warn('[room] Decor load failed; retrying with fallback url:', url, '=>', fallbackUrl, error);
-          loadDecor(fallbackUrl, true);
-          return;
-        }
-        console.warn('[room] Failed to load decor model:', url, error);
+        console.warn('[room] Failed to load decor model:', asset.url, error);
       },
     );
-    loadDecor(primaryUrl, false);
   }
 
   private finalizeDecorAsset(model: THREE.Object3D, asset: DecorAssetSpec): void {
@@ -1273,9 +1258,8 @@ export class RoomScene {
   }
 
   private applyDecorPhotoTexture(model: THREE.Object3D, textureUrl: string, materialNameHint: string): void {
-    const resolvedTextureUrl = resolveSceneAssetUrl(textureUrl);
     this.textureLoader.load(
-      resolvedTextureUrl,
+      textureUrl,
       (texture) => {
         if (this.disposed) return;
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -1299,7 +1283,7 @@ export class RoomScene {
       },
       undefined,
       (error) => {
-        console.warn('[room] Failed to load frame photo texture:', resolvedTextureUrl, error);
+        console.warn('[room] Failed to load frame photo texture:', textureUrl, error);
       },
     );
   }
