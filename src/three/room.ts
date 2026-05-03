@@ -864,13 +864,14 @@ export class RoomScene {
     wallShadow.position.set(0, 1.05, -4.06);
     room.add(wallShadow);
 
+    // Cork board — framed panel on the right wall, ~6.5×3.8 with visible wall margin
     const notesBoard = this.createWallProjectionPanel({
-      width: 2.92,
-      height: 1.92,
+      width: 6.5,
+      height: 3.8,
       panelMaterial: this.materials.board,
       frameMaterial: this.materials.panelFrame,
     });
-    notesBoard.position.set(5.24, 2.28, -0.58);
+    notesBoard.position.set(5.20, 2.3, -0.4);
     notesBoard.rotation.y = -Math.PI / 2;
     notesBoard.add(this.createPinnedNotesCluster());
     notesBoard.traverse((node) => {
@@ -935,7 +936,8 @@ export class RoomScene {
     this.scene.add(this.decorRoot);
 
     this.registerSlot('shelfWall', [-5.22, 2.2, 0], [0, Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
-    this.registerSlot('notesWall', [5.22, 2.2, 0], [0, -Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
+    // notesWall: matches cork board interior. container=1300×760px, scale=0.005 → 6.5×3.8 world units
+    this.registerSlot('notesWall', [5.18, 2.3, -0.4], [0, -Math.PI / 2, 0], [0.005, 0.005, 0.005]);
     this.registerSlot('desk', [0, ROOM.DESK_SURFACE_Y + 0.12, ROOM.DESK_CENTER_Z], [-Math.PI / 2, 0, 0], [0.0048, 0.0048, 0.0048]);
   }
 

@@ -3,8 +3,9 @@
 
 import './notes-wall.css';
 
-const WALL_WIDTH  = 2400;
-const WALL_HEIGHT = 1600;
+// slot scale=0.005 → 1300×760px = 6.5×3.8 world units (matches cork board)
+const WALL_WIDTH  = 1300;
+const WALL_HEIGHT = 760;
 
 const ROTATIONS = [-4, -2, 0, 2, 3, -3, 1, -1, 4];
 
@@ -117,6 +118,12 @@ export function createNotesWallComponent() {
     `;
 
     bindEvents();
+
+    // Re-apply zoom after every render
+    if (zoomScale !== 1) {
+      const inner = containerRef?.querySelector('.notes-wall');
+      if (inner) applyZoom(inner);
+    }
   }
 
   function renderQuoteNote(quote, index) {
@@ -219,12 +226,60 @@ export function createNotesWallComponent() {
     render();
   }
 
+  // ── Zoom (wheel + pinch) on the inner .notes-wall div ─────────────────────
+
+  let zoomScale = 1;
+  const ZOOM_MIN = 0.5;
+  const ZOOM_MAX = 2.5;
+
+  function applyZoom(inner) {
+    inner.style.transform = `scale(${zoomScale})`;
+    inner.style.transformOrigin = 'top left';
+  }
+
+  function attachZoom(container) {
+    // Wheel zoom
+    container.addEventListener('wheel', e => {
+      e.preventDefault();
+      const inner = container.querySelector('.notes-wall');
+      if (!inner) return;
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      zoomScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomScale + delta));
+      applyZoom(inner);
+    }, { passive: false });
+
+    // Pinch zoom (touch)
+    let lastDist = null;
+    container.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) {
+        lastDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY,
+        );
+      }
+    }, { passive: true });
+    container.addEventListener('touchmove', e => {
+      if (e.touches.length !== 2 || lastDist === null) return;
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY,
+      );
+      const ratio = dist / lastDist;
+      zoomScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomScale * ratio));
+      lastDist = dist;
+      const inner = container.querySelector('.notes-wall');
+      if (inner) applyZoom(inner);
+    }, { passive: true });
+    container.addEventListener('touchend', () => { lastDist = null; }, { passive: true });
+  }
+
   // ── SlotComponent interface ────────────────────────────────────────────────
 
   return {
     mount(container) {
       containerRef = container;
       render();
+      attachZoom(container);
       // Re-render when notes change
       unsubscribe = window.NotesStore?.onChange(() => render());
     },
