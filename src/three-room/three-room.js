@@ -1,5 +1,6 @@
 import { RoomScene } from '../three/room.ts';
 import { ROOM_SKINS } from '../three/skins.ts';
+import { createNotesWallComponent } from '../components/notes-wall/notes-wall.js';
 
 export function createThreeRoomPreview(host, options = {}) {
   if (!host) return null;
@@ -15,11 +16,10 @@ export function createThreeRoomPreview(host, options = {}) {
     onInteractiveHover: typeof options.onInteractiveHover === 'function' ? options.onInteractiveHover : undefined,
   });
 
-  // Keep wall slots unmounted for now.
-  // Walls are real 3D structures; 2D components will be projected in later phases.
+  // Mount notes wall component
+  scene.mountSlot('notesWall', createNotesWallComponent());
 
-  // Desk slot is intentionally left empty at this stage.
-  // We'll project the reading component in a later phase.
+  // Desk slot intentionally left empty for a later phase.
 
   return {
     goToPose(pose, immediate = false) {

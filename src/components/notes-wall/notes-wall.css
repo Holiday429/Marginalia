@@ -1,0 +1,207 @@
+.notes-wall {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 28px;
+  padding: 40px 36px;
+  box-sizing: border-box;
+  font-family: 'Caveat', cursive;
+}
+
+/* ── Sticky note base ─────────────────────────────────────────────────────── */
+
+.sticky-note {
+  position: relative;
+  width: 220px;
+  min-height: 160px;
+  padding: 18px 18px 22px;
+  box-sizing: border-box;
+  border-radius: 2px;
+  box-shadow:
+    2px 3px 6px rgba(0,0,0,0.18),
+    0 1px 2px rgba(0,0,0,0.10);
+  cursor: default;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+.sticky-note::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 28px;
+  background: rgba(0,0,0,0.06);
+}
+
+.sticky-note:hover {
+  box-shadow:
+    4px 6px 14px rgba(0,0,0,0.22),
+    0 2px 4px rgba(0,0,0,0.12);
+  z-index: 2;
+}
+
+/* colour variants */
+.sticky-note--quote    { background: #f9e87f; }
+.sticky-note--todo     { background: #b5e5a0; }
+.sticky-note--followup { background: #f9c784; }
+
+/* ── Note type label ──────────────────────────────────────────────────────── */
+
+.sticky-note__label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.38);
+  margin-bottom: 10px;
+  display: block;
+}
+
+/* ── Quote note ───────────────────────────────────────────────────────────── */
+
+.sticky-note--quote .sticky-note__quote {
+  font-size: 22px;
+  line-height: 1.45;
+  color: #2c2200;
+  margin: 0 0 10px;
+}
+
+.sticky-note--quote .sticky-note__source {
+  font-size: 16px;
+  color: rgba(44,34,0,0.55);
+  margin: 0;
+}
+
+/* ── To-do note ───────────────────────────────────────────────────────────── */
+
+.sticky-note--todo .sticky-note__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 20px;
+  line-height: 1.4;
+  color: #1a3a1a;
+}
+
+.todo-item__check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(26,58,26,0.5);
+  border-radius: 3px;
+  margin-top: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.todo-item__check:hover {
+  border-color: rgba(26,58,26,0.9);
+}
+
+.todo-item.is-done .todo-item__check {
+  background: rgba(26,58,26,0.7);
+  border-color: rgba(26,58,26,0.7);
+}
+
+.todo-item.is-done .todo-item__check::after {
+  content: '✓';
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.todo-item.is-done .todo-item__text {
+  text-decoration: line-through;
+  opacity: 0.45;
+}
+
+.todo-item__text {
+  flex: 1;
+  outline: none;
+  min-height: 1.4em;
+  word-break: break-word;
+}
+
+.todo-item__text:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(26,58,26,0.35);
+}
+
+.sticky-note--todo .sticky-note__add-btn {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  font-family: 'Caveat', cursive;
+  font-size: 18px;
+  color: rgba(26,58,26,0.5);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sticky-note--todo .sticky-note__add-btn:hover {
+  color: rgba(26,58,26,0.85);
+}
+
+/* ── Follow-up note ───────────────────────────────────────────────────────── */
+
+.sticky-note--followup .sticky-note__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.followup-item {
+  font-size: 18px;
+  line-height: 1.4;
+  color: #3a1a00;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.followup-item__text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.followup-item__meta {
+  font-size: 13px;
+  color: rgba(58,26,0,0.5);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+
+.sticky-note--empty {
+  opacity: 0.45;
+  font-size: 18px;
+  color: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 120px;
+}
