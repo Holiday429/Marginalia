@@ -139,7 +139,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     rotationY: 0,
     rotationZ: 0,
     targetHeight: 0.62,
-    photoTextureUrl: '/assets/covers/sapiens-zh.jpg',
+    photoTextureUrl: '/covers/sapiens-zh.jpg',
     photoMaterialNameIncludes: '*',
     interactiveAction: 'sapiens',
   },

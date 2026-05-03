@@ -31,7 +31,7 @@ window.__SEED_SAPIENS = {
     font:   "'Bodoni Moda', serif",
     weight: 700,
     art:    'sapiens',
-    image:  'assets/covers/sapiens-real.jpg'
+    image:  '/covers/sapiens-real.jpg'
   },
   meta: {
     publisher:    '中信出版社',
