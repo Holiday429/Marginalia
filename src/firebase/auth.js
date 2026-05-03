@@ -150,6 +150,7 @@ window.MarginaliaAuth = (() => {
     });
 
     window.addEventListener('marginalia:ui-refresh', syncAuthTriggers);
+    window.addEventListener('marginalia:panel-open', syncAuthTriggers);
 
     renderAuthState();
   }

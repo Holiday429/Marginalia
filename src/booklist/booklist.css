@@ -1,15 +1,15 @@
 /* Booklist view */
 
-#view-booklist {
+#panel-booklist {
   min-height: 100vh;
-  background: var(--bg);
+  background: transparent;
   color: var(--ink);
 }
 
 .booklist-shell {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 20px 56px 96px;
+  padding: 20px 20px 96px;
 }
 
 .booklist-main {
@@ -17,6 +17,12 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+@media (max-width: 980px) {
+  .booklist-shell {
+    padding: 14px 0 68px;
+  }
 }
 
 .booklist-play-btn:disabled {

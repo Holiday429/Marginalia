@@ -147,85 +147,118 @@
   --section-subtitle-weight: var(--weight-service-ui-label);
   --section-subtitle-minor-size: var(--fs-18);
   --section-title-gap-from-divider: 20px;
+
+  /* Room → Tool transition palette */
+  --bg-room-dark: #15120f;
+  --bg-tool: #171410;
+  --bg-tool-soft: #1d1914;
+  --panel-glass: rgba(45, 37, 28, 0.72);
+  --panel-border: rgba(230, 210, 170, 0.16);
+  --text-primary: #efe6d4;
+  --text-secondary: #b8aa95;
+  --text-muted: #7c7062;
+  --accent-gold: #c49a52;
+  --accent-green: #78966a;
 }
 
 /* ── Per-view theme overrides ──────────────────────────────────────────── */
 
-/* Shelf — dark ink background, paper text */
+/* Shelf — dark warm tool palette */
 body[data-view="shelf"] {
-  --bg:        var(--color-ink);
-  --bg-soft:   var(--color-ink-soft);
-  --ink:       var(--color-paper);
-  --ink-soft:  #c8bfa8;
-  --paper:     var(--color-ink-soft);
-  --rule:      rgba(232,223,200,0.14);
-  --rule-soft: rgba(232,223,200,0.08);
-  --muted:     rgba(232,223,200,0.7);
-  --muted-soft:rgba(232,223,200,0.5);
+  --bg: var(--bg-tool);
+  --bg-soft: var(--bg-tool-soft);
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --paper: var(--bg-tool-soft);
+  --rule: var(--panel-border);
+  --rule-soft: rgba(230,210,170,0.1);
+  --muted: rgba(239,230,212,0.72);
+  --muted-soft: rgba(184,170,149,0.62);
+  --accent: var(--accent-gold);
 }
 
-/* Shelf Studio — same dark base as shelf */
+/* Shelf Studio — same dark warm base */
 body[data-view="studio"] {
-  --bg:        var(--color-ink);
-  --bg-soft:   var(--color-ink-soft);
-  --ink:       var(--color-paper);
-  --ink-soft:  #c8bfa8;
-  --paper:     var(--color-ink-soft);
-  --rule:      rgba(232,223,200,0.14);
-  --rule-soft: rgba(232,223,200,0.08);
-  --muted:     rgba(232,223,200,0.7);
-  --muted-soft:rgba(232,223,200,0.5);
+  --bg: var(--bg-tool);
+  --bg-soft: var(--bg-tool-soft);
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --paper: var(--bg-tool-soft);
+  --rule: var(--panel-border);
+  --rule-soft: rgba(230,210,170,0.1);
+  --muted: rgba(239,230,212,0.72);
+  --muted-soft: rgba(184,170,149,0.62);
+  --accent: var(--accent-gold);
 }
 
-/* Room — same dark base as shelf studio */
+/* Room base */
 body[data-view="room"] {
-  --bg:        var(--color-ink);
-  --bg-soft:   var(--color-ink-soft);
-  --ink:       var(--color-paper);
-  --ink-soft:  #c8bfa8;
-  --paper:     var(--color-ink-soft);
-  --rule:      rgba(232,223,200,0.14);
-  --rule-soft: rgba(232,223,200,0.08);
-  --muted:     rgba(232,223,200,0.7);
-  --muted-soft:rgba(232,223,200,0.5);
+  --bg: var(--bg-room-dark);
+  --bg-soft: var(--bg-tool-soft);
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --paper: var(--bg-tool-soft);
+  --rule: var(--panel-border);
+  --rule-soft: rgba(230,210,170,0.1);
+  --muted: rgba(239,230,212,0.72);
+  --muted-soft: rgba(184,170,149,0.62);
+  --accent: var(--accent-gold);
 }
 
-/* Book detail — same dark theme as shelf */
+/* Book detail */
 body[data-view="book"] {
-  --bg:        var(--color-ink);
-  --bg-soft:   var(--color-ink-soft);
-  --ink:       var(--color-paper);
-  --ink-soft:  #c8bfa8;
-  --paper:     var(--color-ink-soft);
-  --rule:      rgba(232,223,200,0.14);
-  --rule-soft: rgba(232,223,200,0.08);
-  --muted:     rgba(232,223,200,0.7);
-  --muted-soft:rgba(232,223,200,0.5);
+  --bg: var(--bg-tool);
+  --bg-soft: var(--bg-tool-soft);
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --paper: var(--bg-tool-soft);
+  --rule: var(--panel-border);
+  --rule-soft: rgba(230,210,170,0.1);
+  --muted: rgba(239,230,212,0.72);
+  --muted-soft: rgba(184,170,149,0.62);
+  --accent: var(--accent-gold);
 }
 
-/* Booklist — same dark theme as shelf */
+/* Booklist */
 body[data-view="booklist"] {
-  --bg:        var(--color-ink);
-  --bg-soft:   var(--color-ink-soft);
-  --ink:       var(--color-paper);
-  --ink-soft:  #c8bfa8;
-  --paper:     var(--color-ink-soft);
-  --rule:      rgba(232,223,200,0.14);
-  --rule-soft: rgba(232,223,200,0.08);
-  --muted:     rgba(232,223,200,0.7);
-  --muted-soft:rgba(232,223,200,0.5);
+  --bg: var(--bg-tool);
+  --bg-soft: var(--bg-tool-soft);
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --paper: var(--bg-tool-soft);
+  --rule: var(--panel-border);
+  --rule-soft: rgba(230,210,170,0.1);
+  --muted: rgba(239,230,212,0.72);
+  --muted-soft: rgba(184,170,149,0.62);
+  --accent: var(--accent-gold);
 }
 
-/* Map — immersive dark mode */
+/* Map */
 body[data-view="map"] {
-  --bg:    var(--color-ink);
-  --ink:   var(--color-paper);
-  --paper: var(--color-ink-soft);
-  --rule:        rgba(232,223,200,0.14);
-  --rule-soft:   rgba(232,223,200,0.08);
-  --muted:       rgba(232,223,200,0.72);
-  --muted-soft:  rgba(232,223,200,0.52);
-  --accent:      var(--color-accent-gold);
+  --bg: var(--bg-tool);
+  --bg-soft: var(--bg-tool-soft);
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --paper: var(--bg-tool-soft);
+  --rule: var(--panel-border);
+  --rule-soft: rgba(230,210,170,0.1);
+  --muted: rgba(239,230,212,0.72);
+  --muted-soft: rgba(184,170,149,0.62);
+  --accent: var(--accent-gold);
+}
+
+/* Web (Graph) */
+body[data-view="web"] {
+  --bg: var(--bg-tool);
+  --bg-soft: var(--bg-tool-soft);
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --paper: var(--bg-tool-soft);
+  --rule: var(--panel-border);
+  --rule-soft: rgba(230,210,170,0.1);
+  --muted: rgba(239,230,212,0.72);
+  --muted-soft: rgba(184,170,149,0.62);
+  --accent: var(--accent-gold);
 }
 
 /* Preloader — keeps existing theme-* class system (handled in preloader.css) */
@@ -243,6 +276,51 @@ body {
   line-height: 1.5;
   transition: background var(--dur-mid) var(--ease-out),
               color      var(--dur-mid) var(--ease-out);
+}
+
+.tool-page-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 28px 40px 40px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(160, 120, 70, 0.08), transparent 42%),
+    linear-gradient(180deg, #1a1713 0%, #12100d 100%);
+  color: var(--text-primary);
+  isolation: isolate;
+}
+
+.tool-page-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image:
+    radial-gradient(circle at 25% 25%, rgba(255,255,255,0.22) 0.6px, transparent 0.6px),
+    radial-gradient(circle at 75% 75%, rgba(0,0,0,0.24) 0.6px, transparent 0.6px);
+  background-size: 4px 4px, 5px 5px;
+  mix-blend-mode: soft-light;
+  z-index: 0;
+}
+
+.tool-page-inner {
+  position: relative;
+  min-height: calc(100vh - 68px);
+  border-top: 1px solid rgba(230, 210, 170, 0.14);
+  z-index: 1;
+}
+
+.tool-page-shell .shared-masthead {
+  opacity: 0.92;
+}
+
+@media (max-width: 980px) {
+  .tool-page-shell {
+    padding: 20px 20px 28px;
+  }
+  .tool-page-inner {
+    min-height: calc(100vh - 48px);
+  }
 }
 
 /* ── Shared primitives ─────────────────────────────────────────────────── */
@@ -306,4 +384,21 @@ body {
 
 .section-title-gap {
   padding-top: var(--section-title-gap-from-divider);
+}
+
+/* ── Panel back button ──────────────────────────────────────── */
+.panel-back-btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.panel-back-btn:hover {
+  color: var(--text);
+  border-color: var(--text-secondary);
 }

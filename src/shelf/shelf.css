@@ -12,7 +12,7 @@ body[data-view="shelf"] {
 .page {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 20px 56px 92px;
+  padding: 20px 20px 92px;
 }
 
 /* ---- Masthead ---- */
@@ -67,6 +67,27 @@ body[data-view="shelf"] {
   gap: 6px;
 }
 
+.nav-room-btn {
+  font-family: var(--font-service-ui);
+  font-size: 10px;
+  letter-spacing: var(--track-service-ui);
+  font-weight: var(--weight-service-ui);
+  color: var(--text-secondary);
+  background: rgba(232, 223, 200, 0.04);
+  border: 1px solid rgba(232, 223, 200, 0.2);
+  border-radius: 999px;
+  height: 28px;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.nav-room-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(232, 223, 200, 0.36);
+  background: rgba(232, 223, 200, 0.08);
+}
+
 .nav-icon {
   width: 1em;
   height: 1em;
@@ -104,6 +125,7 @@ body[data-view="shelf"] {
 }
 
 .nav a:focus-visible,
+.nav-room-btn:focus-visible,
 .shelf-filters .chip:focus-visible,
 .shelf-status-btn:focus-visible,
 .booklist-play-btn:focus-visible {

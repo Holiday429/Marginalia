@@ -21,7 +21,7 @@ async function enterBook(params = {}) {
     ? { ...book, highlights: mergedHighlights }
     : book;
 
-  const root = document.getElementById('view-book');
+  const root = document.getElementById('panel-book');
   root.innerHTML = renderBook(bookView);
 
   // Mount AI generate toolbars
@@ -930,3 +930,4 @@ function coverArt(id) {
 // TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
 window.initBook = initBook;
 window.enterBook = enterBook;
+window.enterPanel_book = function(params = {}) { enterBook(params); };

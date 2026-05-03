@@ -5,37 +5,54 @@
    D3.js force graph — this file only styles the chrome around it.
    ========================================================================== */
 
-#view-web {
+#panel-web {
   position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  background: transparent;
 }
 
 body[data-view="web"] { overflow: hidden; }
 
+#panel-web .tool-page-shell {
+  height: 100%;
+}
+
+#panel-web .tool-page-inner {
+  min-height: calc(100vh - 68px);
+}
+
+.web-page {
+  position: relative;
+  min-height: calc(100vh - 68px);
+  overflow: hidden;
+}
+
 /* ── Theme override (same dark palette as map) ─────────────────────────── */
 body[data-view="web"] {
-  --bg:         var(--color-ink);
-  --ink:        var(--color-paper);
-  --paper:      var(--color-ink-soft);
-  --rule:       rgba(232,223,200,0.14);
-  --rule-soft:  rgba(232,223,200,0.08);
-  --muted:      rgba(232,223,200,0.72);
-  --muted-soft: rgba(232,223,200,0.52);
-  --accent:     var(--color-accent-gold);
+  --bg: var(--bg-tool);
+  --bg-soft: var(--bg-tool-soft);
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --paper: var(--bg-tool-soft);
+  --rule: var(--panel-border);
+  --rule-soft: rgba(230,210,170,0.1);
+  --muted: rgba(239,230,212,0.72);
+  --muted-soft: rgba(184,170,149,0.62);
+  --accent: var(--accent-gold);
 }
 
 /* ── Header ────────────────────────────────────────────────────────────── */
-#view-web .shared-header-wrap {
+#panel-web .shared-header-wrap {
   position: absolute;
   top: 0; left: 0; right: 0;
   z-index: 30;
   padding: 20px 56px 0;
-  background: var(--bg);
+  background: linear-gradient(180deg, rgba(18, 16, 13, 0.68), rgba(18, 16, 13, 0));
   pointer-events: none;
 }
-#view-web .shared-masthead {
+#panel-web .shared-masthead {
   pointer-events: auto;
 }
 
@@ -100,7 +117,7 @@ body[data-view="web"] {
   align-items: center;
   gap: 10px;
   border: 1px solid var(--rule);
-  background: rgba(14,17,24,0.82);
+  background: rgba(30,23,17,0.82);
   padding: 7px 10px;
 }
 
@@ -137,7 +154,7 @@ body[data-view="web"] {
 
 .web-mode-btn {
   border: 1px solid var(--rule);
-  background: rgba(14,17,24,0.82);
+  background: rgba(30,23,17,0.82);
   color: rgba(232,223,200,0.55);
   padding: 8px 10px;
   cursor: pointer;
@@ -425,7 +442,11 @@ body[data-view="web"] {
 }
 
 @media (max-width: 980px) {
-  #view-web .shared-header-wrap {
+  .web-page {
+    min-height: calc(100vh - 48px);
+  }
+
+  #panel-web .shared-header-wrap {
     padding: 20px 20px 0;
   }
 

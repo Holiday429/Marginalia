@@ -41,7 +41,7 @@ function containsCJK(value) {
 }
 
 function initLibrary(params = {}) {
-  const host = document.getElementById('view-studio');
+  const host = document.getElementById('panel-library');
   if (!host) return;
 
   host.innerHTML = `
@@ -162,7 +162,7 @@ function applyLibraryEntry(params = {}, { immediate = false } = {}) {
   LIBRARY_STATE.entrySource = source;
   LIBRARY_STATE.entryMode = mode;
 
-  const root = document.getElementById('view-studio');
+  const root = document.getElementById('panel-library');
   if (root) {
     root.dataset.entrySource = source;
     root.dataset.entryMode = mode;
@@ -210,7 +210,7 @@ function bindLibraryEvents() {
   if (LIBRARY_STATE.bound) return;
   LIBRARY_STATE.bound = true;
 
-  const root = document.getElementById('view-studio');
+  const root = document.getElementById('panel-library');
   if (!root) return;
 
   root.addEventListener('click', (event) => {
@@ -708,7 +708,7 @@ function renderShelves() {
 function reflowIfMisestimated() {
   if (LIBRARY_STATE._reflowingShelves) return false;
   let needs = false;
-  document.querySelectorAll('#view-studio .library-bay').forEach((bay) => {
+  document.querySelectorAll('#panel-library .library-bay').forEach((bay) => {
     const rows = bay.querySelectorAll('.library-row');
     const shelfId = bay.dataset.shelfId || '';
     const shelf = getShelfById(shelfId);
@@ -729,7 +729,7 @@ function reflowIfMisestimated() {
 }
 
 function checkAllShelvesOverflow() {
-  document.querySelectorAll('#view-studio .library-bay').forEach((bay) => {
+  document.querySelectorAll('#panel-library .library-bay').forEach((bay) => {
     checkShelfOverflow(bay);
   });
 }
@@ -817,7 +817,7 @@ function hasActiveInteraction() {
 }
 
 function applySceneModeState() {
-  const host = document.getElementById('view-studio');
+  const host = document.getElementById('panel-library');
   if (host) host.dataset.sceneMode = 'flat';
 }
 
@@ -995,7 +995,7 @@ function startShelfDrag(event, shelfId) {
   if (!beginInteraction('shelf-move', event, event.target.closest('.library-bay-head-drag'))) return;
   event.preventDefault();
 
-  const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
+  const bay = document.querySelector(`#panel-library .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
   if (bay) bay.classList.add('is-shelf-dragging');
 
   LIBRARY_STATE.shelfDrag = {
@@ -1025,7 +1025,7 @@ function onShelfDragMove(event) {
   const scale = Math.max(0.001, LIBRARY_STATE.view.scale);
   const dx = (event.clientX - drag.startX) / scale;
   const dy = (event.clientY - drag.startY) / scale;
-  const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
+  const bay = document.querySelector(`#panel-library .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
   const bounds = getShelfMovementBounds(bay);
 
   const candidateX = clamp(drag.shelfX + dx, bounds.minX, bounds.maxX, drag.shelfX);
@@ -1049,7 +1049,7 @@ function shelfCollides(movingId, x, y, w, h) {
   const gap = 20;
   return LIBRARY_STATE.shelves.some((other) => {
     if (other.id === movingId) return false;
-    const node = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(other.id)}"]`);
+    const node = document.querySelector(`#panel-library .library-bay[data-shelf-id="${cssEscape(other.id)}"]`);
     const ow = node?.offsetWidth || 420;
     const oh = node?.offsetHeight || 360;
     return (
@@ -1064,7 +1064,7 @@ function shelfCollides(movingId, x, y, w, h) {
 function stopShelfDrag(event) {
   if (!LIBRARY_STATE.shelfDrag || !matchesActivePointer(event, 'shelf-move')) return;
   const shelfId = LIBRARY_STATE.shelfDrag.shelfId;
-  const bay = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
+  const bay = document.querySelector(`#panel-library .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
   if (bay) bay.classList.remove('is-shelf-dragging');
   LIBRARY_STATE.shelfDrag = null;
   endInteraction('shelf-move');
@@ -1163,7 +1163,7 @@ function resetFrontView({ animated }) {
 }
 
 function computeShelfBounds() {
-  const shelves = document.querySelectorAll('#view-studio .library-bay');
+  const shelves = document.querySelectorAll('#panel-library .library-bay');
   if (!shelves.length) return null;
 
   let minX = Infinity;
@@ -1208,14 +1208,14 @@ function syncViewFromViewport() {
 
 function applyCameraTransform() {
   applySceneModeState();
-  document.querySelectorAll('#view-studio .library-bay').forEach((node) => {
+  document.querySelectorAll('#panel-library .library-bay').forEach((node) => {
     const shelf = getShelfById(node.dataset.shelfId || '');
     if (shelf) setShelfTransform(node, shelf);
   });
 }
 
 function findLaneAtPoint(x, y) {
-  const lanes = Array.from(document.querySelectorAll('#view-studio [data-lane="true"]'));
+  const lanes = Array.from(document.querySelectorAll('#panel-library [data-lane="true"]'));
   return lanes.find((lane) => {
     const rect = lane.getBoundingClientRect();
     return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
@@ -1353,7 +1353,7 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
   actions.innerHTML = buildOverlayActions(record, LIBRARY_STATE.overlay.sourceShelfId);
 
   requestAnimationFrame(() => {
-    document.getElementById('view-studio')?.classList.add('is-inspecting');
+    document.getElementById('panel-library')?.classList.add('is-inspecting');
     overlay.className = 'library-book-overlay is-lift';
   });
 
@@ -1403,13 +1403,13 @@ function closeBookInspector({ immediate = false } = {}) {
     overlay.className = 'library-book-overlay';
     delete overlay.dataset.bookKey;
     delete overlay.dataset.sourceShelfId;
-    document.querySelectorAll('#view-studio .is-lift-origin').forEach((node) => {
+    document.querySelectorAll('#panel-library .is-lift-origin').forEach((node) => {
       node.classList.remove('is-lift-origin');
     });
     LIBRARY_STATE.overlay.playing = false;
     LIBRARY_STATE.overlay.key = '';
     LIBRARY_STATE.overlay.sourceShelfId = '';
-    document.getElementById('view-studio')?.classList.remove('is-inspecting');
+    document.getElementById('panel-library')?.classList.remove('is-inspecting');
   };
 
   if (immediate || overlay.classList.contains('is-start')) {
@@ -1430,7 +1430,7 @@ function clearOverlayTimers() {
 function syncOverlayWithRenderedBook() {
   if (!LIBRARY_STATE.overlay.key) return;
   const overlay = document.getElementById('libraryBookOverlay');
-  const sourceNode = document.querySelector(`#view-studio .library-draggable[data-book-key="${cssEscape(LIBRARY_STATE.overlay.key)}"]`);
+  const sourceNode = document.querySelector(`#panel-library .library-draggable[data-book-key="${cssEscape(LIBRARY_STATE.overlay.key)}"]`);
   if (!overlay || overlay.hidden || !sourceNode) return;
   sourceNode.classList.add('is-lift-origin');
 }
@@ -1483,7 +1483,7 @@ function arrangeShelvesForFrontView() {
   const heights = [];
 
   LIBRARY_STATE.shelves.forEach((shelf) => {
-    const node = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
+    const node = document.querySelector(`#panel-library .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
     widths.push(node?.offsetWidth || 420);
     heights.push(node?.offsetHeight || 360);
   });
@@ -1495,7 +1495,7 @@ function arrangeShelvesForFrontView() {
   const columns = Math.max(1, Math.min(maxColumns, Math.floor((usableWidth + gapX) / cellWidth) || 1));
 
   LIBRARY_STATE.shelves.forEach((shelf, index) => {
-    const node = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
+    const node = document.querySelector(`#panel-library .library-bay[data-shelf-id="${cssEscape(shelf.id)}"]`);
     const width = node?.offsetWidth || 420;
     const height = node?.offsetHeight || 360;
     const col = index % columns;
@@ -1529,7 +1529,7 @@ function updateSearchHighlight() {
   const keySet = new Set(LIBRARY_STATE.searchMatches.map((item) => item.key));
   const active = LIBRARY_STATE.searchMatches[LIBRARY_STATE.searchIndex] || null;
 
-  document.querySelectorAll('#view-studio .library-draggable').forEach((node) => {
+  document.querySelectorAll('#panel-library .library-draggable').forEach((node) => {
     const key = node.dataset.bookKey || '';
     node.classList.remove('is-search-hit', 'is-search-active');
     if (!LIBRARY_STATE.searchQuery || !keySet.has(key)) return;
@@ -1555,7 +1555,7 @@ function focusShelfForMatch(match) {
   const key = match?.key;
   if (!shelfId || !key) return;
 
-  const shelfEl = document.querySelector(`#view-studio .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
+  const shelfEl = document.querySelector(`#panel-library .library-bay[data-shelf-id="${cssEscape(shelfId)}"]`);
   const viewport = document.getElementById('librarySceneViewport');
   if (shelfEl && viewport) {
     const bayRect = shelfEl.getBoundingClientRect();
@@ -1581,7 +1581,7 @@ function focusShelfForMatch(match) {
 }
 
 function triggerLocateLift(bookKey) {
-  const node = document.querySelector(`#view-studio .library-draggable[data-book-key="${cssEscape(bookKey)}"]`);
+  const node = document.querySelector(`#panel-library .library-draggable[data-book-key="${cssEscape(bookKey)}"]`);
   if (!node) return;
   node.classList.remove('is-locate-lift');
   void node.offsetWidth;
@@ -1680,7 +1680,7 @@ function addShelfRow(shelfId) {
 function setActiveShelf(shelfId) {
   if (LIBRARY_STATE.activeShelfId === shelfId) return;
   LIBRARY_STATE.activeShelfId = shelfId || '';
-  document.querySelectorAll('#view-studio .library-bay').forEach((bay) => {
+  document.querySelectorAll('#panel-library .library-bay').forEach((bay) => {
     bay.classList.toggle('is-active', bay.dataset.shelfId === LIBRARY_STATE.activeShelfId);
   });
 }
@@ -1804,7 +1804,7 @@ function estimateBookSlot(record, shelf, indexInShelf) {
 }
 
 function getRowCapacityPx() {
-  const bay = document.querySelector('#view-studio .library-bay');
+  const bay = document.querySelector('#panel-library .library-bay');
   if (bay) {
     const row = bay.querySelector('.library-row');
     if (row) {
@@ -1965,4 +1965,7 @@ function cssEscape(value) {
 }
 
 window.initStudio = initLibrary;
+window.initLibrary = initLibrary;
 window.enterStudio = enterLibrary;
+window.enterLibrary = enterLibrary;
+window.enterPanel_library = function(params = {}) { enterLibrary(params); };

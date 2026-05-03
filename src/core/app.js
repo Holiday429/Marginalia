@@ -15,53 +15,130 @@
 
 const App = (() => {
   const NAV_ITEMS = [
-    { view: 'shelf',    label: 'Shelf',    icon: 'shelf', href: '#shelf' },
-    { view: 'studio',   label: 'Library', icon: 'library', href: '#room' },
-    { view: 'map',      label: 'Map',      icon: 'map', href: '#map' },
-    { view: 'web',      label: 'Graph',    icon: 'graph', href: '#web' },
-    { view: 'booklist', label: 'Booklist', icon: 'list', href: '#booklist' },
+    { view: 'room',     label: 'Library',  icon: 'library', href: '#room' },
+    { view: 'shelf',    label: 'Shelf',    icon: 'shelf',   href: '#shelf' },
+    { view: 'map',      label: 'Map',      icon: 'map',     href: '#map' },
+    { view: 'graph',    label: 'Graph',    icon: 'graph',   href: '#graph' },
+    { view: 'booklist', label: 'Booklist', icon: 'list',    href: '#booklist' },
   ];
+  const HEADER_ACTION_BY_VIEW = {
+    shelf:    { label: 'Add Book',     id: 'shelfNewEntryBtn' },
+    map:      { label: '↩ Back',       id: 'mapWorldBtn' },
+    web:      { label: '◈ New Concept', id: 'webNewConceptBtn' },
+    booklist: { label: '↗ Share',      id: 'booklistShareBtn' },
+  };
 
   const views = {
     preloader: document.getElementById('view-preloader'),
-    shelf:     document.getElementById('view-shelf'),
-    studio:    document.getElementById('view-studio'),
-    room:      document.getElementById('view-room'),
-    book:      document.getElementById('view-book'),      // may be null until built
-    map:       document.getElementById('view-map'),
-    web:       document.getElementById('view-web'),
-    booklist:  document.getElementById('view-booklist'),
+    shelf:     document.getElementById('view-shelf'),   // TODO(p0-cleanup): merge into panel-library
+    studio:    document.getElementById('view-studio'),  // TODO(p0-cleanup): remove after studio.js fully migrated
+    // room is the persistent shell — not in views, never toggled by show()
   };
 
   const initialized = new Set();
+  const routeParamsByView = new Map();
+
+  function toCanonicalViewName(name) {
+    if (name === 'graph') return 'web';
+    return name;
+  }
+
+  function toNavViewName(name) {
+    if (name === 'web') return 'graph';
+    return name;
+  }
+
+  function setActiveNav(targetView) {
+    const navView = toNavViewName(targetView);
+    document.querySelectorAll('.nav-link[data-view]').forEach((a) => {
+      a.classList.toggle('active', a.dataset.view === navView);
+    });
+  }
+
+  function getRequestedViewFromEvent(event) {
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    for (const node of path) {
+      if (!(node instanceof Element) || node === document.body) continue;
+      if (node.hasAttribute('data-view')) return node.getAttribute('data-view');
+
+      if (node instanceof HTMLAnchorElement) {
+        const hash = node.getAttribute('href') || '';
+        if (hash.startsWith('#') && hash.length > 1) return hash.slice(1);
+      }
+    }
+
+    const fallback = event.target instanceof Element ? event.target.closest('[data-view]') : null;
+    if (fallback && fallback !== document.body) return fallback.getAttribute('data-view');
+    return '';
+  }
+
+  function syncFromHash() {
+    const rawHash = window.location.hash.replace(/^#/, '').trim();
+    if (!rawHash) {
+      if (window.PanelManager) window.PanelManager.closeAll();
+      return;
+    }
+
+    const requestedView = toCanonicalViewName(rawHash);
+    if (requestedView === 'room') {
+      if (window.PanelManager) window.PanelManager.closeAll();
+      return;
+    }
+
+    if (['shelf', 'map', 'web', 'booklist'].includes(requestedView)) {
+      const params = routeParamsByView.get(requestedView) || {};
+      routeParamsByView.delete(requestedView);
+      if (window.PanelManager) window.PanelManager.open(requestedView, params);
+      return;
+    }
+  }
+
+  function setHashRoute(targetView) {
+    const navView = toNavViewName(targetView);
+    const nextHash = `#${navView}`;
+    if (window.location.hash === nextHash) {
+      syncFromHash();
+      return;
+    }
+    window.location.hash = nextHash;
+  }
+
+  function navigateTo(targetView, params = {}) {
+    const canonicalView = toCanonicalViewName(targetView);
+    if (canonicalView === 'room') {
+      setHashRoute('room');
+      return;
+    }
+
+    routeParamsByView.set(canonicalView, params);
+    setHashRoute(canonicalView);
+  }
 
   function show(name, params = {}) {
-    const view = views[name];
+    const canonicalName = toCanonicalViewName(name);
+    const view = views[canonicalName];
     if (!view) {
-      console.warn(`[App] View "${name}" is not registered yet.`);
+      console.warn(`[App] View "${canonicalName}" is not registered yet.`);
       return;
     }
 
     Object.entries(views).forEach(([key, el]) => {
-      if (el) el.hidden = key !== name;
+      if (el) el.hidden = key !== canonicalName;
     });
-    document.body.dataset.view = name;
-    if (name !== 'map') document.body.classList.remove('map-panel-open');
+    document.body.dataset.view = canonicalName;
+    if (canonicalName !== 'map') document.body.classList.remove('map-panel-open');
 
     // Run init<Name>() once, enter<Name>() every time
-    if (!initialized.has(name)) {
-      const initFn = window['init' + cap(name)];
+    if (!initialized.has(canonicalName)) {
+      const initFn = window['init' + cap(canonicalName)];
       if (typeof initFn === 'function') initFn(params);
-      initialized.add(name);
+      initialized.add(canonicalName);
     }
-    const enterFn = window['enter' + cap(name)];
+    const enterFn = window['enter' + cap(canonicalName)];
     if (typeof enterFn === 'function') enterFn(params);
 
     // Highlight nav state
-    const navView = name === 'room' ? 'studio' : name;
-    document.querySelectorAll('.nav-link[data-view]').forEach(a => {
-      a.classList.toggle('active', a.dataset.view === navView);
-    });
+    setActiveNav(canonicalName);
 
     window.scrollTo({ top: 0 });
     window.dispatchEvent(new Event('marginalia:ui-refresh'));
@@ -78,9 +155,7 @@ const App = (() => {
     // Reveal shelf underneath the preloader, then fade preloader out
     shelf.hidden = false;
     document.body.dataset.view = 'shelf';
-    document.querySelectorAll('.nav-link[data-view]').forEach(a => {
-      a.classList.toggle('active', a.dataset.view === 'shelf');
-    });
+    setActiveNav('shelf');
     if (typeof window.initShelf === 'function' && !initialized.has('shelf')) {
       try { window.initShelf(); } catch(e) { console.error('[App] initShelf threw:', e); }
       initialized.add('shelf');
@@ -100,13 +175,61 @@ const App = (() => {
     }, 750);
   }
 
+  // Close panel when any [data-panel-close] element is clicked.
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-panel-close]')) {
+      e.preventDefault();
+      navigateTo('room');
+    }
+  });
+
+  function showRoom() {
+    if (transitioning) return;
+    transitioning = true;
+
+    const preloader = views.preloader;
+
+    document.body.dataset.view = 'room';
+    setActiveNav('room');
+
+    if (typeof window.initRoom === 'function' && !initialized.has('room')) {
+      try { window.initRoom(); } catch(e) { console.error('[App] initRoom threw:', e); }
+      initialized.add('room');
+    }
+
+    preloader.style.position   = 'fixed';
+    preloader.style.inset      = '0';
+    preloader.style.zIndex     = '100';
+    preloader.style.transition = 'opacity 0.7s ease';
+    requestAnimationFrame(() => { preloader.style.opacity = '0'; });
+
+    setTimeout(() => {
+      preloader.hidden = true;
+      preloader.style.cssText = '';
+      transitioning = false;
+      syncFromHash();
+      window.dispatchEvent(new Event('marginalia:ui-refresh'));
+    }, 750);
+  }
+
   // Wire up any element with data-view (nav links, wordmarks, breadcrumbs).
   // Body also carries data-view as a styling hook, so exclude it from the delegate.
   document.addEventListener('click', (e) => {
-    const link = e.target.closest('[data-view]');
-    if (!link || link === document.body) return;
+    const rawRequestedView = getRequestedViewFromEvent(e);
+    if (!rawRequestedView) return;
     e.preventDefault();
-    const requestedView = link.dataset.view;
+    const requestedView = toCanonicalViewName(rawRequestedView);
+
+    // 'room' nav → close all panels, return to room
+    if (requestedView === 'room') {
+      navigateTo('room');
+      return;
+    }
+    // shelf / map / web / booklist → open via PanelManager
+    if (['shelf', 'map', 'web', 'booklist'].includes(requestedView)) {
+      navigateTo(requestedView);
+      return;
+    }
     if (requestedView === 'studio') {
       show('room', { source: 'nav-library' });
       return;
@@ -114,12 +237,17 @@ const App = (() => {
     show(requestedView);
   });
 
+  window.addEventListener('hashchange', syncFromHash);
+
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
   function renderPrimaryHeader(
     activeView,
     { showNewEntry = false, actionLabel = '', actionId = '' } = {}
   ) {
+    const canonicalView = toCanonicalViewName(activeView);
+    const activeNavView = toNavViewName(canonicalView);
+    const sharedAction = HEADER_ACTION_BY_VIEW[canonicalView] || null;
     const NAV_ICON_SYMBOLS = {
       shelf: 'icon-nav-shelf',
       library: 'icon-nav-library',
@@ -135,12 +263,18 @@ const App = (() => {
     }
 
     const links = NAV_ITEMS.map((item) => `
-      <a href="${item.href}" class="nav-link${item.view === activeView ? ' active' : ''}" data-view="${item.view}">${renderNavIcon(item.icon)}${item.label}</a>
+      <a href="${item.href}" class="nav-link${item.view === activeNavView ? ' active' : ''}" data-view="${item.view}">${renderNavIcon(item.icon)}${item.label}</a>
     `).join('');
 
-    const resolvedActionLabel = actionLabel || (showNewEntry ? 'Add Book' : '');
+    const showRoomReturn = ['shelf', 'map', 'web', 'booklist'].includes(canonicalView);
+    const roomReturnBtn = showRoomReturn
+      ? `<button class="nav-room-btn" type="button" data-view="room">Back To Room</button>`
+      : '';
+
+    const resolvedActionLabel = actionLabel || sharedAction?.label || (showNewEntry ? 'Add Book' : '');
+    const resolvedActionId = actionId || sharedAction?.id || '';
     const actionBtn = (resolvedActionLabel)
-      ? `<button class="nav-action-btn"${actionId ? ` id="${actionId}"` : ''}>${toServiceTitleCase(resolvedActionLabel)}</button>`
+      ? `<button class="nav-action-btn"${resolvedActionId ? ` id="${resolvedActionId}"` : ''}>${toServiceTitleCase(resolvedActionLabel)}</button>`
       : '';
     const authBtn = `
       <button class="auth-avatar-btn" type="button" data-auth-trigger aria-label="Open login panel" hidden>
@@ -155,6 +289,7 @@ const App = (() => {
           <span class="wordmark-sub">Margins are where thinking happens</span>
         </div>
         <nav class="nav">
+          ${roomReturnBtn}
           ${links}
           ${actionBtn}
           ${authBtn}
@@ -164,6 +299,29 @@ const App = (() => {
   }
 
   window.renderPrimaryHeader = renderPrimaryHeader;
+
+  function renderUnifiedPanelHeader(activeView) {
+    return `
+      <div class="shared-header-wrap">
+        ${renderPrimaryHeader(activeView)}
+      </div>
+    `;
+  }
+
+  window.renderUnifiedPanelHeader = renderUnifiedPanelHeader;
+
+  function renderToolPageShell(pageType, contentHTML = '') {
+    const safeType = String(pageType || 'tool').trim().toLowerCase();
+    return `
+      <div class="tool-page-shell tool-page-shell--${safeType}">
+        <div class="tool-page-inner tool-page-inner--${safeType}">
+          ${contentHTML}
+        </div>
+      </div>
+    `;
+  }
+
+  window.renderToolPageShell = renderToolPageShell;
 
   function toServiceTitleCase(text) {
     return String(text || '')
@@ -182,7 +340,7 @@ const App = (() => {
   // Start on preloader
   show('preloader');
 
-  return { show, showShelf };
+  return { show, showShelf, showRoom, navigateTo };
 })();
 
 // TODO(p0-cleanup): remove after phase 3 — callers in preloader.js and other

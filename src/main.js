@@ -24,6 +24,7 @@ import './store/notes-store.js';
 
 // 4. Core app utilities
 import './core/graph-data.js';
+import './core/panel-manager.js';
 import './core/app.js';
 import './core/concept-ui.js';
 

@@ -11,7 +11,7 @@ let __webFocusConceptId = '';
 let __webFilterPanelOpen = false;
 
 function initWeb() {
-  const container = document.getElementById('view-web');
+  const container = document.getElementById('panel-web');
   if (!container) return;
   container.innerHTML = webShellHTML();
   bindWebShellEvents();
@@ -27,14 +27,15 @@ function enterWeb() {
 }
 
 function webShellHTML() {
-  const sharedHeader = typeof window.renderPrimaryHeader === 'function'
-    ? window.renderPrimaryHeader('web', { actionLabel: '◈ New Concept', actionId: 'webNewConceptBtn' })
-    : '';
+  let sharedHeader = '';
+  if (typeof window.renderUnifiedPanelHeader === 'function') {
+    sharedHeader = window.renderUnifiedPanelHeader('graph');
+  } else if (typeof window.renderPrimaryHeader === 'function') {
+    sharedHeader = `<div class="shared-header-wrap">${window.renderPrimaryHeader('graph')}</div>`;
+  }
 
-  return `
-    <div class="shared-header-wrap">
-      ${sharedHeader}
-    </div>
+  const content = `
+    ${sharedHeader}
 
     <div class="web-subheader">
       <button class="web-filter-toggle" id="webFilterToggle" type="button" aria-expanded="false">
@@ -96,10 +97,14 @@ function webShellHTML() {
       <button class="web-ctrl-btn" id="webReset" type="button" style="font-size:13px;letter-spacing:0.06em">fit</button>
     </div>
   `;
+  if (typeof window.renderToolPageShell === 'function') {
+    return window.renderToolPageShell('web', `<div class="web-page">${content}</div>`);
+  }
+  return content;
 }
 
 function bindWebShellEvents() {
-  const host = document.getElementById('view-web');
+  const host = document.getElementById('panel-web');
   const toggle = document.getElementById('webFilterToggle');
   const input = document.getElementById('webSearchInput');
   if (!host || !toggle) return;
@@ -425,8 +430,8 @@ function applyWebFit(animated = false) {
 }
 
 function getWebSafeViewport() {
-  const subheader = document.querySelector('#view-web .web-subheader')?.getBoundingClientRect();
-  const controls = document.querySelector('#view-web .web-controls')?.getBoundingClientRect();
+  const subheader = document.querySelector('#panel-web .web-subheader')?.getBoundingClientRect();
+  const controls = document.querySelector('#panel-web .web-controls')?.getBoundingClientRect();
   const left = window.innerWidth <= 980 ? 18 : 56;
   const top = subheader ? Math.round(subheader.bottom + 24) : 190;
   const right = controls ? Math.round(controls.left - 20) : window.innerWidth - 92;
@@ -522,3 +527,4 @@ function clamp(value, min, max) {
 // TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
 window.initWeb = initWeb;
 window.enterWeb = enterWeb;
+window.enterPanel_web = function(params = {}) { enterWeb(params); };

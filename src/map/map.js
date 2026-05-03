@@ -534,7 +534,7 @@ function hashStr(s) {
 }
 
 function mapTopPadding(forChina = false) {
-  const subheaderRect = document.querySelector('#view-map .map-subheader')?.getBoundingClientRect();
+  const subheaderRect = document.querySelector('#panel-map .map-subheader')?.getBoundingClientRect();
   const isMobile = window.innerWidth <= 980;
   if (forChina) return isMobile ? 18 : 12;
   const fallback = isMobile ? 214 : 154;
@@ -572,7 +572,7 @@ function setMapInteractionMode(mode = 'world') {
 /* ── Lifecycle ─────────────────────────────────────────────────────────── */
 
 function initMap() {
-  document.getElementById('view-map').innerHTML = mapShellHTML();
+  document.getElementById('panel-map').innerHTML = mapShellHTML();
   bindMapShellEvents();
 }
 
@@ -600,13 +600,14 @@ function waitForAmCharts(cb, attempt = 0) {
 function mapShellHTML() {
   const total     = MAP_LIBRARY.length;
   const countries = activeCountries().size;
-  const sharedHeader = typeof window.renderPrimaryHeader === 'function'
-    ? window.renderPrimaryHeader('map', { actionLabel: '↩ Back', actionId: 'mapWorldBtn' })
-    : '';
-  return `
-    <div class="shared-header-wrap">
-      ${sharedHeader}
-    </div>
+  let sharedHeader = '';
+  if (typeof window.renderUnifiedPanelHeader === 'function') {
+    sharedHeader = window.renderUnifiedPanelHeader('map');
+  } else if (typeof window.renderPrimaryHeader === 'function') {
+    sharedHeader = `<div class="shared-header-wrap">${window.renderPrimaryHeader('map')}</div>`;
+  }
+  const content = `
+    ${sharedHeader}
 
     <div class="map-subheader">
       <div class="map-geo-filters" id="mapGeoFilters"></div>
@@ -647,6 +648,10 @@ function mapShellHTML() {
       <div class="map-panel-body" id="mapPanelBody"></div>
     </div>
   `;
+  if (typeof window.renderToolPageShell === 'function') {
+    return window.renderToolPageShell('map', `<div class="map-page">${content}</div>`);
+  }
+  return content;
 }
 
 function bindMapShellEvents() {
@@ -1125,7 +1130,7 @@ function clampHoverNode(x, y, width, height) {
 }
 
 function hoverSafeTop() {
-  const subheaderRect = document.querySelector('#view-map .map-subheader')?.getBoundingClientRect();
+  const subheaderRect = document.querySelector('#panel-map .map-subheader')?.getBoundingClientRect();
   return subheaderRect ? Math.round(subheaderRect.bottom + 12) : 132;
 }
 
@@ -1776,3 +1781,4 @@ function escapeHTML(s) {
 // TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
 window.initMap = initMap;
 window.enterMap = enterMap;
+window.enterPanel_map = function(params = {}) { enterMap(params); };

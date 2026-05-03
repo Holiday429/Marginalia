@@ -414,7 +414,7 @@ function enterCTAState(books, heroIdx) {
     target.style.transition = 'transform 0.8s cubic-bezier(.77,0,.18,1)';
     target.style.transform  = 'translateY(-80px) scale(1.15)';
     target.classList.add('opening', 'opened');
-    setTimeout(() => App.showShelf(), 700);
+    setTimeout(() => App.showRoom(), 700);
   }
 
   target.onclick = handleEnter;
@@ -467,7 +467,7 @@ window.enterPreloader = enterPreloader;
 
 document.getElementById('skipBtn').addEventListener('click', () => {
   clearTimers();
-  App.showShelf();
+  App.showRoom();
 });
 
 // --- Tweaks -------------------------------------------------------

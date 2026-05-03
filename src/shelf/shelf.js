@@ -22,9 +22,15 @@ function initShelf() {
   SHELF_STATE.query = '';
   SHELF_STATE.contextExpanded = true;
 
+  const headerWrap = document.getElementById('shelfHeaderWrap');
+  if (headerWrap && typeof window.renderUnifiedPanelHeader === 'function') {
+    headerWrap.innerHTML = window.renderUnifiedPanelHeader('shelf');
+  } else if (headerWrap && typeof window.renderPrimaryHeader === 'function') {
+    headerWrap.innerHTML = window.renderPrimaryHeader('shelf');
+  }
+
   bindShelfEvents();
   refreshShelfFromSource();
-  animateIn();
 }
 
 function enterShelf() {
@@ -787,3 +793,4 @@ function escapeHTML(str) {
 // TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
 window.initShelf = initShelf;
 window.enterShelf = enterShelf;
+window.enterPanel_shelf = function(params = {}) { enterShelf(params); };

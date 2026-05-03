@@ -138,26 +138,12 @@
   <!-- ============================================================
        VIEW: SHELF
        ============================================================ -->
-  <div id="view-shelf" hidden>
+  <div id="view-shelf" class="room-panel" hidden>
+  <div class="tool-page-shell tool-page-shell--shelf">
+  <div class="tool-page-inner tool-page-inner--shelf">
   <div class="page">
 
-    <header class="app-masthead">
-      <div>
-        <div class="wordmark">Marginalia</div>
-        <span class="wordmark-sub">Margins are where thinking happens</span>
-      </div>
-      <nav class="nav">
-        <a href="#shelf"    class="nav-link active" data-view="shelf"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-shelf"></use></svg></span>Shelf</a>
-        <a href="#studio"   class="nav-link"        data-view="studio"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-library"></use></svg></span>Library</a>
-        <a href="#map"      class="nav-link"        data-view="map"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-map"></use></svg></span>Map</a>
-        <a href="#web"      class="nav-link"        data-view="web"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-graph"></use></svg></span>Graph</a>
-        <a href="#booklist" class="nav-link"        data-view="booklist"><span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#icon-nav-list"></use></svg></span>Booklist</a>
-        <button class="nav-action-btn" id="shelfNewEntryBtn"><span class="nav-icon">＋</span>Add Book</button>
-        <button class="auth-avatar-btn" type="button" data-auth-trigger aria-label="Open login panel" hidden>
-          <span class="auth-avatar" data-auth-avatar aria-hidden="true">L</span>
-        </button>
-      </nav>
-    </header>
+    <div class="shared-header-wrap" id="shelfHeaderWrap"></div>
 
     <div class="shelf-stats-bar" id="shelfStatsBar">
       <div class="shelf-stat">
@@ -234,38 +220,31 @@
     </section>
 
   </div>
+  </div>
+  </div>
   </div><!-- /view-shelf -->
 
   <!-- ============================================================
-       VIEW: SHELF STUDIO
+       ROOM SHELL — persistent, never hidden
        ============================================================ -->
+  <div id="view-room"></div>
+
+  <!-- ============================================================
+       OVERLAY PANELS — shown above the room shell
+       ============================================================ -->
+  <div id="panel-library"  class="room-panel" hidden></div>
+  <div id="panel-book"     class="room-panel" hidden></div>
+  <div id="panel-map"      class="room-panel" hidden></div>
+  <div id="panel-web"      class="room-panel" hidden></div>
+  <div id="panel-booklist" class="room-panel" hidden></div>
+  <div id="panel-todo"     class="room-panel" hidden></div>
+  <div id="panel-profile"  class="room-panel" hidden></div>
+
+  <!-- TODO(p0-cleanup): view-studio kept temporarily so existing init code doesn't break;
+       panel-library supersedes it. Remove once studio.js is fully migrated. -->
   <div id="view-studio" hidden></div>
-
-  <!-- ============================================================
-       VIEW: 3D ROOM
-       ============================================================ -->
-  <div id="view-room" hidden></div>
-
-
-  <!-- ============================================================
-       VIEW: BOOK (single-book detail) — populated in step 2
-       ============================================================ -->
-  <div id="view-book" hidden></div>
-
-  <!-- ============================================================
-       VIEW: MAP (reading map) — populated in step 4
-       ============================================================ -->
-  <div id="view-map" hidden></div>
-
-  <!-- ============================================================
-       VIEW: WEB (concept web)
-       ============================================================ -->
-  <div id="view-web" hidden></div>
-
-  <!-- ============================================================
-       VIEW: BOOKLIST
-       ============================================================ -->
-  <div id="view-booklist" hidden></div>
+  <!-- TODO(p0-cleanup): view-shelf kept for preloader transition; merge into panel-library later. -->
+  <!-- view-shelf is declared above in the shelf section -->
 
 
   <!-- Firebase SDK -->

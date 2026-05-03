@@ -5,18 +5,18 @@
    All colors, spacing, fonts come from --tokens — no raw hex here.
    ========================================================================== */
 
-#view-book {
+#panel-book {
   background: var(--bg);
   color: var(--ink);
 }
 
-#view-book .page {
+#panel-book .page {
   max-width: 1440px;
   margin: 0 auto;
   padding: 28px 56px 96px;
 }
 
-#view-book a { color: inherit; text-decoration: none; }
+#panel-book a { color: inherit; text-decoration: none; }
 
 .book-detail-shell {
   display: grid;
@@ -140,7 +140,7 @@
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-#view-book { animation: book-fade-in 0.7s ease 0.05s both; }
+#panel-book { animation: book-fade-in 0.7s ease 0.05s both; }
 
 
 /* ── Masthead ──────────────────────────────────────────────────────────── */
@@ -1558,7 +1558,7 @@
 }
 
 @media (max-width: 1080px) {
-  #view-book .page {
+  #panel-book .page {
     padding: 24px var(--gutter) 88px;
   }
   .book-detail-shell {

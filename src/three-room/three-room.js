@@ -12,6 +12,7 @@ export function createThreeRoomPreview(host, options = {}) {
     onOrganizeSelect: typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : undefined,
     onSapiensSelect: typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : undefined,
     onHeroBookSelect: typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : undefined,
+    onInteractiveHover: typeof options.onInteractiveHover === 'function' ? options.onInteractiveHover : undefined,
   });
 
   // Keep wall slots unmounted for now.
@@ -59,6 +60,14 @@ export function createThreeRoomPreview(host, options = {}) {
 
     animateHeroBookPull(onComplete, durationMs = 600) {
       scene.animateHeroBookPull(onComplete, durationMs);
+    },
+
+    pause() {
+      scene.pause();
+    },
+
+    resume() {
+      scene.resume();
     },
 
     destroy() {

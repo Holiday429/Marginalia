@@ -56,14 +56,17 @@ async function enterBooklist() {
 }
 
 function renderBooklistShell() {
-  const host = document.getElementById('view-booklist');
+  const host = document.getElementById('panel-booklist');
   if (!host) return;
 
-  const sharedHeader = typeof window.renderPrimaryHeader === 'function'
-    ? window.renderPrimaryHeader('booklist', { showNewEntry: true, actionLabel: '↗ Share', actionId: 'booklistShareBtn' })
-    : '';
+  let sharedHeader = '';
+  if (typeof window.renderUnifiedPanelHeader === 'function') {
+    sharedHeader = window.renderUnifiedPanelHeader('booklist');
+  } else if (typeof window.renderPrimaryHeader === 'function') {
+    sharedHeader = `<div class="shared-header-wrap">${window.renderPrimaryHeader('booklist')}</div>`;
+  }
 
-  host.innerHTML = `
+  const content = `
     <div class="booklist-shell">
       ${sharedHeader}
       <main class="booklist-main">
@@ -137,13 +140,16 @@ function renderBooklistShell() {
       </main>
     </div>
   `;
+  host.innerHTML = typeof window.renderToolPageShell === 'function'
+    ? window.renderToolPageShell('booklist', content)
+    : content;
 }
 
 function bindBooklistEvents() {
   if (BOOKLIST_STATE.bound) return;
   BOOKLIST_STATE.bound = true;
 
-  const host = document.getElementById('view-booklist');
+  const host = document.getElementById('panel-booklist');
   if (!host) return;
 
   host.addEventListener('click', (event) => {
@@ -171,7 +177,7 @@ function bindBooklistEvents() {
     const slot = event.target.closest('.booklist-slot');
     if (slot) {
       event.preventDefault();
-      if (!document.querySelector('#view-booklist .booklist-main')?.classList.contains('is-showcase')) return;
+      if (!document.querySelector('#panel-booklist .booklist-main')?.classList.contains('is-showcase')) return;
       setBooklistPreviewByUid(slot.dataset.slotId || '', { renderStatic: true });
       return;
     }
@@ -193,9 +199,10 @@ function bindBooklistEvents() {
     }
   });
 
-  // Share / Export button (lives in nav, use event delegation)
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('#booklistShareBtn')) exportBooklist();
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('#booklistShareBtn')) return;
+    event.preventDefault();
+    exportBooklist();
   });
 
   window.addEventListener('resize', debounceBooklistHeatmap);
@@ -210,7 +217,7 @@ function renderBooklistHeatmap() {
   const yearLabel = document.getElementById('ybYearLabel');
   const monthHost = document.getElementById('ybHeatmapMonths');
   const grid = document.getElementById('ybHeatmapGrid');
-  const shell = document.querySelector('#view-booklist .booklist-heatmap-shell');
+  const shell = document.querySelector('#panel-booklist .booklist-heatmap-shell');
   if (!yearLabel || !monthHost || !grid || !shell) return;
 
   const year = BOOKLIST_STATE.year;
@@ -384,7 +391,7 @@ function renderBooklistContent() {
   const annualHost = document.getElementById('ybAnnualRacks');
   const annualCounter = document.getElementById('ybAnnualCounter');
   const playBtn = document.getElementById('ybPlayBtn');
-  const main = document.querySelector('#view-booklist .booklist-main');
+  const main = document.querySelector('#panel-booklist .booklist-main');
   if (!sourceHost || !annualHost || !annualCounter || !playBtn || !main) return;
 
   main.classList.remove('is-showcase');
@@ -499,7 +506,7 @@ async function startBooklistAnimation(playBtn) {
   const isReplay = mode === 'replay';
   if (isReplay) prepareReplayState();
 
-  const main = document.querySelector('#view-booklist .booklist-main');
+  const main = document.querySelector('#panel-booklist .booklist-main');
   if (main) {
     main.classList.remove('is-preplay');
     main.classList.add('is-showcase');
@@ -1429,3 +1436,4 @@ function truncateCanvas(ctx, text, maxWidth) {
 
 window.initBooklist = initBooklist;
 window.enterBooklist = enterBooklist;
+window.enterPanel_booklist = function(params = {}) { enterBooklist(params); };

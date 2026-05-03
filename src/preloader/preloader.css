@@ -12,6 +12,9 @@ body[data-view="preloader"] {
 
 /* #view-preloader 现在是 body 的直接子元素，它自己承担 flex 容器职责 */
 #view-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   width: 100%;
