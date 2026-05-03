@@ -150,7 +150,7 @@ const FURNITURE_ASSETS: DecorAssetSpec[] = [
   {
     id: 'chair',
     url: '/3d/chair.glb',
-    position: [0.62, 0, 1.1],
+    position: [0.62, 0, 0.3],
     rotationY: 0.5 - Math.PI / 2,
     targetHeight: 1.22,
   },
