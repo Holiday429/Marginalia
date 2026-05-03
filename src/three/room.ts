@@ -1,9 +1,11 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { CSS3DObject, CSS3DRenderer } from 'https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS3DRenderer.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js';
 import { EXRLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/EXRLoader.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'https://unpkg.com/three@0.160.0/examples/jsm/environments/RoomEnvironment.js';
+import { MeshoptDecoder } from 'https://unpkg.com/three@0.160.0/examples/jsm/libs/meshopt_decoder.module.js';
 
 import { getRoomPose, type RoomPoseId } from './camera-paths.ts';
 import { getRoomSkinById } from './skins.ts';
@@ -17,6 +19,7 @@ interface RoomSceneOptions {
   onOrganizeSelect?: () => void;
   onSapiensSelect?: () => void;
   onHeroBookSelect?: () => void;
+  onInteractiveHover?: (action: InteractiveAction | null, pointer?: { x: number; y: number }) => void;
 }
 
 type CameraSpeedPreset = 'default' | 'quick';
@@ -68,6 +71,14 @@ interface SurfaceTextureSetSpec {
   repeat: [number, number];
   normalScale?: number;
   bumpScale?: number;
+}
+
+function resolveSceneAssetUrl(url: string): string {
+  if (!url) return url;
+  if (/^(https?:|data:|blob:)/i.test(url)) return url;
+  const decoded = decodeURIComponent(url);
+  const normalized = decoded.startsWith('/') ? decoded.slice(1) : decoded;
+  return new URL(`../../${normalized}`, import.meta.url).href;
 }
 
 // Room geometry constants — positions derived from these, not magic numbers.
@@ -262,6 +273,7 @@ export class RoomScene {
   private orbitControls: OrbitControls;
   private frameHandle = 0;
   private disposed = false;
+  private _paused = false;
 
   private ambientLight: THREE.AmbientLight;
   private keyLight: THREE.DirectionalLight;
@@ -292,17 +304,21 @@ export class RoomScene {
   private namedModels = new Map<string, THREE.Object3D>();
   private pullTween: { model: THREE.Object3D; startX: number; targetX: number; startedAt: number; durationMs: number; onComplete: () => void } | null = null;
   private gltfLoader = new GLTFLoader();
+  private dracoLoader = new DRACOLoader();
   private textureLoader = new THREE.TextureLoader();
   private exrLoader = new EXRLoader();
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private interactiveTargets: THREE.Object3D[] = [];
   private interactiveHandlers = new Map<THREE.Object3D, () => void>();
+  private interactiveActions = new Map<THREE.Object3D, InteractiveAction>();
+  private hoveredInteractiveAction: InteractiveAction | null = null;
   private onGlobeSelect: (() => void) | null = null;
   private onLaptopSelect: (() => void) | null = null;
   private onOrganizeSelect: (() => void) | null = null;
   private onSapiensSelect: (() => void) | null = null;
   private onHeroBookSelect: (() => void) | null = null;
+  private onInteractiveHover: ((action: InteractiveAction | null, pointer?: { x: number; y: number }) => void) | null = null;
   private envRenderTarget: THREE.WebGLRenderTarget | null = null;
   private hasWallSurfaceTexture = false;
   private hasFloorSurfaceTexture = false;
@@ -345,9 +361,13 @@ export class RoomScene {
     this.onOrganizeSelect = typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : null;
     this.onSapiensSelect = typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : null;
     this.onHeroBookSelect = typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : null;
+    this.onInteractiveHover = typeof options.onInteractiveHover === 'function' ? options.onInteractiveHover : null;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
+    this.dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+    this.gltfLoader.setDRACOLoader(this.dracoLoader);
+    this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -542,6 +562,17 @@ export class RoomScene {
     };
   }
 
+  pause(): void {
+    this._paused = true;
+    window.cancelAnimationFrame(this.frameHandle);
+  }
+
+  resume(): void {
+    if (!this._paused) return;
+    this._paused = false;
+    this.frameHandle = window.requestAnimationFrame(this.renderLoop);
+  }
+
   destroy(): void {
     this.disposed = true;
     window.cancelAnimationFrame(this.frameHandle);
@@ -560,9 +591,11 @@ export class RoomScene {
     this.renderer.domElement.removeEventListener('pointerleave', this.handlePointerLeave);
     this.renderer.domElement.removeEventListener('click', this.handleCanvasClick);
     this.renderer.domElement.style.cursor = '';
+    this.emitInteractiveHover(null);
     this.orbitControls.dispose();
 
     this.renderer.dispose();
+    this.dracoLoader.dispose();
 
     this.host.innerHTML = '';
   }
@@ -696,7 +729,7 @@ export class RoomScene {
         : this.loadBitmapTexture.bind(this);
       const isColorTexture = step.kind === 'color texture';
       loader(
-        step.url,
+        resolveSceneAssetUrl(step.url),
         anisotropy,
         textureSet.repeat,
         isColorTexture,
@@ -1065,71 +1098,82 @@ export class RoomScene {
   }
 
   private mountDecorAsset(asset: DecorAssetSpec): void {
-    this.gltfLoader.load(
-      asset.url,
+    const primaryUrl = resolveSceneAssetUrl(asset.url);
+    const fallbackUrl = asset.url;
+    const loadDecor = (url: string, isRetry: boolean) => this.gltfLoader.load(
+      url,
       (gltf) => {
         if (this.disposed) return;
         const model = gltf.scene;
         if (!model) return;
-
-        const normalized = this.normalizeModelPivot(
-          model,
-          Boolean(asset.preservePivotXZ),
-          asset.yAlign || 'bottom',
-        );
-        const scale = asset.targetHeight / Math.max(normalized.height, 0.001);
-        model.scale.setScalar(scale);
-        if (asset.scaleMultiplier && Number.isFinite(asset.scaleMultiplier)) {
-          model.scale.multiplyScalar(Math.max(0.001, asset.scaleMultiplier));
-        }
-
-        if (asset.clampDepth) {
-          const scaledDepth = normalized.depth * scale;
-          if (scaledDepth > asset.clampDepth) {
-            const shrink = asset.clampDepth / Math.max(scaledDepth, 0.001);
-            model.scale.multiplyScalar(shrink);
-          }
-        }
-
-        model.position.set(...asset.position);
-        if (asset.liftY) model.position.y += asset.liftY;
-        model.rotation.set(asset.rotationX ?? 0, asset.rotationY, asset.rotationZ ?? 0);
-
-        if (asset.interactiveAction === 'map') {
-          this.registerInteractiveTarget(model, () => this.onGlobeSelect?.());
-        } else if (asset.interactiveAction === 'shelf') {
-          this.registerInteractiveTarget(model, () => this.onLaptopSelect?.());
-        } else if (asset.interactiveAction === 'organize') {
-          this.registerInteractiveTarget(model, () => this.onOrganizeSelect?.());
-        } else if (asset.interactiveAction === 'sapiens') {
-          this.registerInteractiveTarget(model, () => this.onSapiensSelect?.());
-        } else if (asset.interactiveAction === 'heroBook') {
-          this.registerInteractiveTarget(model, () => this.onHeroBookSelect?.());
-        }
-
-        model.traverse((child) => {
-          const mesh = child as THREE.Mesh;
-          if (!mesh.isMesh) return;
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-        });
-
-        if (asset.surfaceTextureSet) {
-          this.applyDecorSurfaceTextureSet(model, asset.surfaceTextureSet);
-        }
-
-        if (asset.photoTextureUrl) {
-          this.applyDecorPhotoTexture(model, asset.photoTextureUrl, asset.photoMaterialNameIncludes || 'Image');
-        }
-
-        if (asset.id) this.namedModels.set(asset.id, model);
-        this.decorRoot.add(model);
+        this.finalizeDecorAsset(model, asset);
       },
       undefined,
       (error) => {
-        console.warn('[room] Failed to load decor model:', asset.url, error);
+        if (!isRetry && fallbackUrl && fallbackUrl !== url) {
+          console.warn('[room] Decor load failed; retrying with fallback url:', url, '=>', fallbackUrl, error);
+          loadDecor(fallbackUrl, true);
+          return;
+        }
+        console.warn('[room] Failed to load decor model:', url, error);
       },
     );
+    loadDecor(primaryUrl, false);
+  }
+
+  private finalizeDecorAsset(model: THREE.Object3D, asset: DecorAssetSpec): void {
+    const normalized = this.normalizeModelPivot(
+      model,
+      Boolean(asset.preservePivotXZ),
+      asset.yAlign || 'bottom',
+    );
+    const scale = asset.targetHeight / Math.max(normalized.height, 0.001);
+    model.scale.setScalar(scale);
+    if (asset.scaleMultiplier && Number.isFinite(asset.scaleMultiplier)) {
+      model.scale.multiplyScalar(Math.max(0.001, asset.scaleMultiplier));
+    }
+
+    if (asset.clampDepth) {
+      const scaledDepth = normalized.depth * scale;
+      if (scaledDepth > asset.clampDepth) {
+        const shrink = asset.clampDepth / Math.max(scaledDepth, 0.001);
+        model.scale.multiplyScalar(shrink);
+      }
+    }
+
+    model.position.set(...asset.position);
+    if (asset.liftY) model.position.y += asset.liftY;
+    model.rotation.set(asset.rotationX ?? 0, asset.rotationY, asset.rotationZ ?? 0);
+
+    if (asset.interactiveAction === 'map') {
+      this.registerInteractiveTarget(model, () => this.onGlobeSelect?.(), asset.interactiveAction);
+    } else if (asset.interactiveAction === 'shelf') {
+      this.registerInteractiveTarget(model, () => this.onLaptopSelect?.(), asset.interactiveAction);
+    } else if (asset.interactiveAction === 'organize') {
+      this.registerInteractiveTarget(model, () => this.onOrganizeSelect?.(), asset.interactiveAction);
+    } else if (asset.interactiveAction === 'sapiens') {
+      this.registerInteractiveTarget(model, () => this.onSapiensSelect?.(), asset.interactiveAction);
+    } else if (asset.interactiveAction === 'heroBook') {
+      this.registerInteractiveTarget(model, () => this.onHeroBookSelect?.(), asset.interactiveAction);
+    }
+
+    model.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+    });
+
+    if (asset.surfaceTextureSet) {
+      this.applyDecorSurfaceTextureSet(model, asset.surfaceTextureSet);
+    }
+
+    if (asset.photoTextureUrl) {
+      this.applyDecorPhotoTexture(model, asset.photoTextureUrl, asset.photoMaterialNameIncludes || 'Image');
+    }
+
+    if (asset.id) this.namedModels.set(asset.id, model);
+    this.decorRoot.add(model);
   }
 
   private normalizeModelPivot(
@@ -1161,9 +1205,10 @@ export class RoomScene {
     };
   }
 
-  private registerInteractiveTarget(target: THREE.Object3D, onClick: () => void): void {
+  private registerInteractiveTarget(target: THREE.Object3D, onClick: () => void, action: InteractiveAction): void {
     this.interactiveTargets.push(target);
     this.interactiveHandlers.set(target, onClick);
+    this.interactiveActions.set(target, action);
   }
 
   private updatePointerFromEvent(event: MouseEvent | PointerEvent): void {
@@ -1177,7 +1222,7 @@ export class RoomScene {
     this.pointer.set((px * 2) - 1, -(py * 2) + 1);
   }
 
-  private pickInteractiveTarget(event: MouseEvent | PointerEvent): { object: THREE.Object3D; onClick: () => void } | null {
+  private pickInteractiveTarget(event: MouseEvent | PointerEvent): { object: THREE.Object3D; onClick: () => void; action: InteractiveAction | null } | null {
     if (!this.interactiveTargets.length) return null;
     this.updatePointerFromEvent(event);
     this.raycaster.setFromCamera(this.pointer, this.camera);
@@ -1194,18 +1239,21 @@ export class RoomScene {
     if (!rootTarget) return null;
     const onClick = this.interactiveHandlers.get(rootTarget);
     if (!onClick) return null;
-    return { object: rootTarget, onClick };
+    const action = this.interactiveActions.get(rootTarget) || null;
+    return { object: rootTarget, onClick, action };
   }
 
   private handlePointerMove = (event: PointerEvent): void => {
     if (this.disposed) return;
     const hit = this.pickInteractiveTarget(event);
     this.renderer.domElement.style.cursor = hit ? 'pointer' : '';
+    this.emitInteractiveHover(hit?.action || null, { x: event.clientX, y: event.clientY });
   };
 
   private handlePointerLeave = (): void => {
     if (this.disposed) return;
     this.renderer.domElement.style.cursor = '';
+    this.emitInteractiveHover(null);
   };
 
   private handleCanvasClick = (event: MouseEvent): void => {
@@ -1215,9 +1263,19 @@ export class RoomScene {
     hit.onClick();
   };
 
+  private emitInteractiveHover(action: InteractiveAction | null, pointer?: { x: number; y: number }): void {
+    const normalizedAction = action || null;
+    if (!this.onInteractiveHover) return;
+    if (normalizedAction !== this.hoveredInteractiveAction) {
+      this.hoveredInteractiveAction = normalizedAction;
+    }
+    this.onInteractiveHover(normalizedAction, pointer);
+  }
+
   private applyDecorPhotoTexture(model: THREE.Object3D, textureUrl: string, materialNameHint: string): void {
+    const resolvedTextureUrl = resolveSceneAssetUrl(textureUrl);
     this.textureLoader.load(
-      textureUrl,
+      resolvedTextureUrl,
       (texture) => {
         if (this.disposed) return;
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -1241,7 +1299,7 @@ export class RoomScene {
       },
       undefined,
       (error) => {
-        console.warn('[room] Failed to load frame photo texture:', textureUrl, error);
+        console.warn('[room] Failed to load frame photo texture:', resolvedTextureUrl, error);
       },
     );
   }
@@ -1276,7 +1334,7 @@ export class RoomScene {
   }
 
   private renderLoop = (): void => {
-    if (this.disposed) return;
+    if (this.disposed || this._paused) return;
     this.frameHandle = window.requestAnimationFrame(this.renderLoop);
     if (this.freeLookEnabled) {
       this.orbitControls.update();
