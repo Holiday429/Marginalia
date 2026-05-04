@@ -47,6 +47,7 @@ M.services.MarginaliaStorage = MarginaliaStorage;
 import { NotesStore } from './store/notes-store.js';
 import { BooksStore } from './store/books-store.ts';
 import { EntitlementsStore } from './store/entitlements-store.ts';
+import { initReadingSession, teardownReadingSession } from './components/reading-session/reading-session.ts';
 M.store.NotesStore = NotesStore;
 M.store.BooksStore = BooksStore;
 M.store.EntitlementsStore = EntitlementsStore;
@@ -119,7 +120,9 @@ window.addEventListener('marginalia:auth-changed', (event) => {
   const db = MarginaliaAuth.db;
   if (user?.uid && db) {
     BooksStore.initWithUser(user.uid, db);
+    initReadingSession(user.uid, db);
   } else {
     BooksStore.teardown();
+    teardownReadingSession();
   }
 });
