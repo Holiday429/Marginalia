@@ -1,4 +1,5 @@
 /* Marginalia preloader — bookshelf swing + open animation */
+import { App } from '../core/app.js';
 
 const TWEAK_DEFAULTS = {
   speed: 0.8,
