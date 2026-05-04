@@ -3,7 +3,13 @@
 // existing ES module scripts (room-scene.js, hero-glb.js) stay in index.html.
 
 import { APP_VERSION } from './core/version.ts';
+import { M } from './core/namespace.ts';
 console.debug('[marginalia] version', APP_VERSION);
+
+// M is the single namespace root. All migrated globals are registered below
+// alongside their window.X shims. window.M is exported for bridge code.
+// TODO(p0-cleanup): remove window.M after phase 3 — callers should import M directly.
+window.M = M;
 
 // 1. Schema + type system
 import './data/schema/book-types.js';
