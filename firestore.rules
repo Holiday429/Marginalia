@@ -25,6 +25,14 @@ service cloud.firestore {
       allow read, write: if isSelf(uid);
     }
 
+    // /audit/ai_calls/{uid}/{timestamp}
+    // Write: Cloud Function only (Admin SDK bypasses rules — client write denied).
+    // Read: owner only (for future audit log UI).
+    match /audit/ai_calls/{uid}/{docId} {
+      allow read: if isSelf(uid);
+      allow write: if false;
+    }
+
     // Block everything else by default.
     match /{document=**} {
       allow read, write: if false;
