@@ -119,7 +119,6 @@ export const MarginaliaAuth = window.MarginaliaAuth = (() => {
           <div class="auth-dock-email" id="authDockEmail"></div>
         </div>
         <div class="auth-dock-divider" aria-hidden="true"></div>
-        <button class="auth-dock-item" type="button" data-auth-panel-action="ai-settings">AI Settings</button>
         <button class="auth-dock-item" type="button" data-auth-panel-action="language">Language · Soon</button>
         <button class="auth-dock-item is-logout" type="button" data-auth-panel-action="logout">Log Out</button>
       </section>
@@ -269,12 +268,6 @@ export const MarginaliaAuth = window.MarginaliaAuth = (() => {
       if (!authState.auth) return;
       await authState.auth.signOut();
       closeProfilePanel();
-      return;
-    }
-
-    if (action === 'ai-settings') {
-      closeProfilePanel();
-      window.openAISettings?.();
       return;
     }
 

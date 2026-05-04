@@ -29,7 +29,6 @@ export interface MarginaliaAINamespace {
   MarginaliaAI: unknown;
   AIGenerateUI: unknown;
   AIFeatureRegistry: unknown;
-  openAISettings: unknown;
 }
 
 export interface MarginaliaUI {

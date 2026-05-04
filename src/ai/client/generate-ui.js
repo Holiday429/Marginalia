@@ -71,11 +71,6 @@ export const AIGenerateUI = window.AIGenerateUI = (() => {
   }
 
   async function run(feature, book, section, btn, statusEl) {
-    if (!window.MarginaliaAI.hasKey()) {
-      showStatus(statusEl, 'No API key — open AI Settings (gear icon) to add one.', 'error');
-      return;
-    }
-
     const prompt = window.AIFeatureRegistry.buildPrompt(feature.id, book);
     if (!prompt) {
       showStatus(statusEl, 'Prompt not loaded yet — try again.', 'error');
@@ -120,7 +115,7 @@ export const AIGenerateUI = window.AIGenerateUI = (() => {
     block.innerHTML = `
       <div class="ai-generated-header">
         <span class="ai-badge">✦ AI Generated</span>
-        <span class="ai-generated-model">${fromCache ? 'cached' : window.MarginaliaAI.getModel()}</span>
+        <span class="ai-generated-model">${fromCache ? 'cached' : 'deepseek-chat'}</span>
         ${canAddToGraph ? `<button class="ai-graph-btn" type="button" title="Add concepts to concept graph">+ Graph</button>` : ''}
         <button class="ai-regen-btn" type="button" title="Regenerate">↺ Regenerate</button>
         <button class="ai-generated-dismiss" type="button" title="Dismiss">×</button>

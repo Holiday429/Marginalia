@@ -8,4 +8,5 @@ export const ENV = {
   FIREBASE_MESSAGING_SENDER_ID:import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string,
   FIREBASE_APP_ID:             import.meta.env.VITE_FIREBASE_APP_ID             as string,
   WORKSPACE_ID:                import.meta.env.VITE_WORKSPACE_ID                as string,
+  AI_GATEWAY_URL:              import.meta.env.VITE_AI_GATEWAY_URL              as string,
 } as const;
