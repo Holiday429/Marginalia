@@ -1,19 +1,21 @@
 /* ==========================================================================
    Marginalia · Firebase runtime config
    --------------------------------------------------------------------------
-   Fill this file with your project config, then set `enabled: true`.
-   Keep this as plain JS because the app runs as a static multi-script page.
+   Values come from import.meta.env (Vite). Set them in .env.development or
+   .env.production — see .env.example for the required keys.
    ========================================================================== */
+
+import { ENV } from '../core/env.ts';
 
 export const MARGINALIA_FIREBASE = window.MARGINALIA_FIREBASE = {
   enabled: true,
-  workspaceId: 'marginalia-main',
+  workspaceId: ENV.WORKSPACE_ID || 'marginalia-main',
   config: {
-    apiKey: 'AIzaSyAvQMsjm2sM6FZdp_VL8Vg9VHig3Gj62_0',
-    authDomain: 'marginalia-61f37.firebaseapp.com',
-    projectId: 'marginalia-61f37',
-    storageBucket: 'marginalia-61f37.firebasestorage.app',
-    messagingSenderId: '686491552114',
-    appId: '1:686491552114:web:94dc3fd46e9baf8d50f5eb',
+    apiKey:            ENV.FIREBASE_API_KEY,
+    authDomain:        ENV.FIREBASE_AUTH_DOMAIN,
+    projectId:         ENV.FIREBASE_PROJECT_ID,
+    storageBucket:     ENV.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: ENV.FIREBASE_MESSAGING_SENDER_ID,
+    appId:             ENV.FIREBASE_APP_ID,
   },
 };
