@@ -1,6 +1,8 @@
 import { RoomScene } from '../three/room.ts';
 import { ROOM_SKINS } from '../three/skins.ts';
 import { createNotesWallComponent } from '../components/notes-wall/notes-wall.js';
+import { createDeskSlotComponent } from '../components/reading-session/desk-slot.ts';
+import '../components/reading-session/reading-session.css';
 
 export function createThreeRoomPreview(host, options = {}) {
   if (!host) return null;
@@ -19,7 +21,8 @@ export function createThreeRoomPreview(host, options = {}) {
   // Mount notes wall component
   scene.mountSlot('notesWall', createNotesWallComponent());
 
-  // Desk slot intentionally left empty for a later phase.
+  // Mount desk slot — currently-reading book + session start/stop
+  scene.mountSlot('desk', createDeskSlotComponent());
 
   return {
     goToPose(pose, immediate = false) {
