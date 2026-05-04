@@ -461,6 +461,7 @@ function enterPreloader(params = {}) {
   runSequence();
 }
 
+export { enterPreloader };
 window.enterPreloader = enterPreloader;
 
 // --- Skip & Replay ------------------------------------------------

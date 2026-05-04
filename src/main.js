@@ -88,7 +88,9 @@ import './book/panels/notes.js';
 import './book/panels/claude-import.js';
 
 // 6. Views (studio/room-scene.js and preloader/hero-glb.js stay in index.html as type="module")
-import './preloader/preloader.js';
+// window.__heroGLBReadyPromise is set by hero-glb.js (HTML script tag, not bundled — see ADR 0002)
+import { enterPreloader } from './preloader/preloader.js';
+M.views.enterPreloader = enterPreloader;
 import './shelf/shelf.js';
 import './studio/studio.js';
 import './three-room/three-room-view.js';
