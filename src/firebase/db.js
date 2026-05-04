@@ -10,6 +10,10 @@
      window.MarginaliaStorage   — file upload (kept as own namespace for compat)
    ========================================================================== */
 
+import { validateWrite, withMeta, withMetaCreate } from '../services/db.ts';
+import { BookSchema } from '../data/schema/book.ts';
+import { GraphLinkStatusSchema } from '../data/schema/graph-link-status.ts';
+
 /* ── Books sync ─────────────────────────────────────────────────────────── */
 
 export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
@@ -50,10 +54,9 @@ export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
     if (!state.uid)            throw new Error('User is not signed in.');
     if (!bookId || !imageUrl)  throw new Error('bookId and imageUrl are required.');
     const docRef = booksCollectionRef().doc(bookId);
-    await docRef.set({
-      cover: { image: imageUrl, storagePath: storagePath || '' },
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+    const raw = { cover: { image: imageUrl, storagePath: storagePath || '' } };
+    const payload = withMeta(validateWrite(BookSchema, raw));
+    await docRef.set(payload, { merge: true });
     applyBookOverride(bookId, { cover: { image: imageUrl, storagePath: storagePath || '' } });
     window.dispatchEvent(new CustomEvent('marginalia:books-overrides-changed'));
   }
@@ -101,10 +104,9 @@ export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
     }
     const docRef = getLinkStatusDocRef(user.uid);
     window.MarginaliaGraph.setStatusPersistence(async ({ overrides }) => {
-      await docRef.set({
-        overrides,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
+      const raw = { overrides };
+      const payload = withMeta(validateWrite(GraphLinkStatusSchema, raw));
+      await docRef.set(payload, { merge: true });
     }, 'firebase');
     unsubscribeDoc = docRef.onSnapshot((snapshot) => {
       const data = snapshot.exists ? snapshot.data() : {};

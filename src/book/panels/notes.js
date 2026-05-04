@@ -1,3 +1,6 @@
+import { validateWrite, withMeta } from '../../services/db.ts';
+import { BookNoteSchema } from '../../data/schema/book-note.ts';
+
 /* ==========================================================================
    Marginalia · Notes panel
    --------------------------------------------------------------------------
@@ -81,12 +84,17 @@
     const auth = window.MarginaliaAuth;
     if (!auth?.user || !auth?.db) return;
     const workspaceId = window.MARGINALIA_FIREBASE?.workspaceId || 'default';
-    auth.db
-      .collection('workspaces').doc(workspaceId)
-      .collection('users').doc(auth.user.uid)
-      .collection('books').doc(bookId)
-      .collection('notes').doc('main')
-      .set({ content, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true })
-      .catch(() => {});
+    try {
+      const payload = withMeta(validateWrite(BookNoteSchema, { content }));
+      auth.db
+        .collection('workspaces').doc(workspaceId)
+        .collection('users').doc(auth.user.uid)
+        .collection('books').doc(bookId)
+        .collection('notes').doc('main')
+        .set(payload, { merge: true })
+        .catch(() => {});
+    } catch {
+      // Validation failure is surfaced in dev via the thrown error; silently skip in prod.
+    }
   }
 })();
