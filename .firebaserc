@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "marginalia-61f37"
+    "default": "marginalia-61f37",
+    "prod": "marginalia-61f37",
+    "dev": "marginalia-dev"
   }
 }
