@@ -10,7 +10,7 @@
    This is the seam where mock data will be replaced by a real API call.
    ========================================================================== */
 
-window.BooksStore = (() => {
+export const BooksStore = window.BooksStore = (() => {
   let _books = [];
   let _byId  = {};
 

@@ -6,7 +6,7 @@
    Future Firebase sync should replace the seed adapter, not the view code.
    ========================================================================== */
 
-window.MarginaliaGraph = (() => {
+export const MarginaliaGraph = window.MarginaliaGraph = (() => {
   const STATUS_STORAGE_KEY = 'marginalia.bookConceptLink.status.v1';
 
   const RELATION_META = {

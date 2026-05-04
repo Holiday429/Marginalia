@@ -16,7 +16,7 @@
      NotesStore.onChange(fn) — subscribe to any change
    ========================================================================== */
 
-window.NotesStore = (() => {
+export const NotesStore = window.NotesStore = (() => {
   const DB_NAME    = 'marginalia-notes';
   const DB_VERSION = 3;
   const STORE_ACTIONS    = 'action-status';

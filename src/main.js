@@ -42,11 +42,14 @@ M.services.MarginaliaBooksCloud = MarginaliaBooksCloud;
 M.services.MarginaliaStorage = MarginaliaStorage;
 
 // 3. State stores
-import './store/books-store.js';
-import './store/notes-store.js';
+import { NotesStore } from './store/notes-store.js';
+import { BooksStore } from './store/books-store.js';
+M.store.NotesStore = NotesStore;
+M.store.BooksStore = BooksStore;
 
 // 4. Core app utilities
-import './core/graph-data.js';
+import { MarginaliaGraph } from './core/graph-data.js';
+M.store.MarginaliaGraph = MarginaliaGraph;
 import './core/panel-manager.js';
 import './core/app.js';
 import './core/concept-ui.js';
