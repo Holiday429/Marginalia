@@ -5,6 +5,8 @@
    Panels: 'library' | 'map' | 'book' | 'todo' | 'profile' | 'web' | 'booklist'
    ========================================================================== */
 
+import { logError } from '../services/analytics.ts';
+
 const PANEL_IDS = ['library', 'shelf', 'map', 'book', 'todo', 'profile', 'web', 'booklist'];
 const PANEL_ALIASES = {
   graph: 'web',
@@ -156,7 +158,7 @@ const PanelManager = (() => {
   function open(panelId, params = {}) {
     const canonicalPanelId = normalizePanelId(panelId);
     if (!PANEL_IDS.includes(canonicalPanelId)) {
-      console.warn(`[PanelManager] Unknown panel: "${canonicalPanelId}"`);
+      logError(new Error(`[PanelManager] Unknown panel: "${canonicalPanelId}"`), { panelId: canonicalPanelId });
       return;
     }
 
@@ -201,7 +203,7 @@ const PanelManager = (() => {
     if (!_initialized.has(canonicalPanelId)) {
       const initFn = window[`init${cap(canonicalPanelId)}`];
       if (typeof initFn === 'function') {
-        try { initFn(params); } catch(e) { console.error(`[PanelManager] init${cap(canonicalPanelId)} threw:`, e); }
+        try { initFn(params); } catch(e) { logError(e, { context: `PanelManager init${cap(canonicalPanelId)}` }); }
       }
       _initialized.add(canonicalPanelId);
     }

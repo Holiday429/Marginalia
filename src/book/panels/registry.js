@@ -14,6 +14,8 @@
    This lets panel scripts load independently without strict ordering.
    ========================================================================== */
 
+import { logError } from '../../services/analytics.ts';
+
 export const PanelRegistry = window.PanelRegistry = (() => {
   const _panels = {
 
@@ -133,7 +135,7 @@ export const PanelRegistry = window.PanelRegistry = (() => {
      */
     set(id, renderFn) {
       if (!_panels[id]) {
-        console.warn(`[PanelRegistry] Unknown panel id: "${id}"`);
+        logError(new Error(`[PanelRegistry] Unknown panel id: "${id}"`), { panelId: id });
         return;
       }
       _panels[id].render = renderFn;

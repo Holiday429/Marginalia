@@ -1,5 +1,6 @@
 /* Library view — room-organize workspace */
 
+import { logError } from '../services/analytics.ts';
 import { renderLibraryShell } from './studio-template.js';
 import { PanelManager } from '../core/panel-manager.js';
 import {
@@ -1293,7 +1294,7 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
     try {
       window.LibraryRiveMesh.play({ sourceEl, record, overlayEl: overlay });
     } catch (err) {
-      console.warn('[Library] Rive mesh hook failed:', err);
+      logError(err, { context: 'Library Rive mesh hook' });
     }
   }
 }
@@ -1779,7 +1780,7 @@ function saveLayout() {
   try {
     localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(payload));
   } catch (error) {
-    console.warn('[Library] save skipped', error);
+    logError(error, { context: 'Library localStorage save' });
   }
 }
 

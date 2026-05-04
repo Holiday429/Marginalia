@@ -16,6 +16,8 @@
      NotesStore.onChange(fn) — subscribe to any change
    ========================================================================== */
 
+import { logError } from '../services/analytics.ts';
+
 export const NotesStore = window.NotesStore = (() => {
   const DB_NAME    = 'marginalia-notes';
   const DB_VERSION = 3;
@@ -66,7 +68,7 @@ export const NotesStore = window.NotesStore = (() => {
       };
 
       req.onerror = () => {
-        console.warn('[NotesStore] IndexedDB open failed — falling back to in-memory.');
+        logError(new Error('[NotesStore] IndexedDB open failed — falling back to in-memory.'), { context: 'notes-store init' });
         _ready = true;
         resolve();
       };

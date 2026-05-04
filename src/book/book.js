@@ -2,6 +2,8 @@
    Marginalia · Book detail view
    ========================================================================== */
 
+import { logEvent } from '../services/analytics.ts';
+
 let __currentBookId = null;
 
 function initBook() {}
@@ -9,7 +11,7 @@ function initBook() {}
 async function enterBook(params = {}) {
   const id = params.id || __currentBookId || 'sapiens';
   const book = window.BOOK_BY_ID && window.BOOK_BY_ID[id];
-  if (!book) { console.warn(`[book] No record for id="${id}"`); return; }
+  if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
   __currentBookId = id;
 
   // Wait for NotesStore, then merge user highlights + action statuses into a
@@ -91,6 +93,7 @@ async function enterBook(params = {}) {
         annotation: hlForm.querySelector('#hlFormNote')?.value.trim() || null,
       };
       await window.NotesStore?.saveHighlight(id, highlight);
+      logEvent('highlight_saved', { bookId: id });
       // Re-enter to rebuild merged list
       enterBook({ id });
     });
@@ -175,7 +178,7 @@ async function enterBook(params = {}) {
         if (uploadStatus) uploadStatus.textContent = 'Synced';
         enterBook({ id });
       } catch (error) {
-        console.error('[book] Cover upload failed.', error);
+        logError(error, { context: 'book cover upload', bookId: id });
         if (uploadStatus) uploadStatus.textContent = 'Upload Failed';
       } finally {
         uploadInput.value = '';

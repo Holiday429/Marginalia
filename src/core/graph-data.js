@@ -6,6 +6,8 @@
    Future Firebase sync should replace the seed adapter, not the view code.
    ========================================================================== */
 
+import { logError } from '../services/analytics.ts';
+
 export const MarginaliaGraph = window.MarginaliaGraph = (() => {
   const STATUS_STORAGE_KEY = 'marginalia.bookConceptLink.status.v1';
 
@@ -378,7 +380,7 @@ export const MarginaliaGraph = window.MarginaliaGraph = (() => {
     persistLocalStatus(overrides);
     if (typeof persistStatusOverride === 'function') {
       Promise.resolve(persistStatusOverride({ linkId, status, overrides: { ...overrides } }))
-        .catch((error) => console.warn('[graph] Failed to persist remote override.', error));
+        .catch((error) => logError(error, { context: 'graph persist remote override' }));
     }
     remoteStatusOverrides = { ...overrides };
     graphState = buildGraphState();
@@ -469,7 +471,7 @@ export const MarginaliaGraph = window.MarginaliaGraph = (() => {
     try {
       window.localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(overrides));
     } catch (error) {
-      console.warn('[graph] Failed to persist local override.', error);
+      logError(error, { context: 'graph persist local override' });
     }
   }
 

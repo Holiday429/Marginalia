@@ -1,5 +1,6 @@
 import { validateWrite, withMeta, withMetaCreate, isLegacyDoc } from '../services/db.ts';
 import { UserProfileSchema } from '../data/schema/user-profile.ts';
+import { logError, identifyUser } from '../services/analytics.ts';
 
 /* ==========================================================================
    Marginalia · Firebase auth gate
@@ -37,14 +38,14 @@ export const MarginaliaAuth = window.MarginaliaAuth = (() => {
     }
 
     if (!window.firebase?.initializeApp) {
-      console.warn('[auth] Firebase SDK is not loaded.');
+      logError(new Error('[auth] Firebase SDK is not loaded.'), { context: 'auth init' });
       syncAuthTriggers();
       dispatchAuthState();
       return;
     }
 
     if (!runtime.config?.apiKey || !runtime.config?.projectId) {
-      console.warn('[auth] Firebase config is incomplete.');
+      logError(new Error('[auth] Firebase config is incomplete.'), { context: 'auth init' });
       syncAuthTriggers();
       dispatchAuthState();
       return;
@@ -62,6 +63,7 @@ export const MarginaliaAuth = window.MarginaliaAuth = (() => {
       authState.user = user || null;
       if (user) {
         await ensureUserProfile(user);
+        identifyUser(user.uid);
         authState.gateOpen = false;
         clearAuthInputs();
         setAuthError('');

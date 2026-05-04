@@ -2,6 +2,8 @@
    Marginalia · Add Book — add a book + DIY spine/cover
    ========================================================================== */
 
+import { logEvent } from '../services/analytics.ts';
+
 export const NewEntry = window.NewEntry = (() => {
 
   /* ── Spine palette ───────────────────────────────────────────────────────── */
@@ -838,6 +840,7 @@ export const NewEntry = window.NewEntry = (() => {
 
     // Persist to IndexedDB
     window.NotesStore?.saveBook(fullBook);
+    logEvent('book_added', { bookId: id, status });
 
     // Spine entry for shelf + library
     const spineEntry = {

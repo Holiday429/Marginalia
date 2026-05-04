@@ -14,6 +14,8 @@
    aiFeatures[] list (resolved via BookTypes.getAiFeatures) includes the id.
    ========================================================================== */
 
+import { logError } from '../../services/analytics.ts';
+
 export const AIFeatureRegistry = window.AIFeatureRegistry = (() => {
   const _features = {
 
@@ -109,7 +111,7 @@ export const AIFeatureRegistry = window.AIFeatureRegistry = (() => {
       if (!feature) return null;
       const promptObj = _prompts[feature.promptId];
       if (!promptObj) {
-        console.warn(`[AIFeatureRegistry] Prompt not loaded for "${featureId}"`);
+        logError(new Error(`[AIFeatureRegistry] Prompt not loaded for "${featureId}"`), { featureId });
         return null;
       }
       return promptObj.build(book);

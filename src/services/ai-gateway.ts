@@ -8,6 +8,7 @@
 */
 
 import { ENV } from '../core/env.ts';
+import { logEvent } from './analytics.ts';
 
 declare const firebase: {
   auth(): { currentUser: { getIdToken(): Promise<string> } | null };
@@ -95,6 +96,7 @@ export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).Marg
           }
         }
       }
+      logEvent('ai_generated', { featureId });
       onDone?.(full);
     } catch (err) {
       onError?.(err instanceof Error ? err : new Error(String(err)));

@@ -2,6 +2,8 @@
    Marginalia · Concept graph
    ========================================================================== */
 
+import { logError } from '../services/analytics.ts';
+
 let __webBooted = false;
 let __webSvg = null;
 let __webZoom = null;
@@ -150,7 +152,7 @@ function loadD3ThenBoot() {
   const script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';
   script.onload = bootWeb;
-  script.onerror = () => console.error('[web] Failed to load D3.');
+  script.onerror = () => logError(new Error('[web] Failed to load D3.'), { context: 'web D3 loader' });
   document.head.appendChild(script);
 }
 

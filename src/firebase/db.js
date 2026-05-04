@@ -13,6 +13,7 @@
 import { validateWrite, withMeta, withMetaCreate } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { GraphLinkStatusSchema } from '../data/schema/graph-link-status.ts';
+import { logError } from '../services/analytics.ts';
 
 /* ── Books sync ─────────────────────────────────────────────────────────── */
 
@@ -47,7 +48,7 @@ export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
         applyBookOverride(bookId, change.type === 'removed' ? {} : data);
       });
       window.dispatchEvent(new CustomEvent('marginalia:books-overrides-changed'));
-    }, (err) => console.warn('[db:books] Snapshot failed.', err));
+    }, (err) => logError(err, { context: 'db:books snapshot' }));
   }
 
   async function setBookCover({ bookId, imageUrl, storagePath }) {
@@ -111,7 +112,7 @@ export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
     unsubscribeDoc = docRef.onSnapshot((snapshot) => {
       const data = snapshot.exists ? snapshot.data() : {};
       window.MarginaliaGraph.useRemoteStatusOverrides(data?.overrides || {}, 'firebase');
-    }, (err) => console.warn('[db:graph] Snapshot listener failed.', err));
+    }, (err) => logError(err, { context: 'db:graph snapshot' }));
   });
 
   function getLinkStatusDocRef(uid) {

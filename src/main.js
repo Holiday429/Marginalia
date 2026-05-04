@@ -4,7 +4,9 @@
 
 import { APP_VERSION } from './core/version.ts';
 import { M } from './core/namespace.ts';
+import { initAnalytics } from './services/analytics.ts';
 console.debug('[marginalia] version', APP_VERSION);
+initAnalytics();
 
 // M is the single namespace root. All migrated globals are registered below
 // alongside their window.X shims. window.M is exported for bridge code.

@@ -14,6 +14,7 @@
    ========================================================================== */
 
 import { PanelManager } from './panel-manager.js';
+import { logEvent, logError } from '../services/analytics.ts';
 
 // Module-level exports for render helpers — set by App IIFE below.
 // eslint-disable-next-line prefer-const
@@ -128,7 +129,7 @@ const App = (() => {
     const canonicalName = toCanonicalViewName(name);
     const view = views[canonicalName];
     if (!view) {
-      console.warn(`[App] View "${canonicalName}" is not registered yet.`);
+      logError(new Error(`[App] View "${canonicalName}" is not registered yet.`), { view: canonicalName });
       return;
     }
 
@@ -150,6 +151,7 @@ const App = (() => {
     // Highlight nav state
     setActiveNav(canonicalName);
 
+    logEvent('view_changed', { view: canonicalName });
     window.scrollTo({ top: 0 });
     window.dispatchEvent(new Event('marginalia:ui-refresh'));
   }
@@ -167,7 +169,7 @@ const App = (() => {
     document.body.dataset.view = 'shelf';
     setActiveNav('shelf');
     if (typeof window.initShelf === 'function' && !initialized.has('shelf')) {
-      try { window.initShelf(); } catch(e) { console.error('[App] initShelf threw:', e); }
+      try { window.initShelf(); } catch(e) { logError(e, { context: 'App initShelf' }); }
       initialized.add('shelf');
     }
 
@@ -203,7 +205,7 @@ const App = (() => {
     setActiveNav('room');
 
     if (typeof window.initRoom === 'function' && !initialized.has('room')) {
-      try { window.initRoom(); } catch(e) { console.error('[App] initRoom threw:', e); }
+      try { window.initRoom(); } catch(e) { logError(e, { context: 'App initRoom' }); }
       initialized.add('room');
     }
 

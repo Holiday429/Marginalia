@@ -3,6 +3,8 @@
    Globe projection (geoOrthographic) — spin in any direction, click to highlight.
    ========================================================================== */
 
+import { logError } from '../services/analytics.ts';
+
 let __mapChart       = null;
 let __mapBooted      = false;
 let __mapWorldSeries = null;
@@ -591,7 +593,7 @@ function waitForAmCharts(cb, attempt = 0) {
       typeof am5geodata_chinaHigh !== 'undefined') {
     cb(); return;
   }
-  if (attempt > 100) { console.warn('[map] amCharts failed to load'); return; }
+  if (attempt > 100) { logError(new Error('[map] amCharts failed to load'), { context: 'map init' }); return; }
   setTimeout(() => waitForAmCharts(cb, attempt + 1), 80);
 }
 
