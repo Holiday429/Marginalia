@@ -12,7 +12,7 @@
      window.MarginaliaAI.clearKey()
    ========================================================================== */
 
-window.MarginaliaAI = (() => {
+export const MarginaliaAI = window.MarginaliaAI = (() => {
   const STORAGE_KEY  = 'marginalia_ai_key';
   const STORAGE_MODEL = 'marginalia_ai_model';
   const ENDPOINT     = 'https://api.deepseek.com/chat/completions';

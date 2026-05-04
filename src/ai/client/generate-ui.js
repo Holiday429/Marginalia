@@ -11,7 +11,7 @@
      window.AIGenerateUI.mount(book, rootEl)
    ========================================================================== */
 
-window.AIGenerateUI = (() => {
+export const AIGenerateUI = window.AIGenerateUI = (() => {
 
   async function mount(book, root) {
     if (!window.AIFeatureRegistry || !window.BookTypes) return;

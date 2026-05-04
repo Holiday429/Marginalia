@@ -62,14 +62,17 @@ import './components/spine-card.js';
 import './new-entry/new-entry.js';
 
 // 6a. AI layer
-import './ai/client/api.js';
-import './ai/client/generate-ui.js';
+import { MarginaliaAI } from './ai/client/api.js';
+import { AIGenerateUI } from './ai/client/generate-ui.js';
 import './ai/features/prompts/mindmap-gen.js';
 import './ai/features/prompts/concept-cards.js';
 import './ai/features/prompts/argument-breakdown.js';
 import './ai/features/prompts/timeline-gen.js';
 import './ai/features/prompts/action-suggest.js';
-import './ai/settings/ai-settings.js';
+import { openAISettings } from './ai/settings/ai-settings.js';
+M.ai.MarginaliaAI = MarginaliaAI;
+M.ai.AIGenerateUI = AIGenerateUI;
+M.ai.openAISettings = openAISettings;
 
 // 6b. Panel scripts
 import './book/panels/notes.js';

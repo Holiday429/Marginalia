@@ -7,6 +7,8 @@
    Key is stored in localStorage only — never sent to Marginalia servers.
    ========================================================================== */
 
+export let openAISettings = null;
+
 (function initAISettings() {
 
   function mountModal() {
@@ -123,6 +125,7 @@
     document.getElementById('aiSettingsModal')?.classList.remove('open');
   }
 
+  openAISettings = openModal;
   window.openAISettings = openModal;
 
   // Mount modal once on load, re-wire gear btn on every nav render
