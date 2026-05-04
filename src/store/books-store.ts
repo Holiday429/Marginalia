@@ -11,6 +11,7 @@
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
+import { BOOK_DETAILS as SEED_DETAILS, BOOK_BY_ID as SEED_BY_ID } from '../data/seed/index.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FirestoreDB = any;
@@ -39,11 +40,10 @@ function _emit() {
 }
 
 function _loadSeed() {
-  const seed: BookRecord[] = Array.isArray((window as any).BOOK_DETAILS)
-    ? (window as any).BOOK_DETAILS
-    : [];
-  _books = seed;
-  _byId  = Object.fromEntries(seed.map((b) => [b.id, b]));
+  // Use the imported seed reference directly — window.BOOK_DETAILS is now owned
+  // by _emit() and will be overwritten, so we cannot read from it here.
+  _books = Array.isArray(SEED_DETAILS) ? [...SEED_DETAILS] : [];
+  _byId  = { ...SEED_BY_ID };
 }
 
 /** Called when user signs in. Starts the Firestore onSnapshot listener. */

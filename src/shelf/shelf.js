@@ -140,7 +140,7 @@ function bindShelfEvents() {
       const actionBtn = event.target.closest('[data-open-book-id]');
       if (!actionBtn) return;
       const id = actionBtn.dataset.openBookId;
-      if (!id || !window.BOOK_BY_ID?.[id]) return;
+      if (!id) return;
       App.show('book', { id });
     });
   }
@@ -150,7 +150,7 @@ function bindShelfEvents() {
       const openBtn = event.target.closest('[data-open-book-id]');
       if (openBtn) {
         const id = openBtn.dataset.openBookId;
-        if (id && window.BOOK_BY_ID?.[id]) App.show('book', { id });
+        if (id) App.show('book', { id });
         return;
       }
 

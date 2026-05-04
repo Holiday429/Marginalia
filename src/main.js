@@ -48,6 +48,8 @@ import { NotesStore } from './store/notes-store.js';
 import { BooksStore } from './store/books-store.ts';
 import { EntitlementsStore } from './store/entitlements-store.ts';
 import { initReadingSession, teardownReadingSession } from './components/reading-session/reading-session.ts';
+import { mountFocusWidget } from './components/reading-session/focus-widget.ts';
+import './components/reading-session/reading-session.css';
 M.store.NotesStore = NotesStore;
 M.store.BooksStore = BooksStore;
 M.store.EntitlementsStore = EntitlementsStore;
@@ -126,3 +128,6 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     teardownReadingSession();
   }
 });
+
+// Mount global focus widget once on DOM ready
+document.addEventListener('DOMContentLoaded', () => mountFocusWidget());

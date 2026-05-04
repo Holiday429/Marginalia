@@ -1,5 +1,6 @@
-// Marginalia · Reading session controller
-// start(bookId) / stop(endPage?) / getActive() / getTotalMs(bookId)
+// Marginalia · Reading session controller (site-wide focus timer)
+// Records how long the user spends in focused reading/thinking mode — not per-book.
+// Optional bookId attribution links session to a currently-reading book.
 // Active session survives page reloads via sessionStorage.
 
 import { withMetaCreate, validateWrite } from '../../services/db.ts';
@@ -11,7 +12,7 @@ type FirestoreDB = any;
 
 export interface ActiveSession {
   sessionId: string;
-  bookId: string;
+  bookId: string | null;
   startedAt: number;
 }
 
@@ -48,35 +49,29 @@ function _setActive(session: ActiveSession | null): void {
   window.dispatchEvent(new CustomEvent('marginalia:session-changed', { detail: { session } }));
 }
 
-export async function start(bookId: string): Promise<ActiveSession | null> {
-  if (!_uid || !_db) return null;
-
+/** Start a site-wide focus session. bookId is optional attribution. */
+export async function start(bookId: string | null = null): Promise<ActiveSession | null> {
   const existing = getActive();
-  if (existing?.bookId === bookId) return existing;
+  if (existing) return existing;
 
-  if (existing) {
-    await stop();
-  }
+  const sessionId  = `session-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const startedAt  = Date.now();
 
-  const sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const startedAt = Date.now();
-
-  const payload = validateWrite(ReadingSessionSchema, {
-    bookId,
-    startedAt,
-    endedAt:    null,
-    durationMs: null,
-    endPage:    null,
-  });
-
-  try {
-    const ref = _db
-      .collection(`users/${_uid}/data/books/${bookId}/sessions`)
-      .doc(sessionId);
-    await ref.set(withMetaCreate(payload));
-  } catch (err) {
-    logError(err, { context: 'ReadingSession.start', bookId });
-    return null;
+  if (_uid && _db) {
+    try {
+      const payload = validateWrite(ReadingSessionSchema, {
+        bookId:     bookId ?? '',
+        startedAt,
+        endedAt:    null,
+        durationMs: null,
+        endPage:    null,
+      });
+      // Top-level sessions collection — not per-book subcollection.
+      const ref = _db.collection(`users/${_uid}/data/sessions`).doc(sessionId);
+      await ref.set(withMetaCreate(payload));
+    } catch (err) {
+      logError(err, { context: 'ReadingSession.start' });
+    }
   }
 
   const session: ActiveSession = { sessionId, bookId, startedAt };
@@ -85,50 +80,26 @@ export async function start(bookId: string): Promise<ActiveSession | null> {
   return session;
 }
 
-export async function stop(endPage?: number): Promise<{ durationMs: number } | null> {
+/** Stop the active session and return durationMs. */
+export async function stop(): Promise<{ durationMs: number } | null> {
   const session = getActive();
-  if (!session || !_uid || !_db) return null;
+  if (!session) return null;
 
-  const endedAt   = Date.now();
+  const endedAt    = Date.now();
   const durationMs = endedAt - session.startedAt;
 
-  try {
-    const ref = _db
-      .collection(`users/${_uid}/data/books/${session.bookId}/sessions`)
-      .doc(session.sessionId);
-    await ref.set(
-      { endedAt, durationMs, endPage: endPage ?? null, _updatedAt: Date.now() },
-      { merge: true },
-    );
-  } catch (err) {
-    logError(err, { context: 'ReadingSession.stop', bookId: session.bookId });
+  if (_uid && _db) {
+    try {
+      const ref = _db.collection(`users/${_uid}/data/sessions`).doc(session.sessionId);
+      await ref.set({ endedAt, durationMs, _updatedAt: Date.now() }, { merge: true });
+    } catch (err) {
+      logError(err, { context: 'ReadingSession.stop' });
+    }
   }
 
   _setActive(null);
-  logEvent('reading_session_ended', {
-    bookId: session.bookId,
-    durationMs,
-    endPage: endPage ?? null,
-  });
+  logEvent('reading_session_ended', { bookId: session.bookId, durationMs });
   return { durationMs };
-}
-
-/** Fetch the sum of all completed session durationMs for a book from Firestore. */
-export async function getTotalMs(bookId: string): Promise<number> {
-  if (!_uid || !_db) return 0;
-  try {
-    const snap = await _db
-      .collection(`users/${_uid}/data/books/${bookId}/sessions`)
-      .get();
-    let total = 0;
-    snap.docs.forEach((doc: any) => {
-      const d = doc.data();
-      if (typeof d.durationMs === 'number') total += d.durationMs;
-    });
-    return total;
-  } catch {
-    return 0;
-  }
 }
 
 export function formatDuration(ms: number): string {

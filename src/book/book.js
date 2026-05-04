@@ -3,20 +3,12 @@
    ========================================================================== */
 
 import { logEvent, logError } from '../services/analytics.ts';
-import {
-  getActive,
-  start as sessionStart,
-  stop as sessionStop,
-  getTotalMs,
-  formatDuration,
-} from '../components/reading-session/reading-session.ts';
 
 let __currentBookId = null;
 
 function initBook() {}
 
 async function enterBook(params = {}) {
-  if (_rsInterval) { clearInterval(_rsInterval); _rsInterval = null; }
   const id = params.id || __currentBookId || 'sapiens';
   const book = window.BOOK_BY_ID && window.BOOK_BY_ID[id];
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
@@ -194,8 +186,6 @@ async function enterBook(params = {}) {
     });
   }
 
-  // Wire up reading session widget
-  _mountReadingSessionWidget(root, id);
 
   // Wire up knowledge structure inner tabs
   root.querySelectorAll('.mm-top-tab').forEach(tab => {
@@ -254,109 +244,6 @@ async function enterBook(params = {}) {
       App.show('shelf');
     });
   }
-}
-
-/* ── Reading session widget ──────────────────────────────────────────────── */
-
-let _rsInterval = null;
-
-function _mountReadingSessionWidget(root, bookId) {
-  const widget = root.querySelector('.reading-session-widget');
-  if (!widget) return;
-
-  const timerEl = widget.querySelector('[data-rs-timer]');
-  const totalEl = widget.querySelector('[data-rs-total]');
-  const btn     = widget.querySelector('[data-rs-toggle]');
-
-  // Populate total reading time asynchronously
-  getTotalMs(bookId).then(ms => {
-    if (totalEl) totalEl.textContent = ms > 0 ? `Total: ${formatDuration(ms)}` : 'Total: —';
-  });
-
-  // Live elapsed-time ticker
-  function _startTicker() {
-    if (_rsInterval) clearInterval(_rsInterval);
-    _rsInterval = setInterval(() => {
-      const active = getActive();
-      if (active?.bookId === bookId && timerEl) {
-        timerEl.textContent = formatDuration(Date.now() - active.startedAt);
-      } else {
-        clearInterval(_rsInterval);
-        _rsInterval = null;
-      }
-    }, 1000);
-  }
-
-  if (getActive()?.bookId === bookId) _startTicker();
-
-  if (!btn) return;
-  btn.addEventListener('click', async () => {
-    const active = getActive();
-    if (active?.bookId === bookId) {
-      // Stop
-      clearInterval(_rsInterval);
-      _rsInterval = null;
-      btn.disabled = true;
-      const result = await sessionStop();
-      btn.disabled = false;
-      if (result) {
-        _showNoteModal(bookId, result.durationMs, () => enterBook({ id: bookId }));
-      } else {
-        enterBook({ id: bookId });
-      }
-    } else {
-      // Start
-      btn.disabled = true;
-      await sessionStart(bookId);
-      btn.disabled = false;
-      enterBook({ id: bookId });
-    }
-  });
-}
-
-function _showNoteModal(bookId, durationMs, onClose) {
-  const existing = document.getElementById('rs-note-modal');
-  if (existing) existing.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'rs-note-modal';
-  modal.className = 'rs-modal-overlay';
-  modal.innerHTML = `
-    <div class="rs-modal" role="dialog" aria-modal="true" aria-label="Session note">
-      <div class="rs-modal-head">
-        <div class="rs-modal-title">Session complete — ${formatDuration(durationMs)}</div>
-        <div class="rs-modal-sub">Want to note something before you go?</div>
-      </div>
-      <div class="rs-modal-body">
-        <input class="rs-modal-page" type="number" min="1" placeholder="End page (optional)">
-        <textarea class="rs-modal-note" rows="3" placeholder="Quick note…"></textarea>
-      </div>
-      <div class="rs-modal-actions">
-        <button class="rs-modal-save" type="button">Save note</button>
-        <button class="rs-modal-skip" type="button">Skip</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  const close = () => { modal.remove(); onClose(); };
-
-  modal.querySelector('.rs-modal-skip').addEventListener('click', close);
-  modal.querySelector('.rs-modal-save').addEventListener('click', async () => {
-    const note  = modal.querySelector('.rs-modal-note').value.trim();
-    const page  = parseInt(modal.querySelector('.rs-modal-page').value) || null;
-    if (note && window.NotesStore) {
-      await window.NotesStore.saveHighlight(bookId, {
-        quote: note,
-        page,
-        kind: 'action',
-        chapter: null,
-        annotation: `Session note — ${formatDuration(durationMs)}`,
-      });
-    }
-    close();
-  });
-  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 }
 
 /* ── Render ──────────────────────────────────────────────────────────────── */
@@ -520,19 +407,6 @@ function renderMasthead(b) {
   `;
 }
 
-function renderReadingSession(bookId) {
-  const active = getActive();
-  const isActive = active?.bookId === bookId;
-  return `
-    <div class="reading-session-widget" data-book-id="${esc(bookId)}">
-      <div class="rs-timer" data-rs-timer>${isActive ? formatDuration(Date.now() - active.startedAt) : '—'}</div>
-      <button class="rs-btn${isActive ? ' rs-btn--stop' : ''}" type="button" data-rs-toggle>
-        ${isActive ? 'Stop Reading' : 'Start Reading'}
-      </button>
-      <div class="rs-total" data-rs-total>Total: —</div>
-    </div>
-  `;
-}
 
 function renderOverview(b) {
   const cv = b.cover || {};
@@ -604,7 +478,6 @@ function renderOverview(b) {
           <div class="rating-note">${esc((b.insight?.oneLiner || b.summary || '').slice(0, 40))}</div>
         </div>
       </div>
-      ${renderReadingSession(b.id)}
     </section>
   `;
 }
