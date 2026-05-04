@@ -6,10 +6,10 @@
 
 ## Status
 
-- **Current phase:** 4 of 8 (not started)
-- **Last session ended at:** 2026-05-04 — Phase 3 complete; all globals exported as ES modules, registered on M namespace. window.X shims kept for app.js view-init dynamic lookup.
-- **Last commit relevant to migration:** b398229 — p0(phase-3): prompt files import AIFeatureRegistry directly
-- **Next concrete action:** Phase 4, Task 1 — create second Firebase project `marginalia-dev`
+- **Current phase:** 5 of 8 (not started)
+- **Last session ended at:** 2026-05-04 — Phase 4 complete; Firebase config reads from import.meta.env, hardcoded API key removed, .firebaserc aliases added, ADR 0003 written.
+- **Last commit relevant to migration:** caad149 — p0(phase-4): ADR 0003 — Firebase environment split via Vite env files
+- **Next concrete action:** Phase 5, Task 1 — create `functions/` workspace (functions/package.json)
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -115,17 +115,17 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ---
 
-### Phase 4: Environment split (dev / prod Firebase) ⬜ TODO
+### Phase 4: Environment split (dev / prod Firebase) ✅ DONE (caad149)
 
 **Goal:** Separate Firebase projects for development and production. Source-of-truth config selection via env file.
 
 **Tasks:**
-- [ ] Create a second Firebase project: `marginalia-dev` (the existing one becomes `marginalia-prod`)
-- [ ] Add `.env.development` and `.env.production` (both gitignored), `.env.example` (committed) showing required keys
-- [ ] Create `src/core/env.ts` that reads `import.meta.env.*` and exports a typed `ENV` object
-- [ ] Replace `MARGINALIA_FIREBASE` config with values from `ENV`
-- [ ] Update `.firebaserc` and `firebase.json` to support project aliases (`firebase use dev` / `firebase use prod`)
-- [ ] Update GitHub Actions / Vercel / wherever you deploy: dev branch → dev project, main → prod project
+- [ ] Create a second Firebase project: `marginalia-dev` (user responsibility — Firebase Console)
+- [x] Add `.env.development` and `.env.production` (both gitignored), `.env.example` (committed) showing required keys
+- [x] Create `src/core/env.ts` that reads `import.meta.env.*` and exports a typed `ENV` object
+- [x] Replace `MARGINALIA_FIREBASE` config with values from `ENV`
+- [x] Update `.firebaserc` to support project aliases (`firebase use dev` / `firebase use prod`)
+- [ ] Update GitHub Actions / Vercel / wherever you deploy: dev branch → dev project, main → prod project (deferred — no CI configured yet)
 
 **Verification:**
 - `npm run dev` connects to `marginalia-dev` Firestore (verifiable in browser devtools network tab)
