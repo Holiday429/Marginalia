@@ -50,9 +50,15 @@ M.store.BooksStore = BooksStore;
 // 4. Core app utilities
 import { MarginaliaGraph } from './core/graph-data.js';
 M.store.MarginaliaGraph = MarginaliaGraph;
-import './core/panel-manager.js';
-import './core/app.js';
-import './core/concept-ui.js';
+import { PanelManager } from './core/panel-manager.js';
+import { renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell } from './core/app.js';
+import { openConceptDrawer, closeConceptDrawer } from './core/concept-ui.js';
+M.ui.PanelManager = PanelManager;
+M.ui.renderPrimaryHeader = renderPrimaryHeader;
+M.ui.renderUnifiedPanelHeader = renderUnifiedPanelHeader;
+M.ui.renderToolPageShell = renderToolPageShell;
+M.ui.openConceptDrawer = openConceptDrawer;
+M.ui.closeConceptDrawer = closeConceptDrawer;
 
 // 4b. API adapters
 import './api/kindle-import.js';

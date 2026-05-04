@@ -13,6 +13,14 @@
    Use App.show('book', { id: 'sapiens' }) to pass params to a view.
    ========================================================================== */
 
+// Module-level exports for render helpers — set by App IIFE below.
+// eslint-disable-next-line prefer-const
+export let renderPrimaryHeader = null;
+// eslint-disable-next-line prefer-const
+export let renderUnifiedPanelHeader = null;
+// eslint-disable-next-line prefer-const
+export let renderToolPageShell = null;
+
 const App = (() => {
   const NAV_ITEMS = [
     { view: 'room',     label: 'Library',  icon: 'library', href: '#room' },
@@ -346,3 +354,11 @@ const App = (() => {
 // TODO(p0-cleanup): remove after phase 3 — callers in preloader.js and other
 // views reference window.App directly; this shim bridges module scope to global.
 window.App = App;
+
+// Update module-level exports from window (set inside the IIFE above).
+// eslint-disable-next-line no-import-assign
+renderPrimaryHeader = window.renderPrimaryHeader;
+// eslint-disable-next-line no-import-assign
+renderUnifiedPanelHeader = window.renderUnifiedPanelHeader;
+// eslint-disable-next-line no-import-assign
+renderToolPageShell = window.renderToolPageShell;

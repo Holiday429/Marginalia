@@ -168,3 +168,5 @@ function esc(value) {
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]
   ));
 }
+
+export { openConceptDrawer, closeConceptDrawer };
