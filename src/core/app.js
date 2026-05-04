@@ -15,6 +15,7 @@
 
 import { PanelManager } from './panel-manager.js';
 import { logEvent, logError } from '../services/analytics.ts';
+import { VIEW_REGISTRY } from './view-registry.ts';
 
 // Module-level exports for render helpers — set by App IIFE below.
 // eslint-disable-next-line prefer-const
@@ -42,7 +43,6 @@ const App = (() => {
   const views = {
     preloader: document.getElementById('view-preloader'),
     shelf:     document.getElementById('view-shelf'),   // TODO(p0-cleanup): merge into panel-library
-    studio:    document.getElementById('view-studio'),  // TODO(p0-cleanup): remove after studio.js fully migrated
     // room is the persistent shell — not in views, never toggled by show()
   };
 
@@ -139,14 +139,19 @@ const App = (() => {
     document.body.dataset.view = canonicalName;
     if (canonicalName !== 'map') document.body.classList.remove('map-panel-open');
 
-    // Run init<Name>() once, enter<Name>() every time
-    if (!initialized.has(canonicalName)) {
-      const initFn = window['init' + cap(canonicalName)];
-      if (typeof initFn === 'function') initFn(params);
-      initialized.add(canonicalName);
+    // Run init once, enter every time — resolved from VIEW_REGISTRY.
+    // preloader is excluded: it imports App itself (circular), so its
+    // enterPreloader is registered on M.views by main.js and called via window.M.
+    if (canonicalName !== 'preloader') {
+      if (!initialized.has(canonicalName)) {
+        VIEW_REGISTRY[canonicalName]?.init?.(params);
+        initialized.add(canonicalName);
+      }
+      VIEW_REGISTRY[canonicalName]?.enter?.(params);
+    } else {
+      if (!initialized.has('preloader')) initialized.add('preloader');
+      window.M?.views?.enterPreloader?.(params);
     }
-    const enterFn = window['enter' + cap(canonicalName)];
-    if (typeof enterFn === 'function') enterFn(params);
 
     // Highlight nav state
     setActiveNav(canonicalName);
@@ -168,8 +173,8 @@ const App = (() => {
     shelf.hidden = false;
     document.body.dataset.view = 'shelf';
     setActiveNav('shelf');
-    if (typeof window.initShelf === 'function' && !initialized.has('shelf')) {
-      try { window.initShelf(); } catch(e) { logError(e, { context: 'App initShelf' }); }
+    if (!initialized.has('shelf')) {
+      try { VIEW_REGISTRY.shelf?.init?.(); } catch(e) { logError(e, { context: 'App initShelf' }); }
       initialized.add('shelf');
     }
 
@@ -204,8 +209,8 @@ const App = (() => {
     document.body.dataset.view = 'room';
     setActiveNav('room');
 
-    if (typeof window.initRoom === 'function' && !initialized.has('room')) {
-      try { window.initRoom(); } catch(e) { logError(e, { context: 'App initRoom' }); }
+    if (!initialized.has('room')) {
+      try { VIEW_REGISTRY.room?.init?.(); } catch(e) { logError(e, { context: 'App initRoom' }); }
       initialized.add('room');
     }
 
@@ -242,16 +247,10 @@ const App = (() => {
       navigateTo(requestedView);
       return;
     }
-    if (requestedView === 'studio') {
-      show('room', { source: 'nav-library' });
-      return;
-    }
     show(requestedView);
   });
 
   window.addEventListener('hashchange', syncFromHash);
-
-  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
   function renderPrimaryHeader(
     activeView,

@@ -6,6 +6,7 @@
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
+import { VIEW_REGISTRY } from './view-registry.ts';
 
 const PANEL_IDS = ['library', 'shelf', 'map', 'book', 'todo', 'profile', 'web', 'booklist'];
 const PANEL_ALIASES = {
@@ -19,9 +20,9 @@ const PANEL_ELEMENT_ID = {
   shelf: 'view-shelf',
 };
 
-// Maps panel ID → the legacy body[data-view] value that existing CSS expects
+// Maps panel ID → body[data-view] value used by CSS selectors
 const PANEL_DATA_VIEW = {
-  library:  'studio',
+  library:  'library-2d',
   shelf:    'shelf',
   map:      'map',
   book:     'book',
@@ -198,18 +199,14 @@ const PanelManager = (() => {
       _roomHandle.pause();
     }
 
-    // Run init once, then enter every time (mirrors App.show() pattern)
-    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    // Run init once, enterPanel every time — resolved from VIEW_REGISTRY
     if (!_initialized.has(canonicalPanelId)) {
-      const initFn = window[`init${cap(canonicalPanelId)}`];
-      if (typeof initFn === 'function') {
-        try { initFn(params); } catch(e) { logError(e, { context: `PanelManager init${cap(canonicalPanelId)}` }); }
+      try { VIEW_REGISTRY[canonicalPanelId]?.init?.(params); } catch(e) {
+        logError(e, { context: `PanelManager init ${canonicalPanelId}` });
       }
       _initialized.add(canonicalPanelId);
     }
-
-    const enterFn = window[`enterPanel_${canonicalPanelId}`];
-    if (typeof enterFn === 'function') enterFn(params);
+    VIEW_REGISTRY[canonicalPanelId]?.enterPanel?.(params);
 
     if (isRoomOrigin) {
       window.setTimeout(() => {

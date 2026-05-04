@@ -5,6 +5,7 @@
 import { logEvent, logError } from '../services/analytics.ts';
 import { withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
+import { enterLibrary } from '../library-2d/library-2d.js';
 
 export const NewEntry = window.NewEntry = (() => {
 
@@ -879,9 +880,7 @@ export const NewEntry = window.NewEntry = (() => {
     if (typeof window.renderShelfSection === 'function') window.renderShelfSection();
 
     // Sync to Library (arrival pool)
-    if (typeof window.enterStudio === 'function') {
-      window.enterStudio();
-    }
+    enterLibrary();
 
     // Sync to Map — push into MAP_BOOKS array if accessible
     if (typeof window.mapAddBook === 'function') {

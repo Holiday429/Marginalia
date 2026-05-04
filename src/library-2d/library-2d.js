@@ -2,7 +2,7 @@
 
 import { logError } from '../services/analytics.ts';
 import { withMeta } from '../services/db.ts';
-import { renderLibraryShell } from './studio-template.js';
+import { renderLibraryShell } from './library-2d-template.js';
 import { PanelManager } from '../core/panel-manager.js';
 import {
   LIBRARY_STORAGE_KEY,
@@ -31,7 +31,7 @@ import {
   clamp,
   clampInt,
   cssEscape,
-} from './studio-state.js';
+} from './library-2d-state.js';
 
 function initLibrary(params = {}) {
   const host = document.getElementById('panel-library');
@@ -1832,10 +1832,5 @@ async function readStoredLayout() {
   }
 }
 
-window.initStudio = initLibrary;
-window.initLibrary = initLibrary;
-window.enterStudio = enterLibrary;
-window.enterLibrary = enterLibrary;
-window.enterPanel_library = function(params = {}) { enterLibrary(params); };
 export { initLibrary, enterLibrary };
-export const enterPanel_library = window.enterPanel_library;
+export function enterPanel_library(params = {}) { enterLibrary(params); }

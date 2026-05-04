@@ -303,7 +303,7 @@ function buildGeoBuckets(books) {
 const MAP_LIBRARY = buildMapLibrary(MAP_BOOKS);
 const MAP_GEO = buildGeoBuckets(MAP_LIBRARY);
 
-window.mapAddBook = function(spineEntry) {
+export const mapAddBook = window.mapAddBook = function(spineEntry) {
   if (!spineEntry?.loc) return;
   const entry = {
     id:    spineEntry.id,
@@ -1780,9 +1780,5 @@ function escapeHTML(s) {
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[ch]);
 }
 
-window.initMap = initMap;
-window.enterMap = enterMap;
-window.enterPanel_map = function(params = {}) { enterMap(params); };
 export { initMap, enterMap };
-export const enterPanel_map = window.enterPanel_map;
-export const mapAddBook = window.mapAddBook;
+export function enterPanel_map(params = {}) { enterMap(params); }

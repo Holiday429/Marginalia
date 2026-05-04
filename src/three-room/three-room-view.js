@@ -739,7 +739,5 @@ function exitRoomViaHeroFlip() {
   });
 }
 
-window.initRoom = initRoom;
-window.enterRoom = enterRoom;
 export { initRoom, enterRoom };
 export const renderRoomTopTabs = window.renderRoomTopTabs;
