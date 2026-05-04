@@ -61,11 +61,14 @@ M.ui.openConceptDrawer = openConceptDrawer;
 M.ui.closeConceptDrawer = closeConceptDrawer;
 
 // 4b. API adapters
-import './api/kindle-import.js';
+import { KindleImport } from './api/kindle-import.js';
+M.ui.KindleImport = KindleImport;
 
 // 5. Shared components
-import './components/spine-card.js';
-import './new-entry/new-entry.js';
+import { SpineCard } from './components/spine-card.js';
+import { NewEntry } from './new-entry/new-entry.js';
+M.ui.SpineCard = SpineCard;
+M.ui.NewEntry = NewEntry;
 
 // 6a. AI layer
 import { MarginaliaAI } from './ai/client/api.js';

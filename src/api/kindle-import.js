@@ -9,7 +9,7 @@
      KindleImport.mountUI(containerEl)  — renders a drag-drop zone
    ========================================================================== */
 
-window.KindleImport = (() => {
+export const KindleImport = window.KindleImport = (() => {
   const SEPARATOR = '==========';
 
   // ── Parser ───────────────────────────────────────────────────────────────

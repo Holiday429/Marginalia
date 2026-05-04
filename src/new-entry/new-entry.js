@@ -2,7 +2,7 @@
    Marginalia · Add Book — add a book + DIY spine/cover
    ========================================================================== */
 
-window.NewEntry = (() => {
+export const NewEntry = window.NewEntry = (() => {
 
   /* ── Spine palette ───────────────────────────────────────────────────────── */
 

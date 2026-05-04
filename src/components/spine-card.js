@@ -22,7 +22,7 @@
    }
    ========================================================================== */
 
-window.SpineCard = {
+export const SpineCard = window.SpineCard = {
   /**
    * @param {object} config
    * @returns {HTMLButtonElement}
