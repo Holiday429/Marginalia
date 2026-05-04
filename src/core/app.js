@@ -139,12 +139,19 @@ const App = (() => {
     document.body.dataset.view = canonicalName;
     if (canonicalName !== 'map') document.body.classList.remove('map-panel-open');
 
-    // Run init once, enter every time — resolved from VIEW_REGISTRY
-    if (!initialized.has(canonicalName)) {
-      VIEW_REGISTRY[canonicalName]?.init?.(params);
-      initialized.add(canonicalName);
+    // Run init once, enter every time — resolved from VIEW_REGISTRY.
+    // preloader is excluded: it imports App itself (circular), so its
+    // enterPreloader is registered on M.views by main.js and called via window.M.
+    if (canonicalName !== 'preloader') {
+      if (!initialized.has(canonicalName)) {
+        VIEW_REGISTRY[canonicalName]?.init?.(params);
+        initialized.add(canonicalName);
+      }
+      VIEW_REGISTRY[canonicalName]?.enter?.(params);
+    } else {
+      if (!initialized.has('preloader')) initialized.add('preloader');
+      window.M?.views?.enterPreloader?.(params);
     }
-    VIEW_REGISTRY[canonicalName]?.enter?.(params);
 
     // Highlight nav state
     setActiveNav(canonicalName);
