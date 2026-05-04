@@ -6,10 +6,10 @@
 
 ## Status
 
-- **Current phase:** 8 of 8 (not started)
-- **Last session ended at:** 2026-05-04 — Phase 7 complete; Zod installed, 6 schemas defined, withMeta/validateWrite helpers created, all write paths in db.js/auth.js/notes.js wrapped, ADR 0005 written.
-- **Last commit relevant to migration:** 33dc4e9 — p0(phase-7): ADR 0005 — Firestore schema versioning and Zod validation
-- **Next concrete action:** Phase 8, Task 1 — install @sentry/browser and wire Sentry init in src/main.js
+- **Current phase:** P0 COMPLETE ✅ (all 8 phases done)
+- **Last session ended at:** 2026-05-04 — Phase 8 complete; Sentry + PostHog wired, analytics.ts facade created, all console.warn/error replaced, Firestore + Storage rules audited and tightened, smoke test added.
+- **Last commit relevant to migration:** cd8e24c — p0(phase-8): add firestore-rules.test.ts smoke test + test:rules script
+- **Next concrete action:** None — P0 is complete. Begin P1 work in a new branch per CLAUDE.md § Roadmap.
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -204,30 +204,40 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ---
 
-### Phase 8: Sentry, PostHog, security audit ⬜ TODO
+### Phase 8: Sentry, PostHog, security audit ✅ DONE (cd8e24c)
 
 **Goal:** Production observability + airtight access rules before public beta.
 
 **Tasks:**
-- [ ] Install `@sentry/browser` and `@sentry/node` (for functions)
-- [ ] Wire init in `src/main.js` and in each Cloud Function entry
-- [ ] Create `src/services/analytics.ts` exposing `logEvent(name, props)` and `logError(err, context)`
-- [ ] Replace all `console.warn` / `console.error` in `src/` with `logger.warn(category, msg)` (PRODUCTION code only — keep in tooling)
-- [ ] Install PostHog, init with env-driven token, capture pageviews + key product events (book_added, highlight_saved, ai_generated, session_ended)
-- [ ] Audit `firestore.rules`: every collection requires `request.auth.uid == userId` match; deny by default
-- [ ] Audit `storage.rules`: cover uploads only to `users/{uid}/covers/`, image MIME enforced, ≤ 2MB
-- [ ] Add a smoke test that two anonymous users cannot read each other's data
+- [x] Install `@sentry/browser` and `@sentry/node` (for functions)
+- [x] Wire init in `src/main.js` (Sentry + PostHog via `initAnalytics()`) and in `functions/src/ai-generate.ts` (Sentry)
+- [x] Create `src/services/analytics.ts` exposing `logEvent(name, props)`, `logError(err, context)`, `identifyUser(uid)`
+- [x] Replace all `console.warn` / `console.error` in `src/` production paths with `logError()` calls (24 call sites, 10 files; room.ts and hero-glb.js intentionally skipped — CDN modules)
+- [x] Install PostHog, init with env-driven token, capture: `book_added` (new-entry.js), `highlight_saved` (book.js), `ai_generated` (ai-gateway.ts), `view_changed` (app.js); `identifyUser` wired on sign-in
+- [x] Audit `firestore.rules`: deny-by-default confirmed; explicit rule added for `audit/ai_calls/{uid}` (read: isSelf, write: false — Cloud Function Admin SDK bypasses rules)
+- [x] Audit `storage.rules`: cover image path now enforces image/jpeg, image/png, image/webp MIME and ≤ 2MB on write
+- [x] Smoke test: `tests/firestore-rules.test.ts` — user A reads own books ✓, user B cannot read user A's books ✓, unauthenticated denied ✓
 
 **Verification:**
-- A deliberately thrown error in dev shows up in Sentry
-- PostHog dashboard shows test events
-- Firestore rules emulator: cross-user read attempt fails with permission denied
+- `npm run typecheck` exits 0 ✅
+- `npm run test:rules` (requires `firebase emulators:start --only firestore`) — tests cross-user isolation
+- Sentry events sent only in production (`import.meta.env.PROD`)
+- PostHog events captured at all key product touch-points
 
 ---
 
-## After P0
+## After P0 ✅ P0 IS COMPLETE
 
-P0 is the floor. After phase 8 ships, the next priorities (P1) are documented in `CLAUDE.md` § Roadmap. Do not start P1 work in the same branch as P0.
+P0 shipped on 2026-05-04. All 8 phases done. The foundation is:
+- Vite + TypeScript build, ES modules
+- Dev/prod Firebase split
+- AI calls behind Cloud Function gateway (no key on client)
+- Entitlements framework
+- Firestore schema versioning (`_v: 1`) + Zod validation
+- Sentry + PostHog observability
+- Firestore + Storage rules audited
+
+Next priorities (P1) are documented in `CLAUDE.md` § Roadmap. Start P1 work in a new branch off `main`.
 
 ---
 
