@@ -26,6 +26,13 @@ let _unsubscribe: (() => void) | null = null;
 let _uid: string | null = null;
 
 function _emit() {
+  // Keep legacy window globals in sync so old views (shelf, library-2d, booklist, book)
+  // continue to work while they await full migration to BooksStore.
+  // TODO(p0-cleanup): remove once all views read from BooksStore directly.
+  (window as any).BOOK_BY_ID = _byId;
+  (window as any).BOOK_DETAILS = _books;
+  (window as any).SHELF_BOOKS = _books;
+
   window.dispatchEvent(new CustomEvent('marginalia:books-changed', {
     detail: { books: _books },
   }));

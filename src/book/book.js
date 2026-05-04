@@ -2,7 +2,7 @@
    Marginalia · Book detail view
    ========================================================================== */
 
-import { logEvent } from '../services/analytics.ts';
+import { logEvent, logError } from '../services/analytics.ts';
 import {
   getActive,
   start as sessionStart,

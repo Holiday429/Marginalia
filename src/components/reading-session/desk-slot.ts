@@ -10,8 +10,8 @@ import {
   formatDuration,
 } from './reading-session.ts';
 
-const WIDTH  = 600;
-const HEIGHT = 300;
+const WIDTH  = 420;
+const HEIGHT = 180;
 
 function esc(s: unknown): string {
   return String(s ?? '').replace(/[&<>"]/g, (c) =>
@@ -24,10 +24,7 @@ function render(container: HTMLElement): void {
   const active = getActive();
 
   if (!books.length) {
-    container.innerHTML = `
-      <div class="desk-slot">
-        <div class="desk-slot__empty">No books currently being read.</div>
-      </div>`;
+    container.innerHTML = `<div class="desk-slot"></div>`;
     return;
   }
 
