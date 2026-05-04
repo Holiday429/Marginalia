@@ -7,6 +7,7 @@
 // The room view (initRoom/enterRoom) is registered here even though it is managed
 // separately by app.js showRoom() — panel-manager may call initRoom on first open.
 
+import { enterPreloader } from '../preloader/preloader.js';
 import { initShelf, enterShelf, enterPanel_shelf } from '../shelf/shelf.js';
 import { initLibrary, enterLibrary, enterPanel_library } from '../library-2d/library-2d.js';
 import { initRoom, enterRoom } from '../three-room/three-room-view.js';
@@ -25,6 +26,7 @@ interface ViewEntry {
 }
 
 export const VIEW_REGISTRY: Record<string, ViewEntry> = {
+  preloader: { enter: enterPreloader },
   shelf:    { init: initShelf,    enter: enterShelf,    enterPanel: enterPanel_shelf },
   library:  { init: initLibrary,  enter: enterLibrary,  enterPanel: enterPanel_library },
   room:     { init: initRoom,     enter: enterRoom },
