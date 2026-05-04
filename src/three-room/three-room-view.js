@@ -124,9 +124,7 @@ function buildRoomMarkup() {
         </section>
       </aside>
 
-      <nav class="room-top-tabs" aria-label="Room Top Tabs">
-        ${renderNavItems(COLLAPSED_TAB_ITEMS, 'room-nav')}
-      </nav>
+      ${renderRoomTopTabsMarkup()}
 
       <button class="room-icon-btn room-settings-trigger" type="button" id="roomSettingsTrigger" aria-label="Open Settings">
         <span class="room-gear">⚙</span>
@@ -209,9 +207,22 @@ function renderMenuToggleIcon() {
   `;
 }
 
-function renderNavItems(items, dataAttr) {
+function renderRoomTopTabsMarkup({
+  activeId = '',
+  dataAttr = 'room-nav',
+  className = 'room-top-tabs',
+  ariaLabel = 'Room Top Tabs',
+} = {}) {
+  return `
+    <nav class="${className}" aria-label="${ariaLabel}">
+      ${renderNavItems(COLLAPSED_TAB_ITEMS, dataAttr, activeId)}
+    </nav>
+  `;
+}
+
+function renderNavItems(items, dataAttr, activeId = '') {
   return items.map((item) => `
-    <button class="room-nav-item" type="button" data-${dataAttr}="${item.id}" aria-label="${item.label}">
+    <button class="room-nav-item${item.id === activeId ? ' is-active' : ''}" type="button" data-${dataAttr}="${item.id}" aria-label="${item.label}">
       <span class="room-nav-icon" aria-hidden="true">${renderIcon(item.icon)}</span>
       <span class="room-nav-label">${item.label}</span>
     </button>
@@ -469,6 +480,10 @@ function runRoomAction(action) {
     openPanel('todo');
   }
 }
+
+window.renderRoomTopTabs = function renderRoomTopTabs(options = {}) {
+  return renderRoomTopTabsMarkup(options);
+};
 
 function getReadingNowBookId() {
   const fromCore = Array.isArray(window.BOOKS)
