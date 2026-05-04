@@ -864,16 +864,15 @@ export class RoomScene {
     wallShadow.position.set(0, 1.05, -4.06);
     room.add(wallShadow);
 
-    // Cork board — framed panel on the right wall, ~6.5×3.8 with visible wall margin
+    // Cork board — framed panel centered on the right wall, sized like a hung painting
     const notesBoard = this.createWallProjectionPanel({
-      width: 6.5,
-      height: 3.8,
+      width: 4.4,
+      height: 2.6,
       panelMaterial: this.materials.board,
       frameMaterial: this.materials.panelFrame,
     });
-    notesBoard.position.set(5.20, 2.3, -0.4);
+    notesBoard.position.set(5.20, 2.3, 0);
     notesBoard.rotation.y = -Math.PI / 2;
-    notesBoard.add(this.createPinnedNotesCluster());
     notesBoard.traverse((node) => {
       const mesh = node as THREE.Mesh;
       if (!mesh.isMesh) return;
@@ -936,8 +935,9 @@ export class RoomScene {
     this.scene.add(this.decorRoot);
 
     this.registerSlot('shelfWall', [-5.22, 2.2, 0], [0, Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
-    // notesWall: matches cork board interior. container=1300×760px, scale=0.005 → 6.5×3.8 world units
-    this.registerSlot('notesWall', [5.18, 2.3, -0.4], [0, -Math.PI / 2, 0], [0.005, 0.005, 0.005]);
+    // notesWall: matches cork board interior. container=880×520px, scale=0.005 → 4.4×2.6 world units
+    // x=5.10 so the CSS3D layer sits in front of the cork board mesh (board is at x=5.20)
+    this.registerSlot('notesWall', [5.10, 2.3, 0], [0, -Math.PI / 2, 0], [0.005, 0.005, 0.005]);
     this.registerSlot('desk', [0, ROOM.DESK_SURFACE_Y + 0.12, ROOM.DESK_CENTER_Z], [-Math.PI / 2, 0, 0], [0.0048, 0.0048, 0.0048]);
   }
 

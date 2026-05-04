@@ -1,293 +1,651 @@
-/* Notes Wall — SlotComponent for the room's right wall.
-   Renders three sticky note groups: Quote of the Day, To-Do, Follow-Up. */
-
 import './notes-wall.css';
 
-// slot scale=0.005 → 1300×760px = 6.5×3.8 world units (matches cork board)
-const WALL_WIDTH  = 1300;
-const WALL_HEIGHT = 760;
+const WALL_WIDTH = 880;
+const WALL_HEIGHT = 520;
+const FOLLOWUP_MS = 7 * 24 * 60 * 60 * 1000;
+const FOLLOWUP_EXIT_MS = 520;
+const TODOS_KEY = 'marginalia_wall_todos';
+const FOLLOWUP_SWATCHES = [
+  { h: 34, s: 38, l: 83 },
+  { h: 48, s: 32, l: 84 },
+  { h: 72, s: 28, l: 82 },
+  { h: 96, s: 26, l: 84 },
+  { h: 182, s: 18, l: 84 },
+  { h: 212, s: 18, l: 84 },
+  { h: 328, s: 22, l: 86 },
+];
+const FOLLOWUP_ROTATIONS = [-3, 2, -1, 4, -4, 1];
 
-const ROTATIONS = [-4, -2, 0, 2, 3, -3, 1, -1, 4];
-
-function rot(index) {
-  return ROTATIONS[index % ROTATIONS.length];
+function esc(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
-function esc(str) {
-  return String(str || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function hashString(value) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = ((hash << 5) - hash) + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
 }
 
-// Pick today's quote deterministically by date so it stays stable across refreshes.
 function pickTodayQuote(highlights) {
   if (!highlights.length) return null;
   const day = Math.floor(Date.now() / 86400000);
   return highlights[day % highlights.length];
 }
 
-// Actions older than 7 days that are still not done.
-const FOLLOWUP_MS = 7 * 24 * 60 * 60 * 1000;
-function isFollowUp(action) {
-  const age = Date.now() - (action.createdAt || 0);
-  return age >= FOLLOWUP_MS && action.status !== 'done';
+function isFollowUp(item) {
+  const age = Date.now() - (item.createdAt || 0);
+  return age >= FOLLOWUP_MS && item.status !== 'done';
+}
+
+function formatBoardDate(date = new Date()) {
+  return {
+    month: new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date),
+    weekday: new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date),
+    day: String(date.getDate()).padStart(2, '0'),
+    year: String(date.getFullYear()),
+  };
+}
+
+function getFollowUpColor(id) {
+  const tone = FOLLOWUP_SWATCHES[hashString(id) % FOLLOWUP_SWATCHES.length];
+  return `hsl(${tone.h} ${tone.s}% ${tone.l}%)`;
+}
+
+function getFollowUpRotation(index) {
+  return FOLLOWUP_ROTATIONS[index % FOLLOWUP_ROTATIONS.length];
+}
+
+function getFollowUpAgeLabel(createdAt) {
+  const days = Math.max(7, Math.floor((Date.now() - (createdAt || 0)) / 86400000));
+  return `${days}d+ pending`;
+}
+
+function loadLocalTodos() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TODOS_KEY) || '[]');
+    return Array.isArray(parsed)
+      ? parsed.map((todo, index) => ({
+          id: todo.id || `todo-${index}`,
+          text: typeof todo.text === 'string' ? todo.text : '',
+          status: todo.status === 'done' ? 'done' : 'todo',
+          createdAt: Number.isFinite(todo.createdAt) ? todo.createdAt : Date.now(),
+        }))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalTodos(todos) {
+  try {
+    localStorage.setItem(TODOS_KEY, JSON.stringify(todos));
+  } catch {}
 }
 
 export function createNotesWallComponent() {
   let containerRef = null;
-  let unsubscribe  = null;
-
-  // ── Data ──────────────────────────────────────────────────────────────────
+  let unsubscribe = null;
+  let activeCard = null;
+  let pendingFocusTodoId = null;
+  let removingIds = new Set();
+  let renderToken = 0;
 
   async function loadData() {
+    const now = new Date();
     const store = window.NotesStore;
-    if (!store) return { quote: null, todos: [], followUps: [] };
-
-    await store.ready();
-
-    // Collect all highlights across all books for Quote of the Day
-    const allHighlights = [];
-
-    // Seed highlights from sapiens (always available)
     const sapiens = window.__SEED_SAPIENS;
-    if (sapiens?.highlights) {
-      sapiens.highlights.forEach(h => {
-        if (h.quote) allHighlights.push({ quote: h.quote, bookTitle: sapiens.titleZh || sapiens.title || 'Sapiens' });
-      });
-    }
-
-    // User highlights from IndexedDB
-    const books = await store.getAllBooks();
-    for (const book of books) {
-      const bookHighlights = await store.getHighlights(book.id);
-      bookHighlights.forEach(h => {
-        if (h.quote) allHighlights.push({ quote: h.quote, bookTitle: book.titleZh || book.title || '' });
-      });
-    }
-
-    const quote = pickTodayQuote(allHighlights);
-
-    // To-dos: stored as { id, text, status, createdAt } in localStorage for now
+    const allHighlights = [];
     const todos = loadLocalTodos();
-
-    // Follow-ups: old todos + seed actions not done
     const followUps = [];
-    todos.filter(isFollowUp).forEach(t => followUps.push({ text: t.text, createdAt: t.createdAt }));
-    if (sapiens?.actions) {
-      sapiens.actions
-        .filter(a => a.status === 'todo' || !a.status)
-        .slice(0, 3)
-        .forEach(a => followUps.push({ text: a.text, createdAt: Date.now() - FOLLOWUP_MS - 1 }));
+
+    if (sapiens?.highlights) {
+      sapiens.highlights.forEach((highlight) => {
+        if (highlight.quote) {
+          allHighlights.push({
+            quote: highlight.quote,
+            bookTitle: sapiens.titleZh || sapiens.title || 'Sapiens',
+          });
+        }
+      });
     }
 
-    return { quote, todos, followUps };
-  }
+    if (store) {
+      await store.ready();
 
-  // ── Local todo persistence (localStorage, no auth required) ───────────────
+      const books = await store.getAllBooks();
+      for (const book of books) {
+        const highlights = await store.getHighlights(book.id);
+        highlights.forEach((highlight) => {
+          if (highlight.quote) {
+            allHighlights.push({
+              quote: highlight.quote,
+              bookTitle: book.titleZh || book.title || '',
+            });
+          }
+        });
+      }
 
-  const TODOS_KEY = 'marginalia_wall_todos';
+      if (sapiens?.actions?.length) {
+        const actionStatuses = await Promise.all(
+          sapiens.actions.map(async (action) => ({
+            action,
+            status: await store.getActionStatus(sapiens.id, action.id),
+          })),
+        );
 
-  function loadLocalTodos() {
-    try {
-      return JSON.parse(localStorage.getItem(TODOS_KEY) || '[]');
-    } catch {
-      return [];
+        actionStatuses.forEach(({ action, status }) => {
+          const resolvedStatus = status || action.status || 'todo';
+          if (resolvedStatus === 'done') return;
+          followUps.push({
+            id: `action:${sapiens.id}:${action.id}`,
+            source: 'action',
+            sourceBookId: sapiens.id,
+            actionId: action.id,
+            text: action.text,
+            createdAt: Date.now() - FOLLOWUP_MS - 1,
+            status: resolvedStatus,
+          });
+        });
+      }
     }
+
+    todos
+      .filter(isFollowUp)
+      .forEach((todo) => {
+        followUps.push({
+          id: `todo:${todo.id}`,
+          source: 'todo',
+          todoId: todo.id,
+          text: todo.text,
+          createdAt: todo.createdAt,
+          status: todo.status,
+        });
+      });
+
+    followUps.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+    return {
+      now,
+      quote: pickTodayQuote(allHighlights),
+      todos,
+      activeTodos: todos.filter((todo) => todo.status !== 'done' && !isFollowUp(todo)),
+      followUps,
+    };
   }
 
-  function saveLocalTodos(todos) {
-    try {
-      localStorage.setItem(TODOS_KEY, JSON.stringify(todos));
-    } catch {}
+  function findFollowUp(data, id) {
+    return data.followUps.find((item) => item.id === id) || null;
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  function renderZoneTag(title, accent) {
+    return `
+      <div class="notes-zone__tag notes-zone__tag--${accent}">
+        <span>${esc(title)}</span>
+      </div>
+    `;
+  }
+
+  function renderQuoteZone(data) {
+    const date = formatBoardDate(data.now);
+    const quote = data.quote;
+
+    return `
+      <section class="notes-zone notes-zone--quote">
+        ${renderZoneTag('Quotes of the Day', 'quote')}
+        <button
+          class="calendar-card${quote ? '' : ' is-empty'}"
+          type="button"
+          data-open-card="quote"
+        >
+          <span class="calendar-card__rings" aria-hidden="true">
+            <i></i><i></i><i></i>
+          </span>
+          <span class="calendar-card__month">${esc(date.month)}</span>
+          <span class="calendar-card__day">${esc(date.day)}</span>
+          <span class="calendar-card__weekday">${esc(date.weekday)}</span>
+          ${
+            quote
+              ? `
+                <p class="calendar-card__quote">${esc(quote.quote)}</p>
+                <p class="calendar-card__source">— ${esc(quote.bookTitle)}</p>
+              `
+              : `
+                <p class="calendar-card__quote">Highlight a sentence to pin it here.</p>
+                <p class="calendar-card__source">Your reading wall updates daily.</p>
+              `
+          }
+        </button>
+      </section>
+    `;
+  }
+
+  function renderTodoZone(data) {
+    const rows = data.activeTodos.slice(0, 6);
+
+    return `
+      <section class="notes-zone notes-zone--todo">
+        ${renderZoneTag('To Do', 'todo')}
+        <div class="todo-paper-wrap">
+          <button class="todo-paper" type="button" data-open-card="todo">
+            <span class="todo-paper__pin" aria-hidden="true"></span>
+            <span class="todo-paper__meta">${esc(`${rows.length} open lines`)}</span>
+            <ul class="todo-paper__rows">
+              ${
+                rows.length
+                  ? rows.map((todo) => `
+                      <li class="todo-paper__row">
+                        <span class="todo-paper__dot"></span>
+                        <span class="todo-paper__text">${esc(todo.text || 'Untitled item')}</span>
+                      </li>
+                    `).join('')
+                  : `
+                    <li class="todo-paper__row is-empty">
+                      <span class="todo-paper__dot"></span>
+                      <span class="todo-paper__text">Start a new line for your next reading task.</span>
+                    </li>
+                  `
+              }
+            </ul>
+          </button>
+          <button class="todo-paper__add" type="button" data-add-todo>+ Add line</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderFollowUpSticky(item, index) {
+    const style = [
+      `--sticky-bg:${getFollowUpColor(item.id)}`,
+      `--sticky-rotate:${getFollowUpRotation(index)}deg`,
+    ].join(';');
+
+    return `
+      <button
+        class="followup-sticky${removingIds.has(item.id) ? ' is-removing' : ''}"
+        type="button"
+        style="${style}"
+        data-open-card="followup"
+        data-card-id="${esc(item.id)}"
+        data-followup-id="${esc(item.id)}"
+      >
+        <span class="followup-sticky__pin" aria-hidden="true"></span>
+        <span class="followup-sticky__text">${esc(item.text)}</span>
+      </button>
+    `;
+  }
+
+  function renderFollowUpZone(data) {
+    return `
+      <section class="notes-zone notes-zone--followup">
+        ${renderZoneTag('Follow Up', 'followup')}
+        <div class="followup-cluster">
+          ${
+            data.followUps.length
+              ? data.followUps.slice(0, 6).map(renderFollowUpSticky).join('')
+              : '<div class="followup-empty">Older unfinished actions will gather here.</div>'
+          }
+        </div>
+      </section>
+    `;
+  }
+
+  function renderQuoteOverlay(data) {
+    const date = formatBoardDate(data.now);
+    const quote = data.quote;
+
+    return `
+      <article class="notes-overlay__card notes-overlay__card--quote" data-overlay-card>
+        <button class="notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
+        <div class="quote-detail">
+          <div class="quote-detail__header">
+            <span class="quote-detail__eyebrow">Quotes of the Day</span>
+            <div class="quote-detail__date">
+              <strong>${esc(`${date.month} ${date.day}`)}</strong>
+              <span>${esc(`${date.weekday} · ${date.year}`)}</span>
+            </div>
+          </div>
+          ${
+            quote
+              ? `
+                <p class="quote-detail__body">${esc(quote.quote)}</p>
+                <p class="quote-detail__source">— ${esc(quote.bookTitle)}</p>
+              `
+              : `
+                <p class="quote-detail__body is-empty">Highlight a sentence in your books and the wall will switch to a daily tear-off card.</p>
+              `
+          }
+        </div>
+      </article>
+    `;
+  }
+
+  function renderTodoOverlay(data) {
+    return `
+      <article class="notes-overlay__card notes-overlay__card--todo" data-overlay-card>
+        <button class="notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
+        <div class="todo-detail">
+          <header class="todo-detail__head">
+            <span class="todo-detail__eyebrow">To Do</span>
+            <h3>Reading Lines</h3>
+          </header>
+          <ul class="todo-detail__rows">
+            ${
+              data.activeTodos.length
+                ? data.activeTodos.map((todo) => `
+                    <li class="todo-editor-row" data-todo-row="${esc(todo.id)}">
+                      <button
+                        class="todo-editor-row__check${todo.status === 'done' ? ' is-done' : ''}"
+                        type="button"
+                        data-toggle-todo="${esc(todo.id)}"
+                        aria-label="${todo.status === 'done' ? 'Mark as pending' : 'Mark as done'}"
+                      ></button>
+                      <span
+                        class="todo-editor-row__text"
+                        contenteditable="true"
+                        spellcheck="false"
+                        data-edit-todo="${esc(todo.id)}"
+                        data-placeholder="Write something..."
+                      >${esc(todo.text)}</span>
+                    </li>
+                  `).join('')
+                : `
+                  <li class="todo-editor-row is-empty">
+                    <span class="todo-editor-row__ghost">No active lines yet. Add one below.</span>
+                  </li>
+                `
+            }
+          </ul>
+          <button class="todo-detail__add" type="button" data-add-todo>+ Add line</button>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderFollowUpOverlay(data, id) {
+    const item = findFollowUp(data, id);
+    if (!item) return '';
+
+    const overlayClasses = [
+      'notes-overlay__card',
+      'notes-overlay__card--followup',
+      removingIds.has(item.id) ? 'is-removing' : '',
+    ].filter(Boolean).join(' ');
+
+    return `
+      <article
+        class="${overlayClasses}"
+        data-overlay-card
+        style="--sticky-bg:${getFollowUpColor(item.id)}"
+      >
+        <button class="notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
+        <div class="followup-detail">
+          <span class="followup-detail__pin" aria-hidden="true"></span>
+          <span class="followup-detail__eyebrow">${esc(getFollowUpAgeLabel(item.createdAt))}</span>
+          ${
+            item.source === 'todo'
+              ? `
+                <p
+                  class="followup-detail__body is-editable"
+                  contenteditable="true"
+                  spellcheck="false"
+                  data-edit-followup="${esc(item.todoId)}"
+                >${esc(item.text)}</p>
+              `
+              : `<p class="followup-detail__body">${esc(item.text)}</p>`
+          }
+          <div class="followup-detail__actions">
+            <button class="followup-detail__done" type="button" data-complete-followup="${esc(item.id)}">Mark Complete</button>
+            ${
+              item.source === 'todo'
+                ? '<span class="followup-detail__hint">Editable note</span>'
+                : '<span class="followup-detail__hint">Seeded action</span>'
+            }
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderOverlay(data) {
+    if (!activeCard) return '';
+
+    let content = '';
+    if (activeCard.kind === 'quote') content = renderQuoteOverlay(data);
+    if (activeCard.kind === 'todo') content = renderTodoOverlay(data);
+    if (activeCard.kind === 'followup' && activeCard.id) {
+      content = renderFollowUpOverlay(data, activeCard.id);
+    }
+    if (!content) {
+      activeCard = null;
+      return '';
+    }
+
+    return `
+      <div class="notes-overlay">
+        <button class="notes-overlay__scrim" type="button" data-close-overlay aria-label="Close detail"></button>
+        ${content}
+      </div>
+    `;
+  }
 
   async function render() {
     if (!containerRef) return;
-    const { quote, todos, followUps } = await loadData();
+    const token = ++renderToken;
+    const data = await loadData();
+    if (!containerRef || token !== renderToken) return;
+
+    if (activeCard?.kind === 'followup' && activeCard.id && !findFollowUp(data, activeCard.id)) {
+      activeCard = null;
+    }
 
     containerRef.innerHTML = `
-      <div class="notes-wall">
-        ${renderQuoteNote(quote, 0)}
-        ${renderTodoNote(todos, 1)}
-        ${followUps.length ? renderFollowUpNote(followUps, 2) : ''}
+      <div class="notes-wall" lang="zh-CN">
+        <div class="notes-wall__board">
+          ${renderQuoteZone(data)}
+          ${renderTodoZone(data)}
+          ${renderFollowUpZone(data)}
+        </div>
+        ${renderOverlay(data)}
       </div>
     `;
 
-    bindEvents();
-
-    // Re-apply zoom after every render
-    if (zoomScale !== 1) {
-      const inner = containerRef?.querySelector('.notes-wall');
-      if (inner) applyZoom(inner);
-    }
-  }
-
-  function renderQuoteNote(quote, index) {
-    const style = `transform: rotate(${rot(index)}deg)`;
-    if (!quote) {
-      return `
-        <div class="sticky-note sticky-note--quote sticky-note--empty" style="${style}">
-          <span>Highlight a sentence<br>to see it here</span>
-        </div>`;
-    }
-    return `
-      <div class="sticky-note sticky-note--quote" style="${style}">
-        <span class="sticky-note__label">Quote of the Day</span>
-        <p class="sticky-note__quote">${esc(quote.quote)}</p>
-        <p class="sticky-note__source">— ${esc(quote.bookTitle)}</p>
-      </div>`;
-  }
-
-  function renderTodoNote(todos, index) {
-    const style = `transform: rotate(${rot(index)}deg)`;
-    const activeTodos = todos.filter(t => !isFollowUp(t));
-    const itemsHtml = activeTodos.map(t => `
-      <li class="todo-item${t.status === 'done' ? ' is-done' : ''}" data-id="${esc(t.id)}">
-        <span class="todo-item__check" role="checkbox" aria-checked="${t.status === 'done'}" tabindex="0"></span>
-        <span class="todo-item__text" contenteditable="true" data-placeholder="Write something...">${esc(t.text)}</span>
-      </li>`).join('');
-
-    return `
-      <div class="sticky-note sticky-note--todo" style="${style}">
-        <span class="sticky-note__label">To Do</span>
-        <ul class="sticky-note__items">${itemsHtml}</ul>
-        <button class="sticky-note__add-btn" id="notesWallAddTodo">+ Add item</button>
-      </div>`;
-  }
-
-  function renderFollowUpNote(followUps, index) {
-    const style = `transform: rotate(${rot(index)}deg)`;
-    const itemsHtml = followUps.slice(0, 4).map(f => `
-      <li class="followup-item">
-        <span class="followup-item__text">${esc(f.text)}</span>
-        <span class="followup-item__meta">7d+ pending</span>
-      </li>`).join('');
-
-    return `
-      <div class="sticky-note sticky-note--followup" style="${style}">
-        <span class="sticky-note__label">Follow Up</span>
-        <ul class="sticky-note__items">${itemsHtml}</ul>
-      </div>`;
-  }
-
-  // ── Event binding ──────────────────────────────────────────────────────────
-
-  function bindEvents() {
-    if (!containerRef) return;
-
-    // Add todo item
-    const addBtn = containerRef.querySelector('#notesWallAddTodo');
-    if (addBtn) {
-      addBtn.addEventListener('click', () => {
-        const todos = loadLocalTodos();
-        todos.push({ id: `td-${Date.now()}`, text: '', status: 'todo', createdAt: Date.now() });
-        saveLocalTodos(todos);
-        render();
-        // Focus the new item after render
-        requestAnimationFrame(() => {
-          const items = containerRef?.querySelectorAll('.todo-item__text');
-          items?.[items.length - 1]?.focus();
-        });
-      });
-    }
-
-    // Toggle done / edit text
-    containerRef.querySelectorAll('.todo-item').forEach(item => {
-      const id = item.dataset.id;
-
-      // Checkbox toggle
-      const check = item.querySelector('.todo-item__check');
-      check?.addEventListener('click', () => toggleTodoDone(id));
-      check?.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') toggleTodoDone(id); });
-
-      // Save text on blur
-      const textEl = item.querySelector('.todo-item__text');
-      textEl?.addEventListener('blur', () => {
-        const todos = loadLocalTodos();
-        const todo = todos.find(t => t.id === id);
-        if (todo) {
-          todo.text = textEl.textContent.trim();
-          saveLocalTodos(todos);
+    if (pendingFocusTodoId) {
+      const focusId = pendingFocusTodoId;
+      pendingFocusTodoId = null;
+      requestAnimationFrame(() => {
+        const target = containerRef?.querySelector(`[data-edit-todo="${focusId}"]`);
+        if (!target) return;
+        target.focus();
+        if (document.createRange && window.getSelection) {
+          const range = document.createRange();
+          range.selectNodeContents(target);
+          range.collapse(false);
+          const selection = window.getSelection();
+          selection?.removeAllRanges();
+          selection?.addRange(range);
         }
       });
-    });
+    }
+  }
+
+  function createTodo() {
+    const todos = loadLocalTodos();
+    const todo = {
+      id: `todo-${Date.now()}`,
+      text: '',
+      status: 'todo',
+      createdAt: Date.now(),
+    };
+    todos.unshift(todo);
+    saveLocalTodos(todos);
+    activeCard = { kind: 'todo' };
+    pendingFocusTodoId = todo.id;
+    render();
+  }
+
+  function updateTodoText(id, text) {
+    const todos = loadLocalTodos();
+    const todo = todos.find((item) => item.id === id);
+    if (!todo) return;
+    todo.text = String(text || '').trim();
+    saveLocalTodos(todos);
+    render();
   }
 
   function toggleTodoDone(id) {
     const todos = loadLocalTodos();
-    const todo = todos.find(t => t.id === id);
+    const todo = todos.find((item) => item.id === id);
     if (!todo) return;
     todo.status = todo.status === 'done' ? 'todo' : 'done';
     saveLocalTodos(todos);
     render();
   }
 
-  // ── Zoom (wheel + pinch) on the inner .notes-wall div ─────────────────────
-
-  let zoomScale = 1;
-  const ZOOM_MIN = 0.5;
-  const ZOOM_MAX = 2.5;
-
-  function applyZoom(inner) {
-    inner.style.transform = `scale(${zoomScale})`;
-    inner.style.transformOrigin = 'top left';
-  }
-
-  function attachZoom(container) {
-    // Wheel zoom
-    container.addEventListener('wheel', e => {
-      e.preventDefault();
-      const inner = container.querySelector('.notes-wall');
-      if (!inner) return;
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      zoomScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomScale + delta));
-      applyZoom(inner);
-    }, { passive: false });
-
-    // Pinch zoom (touch)
-    let lastDist = null;
-    container.addEventListener('touchstart', e => {
-      if (e.touches.length === 2) {
-        lastDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY,
-        );
+  async function persistFollowUpDone(id) {
+    if (id.startsWith('todo:')) {
+      const todoId = id.slice('todo:'.length);
+      const todos = loadLocalTodos();
+      const todo = todos.find((item) => item.id === todoId);
+      if (todo) {
+        todo.status = 'done';
+        saveLocalTodos(todos);
       }
-    }, { passive: true });
-    container.addEventListener('touchmove', e => {
-      if (e.touches.length !== 2 || lastDist === null) return;
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY,
-      );
-      const ratio = dist / lastDist;
-      zoomScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomScale * ratio));
-      lastDist = dist;
-      const inner = container.querySelector('.notes-wall');
-      if (inner) applyZoom(inner);
-    }, { passive: true });
-    container.addEventListener('touchend', () => { lastDist = null; }, { passive: true });
+      return;
+    }
+
+    if (id.startsWith('action:')) {
+      const [, bookId, actionId] = id.split(':');
+      await window.NotesStore?.setActionStatus(bookId, actionId, 'done');
+    }
   }
 
-  // ── SlotComponent interface ────────────────────────────────────────────────
+  function completeFollowUp(id) {
+    if (!id || removingIds.has(id)) return;
+    removingIds = new Set(removingIds).add(id);
+
+    const sticky = containerRef?.querySelector(`[data-followup-id="${id}"]`);
+    sticky?.classList.add('is-removing');
+
+    if (activeCard?.kind === 'followup' && activeCard.id === id) {
+      const card = containerRef?.querySelector('.notes-overlay__card--followup');
+      card?.classList.add('is-removing');
+    }
+
+    window.setTimeout(async () => {
+      await persistFollowUpDone(id);
+      removingIds.delete(id);
+      if (activeCard?.kind === 'followup' && activeCard.id === id) {
+        activeCard = null;
+      }
+      render();
+    }, FOLLOWUP_EXIT_MS);
+  }
+
+  function handleClick(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const closeTrigger = target.closest('[data-close-overlay]');
+    if (closeTrigger) {
+      activeCard = null;
+      render();
+      return;
+    }
+
+    const completeTrigger = target.closest('[data-complete-followup]');
+    if (completeTrigger) {
+      completeFollowUp(completeTrigger.dataset.completeFollowup || '');
+      return;
+    }
+
+    const addTrigger = target.closest('[data-add-todo]');
+    if (addTrigger) {
+      event.stopPropagation();
+      createTodo();
+      return;
+    }
+
+    const toggleTrigger = target.closest('[data-toggle-todo]');
+    if (toggleTrigger) {
+      toggleTodoDone(toggleTrigger.dataset.toggleTodo || '');
+      return;
+    }
+
+    const openTrigger = target.closest('[data-open-card]');
+    if (openTrigger) {
+      const kind = openTrigger.dataset.openCard || '';
+      activeCard = {
+        kind,
+        id: openTrigger.dataset.cardId || null,
+      };
+      render();
+    }
+  }
+
+  function handleKeyDown(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    if (event.key === 'Escape' && activeCard) {
+      activeCard = null;
+      render();
+      return;
+    }
+
+    if (event.key === 'Enter' && target.matches('[data-edit-todo], [data-edit-followup]')) {
+      event.preventDefault();
+      target.blur();
+    }
+  }
+
+  function handleFocusOut(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    if (target.matches('[data-edit-todo]')) {
+      updateTodoText(target.dataset.editTodo || '', target.textContent || '');
+      return;
+    }
+
+    if (target.matches('[data-edit-followup]')) {
+      updateTodoText(target.dataset.editFollowup || '', target.textContent || '');
+    }
+  }
 
   return {
     mount(container) {
       containerRef = container;
+      containerRef.classList.add('notes-wall-root');
+      containerRef.addEventListener('click', handleClick);
+      containerRef.addEventListener('keydown', handleKeyDown);
+      containerRef.addEventListener('focusout', handleFocusOut);
       render();
-      attachZoom(container);
-      // Re-render when notes change
       unsubscribe = window.NotesStore?.onChange(() => render());
     },
 
     unmount() {
-      if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-      if (containerRef) containerRef.innerHTML = '';
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+      if (containerRef) {
+        containerRef.removeEventListener('click', handleClick);
+        containerRef.removeEventListener('keydown', handleKeyDown);
+        containerRef.removeEventListener('focusout', handleFocusOut);
+        containerRef.innerHTML = '';
+      }
       containerRef = null;
+      activeCard = null;
+      pendingFocusTodoId = null;
+      removingIds = new Set();
+      renderToken += 1;
     },
 
     refresh() {

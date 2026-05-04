@@ -1,0 +1,69 @@
+0 verbose cli /usr/local/bin/node /usr/local/lib/node_modules/npm/bin/npm-cli.js
+0 verbose cli /usr/local/bin/node /usr/local/lib/node_modules/npm/bin/npm-cli.js
+0 verbose cli /usr/local/bin/node /usr/local/lib/node_modules/npm/bin/npm-cli.js
+1 info using npm@11.12.0
+1 info using npm@11.12.0
+1 info using npm@11.12.0
+2 info using node@v22.16.0
+2 info using node@v22.16.0
+2 info using node@v22.16.0
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/Holiday_1/Desktop/Growth/Marginalia/.npmrc
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/Holiday_1/Desktop/Growth/Marginalia/.npmrc
+5 silly config load:file:/Users/Holiday_1/.npmrc
+4 silly config load:file:/Users/Holiday_1/Desktop/Growth/Marginalia/.npmrc
+5 silly config load:file:/Users/Holiday_1/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+5 silly config load:file:/Users/Holiday_1/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm exec @gltf-transform/cli inspect assets/3D room/chair.glb
+7 verbose title npm exec @gltf-transform/cli inspect assets/3D room/wooden_picture_frame.glb
+7 verbose title npm exec @gltf-transform/cli inspect assets/3D room/book_shelf.glb
+8 verbose argv "exec" "--" "@gltf-transform/cli" "inspect" "assets/3D room/chair.glb"
+8 verbose argv "exec" "--" "@gltf-transform/cli" "inspect" "assets/3D room/wooden_picture_frame.glb"
+8 verbose argv "exec" "--" "@gltf-transform/cli" "inspect" "assets/3D room/book_shelf.glb"
+9 verbose logfile logs-max:10 dir:/Users/Holiday_1/Desktop/Growth/Marginalia/.npm-cache/_logs/2026-05-03T07_12_31_190Z-
+9 verbose logfile logs-max:10 dir:/Users/Holiday_1/Desktop/Growth/Marginalia/.npm-cache/_logs/2026-05-03T07_12_31_190Z-
+9 verbose logfile logs-max:10 dir:/Users/Holiday_1/Desktop/Growth/Marginalia/.npm-cache/_logs/2026-05-03T07_12_31_190Z-
+10 verbose logfile /Users/Holiday_1/Desktop/Growth/Marginalia/.npm-cache/_logs/2026-05-03T07_12_31_190Z-debug-0.log
+10 verbose logfile /Users/Holiday_1/Desktop/Growth/Marginalia/.npm-cache/_logs/2026-05-03T07_12_31_190Z-debug-0.log
+10 verbose logfile /Users/Holiday_1/Desktop/Growth/Marginalia/.npm-cache/_logs/2026-05-03T07_12_31_190Z-debug-0.log
+11 silly logfile done cleaning log files
+11 silly logfile done cleaning log files
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+13 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+13 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+14 http fetch GET 200 https://registry.npmjs.org/@gltf-transform%2fcli 262ms (cache revalidated)
+15 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+14 http fetch GET 200 https://registry.npmjs.org/@gltf-transform%2fcli 269ms (cache revalidated)
+15 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+14 http fetch GET 200 https://registry.npmjs.org/@gltf-transform%2fcli 281ms (cache revalidated)
+15 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+16 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+16 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+16 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+17 verbose cwd /Users/Holiday_1/Desktop/Growth/Marginalia
+18 verbose os Darwin 25.4.0
+19 verbose node v22.16.0
+20 verbose npm  v11.12.0
+21 verbose exit 0
+22 info ok
+17 verbose cwd /Users/Holiday_1/Desktop/Growth/Marginalia
+18 verbose os Darwin 25.4.0
+19 verbose node v22.16.0
+20 verbose npm  v11.12.0
+21 verbose exit 0
+22 info ok
+17 verbose cwd /Users/Holiday_1/Desktop/Growth/Marginalia
+18 verbose os Darwin 25.4.0
+19 verbose node v22.16.0
+20 verbose npm  v11.12.0
+21 verbose exit 0
+22 info ok
