@@ -5,3 +5,5 @@ dist/
 .env.development
 .env.production
 .DS_Store
+functions/node_modules/
+functions/lib/
