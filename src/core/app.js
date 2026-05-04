@@ -245,8 +245,6 @@ const App = (() => {
 
   window.addEventListener('hashchange', syncFromHash);
 
-  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
   function renderPrimaryHeader(
     activeView,
     { showNewEntry = false, actionLabel = '', actionId = '' } = {}
