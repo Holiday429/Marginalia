@@ -1,5 +1,6 @@
 import { createThreeRoomPreview } from './three-room.js';
 import { PanelManager } from '../core/panel-manager.js';
+import { App } from '../core/app.js';
 
 const SPACE_ITEMS = [
   { id: 'shelf', label: 'Shelf', icon: 'shelf' },
@@ -656,8 +657,8 @@ function openPanel(panelId, params = {}) {
     ROOM_VIEW_STATE.transitioning = false;
     ROOM_VIEW_STATE.transitionTimer = null;
 
-    if (window.App?.navigateTo && HASH_ROUTED_PANELS.has(panelId)) {
-      window.App.navigateTo(panelId, nextParams);
+    if (App?.navigateTo && HASH_ROUTED_PANELS.has(panelId)) {
+      App.navigateTo(panelId, nextParams);
       return;
     }
     PanelManager.open(panelId, nextParams);

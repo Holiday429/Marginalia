@@ -1,6 +1,7 @@
 /* Library view — room-organize workspace */
 
 import { renderLibraryShell } from './studio-template.js';
+import { PanelManager } from '../core/panel-manager.js';
 import {
   LIBRARY_STORAGE_KEY,
   LIBRARY_WORLD_WIDTH,
@@ -325,8 +326,8 @@ function bindLibraryEvents() {
 
 function openLibraryPanel(panelId) {
   if (!panelId || panelId === 'shelf') return;
-  if (window.PanelManager?.open) {
-    window.PanelManager.open(panelId);
+  if (PanelManager?.open) {
+    PanelManager.open(panelId);
     return;
   }
   App.show(panelId);
@@ -339,7 +340,7 @@ function handleRailAction(action, sourceBtn) {
     return;
   }
   if (action === 'add-books') {
-    window.PanelManager?.open?.('shelf');
+    PanelManager?.open?.('shelf');
     window.setTimeout(() => window.NewEntry?.mount?.(), 120);
     return;
   }

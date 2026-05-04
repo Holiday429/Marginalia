@@ -13,6 +13,8 @@
    Use App.show('book', { id: 'sapiens' }) to pass params to a view.
    ========================================================================== */
 
+import { PanelManager } from './panel-manager.js';
+
 // Module-level exports for render helpers — set by App IIFE below.
 // eslint-disable-next-line prefer-const
 export let renderPrimaryHeader = null;
@@ -83,20 +85,20 @@ const App = (() => {
   function syncFromHash() {
     const rawHash = window.location.hash.replace(/^#/, '').trim();
     if (!rawHash) {
-      if (window.PanelManager) window.PanelManager.closeAll();
+      if (PanelManager) PanelManager.closeAll();
       return;
     }
 
     const requestedView = toCanonicalViewName(rawHash);
     if (requestedView === 'room') {
-      if (window.PanelManager) window.PanelManager.closeAll();
+      if (PanelManager) PanelManager.closeAll();
       return;
     }
 
     if (['shelf', 'map', 'web', 'booklist'].includes(requestedView)) {
       const params = routeParamsByView.get(requestedView) || {};
       routeParamsByView.delete(requestedView);
-      if (window.PanelManager) window.PanelManager.open(requestedView, params);
+      if (PanelManager) PanelManager.open(requestedView, params);
       return;
     }
   }
@@ -351,9 +353,7 @@ const App = (() => {
   return { show, showShelf, showRoom, navigateTo };
 })();
 
-// TODO(p0-cleanup): remove after phase 3 — callers in preloader.js and other
-// views reference window.App directly; this shim bridges module scope to global.
-window.App = App;
+export { App };
 
 // Update module-level exports from window (set inside the IIFE above).
 // eslint-disable-next-line no-import-assign
