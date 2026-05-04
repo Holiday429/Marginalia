@@ -1,12 +1,11 @@
-// @ts-nocheck — TODO(p0-cleanup): remove after Phase 3 migrates Three.js to npm
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { CSS3DObject, CSS3DRenderer } from 'https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS3DRenderer.js';
-import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js';
-import { EXRLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/EXRLoader.js';
-import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-import { RoomEnvironment } from 'https://unpkg.com/three@0.160.0/examples/jsm/environments/RoomEnvironment.js';
-import { MeshoptDecoder } from 'https://unpkg.com/three@0.160.0/examples/jsm/libs/meshopt_decoder.module.js';
+import * as THREE from 'three';
+import { CSS3DObject, CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 import { getRoomPose, type RoomPoseId } from './camera-paths.ts';
 import { getRoomSkinById } from './skins.ts';
@@ -359,7 +358,7 @@ export class RoomScene {
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
-    this.dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+    this.dracoLoader.setDecoderPath('/draco/');
     this.gltfLoader.setDRACOLoader(this.dracoLoader);
     this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
