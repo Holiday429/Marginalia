@@ -14,5 +14,8 @@
     "@types/three": "^0.160.0",
     "typescript": "^5.4.5",
     "vite": "^5.2.11"
+  },
+  "dependencies": {
+    "zod": "^4.4.2"
   }
 }
