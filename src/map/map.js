@@ -1778,7 +1778,9 @@ function escapeHTML(s) {
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[ch]);
 }
 
-// TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
 window.initMap = initMap;
 window.enterMap = enterMap;
 window.enterPanel_map = function(params = {}) { enterMap(params); };
+export { initMap, enterMap };
+export const enterPanel_map = window.enterPanel_map;
+export const mapAddBook = window.mapAddBook;

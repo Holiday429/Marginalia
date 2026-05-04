@@ -1799,3 +1799,5 @@ window.initLibrary = initLibrary;
 window.enterStudio = enterLibrary;
 window.enterLibrary = enterLibrary;
 window.enterPanel_library = function(params = {}) { enterLibrary(params); };
+export { initLibrary, enterLibrary };
+export const enterPanel_library = window.enterPanel_library;

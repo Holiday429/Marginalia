@@ -524,7 +524,8 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-// TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
 window.initWeb = initWeb;
 window.enterWeb = enterWeb;
 window.enterPanel_web = function(params = {}) { enterWeb(params); };
+export { initWeb, enterWeb };
+export const enterPanel_web = window.enterPanel_web;

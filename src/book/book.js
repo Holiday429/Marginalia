@@ -927,7 +927,8 @@ function coverArt(id) {
   return '';
 }
 
-// TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
 window.initBook = initBook;
 window.enterBook = enterBook;
 window.enterPanel_book = function(params = {}) { enterBook(params); };
+export { initBook, enterBook };
+export const enterPanel_book = window.enterPanel_book;

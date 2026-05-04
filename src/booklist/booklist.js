@@ -1437,3 +1437,5 @@ function truncateCanvas(ctx, text, maxWidth) {
 window.initBooklist = initBooklist;
 window.enterBooklist = enterBooklist;
 window.enterPanel_booklist = function(params = {}) { enterBooklist(params); };
+export { initBooklist, enterBooklist };
+export const enterPanel_booklist = window.enterPanel_booklist;

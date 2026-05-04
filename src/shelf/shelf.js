@@ -90,6 +90,7 @@ function refreshShelfFromSource() {
 }
 
 // Expose for NewEntry to trigger a re-render after adding a book
+export const renderShelfSection = refreshShelfFromSource;
 window.renderShelfSection = refreshShelfFromSource;
 
 function bindShelfEvents() {
@@ -790,7 +791,8 @@ function escapeHTML(str) {
   ));
 }
 
-// TODO(p0-cleanup): remove after phase 3 — app.js looks up init/enter via window[]
 window.initShelf = initShelf;
 window.enterShelf = enterShelf;
 window.enterPanel_shelf = function(params = {}) { enterShelf(params); };
+export { initShelf, enterShelf };
+export const enterPanel_shelf = window.enterPanel_shelf;
