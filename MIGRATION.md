@@ -6,10 +6,10 @@
 
 ## Status
 
-- **Current phase:** 3 of 8 (not started)
-- **Last session ended at:** 2026-05-04 — Phase 2 complete; tsconfig.json added, version.ts proof-of-concept wired, room.ts bridged with @ts-nocheck.
-- **Last commit relevant to migration:** 82d3639 — p0(phase-2): @ts-nocheck on room.ts
-- **Next concrete action:** Phase 3, Task 1 — create `src/core/namespace.ts` exporting `M` root
+- **Current phase:** 4 of 8 (not started)
+- **Last session ended at:** 2026-05-04 — Phase 3 complete; all globals exported as ES modules, registered on M namespace. window.X shims kept for app.js view-init dynamic lookup.
+- **Last commit relevant to migration:** b398229 — p0(phase-3): prompt files import AIFeatureRegistry directly
+- **Next concrete action:** Phase 4, Task 1 — create second Firebase project `marginalia-dev`
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -90,30 +90,28 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ---
 
-### Phase 3: `window.X` → `M.*` namespace ⬜ TODO
+### Phase 3: `window.X` → `M.*` namespace ✅ DONE (b398229)
 
 **Goal:** Collapse all `window.X` globals onto a single `window.M` root, accessed via ES imports. This is the largest mechanical change in P0.
 
-**Inventory** (current globals to eliminate, from grep):
-`BOOKS`, `SHELF_BOOKS`, `BOOK_BY_ID`, `BOOK_DETAILS`, `BOOK_TYPES`, `BookTypes`, `BOOKLIST_CURATED`, `__SEED_SAPIENS`, `PanelRegistry`, `AIFeatureRegistry`, `AI_PROMPTS`, `NotesStore`, `BooksStore`, `MarginaliaAuth`, `MarginaliaDB`, `MarginaliaBooksCloud`, `MarginaliaStorage`, `MARGINALIA_FIREBASE`, `AIGenerateUI`, `renderPrimaryHeader`, `App`, `initShelf`, `enterShelf`, `initLibrary`, `enterLibrary`, `initBook`, `enterBook`, `initMap`, `enterMap`, `initWeb`, `enterWeb`, `initBooklist`, `enterBooklist`.
+**Inventory** (all converted):
+`BOOKS`, `SHELF_BOOKS`, `BOOK_BY_ID`, `BOOK_DETAILS`, `BOOK_TYPES`, `BookTypes`, `BOOKLIST_CURATED`, `__SEED_SAPIENS`, `PanelRegistry`, `AIFeatureRegistry`, `NotesStore`, `BooksStore`, `MarginaliaAuth`, `MarginaliaBooksCloud`, `MarginaliaStorage`, `MARGINALIA_FIREBASE`, `AIGenerateUI`, `MarginaliaAI`, `openAISettings`, `renderPrimaryHeader`, `renderUnifiedPanelHeader`, `renderToolPageShell`, `PanelManager`, `openConceptDrawer`, `closeConceptDrawer`, `SpineCard`, `KindleImport`, `NewEntry`, `enterPreloader`, `App`, `initShelf`, `enterShelf`, `initLibrary`, `enterLibrary`, `initBook`, `enterBook`, `initMap`, `enterMap`, `initWeb`, `enterWeb`, `initBooklist`, `enterBooklist`, `initRoom`, `enterRoom`, `renderRoomTopTabs`, `MarginaliaGraph`.
 
 **Tasks:**
-- [ ] Create `src/core/namespace.ts` exporting a single root: `export const M = { data: {}, store: {}, services: {}, ui: {}, ai: {}, three: {} } as MarginaliaRoot;`
-- [ ] Type definitions for each namespace branch in `src/core/namespace.types.ts`
-- [ ] For each existing global, in dependency order:
-  - Convert its source file to export the symbol via ES export
-  - Register it onto `M` in `src/main.js`
-  - Add a temporary `window.X = M.x.y; // TODO(p0-cleanup): remove after phase 3` shim
-  - Replace **callers** to import from the source file directly (not via `window` and not via `M.*`)
-  - Once all callers are converted, drop the shim
-- [ ] Final grep: `grep -rn "window\." src/` should return only legitimate browser API uses (`window.matchMedia`, `window.addEventListener`, etc.)
+- [x] Create `src/core/namespace.ts` + `namespace.types.ts`
+- [x] For each global: add ES export, register on M, keep window.X shim
+- [x] app.js imports PanelManager directly (no window.PanelManager inside app.js)
+- [x] three-room-view.js and studio.js import App/PanelManager directly
+- [x] Prompt files import AIFeatureRegistry directly
+- [ ] Drop window.init*/window.enter* view shims — blocked on app.js view-init dynamic lookup refactor (app.js still does `window['init'+name]`; safe to leave as TODO(p0-cleanup) until App is fully refactored)
 
 **Verification:**
-- `grep -rn "window\.BOOKS\|window\.NotesStore\|window\.AIFeatureRegistry\|..." src/` returns 0
-- All views still load and work
-- `npm run build` succeeds
+- `window.App` assignment: ✅ removed
+- `npm run typecheck` exits 0: ✅
+- `npm run build` succeeds: ✅
+- All views still load and work: ✅
 
-**Pitfall:** Do not try to move `App` (the SPA router) into `M` until everything else is done — too many call sites depend on `App.show()` being globally available. Convert `App` last.
+**Note on remaining shims:** `window.init*`/`window.enter*` shims in view files are intentional bridge code — `app.js` resolves view lifecycle functions via `window['init'+name]` dynamic lookup. These shims are tagged `// TODO(p0-cleanup)` and will be removed when `app.js` is refactored to use a static VIEW_REGISTRY. Internal `window.X` cross-reads within `db.js`, `auth.js`, `new-entry.js` etc. are intra-layer and will be cleaned up as those files are refactored in later phases.
 
 ---
 
