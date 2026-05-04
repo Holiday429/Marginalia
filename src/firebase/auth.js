@@ -1,3 +1,6 @@
+import { validateWrite, withMeta, withMetaCreate, isLegacyDoc } from '../services/db.ts';
+import { UserProfileSchema } from '../data/schema/user-profile.ts';
+
 /* ==========================================================================
    Marginalia · Firebase auth gate
    --------------------------------------------------------------------------
@@ -345,7 +348,7 @@ export const MarginaliaAuth = window.MarginaliaAuth = (() => {
     const result = await authState.auth.createUserWithEmailAndPassword(email, password);
     if (!result.user) throw new Error('Unable to create account.');
     await result.user.updateProfile({ displayName: username });
-    await upsertUserProfile(result.user, { username, email });
+    await upsertUserProfile(result.user, { username, email }, true);
   }
 
   async function loginWithIdentity({ identity, password }) {
@@ -378,14 +381,21 @@ export const MarginaliaAuth = window.MarginaliaAuth = (() => {
       .collection('userProfiles')
       .doc(user.uid);
     const doc = await profileRef.get();
-    if (doc.exists) return;
+    if (doc.exists) {
+      // Migrate-on-read: silently stamp _v on legacy docs on next write opportunity.
+      if (isLegacyDoc(doc.data())) {
+        const payload = withMeta(validateWrite(UserProfileSchema, doc.data()));
+        await profileRef.set(payload, { merge: true });
+      }
+      return;
+    }
     await upsertUserProfile(user, {
       username: user.displayName || (user.email ? user.email.split('@')[0] : user.uid.slice(0, 8)),
       email: user.email || '',
-    });
+    }, true);
   }
 
-  async function upsertUserProfile(user, { username, email }) {
+  async function upsertUserProfile(user, { username, email }, isCreate = false) {
     const workspaceId = getWorkspaceId();
     const profileRef = authState.db
       .collection('workspaces')
@@ -393,15 +403,16 @@ export const MarginaliaAuth = window.MarginaliaAuth = (() => {
       .collection('userProfiles')
       .doc(user.uid);
 
-    await profileRef.set({
+    const raw = {
       uid: user.uid,
       username,
       usernameLower: normalizeUsername(username),
       email,
       photoURL: user.photoURL || '',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+    };
+    const validated = validateWrite(UserProfileSchema, raw);
+    const payload = isCreate ? withMetaCreate(validated) : withMeta(validated);
+    await profileRef.set(payload, { merge: true });
   }
 
   function renderAuthState() {
