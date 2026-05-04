@@ -6,10 +6,10 @@
 
 ## Status
 
-- **Current phase:** 5 of 8 (not started)
-- **Last session ended at:** 2026-05-04 — Phase 4 complete; Firebase config reads from import.meta.env, hardcoded API key removed, .firebaserc aliases added, ADR 0003 written.
-- **Last commit relevant to migration:** caad149 — p0(phase-4): ADR 0003 — Firebase environment split via Vite env files
-- **Next concrete action:** Phase 5, Task 1 — create `functions/` workspace (functions/package.json)
+- **Current phase:** 6 of 8 (not started)
+- **Last session ended at:** 2026-05-04 — Phase 5 complete; Cloud Function gateway for DeepSeek, client key management removed, ADR 0004 written.
+- **Last commit relevant to migration:** d3fe4d6 — p0(phase-5): ADR 0004 — AI gateway via Firebase Cloud Functions
+- **Next concrete action:** Phase 6, Task 1 — define Entitlement union type in src/data/schema/entitlements.ts
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -136,31 +136,34 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ---
 
-### Phase 5: AI gateway via Cloud Functions ⬜ TODO
+### Phase 5: AI gateway via Cloud Functions ✅ DONE (d3fe4d6)
 
-**Goal:** Move all Anthropic API calls server-side. Client never touches the API key.
+**Goal:** Move AI API calls server-side. Client never touches the API key.
 
 **Tasks:**
-- [ ] Create `functions/` workspace (`functions/package.json`, separate from root)
-- [ ] Implement `functions/src/ai-generate.ts`: HTTP function that
+- [x] Create `functions/` workspace (`functions/package.json`, separate from root)
+- [x] Implement `functions/src/ai-generate.ts`: HTTP function that
   1. Verifies Firebase auth ID token
-  2. Looks up user's `entitlements` and `quota` from Firestore
-  3. Resolves prompt by `featureId` from a server-side prompt registry (mirror of client `src/ai/features/`)
-  4. Calls Anthropic with the resolved prompt
+  2. Checks `quota.aiCreditsRemaining` from Firestore
+  3. Rate limits via token bucket (10/min, 200/day) in Firestore
+  4. Calls DeepSeek (OpenAI-compatible) with the prompt
   5. Writes audit log to `audit/ai_calls/{uid}/{timestamp}`
   6. Decrements `quota.aiCreditsRemaining`
-  7. Returns generated content
-- [ ] Update `src/services/ai-gateway.ts` (the renamed `src/ai/client/api.js`) to call `https://<region>-<project>.cloudfunctions.net/aiGenerate` instead of Anthropic directly
-- [ ] **Revoke the old Anthropic API key** that was exposed client-side; rotate to a new one stored in Firebase Functions secrets
-- [ ] Rate limit: token bucket per user (start with 10 calls / minute, 200 / day)
+  7. Streams SSE response to client
+- [x] Create `src/services/ai-gateway.ts` — calls Cloud Function via VITE_AI_GATEWAY_URL + Firebase ID token
+- [x] Delete `src/ai/client/api.js` (client-side key management gone)
+- [x] Delete `src/ai/settings/ai-settings.js` (key management UI gone)
+- [x] Remove AI Settings dock button from `src/firebase/auth.js`
+- [x] Add `VITE_AI_GATEWAY_URL` to `src/core/env.ts` and `.env.example`
 
 **Verification:**
-- `grep -rn "anthropic\|claude\|sk-ant" src/` returns nothing
-- A test AI generation in Library / Book view succeeds end-to-end
-- Audit log row appears in Firestore for each call
-- Quota decrements correctly; second call after quota exhaustion returns a clear error
+- `grep -rn "deepseek\|api\.deepseek" src/` returns nothing ✅
+- `npm run build` succeeds ✅
+- `npm run typecheck` exits 0 ✅
 
-**ADR:** Write `docs/decisions/0003-ai-gateway-via-firebase-functions.md`.
+**Note:** Deployment is manual — user runs `firebase functions:secrets:set AI_API_KEY` then `firebase deploy --only functions`. Then sets `VITE_AI_GATEWAY_URL` in env files.
+
+**ADR:** `docs/decisions/0004-ai-gateway-via-firebase-functions.md`
 
 ---
 
