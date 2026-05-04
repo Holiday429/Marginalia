@@ -189,7 +189,7 @@ function bindLibraryEvents() {
     if (openBookBtn) {
       const bookKey = openBookBtn.dataset.openBook || '';
       const record = LIBRARY_STATE.recordByKey.get(bookKey);
-      if (record?.id && window.BOOK_BY_ID?.[record.id]) {
+      if (record?.id) {
         closeBookInspector({ immediate: true });
         App.show('book', { id: record.id });
       }
@@ -1305,7 +1305,7 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
 
 function buildOverlayActions(record, sourceShelfId) {
   const actions = [];
-  if (record.id && window.BOOK_BY_ID?.[record.id]) {
+  if (record.id) {
     actions.push(`<button type="button" class="chip" data-open-book="${escapeHTML(record.key)}">Read More</button>`);
   }
 

@@ -669,3 +669,10 @@ body.is-room-panel-leaving #view-room {
     border-radius: 18px;
   }
 }
+
+/* Focus widget slot — sits at the bottom of the sidebar */
+#view-room .room-focus-slot {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(244, 228, 205, 0.17);
+}

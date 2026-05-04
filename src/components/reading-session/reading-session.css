@@ -1,0 +1,245 @@
+/* Marginalia · Focus widget + desk slot */
+
+/* ── Floating focus widget ────────────────────────────────────── */
+
+.focus-widget-host {
+  font-family: var(--font-mono, monospace);
+  width: 100%;
+}
+
+.fw-panel {
+  color: rgba(249, 235, 213, 0.94);
+  width: 100%;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+
+.fw-panel--active {
+  /* active state indicated by dot color only */
+}
+
+.fw-collapse-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 11px;
+  color: rgba(249, 235, 213, 0.94);
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-align: left;
+  min-height: 35px;
+  transition: background 0.16s ease;
+}
+.fw-collapse-btn:hover { background: rgba(244, 228, 205, 0.12); }
+
+/* Status dot — color only, no animation */
+.fw-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(249, 235, 213, 0.25); /* inactive: dim */
+}
+.fw-dot--active {
+  background: #6dba8a; /* active: green */
+}
+.fw-dot--pom-done {
+  background: #c8b06a; /* pomodoro complete: gold */
+}
+
+.fw-collapse-label {
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 12px;
+  letter-spacing: var(--track-service-ui, 0.02em);
+  font-weight: var(--weight-service-ui, 400);
+}
+
+.fw-collapse-icon { margin-left: auto; font-size: 0.5rem; opacity: 0.4; }
+
+.fw-panel--collapsed .fw-collapse-btn {
+  /* no change needed — collapsed just hides .fw-body */
+}
+
+.fw-body { padding: 4px 8px 8px; display: flex; flex-direction: column; gap: 10px; }
+
+.fw-head { display: flex; align-items: baseline; }
+
+.fw-timer { font-size: 1.3rem; font-weight: 600; color: rgba(249, 235, 213, 0.96); letter-spacing: 0.02em; font-family: var(--font-mono, monospace); }
+
+.fw-book-row { display: flex; flex-direction: column; gap: 4px; }
+.fw-book-label { font-size: 10px; letter-spacing: 0.06em; color: rgba(244, 228, 205, 0.74); font-family: var(--font-service-ui, var(--font-mono, monospace)); }
+
+.fw-book-select {
+  background: rgba(244, 228, 205, 0.07);
+  border: 1px solid rgba(244, 228, 205, 0.2);
+  color: rgba(249, 235, 213, 0.94);
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  width: 100%;
+}
+.fw-book-select option { background: #2c231c; }
+
+.fw-active-book {
+  font-size: 11px;
+  color: rgba(249, 235, 213, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fw-mode-row { display: flex; gap: 6px; }
+
+.fw-mode-btn {
+  flex: 1;
+  padding: 5px;
+  background: rgba(244, 228, 205, 0.07);
+  border: 1px solid rgba(244, 228, 205, 0.2);
+  color: rgba(249, 235, 213, 0.5);
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: all 0.15s;
+  min-height: 28px;
+}
+.fw-mode-btn:hover { border-color: rgba(244,228,205,0.38); color: rgba(249,235,213,0.9); }
+.fw-mode-btn--active { border-color: rgba(255, 214, 150, 0.66); color: rgba(249, 235, 213, 0.95); background: rgba(219, 166, 89, 0.26); }
+
+.fw-pom-bar {
+  height: 2px;
+  background: rgba(244,228,205,0.12);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.fw-pom-fill {
+  height: 100%;
+  background: rgba(219, 166, 89, 0.8);
+  transition: width 1s linear;
+}
+
+.fw-actions { display: flex; gap: 8px; }
+
+.fw-start-btn,
+.fw-stop-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid rgba(244, 228, 205, 0.24);
+  background: rgba(244, 228, 205, 0.07);
+  color: rgba(249, 235, 213, 0.94);
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-radius: 10px;
+  min-height: 34px;
+  transition: background 0.15s;
+}
+.fw-start-btn:hover { background: rgba(244,228,205,0.14); }
+.fw-stop-btn { border-color: rgba(200, 80, 80, 0.35); color: rgba(255,160,140,0.9); }
+.fw-stop-btn:hover { background: rgba(200,80,80,0.12); }
+
+/* ── Desk slot (CSS3DRenderer) ────────────────────────────────── */
+
+.desk-slot {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  /* Transparent when empty so the plane is invisible and doesn't block 3D props */
+  background: transparent;
+  font-family: var(--font-serif, Georgia, serif);
+  color: #1a1714;
+}
+
+/* Only show card background when a book is being displayed */
+.desk-slot:has(.desk-slot__info) {
+  background: rgba(245, 240, 228, 0.88);
+  border-radius: 2px;
+}
+
+.desk-slot__empty {
+  display: none; /* hidden entirely — transparent plane means no need for placeholder text */
+}
+
+.desk-slot__cover {
+  flex-shrink: 0;
+  width: 90px;
+  height: 130px;
+}
+
+.desk-slot__cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.desk-slot__cover-fallback {
+  width: 100%;
+  height: 100%;
+  background: var(--cv-bg, #14263e);
+  color: var(--cv-text, #e8dfc8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  box-sizing: border-box;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.desk-slot__info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.desk-slot__title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.desk-slot__author {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.desk-slot__timer {
+  font-family: var(--font-mono, monospace);
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #1a1714;
+}
+
+.desk-slot__btn {
+  align-self: flex-start;
+  padding: 8px 18px;
+  border: 1px solid #1a1714;
+  background: transparent;
+  color: #1a1714;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  min-height: 44px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.desk-slot__btn:hover { background: #1a1714; color: #f5f0e6; }
+.desk-slot__btn--stop { background: #1a1714; color: #f5f0e6; }
+.desk-slot__btn--stop:hover { opacity: 0.8; }
+.desk-slot__btn:disabled { opacity: 0.4; cursor: not-allowed; }

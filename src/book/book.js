@@ -2,7 +2,7 @@
    Marginalia · Book detail view
    ========================================================================== */
 
-import { logEvent } from '../services/analytics.ts';
+import { logEvent, logError } from '../services/analytics.ts';
 
 let __currentBookId = null;
 
@@ -185,6 +185,7 @@ async function enterBook(params = {}) {
       }
     });
   }
+
 
   // Wire up knowledge structure inner tabs
   root.querySelectorAll('.mm-top-tab').forEach(tab => {
@@ -405,6 +406,7 @@ function renderMasthead(b) {
     </header>
   `;
 }
+
 
 function renderOverview(b) {
   const cv = b.cover || {};
