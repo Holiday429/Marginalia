@@ -12,7 +12,7 @@
 
 /* ── Books sync ─────────────────────────────────────────────────────────── */
 
-window.MarginaliaBooksCloud = (() => {
+export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
   if (!window.MarginaliaAuth?.enabled) {
     return {
       enabled: false,
@@ -128,7 +128,7 @@ window.MarginaliaBooksCloud = (() => {
 
 /* ── Storage service ─────────────────────────────────────────────────────── */
 
-window.MarginaliaStorage = (() => {
+export const MarginaliaStorage = window.MarginaliaStorage = (() => {
   function isEnabled() {
     return Boolean(window.MarginaliaAuth?.enabled && window.MarginaliaAuth?.storage);
   }

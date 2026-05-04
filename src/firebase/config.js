@@ -5,7 +5,7 @@
    Keep this as plain JS because the app runs as a static multi-script page.
    ========================================================================== */
 
-window.MARGINALIA_FIREBASE = {
+export const MARGINALIA_FIREBASE = window.MARGINALIA_FIREBASE = {
   enabled: true,
   workspaceId: 'marginalia-main',
   config: {

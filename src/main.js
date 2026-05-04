@@ -33,9 +33,13 @@ M.data.BOOK_DETAILS = BOOK_DETAILS;
 M.data.BOOK_BY_ID = BOOK_BY_ID;
 
 // 2. Firebase layer
-import './firebase/config.js';
-import './firebase/auth.js';
-import './firebase/db.js';
+import { MARGINALIA_FIREBASE } from './firebase/config.js';
+import { MarginaliaAuth } from './firebase/auth.js';
+import { MarginaliaBooksCloud, MarginaliaStorage } from './firebase/db.js';
+M.services.MARGINALIA_FIREBASE = MARGINALIA_FIREBASE;
+M.services.MarginaliaAuth = MarginaliaAuth;
+M.services.MarginaliaBooksCloud = MarginaliaBooksCloud;
+M.services.MarginaliaStorage = MarginaliaStorage;
 
 // 3. State stores
 import './store/books-store.js';

@@ -6,7 +6,7 @@
    - Social login: Google one-tap (popup)
    ========================================================================== */
 
-window.MarginaliaAuth = (() => {
+export const MarginaliaAuth = window.MarginaliaAuth = (() => {
   const authState = {
     enabled: false,
     app: null,
