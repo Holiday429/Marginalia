@@ -12,7 +12,7 @@
    AI feature ids must exist in src/ai/features/registry.js.
    ========================================================================== */
 
-window.BOOK_TYPES = {
+export const BOOK_TYPES = window.BOOK_TYPES = {
 
   fiction: {
     label: 'Fiction',
@@ -61,7 +61,7 @@ window.BOOK_TYPES = {
  * @param {object} book
  * @returns {string[]}
  */
-window.BookTypes = {
+export const BookTypes = window.BookTypes = {
   getPanels(book) {
     if (Array.isArray(book.panels) && book.panels.length) return book.panels;
     const type = window.BOOK_TYPES[book.bookType];

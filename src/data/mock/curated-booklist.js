@@ -6,7 +6,7 @@
    Firestore. Exposed on window so the booklist view can read it without an
    import system.
    ========================================================================== */
-window.BOOKLIST_CURATED = [
+export const BOOKLIST_CURATED = window.BOOKLIST_CURATED = [
   { title: '活山', author: '娜恩·谢泼德 Nan Shepherd', coverSrc: 'assets/covers/活山.jpg' },
   { title: '流俗地', author: '黎紫书 Zishu Li', coverSrc: 'assets/covers/流俗地.jpg' },
   { title: '动物庄园', author: '乔治·奥威尔 George Orwell', coverSrc: 'assets/covers/动物庄园.jpg' },

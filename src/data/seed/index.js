@@ -8,13 +8,13 @@
      3. Add window.__SEED_{ID} to the array below
    ========================================================================== */
 
-window.BOOK_DETAILS = [
+export const BOOK_DETAILS = window.BOOK_DETAILS = [
   window.__SEED_SAPIENS,
   // add more seed objects here as books are authored
 ].filter(Boolean);
 
 /* Lookup helper */
-window.BOOK_BY_ID = Object.fromEntries(
+export const BOOK_BY_ID = window.BOOK_BY_ID = Object.fromEntries(
   window.BOOK_DETAILS.map((b) => [b.id, b])
 );
 

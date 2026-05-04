@@ -12,15 +12,25 @@ console.debug('[marginalia] version', APP_VERSION);
 window.M = M;
 
 // 1. Schema + type system
-import './data/schema/book-types.js';
-import './book/panels/registry.js';
-import './ai/features/registry.js';
+import { BOOK_TYPES, BookTypes } from './data/schema/book-types.js';
+import { PanelRegistry } from './book/panels/registry.js';
+import { AIFeatureRegistry } from './ai/features/registry.js';
+M.data.BOOK_TYPES = BOOK_TYPES;
+M.data.BookTypes = BookTypes;
+M.ui.PanelRegistry = PanelRegistry;
+M.ai.AIFeatureRegistry = AIFeatureRegistry;
 
 // 1b. Mock / seed data
-import './data/mock/seed-spines.js';
-import './data/mock/curated-booklist.js';
-import './data/seed/sapiens.js';
-import './data/seed/index.js';
+import { BOOKS, SHELF_BOOKS } from './data/mock/seed-spines.js';
+import { BOOKLIST_CURATED } from './data/mock/curated-booklist.js';
+import { __SEED_SAPIENS } from './data/seed/sapiens.js';
+import { BOOK_DETAILS, BOOK_BY_ID } from './data/seed/index.js';
+M.data.BOOKS = BOOKS;
+M.data.SHELF_BOOKS = SHELF_BOOKS;
+M.data.BOOKLIST_CURATED = BOOKLIST_CURATED;
+M.data.__SEED_SAPIENS = __SEED_SAPIENS;
+M.data.BOOK_DETAILS = BOOK_DETAILS;
+M.data.BOOK_BY_ID = BOOK_BY_ID;
 
 // 2. Firebase layer
 import './firebase/config.js';

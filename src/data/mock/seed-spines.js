@@ -172,3 +172,6 @@ window.SHELF_BOOKS = [
   { title:"THE MAGIC MOUNTAIN", author:"MANN",       spine:"#1e3a4a", text:"#d4c4a0", w:46, h:0.95, status:"want",     font:"'Bodoni Moda', serif",  weight:600 },
   { title:"THE STRANGER",       author:"CAMUS",      spine:"#d9cfb9", text:"#1a1714", w:26, h:0.72, status:"want",     font:"'Fraunces', serif" }
 ];
+
+export const BOOKS = window.BOOKS;
+export const SHELF_BOOKS = window.SHELF_BOOKS;

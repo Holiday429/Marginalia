@@ -14,7 +14,7 @@
    aiFeatures[] list (resolved via BookTypes.getAiFeatures) includes the id.
    ========================================================================== */
 
-window.AIFeatureRegistry = (() => {
+export const AIFeatureRegistry = window.AIFeatureRegistry = (() => {
   const _features = {
 
     /* ── Fiction ──────────────────────────────────────────────────────────── */

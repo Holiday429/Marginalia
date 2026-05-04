@@ -6,7 +6,7 @@
    bookType: 'science' → AI modules: mind map, concept graph, chapter outline
    ========================================================================== */
 
-window.__SEED_SAPIENS = {
+export const __SEED_SAPIENS = window.__SEED_SAPIENS = {
   id: 'sapiens',
 
   // ── Type system (Phase 4A) ────────────────────────────────────────────────

@@ -14,7 +14,7 @@
    This lets panel scripts load independently without strict ordering.
    ========================================================================== */
 
-window.PanelRegistry = (() => {
+export const PanelRegistry = window.PanelRegistry = (() => {
   const _panels = {
 
     /* ── Universal panels ─────────────────────────────────────────────────── */
