@@ -6,10 +6,10 @@
 
 ## Status
 
-- **Current phase:** 7 of 8 (not started)
-- **Last session ended at:** 2026-05-04 — Phase 6 complete; Entitlement type + PLAN_ENTITLEMENTS defined, EntitlementsStore wired to auth, check:entitlements CI script added.
-- **Last commit relevant to migration:** ba71289 — p0(phase-6): add check:entitlements grep script to package.json
-- **Next concrete action:** Phase 7, Task 1 — install Zod and define schemas in src/data/schema/
+- **Current phase:** 8 of 8 (not started)
+- **Last session ended at:** 2026-05-04 — Phase 7 complete; Zod installed, 6 schemas defined, withMeta/validateWrite helpers created, all write paths in db.js/auth.js/notes.js wrapped, ADR 0005 written.
+- **Last commit relevant to migration:** 33dc4e9 — p0(phase-7): ADR 0005 — Firestore schema versioning and Zod validation
+- **Next concrete action:** Phase 8, Task 1 — install @sentry/browser and wire Sentry init in src/main.js
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -185,16 +185,17 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ---
 
-### Phase 7: Firestore schema versioning + Zod validation ⬜ TODO
+### Phase 7: Firestore schema versioning + Zod validation ✅ DONE (33dc4e9)
 
 **Goal:** Every Firestore write is validated and tagged `_v: 1`. Read paths handle missing `_v` as legacy.
 
 **Tasks:**
-- [ ] Install Zod
-- [ ] Define schemas in `src/data/schema/` for `Book`, `Highlight`, `ReadingSession`, `Action`, `LibraryLayout`
-- [ ] Wrap all write paths in `services/db.ts` with: validate via Zod → add `_v: 1`, `_createdAt`, `_updatedAt` → write
-- [ ] Read paths: if doc has no `_v`, treat as legacy (v0) and migrate-on-read where safe
-- [ ] Document migration strategy in `docs/decisions/0004-schema-versioning.md`
+- [x] Install Zod
+- [x] Define schemas in `src/data/schema/` for `Book`, `BookNote`, `Highlight`, `ReadingSession`, `GraphLinkStatus`, `UserProfile`
+- [x] Create `src/services/db.ts` with `withMeta`, `withMetaCreate`, `validateWrite`, `isLegacyDoc` helpers
+- [x] Wrap all active write paths (db.js, auth.js, notes.js) with validateWrite + withMeta/withMetaCreate
+- [x] Read paths: if doc has no `_v`, treat as legacy (v0) — migrate-on-read for UserProfile only
+- [x] Document migration strategy in `docs/decisions/0005-schema-versioning.md` (0004 was already taken)
 
 **Verification:**
 - All Firestore docs created post-migration have `_v: 1`
