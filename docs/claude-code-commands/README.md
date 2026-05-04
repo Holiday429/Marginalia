@@ -37,3 +37,11 @@ Keep these three in muscle memory and the migration will not lose state across t
 ## Editing the templates
 
 These templates are checked in so they can evolve with the migration. If you change a template here, copy it back to `.claude/commands/` to take effect.
+
+## P1 commands
+
+| Command | Usage |
+|---------|-------|
+| `/p1-status` | Start any P1 session — reads state, reports status, waits for "go" |
+| `/p1-phase N` | Execute phase N of P1 — plan first, then commit-by-commit |
+| `/p1-end-session` | End-of-session protocol — commit, update P1.md, push, write handoff |
