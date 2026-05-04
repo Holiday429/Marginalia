@@ -42,7 +42,6 @@ const App = (() => {
   const views = {
     preloader: document.getElementById('view-preloader'),
     shelf:     document.getElementById('view-shelf'),   // TODO(p0-cleanup): merge into panel-library
-    studio:    document.getElementById('view-studio'),  // TODO(p0-cleanup): remove after studio.js fully migrated
     // room is the persistent shell — not in views, never toggled by show()
   };
 
@@ -240,10 +239,6 @@ const App = (() => {
     // shelf / map / web / booklist → open via PanelManager
     if (['shelf', 'map', 'web', 'booklist'].includes(requestedView)) {
       navigateTo(requestedView);
-      return;
-    }
-    if (requestedView === 'studio') {
-      show('room', { source: 'nav-library' });
       return;
     }
     show(requestedView);

@@ -1,4 +1,4 @@
-import { LIBRARY_TAB_ITEMS } from './studio-state.js';
+import { LIBRARY_TAB_ITEMS } from './library-2d-state.js';
 
 function renderFallbackTopTabs(activeId = 'shelf') {
   return LIBRARY_TAB_ITEMS.map((item) => `

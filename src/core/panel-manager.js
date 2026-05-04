@@ -19,9 +19,9 @@ const PANEL_ELEMENT_ID = {
   shelf: 'view-shelf',
 };
 
-// Maps panel ID → the legacy body[data-view] value that existing CSS expects
+// Maps panel ID → body[data-view] value used by CSS selectors
 const PANEL_DATA_VIEW = {
-  library:  'studio',
+  library:  'library-2d',
   shelf:    'shelf',
   map:      'map',
   book:     'book',

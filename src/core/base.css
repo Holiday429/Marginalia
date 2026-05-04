@@ -177,7 +177,8 @@ body[data-view="shelf"] {
   --accent: var(--accent-gold);
 }
 
-/* Shelf Studio — same dark warm base */
+/* Library 2D — same dark warm base */
+body[data-view="library-2d"],
 body[data-view="studio"] {
   --bg: var(--bg-tool);
   --bg-soft: var(--bg-tool-soft);

@@ -90,12 +90,12 @@ M.ai.AIGenerateUI = AIGenerateUI;
 import './book/panels/notes.js';
 import './book/panels/claude-import.js';
 
-// 6. Views (studio/room-scene.js and preloader/hero-glb.js stay in index.html as type="module")
+// 6. Views (three-room/room-scene.js and preloader/hero-glb.js stay in index.html as type="module")
 // window.__heroGLBReadyPromise is set by hero-glb.js (HTML script tag, not bundled — see ADR 0002)
 import { enterPreloader } from './preloader/preloader.js';
 M.views.enterPreloader = enterPreloader;
 import { initShelf, enterShelf, enterPanel_shelf, renderShelfSection } from './shelf/shelf.js';
-import { initLibrary, enterLibrary, enterPanel_library } from './studio/studio.js';
+import { initLibrary, enterLibrary, enterPanel_library } from './library-2d/library-2d.js';
 import { initRoom, enterRoom, renderRoomTopTabs } from './three-room/three-room-view.js';
 import { initBooklist, enterBooklist, enterPanel_booklist } from './booklist/booklist.js';
 import { initBook, enterBook, enterPanel_book } from './book/book.js';
