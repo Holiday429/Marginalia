@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="src/core/base.css">
   <link rel="stylesheet" href="src/preloader/preloader.css">
   <link rel="stylesheet" href="src/shelf/shelf.css">
-  <link rel="stylesheet" href="src/studio/studio.css">
+  <link rel="stylesheet" href="src/library-2d/library-2d.css">
   <link rel="stylesheet" href="src/three-room/three-room.css">
   <link rel="stylesheet" href="src/components/notes-wall/notes-wall.css">
   <link rel="stylesheet" href="src/booklist/booklist.css">
@@ -36,14 +36,6 @@
   <script src="https://cdn.amcharts.com/lib/5/geodata/worldLow.js"></script>
   <script src="https://cdn.amcharts.com/lib/5/geodata/chinaHigh.js"></script>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
 </head>
 <body>
   <svg aria-hidden="true" width="0" height="0" style="position:absolute; width:0; height:0; overflow:hidden;">
@@ -251,8 +243,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <!-- hero-glb uses Three.js via full CDN URL — keep as module script so imports pass through -->
-  <!-- room-scene.js does not exist on disk (removed in earlier commit) -->
+  <!-- hero-glb runs early so window.__heroGLBReadyPromise is set before main.js -->
   <script type="module" src="src/preloader/hero-glb.js"></script>
 
   <!-- Vite entry: all other src/ scripts loaded in dependency order via src/main.js -->

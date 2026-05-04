@@ -20,7 +20,9 @@
       "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia show 771fdac:src/home/home.js)",
       "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia stash push -m \"codex/shelf-studio changes \\(auth, app, base\\)\" -- src/core/app.js src/core/auth.css src/core/base.css src/firebase/auth.js index.html)",
       "Bash(npm run *)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/)",
+      "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia add MIGRATION.md)",
+      "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia commit -m ' *)"
     ]
   }
 }

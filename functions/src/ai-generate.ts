@@ -8,9 +8,14 @@
    Response: SSE stream of text/event-stream, or JSON on error
 */
 
+import * as Sentry from '@sentry/node';
 import * as functions from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import OpenAI from 'openai';
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN, environment: process.env.GCLOUD_PROJECT ?? 'unknown' });
+}
 
 admin.initializeApp();
 
@@ -149,6 +154,7 @@ export const aiGenerate = functions.onRequest(
       res.write('data: [DONE]\n\n');
     } catch (err) {
       streamError = err as Error;
+      Sentry.captureException(streamError, { extra: { featureId, uid } });
       res.write(`data: ${JSON.stringify({ error: streamError.message })}\n\n`);
     } finally {
       res.end();
