@@ -2,6 +2,9 @@
 // original load order. CDN scripts (Firebase compat, amCharts) and the two
 // existing ES module scripts (room-scene.js, hero-glb.js) stay in index.html.
 
+import { APP_VERSION } from './core/version.ts';
+console.debug('[marginalia] version', APP_VERSION);
+
 // 1. Schema + type system
 import './data/schema/book-types.js';
 import './book/panels/registry.js';
