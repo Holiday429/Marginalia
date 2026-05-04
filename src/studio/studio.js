@@ -1,6 +1,7 @@
 /* Library view — room-organize workspace */
 
 import { logError } from '../services/analytics.ts';
+import { withMeta } from '../services/db.ts';
 import { renderLibraryShell } from './studio-template.js';
 import { PanelManager } from '../core/panel-manager.js';
 import {
@@ -39,12 +40,10 @@ function initLibrary(params = {}) {
   host.innerHTML = renderLibraryShell();
 
   syncLibraryRecords();
-  hydrateLibraryLayout();
   bindLibraryEvents();
-  renderLibrary();
-  scheduleDefaultFrontView();
-  applyCameraTransform();
-  applyLibraryEntry(params, { immediate: true });
+  // hydrateLibraryLayout is async (Firestore read when signed in).
+  // It calls renderLibrary() itself after hydration completes.
+  hydrateLibraryLayout(params);
 }
 
 function enterLibrary(params = {}) {
@@ -427,50 +426,55 @@ function syncLibraryRecords() {
   LIBRARY_STATE.recordByKey = map;
 }
 
-function hydrateLibraryLayout() {
-  const saved = readStoredLayout();
+async function hydrateLibraryLayout(initParams = {}) {
+  const saved = await readStoredLayout();
   if (!saved) {
     arrangeByStatus();
     saveLayout();
-    return;
+  } else {
+    LIBRARY_STATE.shelves = (saved.shelves || []).map((shelf) => ({
+      id: normalizeShelfId(shelf.id),
+      name: normalizeShelfName(shelf.name, shelf.id),
+      color: shelf.color || '#7a6040',
+      rows: clampInt(shelf.rows, 1, LIBRARY_MAX_ROWS, 2),
+      viewMode: normalizeShelfMode(shelf.viewMode || 'spine'),
+      status: normalizeReadingStatus(shelf.status || ''),
+      x: Number(shelf.x) || 0,
+      y: Number(shelf.y) || 0,
+      tilt: 0,
+      pitch: 0,
+      yaw: clamp(Number(shelf.yaw), -55, 55, 0),
+      bookKeys: Array.isArray(shelf.bookKeys) ? shelf.bookKeys.slice() : [],
+    }));
+
+    LIBRARY_STATE.shelves = dedupeShelvesById(LIBRARY_STATE.shelves);
+    LIBRARY_STATE.pool = [];
+    const rawViewX = Number(saved.view?.x) || 0;
+    const rawViewY = Number(saved.view?.y) || 0;
+    // v5 and earlier stored translate offsets (can be negative). v6 uses scroll offsets.
+    LIBRARY_STATE.view.x = Math.max(0, rawViewX < 0 ? Math.abs(rawViewX) : rawViewX);
+    LIBRARY_STATE.view.y = Math.max(0, rawViewY < 0 ? Math.abs(rawViewY) : rawViewY);
+    LIBRARY_STATE.view.scale = clamp(Number(saved.view?.scale), LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, 1);
+    LIBRARY_STATE.camera.yaw = 0;
+    LIBRARY_STATE.camera.pitch = 0;
+    LIBRARY_STATE.sceneMode = 'flat';
+
+    ensureBaseShelves();
+
+    const legacyPool = Array.isArray(saved.pool) ? saved.pool : [];
+    if (legacyPool.length) {
+      const confirmShelf = getShelfById('confirm-later');
+      if (confirmShelf) confirmShelf.bookKeys.push(...legacyPool);
+    }
+
+    mergeLayoutWithRecords();
   }
 
-  LIBRARY_STATE.shelves = (saved.shelves || []).map((shelf) => ({
-    id: normalizeShelfId(shelf.id),
-    name: normalizeShelfName(shelf.name, shelf.id),
-    color: shelf.color || '#7a6040',
-    rows: clampInt(shelf.rows, 1, LIBRARY_MAX_ROWS, 2),
-    viewMode: normalizeShelfMode(shelf.viewMode || 'spine'),
-    status: normalizeReadingStatus(shelf.status || ''),
-    x: Number(shelf.x) || 0,
-    y: Number(shelf.y) || 0,
-    tilt: 0,
-    pitch: 0,
-    yaw: clamp(Number(shelf.yaw), -55, 55, 0),
-    bookKeys: Array.isArray(shelf.bookKeys) ? shelf.bookKeys.slice() : [],
-  }));
-
-  LIBRARY_STATE.shelves = dedupeShelvesById(LIBRARY_STATE.shelves);
-  LIBRARY_STATE.pool = [];
-  const rawViewX = Number(saved.view?.x) || 0;
-  const rawViewY = Number(saved.view?.y) || 0;
-  // v5 and earlier stored translate offsets (can be negative). v6 uses scroll offsets.
-  LIBRARY_STATE.view.x = Math.max(0, rawViewX < 0 ? Math.abs(rawViewX) : rawViewX);
-  LIBRARY_STATE.view.y = Math.max(0, rawViewY < 0 ? Math.abs(rawViewY) : rawViewY);
-  LIBRARY_STATE.view.scale = clamp(Number(saved.view?.scale), LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, 1);
-  LIBRARY_STATE.camera.yaw = 0;
-  LIBRARY_STATE.camera.pitch = 0;
-  LIBRARY_STATE.sceneMode = 'flat';
-
-  ensureBaseShelves();
-
-  const legacyPool = Array.isArray(saved.pool) ? saved.pool : [];
-  if (legacyPool.length) {
-    const confirmShelf = getShelfById('confirm-later');
-    if (confirmShelf) confirmShelf.bookKeys.push(...legacyPool);
-  }
-
-  mergeLayoutWithRecords();
+  // Render after hydration (was called synchronously after hydrateLibraryLayout before).
+  renderLibrary();
+  scheduleDefaultFrontView();
+  applyCameraTransform();
+  applyLibraryEntry(initParams, { immediate: true });
 }
 
 function dedupeShelvesById(input) {
@@ -1749,6 +1753,8 @@ function getSpineSize(record) {
   };
 }
 
+let _layoutSaveTimer = null;
+
 function saveLayout() {
   const payload = {
     shelves: LIBRARY_STATE.shelves.map((shelf) => ({
@@ -1770,21 +1776,51 @@ function saveLayout() {
       y: LIBRARY_STATE.view.y,
       scale: LIBRARY_STATE.view.scale,
     },
-    camera: {
-      yaw: 0,
-      pitch: 0,
-    },
+    camera: { yaw: 0, pitch: 0 },
     sceneMode: 'flat',
   };
 
+  // Always write localStorage as a fast local cache.
   try {
     localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(payload));
   } catch (error) {
     logError(error, { context: 'Library localStorage save' });
   }
+
+  // Debounced Firestore write (≥500ms after last drag-end) when signed in.
+  const auth = window.MarginaliaAuth;
+  const uid  = auth?.user?.uid;
+  const db   = auth?.db;
+  if (!uid || !db) return;
+
+  if (_layoutSaveTimer) clearTimeout(_layoutSaveTimer);
+  _layoutSaveTimer = setTimeout(() => {
+    _layoutSaveTimer = null;
+    db.collection('users').doc(uid).collection('data').doc('library_layout')
+      .set(withMeta(payload), { merge: true })
+      .catch((err) => logError(err, { context: 'Library Firestore layout save' }));
+  }, 500);
 }
 
-function readStoredLayout() {
+async function readStoredLayout() {
+  // Prefer Firestore when signed in; fall back to localStorage.
+  const auth = window.MarginaliaAuth;
+  const uid  = auth?.user?.uid;
+  const db   = auth?.db;
+
+  if (uid && db) {
+    try {
+      const doc = await db.collection('users').doc(uid).collection('data').doc('library_layout').get();
+      if (doc.exists) {
+        const data = doc.data();
+        if (data && Array.isArray(data.shelves)) return data;
+      }
+    } catch (err) {
+      logError(err, { context: 'Library Firestore layout read' });
+    }
+  }
+
+  // localStorage fallback (unauthenticated or Firestore miss).
   try {
     const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
     if (!raw) return null;

@@ -45,7 +45,7 @@ M.services.MarginaliaStorage = MarginaliaStorage;
 
 // 3. State stores
 import { NotesStore } from './store/notes-store.js';
-import { BooksStore } from './store/books-store.js';
+import { BooksStore } from './store/books-store.ts';
 import { EntitlementsStore } from './store/entitlements-store.ts';
 M.store.NotesStore = NotesStore;
 M.store.BooksStore = BooksStore;
@@ -109,3 +109,17 @@ M.views.initBook = initBook; M.views.enterBook = enterBook; M.views.enterPanel_b
 M.views.initMap = initMap; M.views.enterMap = enterMap; M.views.enterPanel_map = enterPanel_map; M.views.mapAddBook = mapAddBook;
 M.views.initWeb = initWeb; M.views.enterWeb = enterWeb; M.views.enterPanel_web = enterPanel_web;
 M.ui.renderShelfSection = renderShelfSection;
+
+// Wire BooksStore to Firebase auth state.
+// When a user signs in, start the Firestore onSnapshot listener.
+// When signed out, detach and fall back to seed demo data.
+window.addEventListener('marginalia:auth-changed', (event) => {
+  const { user, enabled } = event.detail || {};
+  if (!enabled) return;
+  const db = MarginaliaAuth.db;
+  if (user?.uid && db) {
+    BooksStore.initWithUser(user.uid, db);
+  } else {
+    BooksStore.teardown();
+  }
+});
