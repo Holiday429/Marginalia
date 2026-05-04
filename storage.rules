@@ -10,7 +10,23 @@ service firebase.storage {
       return isAuthed() && request.auth.uid == uid;
     }
 
-    // workspaces/{workspaceId}/users/{uid}/...
+    function isAllowedImageType() {
+      return request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
+    }
+
+    function isUnder2MB() {
+      return request.resource.size < 2 * 1024 * 1024;
+    }
+
+    // Cover images — image MIME only, ≤ 2MB, owner only.
+    match /workspaces/{workspaceId}/users/{uid}/covers/{allPaths=**} {
+      allow read: if isSelfWorkspaceUser(workspaceId, uid);
+      allow write: if isSelfWorkspaceUser(workspaceId, uid)
+                   && isAllowedImageType()
+                   && isUnder2MB();
+    }
+
+    // All other user files (note attachments, etc.) — owner only, no MIME restriction.
     match /workspaces/{workspaceId}/users/{uid}/{allPaths=**} {
       allow read, write: if isSelfWorkspaceUser(workspaceId, uid);
     }
