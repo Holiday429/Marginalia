@@ -6,10 +6,10 @@
 
 ## Status
 
-- **Current phase:** 6 of 8 (not started)
-- **Last session ended at:** 2026-05-04 — Phase 5 complete; Cloud Function gateway for DeepSeek, client key management removed, ADR 0004 written.
-- **Last commit relevant to migration:** d3fe4d6 — p0(phase-5): ADR 0004 — AI gateway via Firebase Cloud Functions
-- **Next concrete action:** Phase 6, Task 1 — define Entitlement union type in src/data/schema/entitlements.ts
+- **Current phase:** 7 of 8 (not started)
+- **Last session ended at:** 2026-05-04 — Phase 6 complete; Entitlement type + PLAN_ENTITLEMENTS defined, EntitlementsStore wired to auth, check:entitlements CI script added.
+- **Last commit relevant to migration:** ba71289 — p0(phase-6): add check:entitlements grep script to package.json
+- **Next concrete action:** Phase 7, Task 1 — install Zod and define schemas in src/data/schema/
 
 When you finish a session, update the three lines above and commit this file together with your changes.
 
@@ -167,17 +167,17 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ---
 
-### Phase 6: Entitlements schema + store ⬜ TODO
+### Phase 6: Entitlements schema + store ✅ DONE (ba71289)
 
 **Goal:** Frame every gated feature on `entitlements`, never on `plan === 'pro'` strings.
 
 **Tasks:**
-- [ ] Define `Entitlement` union type in `src/data/schema/entitlements.ts` (see `CLAUDE.md` § Entitlements)
-- [ ] Define `Plan` type and `PLAN_ENTITLEMENTS` mapping in same file
-- [ ] On user sign-in / first-write, ensure user doc has `plan: 'free'` and resolved `entitlements: PLAN_ENTITLEMENTS.free` in `users/{uid}`
-- [ ] Create `src/store/entitlements-store.ts` exposing `hasEntitlement(id)`, `subscribe(callback)`, and an event emitter on changes
-- [ ] Audit existing code for any hardcoded "is Pro" checks; replace them all with `hasEntitlement('feature-x')`
-- [ ] Add an ESLint rule (or grep check in CI) that bans `user.plan === 'pro'` patterns
+- [x] Define `Entitlement` union type in `src/data/schema/entitlements.ts` (see `CLAUDE.md` § Entitlements)
+- [x] Define `Plan` type and `PLAN_ENTITLEMENTS` mapping in same file
+- [x] On user sign-in / first-write, ensure user doc has `plan: 'free'` and resolved `entitlements: PLAN_ENTITLEMENTS.free` in `users/{uid}`
+- [x] Create `src/store/entitlements-store.ts` exposing `hasEntitlement(id)`, `subscribe(callback)`, and an event emitter on changes
+- [x] Audit existing code for any hardcoded "is Pro" checks; replace them all with `hasEntitlement('feature-x')` (greenfield — none existed)
+- [x] Add an ESLint rule (or grep check in CI) that bans `user.plan === 'pro'` patterns (`npm run check:entitlements`)
 
 **Verification:**
 - New users get the correct default entitlements written to their user doc
