@@ -1,3 +1,4 @@
+// @ts-nocheck — TODO(p0-cleanup): remove after Phase 3 migrates Three.js to npm
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { CSS3DObject, CSS3DRenderer } from 'https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS3DRenderer.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
