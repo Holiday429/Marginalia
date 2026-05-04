@@ -526,8 +526,5 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-window.initWeb = initWeb;
-window.enterWeb = enterWeb;
-window.enterPanel_web = function(params = {}) { enterWeb(params); };
 export { initWeb, enterWeb };
-export const enterPanel_web = window.enterPanel_web;
+export function enterPanel_web(params = {}) { enterWeb(params); }

@@ -791,8 +791,5 @@ function escapeHTML(str) {
   ));
 }
 
-window.initShelf = initShelf;
-window.enterShelf = enterShelf;
-window.enterPanel_shelf = function(params = {}) { enterShelf(params); };
 export { initShelf, enterShelf };
-export const enterPanel_shelf = window.enterPanel_shelf;
+export function enterPanel_shelf(params = {}) { enterShelf(params); }

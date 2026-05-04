@@ -15,6 +15,7 @@
 
 import { PanelManager } from './panel-manager.js';
 import { logEvent, logError } from '../services/analytics.ts';
+import { VIEW_REGISTRY } from './view-registry.ts';
 
 // Module-level exports for render helpers — set by App IIFE below.
 // eslint-disable-next-line prefer-const
@@ -138,14 +139,12 @@ const App = (() => {
     document.body.dataset.view = canonicalName;
     if (canonicalName !== 'map') document.body.classList.remove('map-panel-open');
 
-    // Run init<Name>() once, enter<Name>() every time
+    // Run init once, enter every time — resolved from VIEW_REGISTRY
     if (!initialized.has(canonicalName)) {
-      const initFn = window['init' + cap(canonicalName)];
-      if (typeof initFn === 'function') initFn(params);
+      VIEW_REGISTRY[canonicalName]?.init?.(params);
       initialized.add(canonicalName);
     }
-    const enterFn = window['enter' + cap(canonicalName)];
-    if (typeof enterFn === 'function') enterFn(params);
+    VIEW_REGISTRY[canonicalName]?.enter?.(params);
 
     // Highlight nav state
     setActiveNav(canonicalName);
@@ -167,8 +166,8 @@ const App = (() => {
     shelf.hidden = false;
     document.body.dataset.view = 'shelf';
     setActiveNav('shelf');
-    if (typeof window.initShelf === 'function' && !initialized.has('shelf')) {
-      try { window.initShelf(); } catch(e) { logError(e, { context: 'App initShelf' }); }
+    if (!initialized.has('shelf')) {
+      try { VIEW_REGISTRY.shelf?.init?.(); } catch(e) { logError(e, { context: 'App initShelf' }); }
       initialized.add('shelf');
     }
 
@@ -203,8 +202,8 @@ const App = (() => {
     document.body.dataset.view = 'room';
     setActiveNav('room');
 
-    if (typeof window.initRoom === 'function' && !initialized.has('room')) {
-      try { window.initRoom(); } catch(e) { logError(e, { context: 'App initRoom' }); }
+    if (!initialized.has('room')) {
+      try { VIEW_REGISTRY.room?.init?.(); } catch(e) { logError(e, { context: 'App initRoom' }); }
       initialized.add('room');
     }
 

@@ -463,7 +463,6 @@ function enterPreloader(params = {}) {
 }
 
 export { enterPreloader };
-window.enterPreloader = enterPreloader;
 
 // --- Skip & Replay ------------------------------------------------
 

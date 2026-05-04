@@ -1832,10 +1832,5 @@ async function readStoredLayout() {
   }
 }
 
-window.initStudio = initLibrary;
-window.initLibrary = initLibrary;
-window.enterStudio = enterLibrary;
-window.enterLibrary = enterLibrary;
-window.enterPanel_library = function(params = {}) { enterLibrary(params); };
 export { initLibrary, enterLibrary };
-export const enterPanel_library = window.enterPanel_library;
+export function enterPanel_library(params = {}) { enterLibrary(params); }

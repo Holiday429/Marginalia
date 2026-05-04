@@ -930,8 +930,5 @@ function coverArt(id) {
   return '';
 }
 
-window.initBook = initBook;
-window.enterBook = enterBook;
-window.enterPanel_book = function(params = {}) { enterBook(params); };
 export { initBook, enterBook };
-export const enterPanel_book = window.enterPanel_book;
+export function enterPanel_book(params = {}) { enterBook(params); }
