@@ -67,18 +67,18 @@ function render(host: HTMLElement): void {
   host.innerHTML = `
     <div class="fw-panel${state.collapsed ? ' fw-panel--collapsed' : ''}${isActive ? ' fw-panel--active' : ''}">
       <button class="fw-collapse-btn" type="button" data-fw-collapse aria-label="Toggle focus widget">
-        ${isActive ? `<span class="fw-dot"></span>` : ''}
+        <span class="fw-dot${isActive ? ' fw-dot--active' : ''}"></span>
+        <span class="fw-collapse-label">${state.collapsed && isActive ? timer : 'Focus Session'}</span>
         <span class="fw-collapse-icon">${state.collapsed ? '▲' : '▼'}</span>
       </button>
 
-      ${state.collapsed ? `
-        <div class="fw-collapsed-timer">${isActive ? timer : 'Focus'}</div>
-      ` : `
+      ${state.collapsed ? '' : `
         <div class="fw-body">
-          <div class="fw-head">
-            <span class="fw-label">Focus Session</span>
-            ${isActive ? `<span class="fw-timer" data-fw-timer>${timer}</span>` : ''}
-          </div>
+          ${isActive ? `
+            <div class="fw-head">
+              <span class="fw-timer" data-fw-timer>${timer}</span>
+            </div>
+          ` : ''}
 
           ${!isActive && books.length ? `
             <div class="fw-book-row">
@@ -161,8 +161,11 @@ function _startTicker(host: HTMLElement): void {
   state.tickerId = setInterval(() => {
     const active = getActive();
     if (!active) { clearInterval(state.tickerId!); state.tickerId = null; return; }
+    const display = getTimerDisplay();
     const timerEl = host.querySelector('[data-fw-timer]');
-    if (timerEl) timerEl.textContent = getTimerDisplay();
+    if (timerEl) timerEl.textContent = display;
+    const labelEl = host.querySelector('.fw-collapse-label');
+    if (labelEl && state.collapsed) labelEl.textContent = display;
     const fill = host.querySelector<HTMLElement>('.fw-pom-fill');
     if (fill) fill.style.width = `${_pomodoroProgress()}%`;
   }, 1000);
@@ -179,17 +182,21 @@ async function _stopSession(host: HTMLElement): Promise<void> {
 function _onPomodoroEnd(host: HTMLElement): void {
   if (state.tickerId) { clearInterval(state.tickerId); state.tickerId = null; }
   state.pomodoroEnd = null;
-  // Visual signal — flash the widget
-  host.querySelector('.fw-panel')?.classList.add('fw-panel--pom-done');
-  setTimeout(() => host.querySelector('.fw-panel')?.classList.remove('fw-panel--pom-done'), 2000);
+  // Visual signal — gold dot briefly
+  const dot = host.querySelector('.fw-dot');
+  if (dot) { dot.classList.add('fw-dot--pom-done'); dot.classList.remove('fw-dot--active'); }
+  setTimeout(() => dot?.classList.remove('fw-dot--pom-done'), 3000);
   // Stop automatically
   sessionStop().then(() => render(host));
 }
+
+let _host: HTMLElement | null = null;
 
 export function mountFocusWidget(): void {
   const host = document.createElement('div');
   host.className = 'focus-widget-host';
   document.body.appendChild(host);
+  _host = host;
 
   render(host);
 
@@ -197,4 +204,14 @@ export function mountFocusWidget(): void {
   window.addEventListener('marginalia:books-changed', () => {
     if (!getActive()) render(host);
   });
+}
+
+export function attachFocusWidgetTo(slot: HTMLElement): void {
+  if (!_host) return;
+  slot.appendChild(_host);
+}
+
+export function detachFocusWidgetToBody(): void {
+  if (!_host || _host.parentElement === document.body) return;
+  document.body.appendChild(_host);
 }

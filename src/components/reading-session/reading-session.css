@@ -3,142 +3,126 @@
 /* ── Floating focus widget ────────────────────────────────────── */
 
 .focus-widget-host {
-  position: fixed;
-  bottom: 28px;
-  right: 28px;
-  z-index: 8000;
   font-family: var(--font-mono, monospace);
+  width: 100%;
 }
 
 .fw-panel {
-  background: rgba(26, 23, 20, 0.92);
-  backdrop-filter: blur(12px);
-  color: #e8dfc8;
-  border: 1px solid rgba(232, 223, 200, 0.12);
-  border-radius: 4px;
-  width: 220px;
+  color: rgba(249, 235, 213, 0.94);
+  width: 100%;
   overflow: hidden;
-  transition: box-shadow 0.3s;
+  transition: opacity 0.2s;
 }
 
 .fw-panel--active {
-  border-color: rgba(232, 223, 200, 0.28);
-  box-shadow: 0 0 0 1px rgba(232, 223, 200, 0.08), 0 8px 32px rgba(0,0,0,0.4);
-}
-
-.fw-panel--pom-done {
-  animation: fw-pom-flash 0.5s ease-in-out 3;
-}
-
-@keyframes fw-pom-flash {
-  0%, 100% { border-color: rgba(232, 223, 200, 0.28); }
-  50%       { border-color: rgba(200, 180, 100, 0.8); box-shadow: 0 0 24px rgba(200,180,100,0.3); }
+  /* active state indicated by dot color only */
 }
 
 .fw-collapse-btn {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 6px 8px;
   background: transparent;
   border: none;
-  color: rgba(232, 223, 200, 0.5);
-  font-family: var(--font-mono, monospace);
-  font-size: 0.65rem;
+  border-radius: 11px;
+  color: rgba(249, 235, 213, 0.94);
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 12px;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  letter-spacing: 0.06em;
   text-align: left;
-  border-bottom: 1px solid rgba(232, 223, 200, 0.07);
+  min-height: 35px;
+  transition: background 0.16s ease;
 }
-.fw-collapse-btn:hover { color: rgba(232, 223, 200, 0.9); }
+.fw-collapse-btn:hover { background: rgba(244, 228, 205, 0.12); }
 
+/* Status dot — color only, no animation */
 .fw-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #c8b06a;
   flex-shrink: 0;
-  animation: fw-pulse 2s ease-in-out infinite;
+  background: rgba(249, 235, 213, 0.25); /* inactive: dim */
+}
+.fw-dot--active {
+  background: #6dba8a; /* active: green */
+}
+.fw-dot--pom-done {
+  background: #c8b06a; /* pomodoro complete: gold */
 }
 
-@keyframes fw-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
+.fw-collapse-label {
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 12px;
+  letter-spacing: var(--track-service-ui, 0.02em);
+  font-weight: var(--weight-service-ui, 400);
 }
 
-.fw-collapse-icon { margin-left: auto; font-size: 0.5rem; }
+.fw-collapse-icon { margin-left: auto; font-size: 0.5rem; opacity: 0.4; }
 
 .fw-panel--collapsed .fw-collapse-btn {
-  border-bottom: none;
-  padding: 10px 12px;
+  /* no change needed — collapsed just hides .fw-body */
 }
 
-.fw-collapsed-timer {
-  display: inline;
-  font-size: 0.75rem;
-  color: #c8b06a;
-  margin-left: 4px;
-}
+.fw-body { padding: 4px 8px 8px; display: flex; flex-direction: column; gap: 10px; }
 
-.fw-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.fw-head { display: flex; align-items: baseline; }
 
-.fw-head { display: flex; align-items: baseline; justify-content: space-between; }
-
-.fw-label { font-size: 0.65rem; letter-spacing: 0.1em; color: rgba(232,223,200,0.45); text-transform: uppercase; }
-
-.fw-timer { font-size: 1.4rem; font-weight: 600; color: #c8b06a; letter-spacing: 0.02em; }
+.fw-timer { font-size: 1.3rem; font-weight: 600; color: rgba(249, 235, 213, 0.96); letter-spacing: 0.02em; font-family: var(--font-mono, monospace); }
 
 .fw-book-row { display: flex; flex-direction: column; gap: 4px; }
-.fw-book-label { font-size: 0.6rem; letter-spacing: 0.08em; color: rgba(232,223,200,0.35); text-transform: uppercase; }
+.fw-book-label { font-size: 10px; letter-spacing: 0.06em; color: rgba(244, 228, 205, 0.74); font-family: var(--font-service-ui, var(--font-mono, monospace)); }
 
 .fw-book-select {
-  background: rgba(232, 223, 200, 0.06);
-  border: 1px solid rgba(232, 223, 200, 0.12);
-  color: #e8dfc8;
-  font-family: var(--font-mono, monospace);
-  font-size: 0.72rem;
+  background: rgba(244, 228, 205, 0.07);
+  border: 1px solid rgba(244, 228, 205, 0.2);
+  color: rgba(249, 235, 213, 0.94);
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 11px;
   padding: 5px 8px;
-  border-radius: 2px;
+  border-radius: 10px;
   width: 100%;
 }
-.fw-book-select option { background: #1a1714; }
+.fw-book-select option { background: #2c231c; }
 
 .fw-active-book {
-  font-size: 0.72rem;
-  color: rgba(232,223,200,0.55);
+  font-size: 11px;
+  color: rgba(249, 235, 213, 0.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.fw-mode-row { display: flex; gap: 4px; }
+.fw-mode-row { display: flex; gap: 6px; }
 
 .fw-mode-btn {
   flex: 1;
   padding: 5px;
-  background: transparent;
-  border: 1px solid rgba(232, 223, 200, 0.14);
-  color: rgba(232, 223, 200, 0.4);
-  font-family: var(--font-mono, monospace);
-  font-size: 0.65rem;
-  letter-spacing: 0.06em;
+  background: rgba(244, 228, 205, 0.07);
+  border: 1px solid rgba(244, 228, 205, 0.2);
+  color: rgba(249, 235, 213, 0.5);
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 10px;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: 999px;
   transition: all 0.15s;
+  min-height: 28px;
 }
-.fw-mode-btn:hover { border-color: rgba(232,223,200,0.3); color: rgba(232,223,200,0.8); }
-.fw-mode-btn--active { border-color: rgba(232,223,200,0.35); color: #e8dfc8; background: rgba(232,223,200,0.07); }
+.fw-mode-btn:hover { border-color: rgba(244,228,205,0.38); color: rgba(249,235,213,0.9); }
+.fw-mode-btn--active { border-color: rgba(255, 214, 150, 0.66); color: rgba(249, 235, 213, 0.95); background: rgba(219, 166, 89, 0.26); }
 
 .fw-pom-bar {
   height: 2px;
-  background: rgba(232,223,200,0.1);
+  background: rgba(244,228,205,0.12);
   border-radius: 1px;
   overflow: hidden;
 }
 .fw-pom-fill {
   height: 100%;
-  background: #c8b06a;
+  background: rgba(219, 166, 89, 0.8);
   transition: width 1s linear;
 }
 
@@ -148,18 +132,18 @@
 .fw-stop-btn {
   flex: 1;
   padding: 8px;
-  border: 1px solid rgba(232, 223, 200, 0.25);
-  background: transparent;
-  color: #e8dfc8;
-  font-family: var(--font-mono, monospace);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  border: 1px solid rgba(244, 228, 205, 0.24);
+  background: rgba(244, 228, 205, 0.07);
+  color: rgba(249, 235, 213, 0.94);
+  font-family: var(--font-service-ui, var(--font-mono, monospace));
+  font-size: 11px;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  border-radius: 2px;
-  min-height: 36px;
+  border-radius: 10px;
+  min-height: 34px;
   transition: background 0.15s;
 }
-.fw-start-btn:hover { background: rgba(232,223,200,0.1); }
+.fw-start-btn:hover { background: rgba(244,228,205,0.14); }
 .fw-stop-btn { border-color: rgba(200, 80, 80, 0.35); color: rgba(255,160,140,0.9); }
 .fw-stop-btn:hover { background: rgba(200,80,80,0.12); }
 

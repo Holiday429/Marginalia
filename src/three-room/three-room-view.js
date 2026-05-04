@@ -1,6 +1,7 @@
 import { createThreeRoomPreview } from './three-room.js';
 import { PanelManager } from '../core/panel-manager.js';
 import { App } from '../core/app.js';
+import { attachFocusWidgetTo } from '../components/reading-session/focus-widget.ts';
 
 const SPACE_ITEMS = [
   { id: 'shelf', label: 'Shelf', icon: 'shelf' },
@@ -123,6 +124,8 @@ function buildRoomMarkup() {
           <h2 class="room-group-title">Quick Actions</h2>
           ${renderNavItems(QUICK_ACTION_ITEMS, 'room-action')}
         </section>
+
+        <div class="room-focus-slot" id="roomFocusWidgetSlot"></div>
       </aside>
 
       ${renderRoomTopTabsMarkup()}
@@ -296,6 +299,8 @@ function initRoom() {
   syncRoomUserCard();
   syncPoseButtons();
   syncFreeLookButton();
+  const focusSlot = document.getElementById('roomFocusWidgetSlot');
+  if (focusSlot) attachFocusWidgetTo(focusSlot);
 }
 
 function enterRoom() {
@@ -307,6 +312,8 @@ function enterRoom() {
   syncRoomUserCard();
   syncPoseButtons();
   syncFreeLookButton();
+  const focusSlot = document.getElementById('roomFocusWidgetSlot');
+  if (focusSlot) attachFocusWidgetTo(focusSlot);
 }
 
 function ensureRoomDom() {
