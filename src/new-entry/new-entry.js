@@ -2,7 +2,9 @@
    Marginalia · Add Book — add a book + DIY spine/cover
    ========================================================================== */
 
-import { logEvent } from '../services/analytics.ts';
+import { logEvent, logError } from '../services/analytics.ts';
+import { withMetaCreate, validateWrite } from '../services/db.ts';
+import { BookSchema } from '../data/schema/book.ts';
 
 export const NewEntry = window.NewEntry = (() => {
 
@@ -832,15 +834,30 @@ export const NewEntry = window.NewEntry = (() => {
       highlights: [], actions: [],
     };
 
-    // Register globally
-    if (!window.BOOK_DETAILS) window.BOOK_DETAILS = [];
-    if (!window.BOOK_BY_ID)   window.BOOK_BY_ID   = {};
-    window.BOOK_DETAILS.unshift(fullBook);
-    window.BOOK_BY_ID[id] = fullBook;
-
-    // Persist to IndexedDB
-    window.NotesStore?.saveBook(fullBook);
     logEvent('book_added', { bookId: id, status });
+
+    const auth = window.MarginaliaAuth;
+    const uid  = auth?.user?.uid;
+    const db   = auth?.db;
+
+    if (uid && db) {
+      // Authenticated: write to Firestore. onSnapshot will update BooksStore.
+      try {
+        const validated = validateWrite(BookSchema, fullBook);
+        const payload   = withMetaCreate(validated);
+        db.collection(`users/${uid}/data/books`).doc(id).set(payload);
+      } catch (err) {
+        logError(err instanceof Error ? err : new Error(String(err)), { context: 'NewEntry Firestore write' });
+      }
+    } else {
+      // Unauthenticated demo path: mutate globals so seed-backed views update.
+      if (!window.BOOK_DETAILS) window.BOOK_DETAILS = [];
+      if (!window.BOOK_BY_ID)   window.BOOK_BY_ID   = {};
+      window.BOOK_DETAILS.unshift(fullBook);
+      window.BOOK_BY_ID[id] = fullBook;
+      // TODO(p0-cleanup): remove window.BOOK_DETAILS / BOOK_BY_ID mutations once unauthenticated demo path is fully removed.
+      window.NotesStore?.saveBook(fullBook);
+    }
 
     // Spine entry for shelf + library
     const spineEntry = {
