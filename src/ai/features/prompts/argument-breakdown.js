@@ -2,7 +2,8 @@
    Target panel: concept-cards (shared panel, renders as argument cards)
    Output: JSON array of argument objects
 */
-window.AIFeatureRegistry.setPrompt('argument-breakdown', {
+import { AIFeatureRegistry } from "../registry.js";
+AIFeatureRegistry.setPrompt('argument-breakdown', {
   build(book) {
     const highlights = (book.highlights || []).map(h =>
       `- [${h.kind || 'note'}] "${h.quote}" (p.${h.page || '?'})`

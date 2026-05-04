@@ -2,7 +2,8 @@
    Target panel: Related Concepts
    Output: JSON array of concept objects matching graph.concepts schema
 */
-window.AIFeatureRegistry.setPrompt('concept-cards', {
+import { AIFeatureRegistry } from "../registry.js";
+AIFeatureRegistry.setPrompt('concept-cards', {
   build(book) {
     const highlights = (book.highlights || []).map(h => `- "${h.quote}" (p.${h.page || '?'})`).join('\n');
     const summary = book.summary || book.insight?.oneLiner || '';
