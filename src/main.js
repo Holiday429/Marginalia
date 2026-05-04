@@ -44,8 +44,10 @@ M.services.MarginaliaStorage = MarginaliaStorage;
 // 3. State stores
 import { NotesStore } from './store/notes-store.js';
 import { BooksStore } from './store/books-store.js';
+import { EntitlementsStore } from './store/entitlements-store.ts';
 M.store.NotesStore = NotesStore;
 M.store.BooksStore = BooksStore;
+M.store.EntitlementsStore = EntitlementsStore;
 
 // 4. Core app utilities
 import { MarginaliaGraph } from './core/graph-data.js';

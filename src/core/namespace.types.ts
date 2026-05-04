@@ -22,6 +22,7 @@ export interface MarginaliaServices {
 export interface MarginaliaStore {
   NotesStore: unknown;
   BooksStore: unknown;
+  EntitlementsStore: unknown;
   MarginaliaGraph: unknown;
 }
 
