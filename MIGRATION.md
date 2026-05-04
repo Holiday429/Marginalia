@@ -226,6 +226,16 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ---
 
+## P1 progress notes
+
+### P1 Phase 1 (2026-05-04): BooksStore → Firestore
+
+- `TODO(p0-cleanup): BooksStore window.BOOK_DETAILS` resolved — `books-store.js` replaced by `books-store.ts`. BooksStore now listens via `onSnapshot` on `users/{uid}/data/books`. Unauthenticated visitors still get seed data.
+- `window.BOOK_DETAILS` / `window.BOOK_BY_ID` mutations in `new-entry.js` replaced with Firestore `setDoc` (authenticated) — seed-path fallback retained with `TODO(p0-cleanup)` marker.
+- Library shelf layout now writes to `users/{uid}/data/library_layout` in Firestore (debounced 500ms) with localStorage as local cache / unauthenticated fallback.
+
+---
+
 ## After P0 ✅ P0 IS COMPLETE
 
 P0 shipped on 2026-05-04. All 8 phases done. The foundation is:
