@@ -1,0 +1,83 @@
+/* Marginalia · Shelf Wall slot — 3D room north wall */
+
+.sw-wall {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 32px 36px;
+  width: 1200px;
+  min-height: 760px;
+  background: var(--bg-tool, #171410);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.sw-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sw-group__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-taupe-soft, #c4baa8);
+  opacity: 0.7;
+  padding-left: 2px;
+}
+
+.sw-group__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.sw-spine {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 6px 3px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: 1px 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.sw-spine:hover {
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 2px 6px 14px rgba(0, 0, 0, 0.5);
+}
+
+.sw-spine__title {
+  font-family: var(--font-serif);
+  font-size: 9px;
+  font-weight: 500;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-height: 80%;
+  opacity: 0.9;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+}
+
+.sw-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1200px;
+  height: 760px;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--color-taupe-soft, #c4baa8);
+  opacity: 0.6;
+  background: var(--bg-tool, #171410);
+}
