@@ -238,7 +238,7 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ## P2 progress notes
 
-### P2 Phase 1 (2026-05-05): shelfWall slot — Library 2D on the north wall
+### P2 Phase 1 (2026-05-05): shelfWall slot — Library 2D on the north wall ✅ DONE (c3d5450)
 
 - Created `src/library-2d/library-2d-slot.ts` implementing `SlotComponent`. Reads `BooksStore.getAll()` directly — first view to bypass `window.SHELF_BOOKS`. Groups spine cards by status (Reading / To Read / Finished / Confirm Later). Subscribes to `marginalia:books-changed` for live reactive updates.
 - The `shelfWall` slot in `three-room.js` is now mounted; the north wall of the 3D room shows the user's real library as spine cards.
