@@ -6,7 +6,7 @@
 
 #panel-profile {
   min-height: 100vh;
-  background: transparent;
+  background: var(--color-taupe);
   color: var(--ink);
 }
 

@@ -136,15 +136,18 @@ async function fetchPublicBooks(db: FirestoreDB, uid: string): Promise<PublicBoo
 
   return snap.docs
     .map((doc: any) => {
-      const d = doc.data() as Record<string, any>;
+      const d    = doc.data() as Record<string, any>;
+      const meta  = d.meta  ?? {};
+      const cover = d.cover ?? {};
+      const user  = d.user  ?? {};
       return {
         id:         doc.id,
-        title:      d.title ?? d['titleZh'] ?? 'Untitled',
-        author:     d.author ?? d['authorZh'] ?? '',
-        spine:      d.spine ?? '#4a4035',
-        text:       d.spineText ?? '#e8dfc8',
-        status:     d.status,
-        finishedAt: d.finishedAt ?? 0,
+        title:      d.title  ?? meta.title  ?? meta.titleZh  ?? 'Untitled',
+        author:     d.author ?? meta.author ?? meta.authorZh ?? '',
+        spine:      d.spine  ?? cover.bg    ?? '#4a4035',
+        text:       d.text   ?? cover.text  ?? '#e8dfc8',
+        status:     d.status ?? user.status,
+        finishedAt: d.finishedAt ?? user.finishedAt ?? 0,
       };
     })
     .sort((a: PublicBook, b: PublicBook) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
