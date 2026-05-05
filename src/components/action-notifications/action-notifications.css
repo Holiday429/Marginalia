@@ -1,0 +1,215 @@
+/* Marginalia · Action Notifications — badge + panel */
+
+#action-notif-root {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9000;
+  font-family: var(--font-serif);
+}
+
+/* ── Badge ─────────────────────────────────────────────────────────────── */
+
+.an-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--navy);
+  color: var(--paper);
+  border-radius: 24px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+  transition: background 120ms ease;
+}
+
+.an-badge:hover {
+  background: var(--color-navy-soft);
+}
+
+.an-badge-icon {
+  font-size: var(--fs-14);
+  line-height: 1;
+}
+
+.an-badge-count {
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* ── Panel ─────────────────────────────────────────────────────────────── */
+
+.an-panel {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 360px;
+  max-height: 480px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-cream);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.an-panel[hidden] {
+  display: none;
+}
+
+/* ── Panel head ────────────────────────────────────────────────────────── */
+
+.an-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+
+.an-panel-title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.an-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-18);
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.an-close-btn:hover {
+  background: var(--rule-soft);
+  color: var(--ink);
+}
+
+/* ── Panel body ────────────────────────────────────────────────────────── */
+
+.an-panel-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 12px 0;
+}
+
+/* ── Tier section ──────────────────────────────────────────────────────── */
+
+.an-tier {
+  padding: 0 20px 12px;
+}
+
+.an-tier + .an-tier {
+  border-top: 1px solid var(--rule-soft);
+  padding-top: 12px;
+}
+
+.an-tier-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+/* ── Items ─────────────────────────────────────────────────────────────── */
+
+.an-tier-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.an-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border-radius: 4px;
+}
+
+.an-item-text {
+  font-family: var(--font-serif);
+  font-size: var(--fs-13);
+  color: var(--ink);
+  flex: 1;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.an-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.an-item-btn {
+  padding: 4px 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 100ms ease;
+}
+
+.an-item-btn:hover {
+  background: var(--rule-soft);
+}
+
+.an-item-btn--dismiss {
+  color: var(--muted);
+  border-color: var(--rule-soft);
+}
+
+/* ── Panel footer ──────────────────────────────────────────────────────── */
+
+.an-panel-foot {
+  padding: 10px 20px;
+  border-top: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+
+.an-dismiss-all-btn {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.an-dismiss-all-btn:hover {
+  background: var(--rule-soft);
+  color: var(--ink);
+}

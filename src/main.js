@@ -50,9 +50,11 @@ import { HighlightsStore } from './store/highlights-store.ts';
 import { EntitlementsStore } from './store/entitlements-store.ts';
 import { AiResultsStore } from './store/ai-results-store.ts';
 import { ActionsStore } from './store/actions-store.ts';
+import { mountActionNotifications, unmountActionNotifications } from './components/action-notifications/action-notifications.ts';
 import { initReadingSession, teardownReadingSession } from './components/reading-session/reading-session.ts';
 import { mountFocusWidget } from './components/reading-session/focus-widget.ts';
 import './components/reading-session/reading-session.css';
+import './components/action-notifications/action-notifications.css';
 M.store.NotesStore = NotesStore;
 M.store.BooksStore = BooksStore;
 M.store.HighlightsStore = HighlightsStore;
@@ -133,12 +135,14 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     HighlightsStore.initWithUser(user.uid, db);
     AiResultsStore.init(user.uid, db);
     ActionsStore.initWithUser(user.uid, db);
+    mountActionNotifications(user.uid, db);
     initReadingSession(user.uid, db);
   } else {
     BooksStore.teardown();
     HighlightsStore.teardown();
     AiResultsStore.teardown();
     ActionsStore.teardown();
+    unmountActionNotifications();
     teardownReadingSession();
   }
 });
