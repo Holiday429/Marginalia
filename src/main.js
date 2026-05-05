@@ -48,6 +48,7 @@ import { NotesStore } from './store/notes-store.js';
 import { BooksStore } from './store/books-store.ts';
 import { HighlightsStore } from './store/highlights-store.ts';
 import { EntitlementsStore } from './store/entitlements-store.ts';
+import { AiResultsStore } from './store/ai-results-store.ts';
 import { initReadingSession, teardownReadingSession } from './components/reading-session/reading-session.ts';
 import { mountFocusWidget } from './components/reading-session/focus-widget.ts';
 import './components/reading-session/reading-session.css';
@@ -55,6 +56,7 @@ M.store.NotesStore = NotesStore;
 M.store.BooksStore = BooksStore;
 M.store.HighlightsStore = HighlightsStore;
 M.store.EntitlementsStore = EntitlementsStore;
+M.store.AiResultsStore = AiResultsStore;
 
 // 4. Core app utilities
 import { MarginaliaGraph } from './core/graph-data.js';
@@ -125,10 +127,12 @@ window.addEventListener('marginalia:auth-changed', (event) => {
   if (user?.uid && db) {
     BooksStore.initWithUser(user.uid, db);
     HighlightsStore.initWithUser(user.uid, db);
+    AiResultsStore.init(user.uid, db);
     initReadingSession(user.uid, db);
   } else {
     BooksStore.teardown();
     HighlightsStore.teardown();
+    AiResultsStore.teardown();
     teardownReadingSession();
   }
 });
