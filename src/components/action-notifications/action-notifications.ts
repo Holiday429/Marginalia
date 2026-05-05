@@ -7,6 +7,7 @@
 */
 
 import { logError } from '../../services/analytics.ts';
+import { ENV } from '../../core/env.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FirestoreDB = any;
@@ -39,7 +40,11 @@ export function mountActionNotifications(uid: string, db: FirestoreDB): void {
 
   _ensureContainer();
 
-  const col = db.collection(`notifications/${uid}/unread`);
+  const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
+  const col = db
+    .collection('workspaces').doc(wsId)
+    .collection('users').doc(uid)
+    .collection('notifications');
   _unsubscribe = col.onSnapshot(
     (snap: any) => {
       _notifs = snap.docs
@@ -176,7 +181,12 @@ function _bindEvents(root: HTMLElement): void {
 async function _markRead(notifId: string): Promise<void> {
   if (!_uid || !_db) return;
   try {
-    await _db.doc(`notifications/${_uid}/unread/${notifId}`).update({ read: true });
+    const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
+    await _db
+      .collection('workspaces').doc(wsId)
+      .collection('users').doc(_uid)
+      .collection('notifications').doc(notifId)
+      .update({ read: true });
   } catch (err) {
     logError(err as Error, { context: 'ActionNotifications markRead' });
   }

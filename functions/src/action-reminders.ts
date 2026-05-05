@@ -56,11 +56,12 @@ export const actionReminders = scheduler.onSchedule(
     for (const doc of openSnap.docs) {
       const data = doc.data() as Record<string, unknown>;
 
-      // Extract uid from path: users/{uid}/data/actions/{actionId}
+      // Extract uid from path: workspaces/{wsId}/users/{uid}/actions/{actionId}
       const pathParts = doc.ref.path.split('/');
-      // Path is: users / {uid} / data / actions / {actionId}
-      const uid = pathParts[1];
-      if (!uid) continue;
+      // Path is: workspaces / {wsId} / users / {uid} / actions / {actionId}
+      const uid = pathParts[3];
+      const wsId = pathParts[1];
+      if (!uid || !wsId) continue;
 
       for (const { tier, flagField, atField } of TIERS) {
         const remindAt = data[atField] as number | undefined;
@@ -68,10 +69,11 @@ export const actionReminders = scheduler.onSchedule(
 
         if (!remindAt || alreadyFired || remindAt > now) continue;
 
-        // Write notification doc
+        // Write notification doc under the same workspace
         const notifRef = db
-          .collection(`notifications/${uid}/unread`)
-          .doc();
+          .collection('workspaces').doc(wsId)
+          .collection('users').doc(uid)
+          .collection('notifications').doc();
 
         batch.set(notifRef, {
           type:      'action_reminder',

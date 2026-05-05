@@ -9,6 +9,7 @@
 import { validateWrite, withMeta, withMetaCreate } from '../services/db.ts';
 import { ActionSchema } from '../data/schema/action.ts';
 import { logError, logEvent } from '../services/analytics.ts';
+import { ENV } from '../core/env.ts';
 import type { Action } from '../data/schema/action.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,7 +47,11 @@ function _colRef() {
     }
   }
   if (!_uid || !_db) throw new Error('[ActionsStore] Not initialised');
-  return _db.collection(`users/${_uid}/data/actions`);
+  const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
+  return _db
+    .collection('workspaces').doc(wsId)
+    .collection('users').doc(_uid)
+    .collection('actions');
 }
 
 /** Called when user signs in. Starts the Firestore onSnapshot listener. */
