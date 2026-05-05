@@ -106,14 +106,14 @@ import { initLibrary, enterLibrary, enterPanel_library } from './library-2d/libr
 import { initRoom, enterRoom, renderRoomTopTabs } from './three-room/three-room-view.js';
 import { initBooklist, enterBooklist, enterPanel_booklist } from './booklist/booklist.js';
 import { initBook, enterBook, enterPanel_book } from './book/book.js';
-import { initMap, enterMap, enterPanel_map, mapAddBook } from './map/map.js';
+import { initMap, enterMap, enterPanel_map } from './map/map.js';
 import { initWeb, enterWeb, enterPanel_web } from './web/web.js';
 M.views.initShelf = initShelf; M.views.enterShelf = enterShelf; M.views.enterPanel_shelf = enterPanel_shelf;
 M.views.initLibrary = initLibrary; M.views.enterLibrary = enterLibrary; M.views.enterPanel_library = enterPanel_library;
 M.views.initRoom = initRoom; M.views.enterRoom = enterRoom; M.views.renderRoomTopTabs = renderRoomTopTabs;
 M.views.initBooklist = initBooklist; M.views.enterBooklist = enterBooklist; M.views.enterPanel_booklist = enterPanel_booklist;
 M.views.initBook = initBook; M.views.enterBook = enterBook; M.views.enterPanel_book = enterPanel_book;
-M.views.initMap = initMap; M.views.enterMap = enterMap; M.views.enterPanel_map = enterPanel_map; M.views.mapAddBook = mapAddBook;
+M.views.initMap = initMap; M.views.enterMap = enterMap; M.views.enterPanel_map = enterPanel_map;
 M.views.initWeb = initWeb; M.views.enterWeb = enterWeb; M.views.enterPanel_web = enterPanel_web;
 M.ui.renderShelfSection = renderShelfSection;
 
