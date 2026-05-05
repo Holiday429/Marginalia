@@ -88,8 +88,9 @@ export async function enterProfile(params: { slug?: string } = {}): Promise<void
     bindProfileEvents(container, highlights);
     logEvent('profile_viewed', { slug: params.slug });
   } catch (err) {
-    logError(err instanceof Error ? err : new Error(String(err)), { context: 'enterProfile' });
-    container.innerHTML = errorHTML('Could not load this profile.');
+    const msg = err instanceof Error ? err.message : String(err);
+    logError(err instanceof Error ? err : new Error(msg), { context: 'enterProfile' });
+    container.innerHTML = errorHTML(msg);
   }
 }
 
@@ -130,22 +131,23 @@ async function fetchPublicBooks(db: FirestoreDB, uid: string): Promise<PublicBoo
   const snap = await db
     .collection(`workspaces/${wsId}/users/${uid}/books`)
     .where('shareInProfile', '==', true)
-    .orderBy('finishedAt', 'desc')
     .limit(40)
     .get();
 
-  return snap.docs.map((doc: any) => {
-    const d = doc.data() as Record<string, any>;
-    return {
-      id:         doc.id,
-      title:      d.title ?? d['titleZh'] ?? 'Untitled',
-      author:     d.author ?? d['authorZh'] ?? '',
-      spine:      d.spine ?? '#4a4035',
-      text:       d.spineText ?? '#e8dfc8',
-      status:     d.status,
-      finishedAt: d.finishedAt,
-    };
-  });
+  return snap.docs
+    .map((doc: any) => {
+      const d = doc.data() as Record<string, any>;
+      return {
+        id:         doc.id,
+        title:      d.title ?? d['titleZh'] ?? 'Untitled',
+        author:     d.author ?? d['authorZh'] ?? '',
+        spine:      d.spine ?? '#4a4035',
+        text:       d.spineText ?? '#e8dfc8',
+        status:     d.status,
+        finishedAt: d.finishedAt ?? 0,
+      };
+    })
+    .sort((a: PublicBook, b: PublicBook) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
 }
 
 async function fetchPublicHighlights(db: FirestoreDB, uid: string): Promise<PublicHighlight[]> {
