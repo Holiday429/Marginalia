@@ -238,6 +238,17 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ## P2 progress notes
 
+### P2 Phase 4 (2026-05-05): Public profile pages ✅ DONE (fc859f3)
+
+- **ADR 0008** (`docs/decisions/0008-public-profile-spa-routing.md`): documents the decision to use hash-based SPA routing (`#/p/{slug}`) instead of a Cloud Function HTTP endpoint. No SEO in v1; accepted trade-off.
+- **`src/data/schema/book.ts`**: added `shareInProfile?: boolean` to `BookSchema`. Opt-in per-book; must be `true` for a book to appear on a public profile.
+- **`functions/src/profile-slug-check.ts`**: HTTP Callable that verifies slug uniqueness against `users` collection before writing. Enforces 3–32 char limit, lowercase alphanum + hyphens, reserved slug list. Exported from `functions/src/index.ts`.
+- **`src/profile/profile-settings.ts`**: settings panel — slug input with async availability check (debounced, calls `profileSlugCheck`), public toggle (`profilePublic`), and per-book sharing checkboxes. Writes to `users/{uid}.settings.{slug,profilePublic}` and `books/{id}.shareInProfile`. Gated on `hasEntitlement('profile.public')` (included in FREE plan).
+- **`src/profile/profile.ts`** + **`profile.css`**: public profile view. Reads profile by slug from `users` collection (where `settings.slug == slug`). Shows: avatar/initials, display name, book/read stats, rotating public highlight quote (8s interval, fade transition), public spine cards. Handles not-found, private, and error states gracefully. No auth required to view. All typography via `var(--font-serif)` / `var(--font-mono)`; all colors via CSS tokens; no raw hex.
+- **`src/core/view-registry.ts`**: registered `profile` view (init / enter / enterPanel).
+- **`src/core/app.js`**: `syncFromHash()` extended to parse `#/p/{slug}` → `PanelManager.open('profile', { slug })`. `showProfile(slug)` helper added to App API. Profile added to PanelManager-routed views list.
+- **`firestore.rules`**: `users/{uid}` readable by anyone when `settings.profilePublic == true` (enables slug lookup). `books/{bookId}` readable publicly when user is public AND `shareInProfile == true`. Added `actions/{actionId}` and `notifications/{uid}/unread/{docId}` rules (previously missing — hitting deny-all).
+
 ### P2 Phase 3 (2026-05-05): Action items — capture, list, remind ✅ DONE (e2a7770)
 
 - **ADR 0007** (`docs/decisions/0007-action-reminders-via-cloud-function.md`): documents the 3-tier reminder design (7/30/90 days), the `archived` status lifecycle, and the decision to keep per-book scope only (no global to-do).
