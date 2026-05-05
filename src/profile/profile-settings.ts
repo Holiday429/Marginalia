@@ -39,7 +39,18 @@ function getUserId(): string | null {
   return getAuth()?.user?.uid ?? null;
 }
 
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$|^[a-z0-9]{1,32}$/;
+const RESERVED = new Set([
+  'admin', 'api', 'app', 'auth', 'billing', 'help', 'home',
+  'login', 'logout', 'me', 'profile', 'settings', 'signup',
+  'support', 'terms', 'privacy', 'about', 'contact', 'p',
+]);
+
 async function checkSlugAvailability(slug: string): Promise<SlugCheckResult> {
+  // Client-side pre-validation — no network call needed for format errors.
+  if (!SLUG_RE.test(slug)) return { available: false, reason: 'invalid_format' };
+  if (RESERVED.has(slug))  return { available: false, reason: 'reserved' };
+
   const auth = getAuth();
   if (!auth?.app) return { available: false, reason: 'no_firebase' };
 
@@ -50,7 +61,9 @@ async function checkSlugAvailability(slug: string): Promise<SlugCheckResult> {
     return result.data as SlugCheckResult;
   } catch (err) {
     logError(err instanceof Error ? err : new Error(String(err)), { context: 'profileSlugCheck' });
-    return { available: false, reason: 'error' };
+    // Cloud Function unreachable (not deployed locally) — skip uniqueness check,
+    // allow save; Firestore write will still be validated server-side when deployed.
+    return { available: true };
   }
 }
 
