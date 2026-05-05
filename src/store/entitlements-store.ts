@@ -32,31 +32,47 @@ function emit() {
   }));
 }
 
+// Unsubscribe fn for the active Firestore listener (replaced on each sign-in).
+let unsubSnapshot: (() => void) | null = null;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function loadForUser(uid: string, db: any): Promise<void> {
+function subscribeForUser(uid: string, db: any): void {
   const userRef = db.doc(`users/${uid}`);
-  const snap = await userRef.get();
-  const data = snap.data() as Record<string, unknown> | undefined;
 
-  let plan: Plan = 'free';
-  if (data?.plan === 'pro' || data?.plan === 'lifetime') {
-    plan = data.plan as Plan;
-  }
+  unsubSnapshot = userRef.onSnapshot(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async (snap: any) => {
+      const data = snap.data() as Record<string, unknown> | undefined;
 
-  const entitlements = PLAN_ENTITLEMENTS[plan];
+      let plan: Plan = 'free';
+      if (data?.plan === 'pro' || data?.plan === 'lifetime') {
+        plan = data.plan as Plan;
+      }
 
-  // Write plan + entitlements on first sign-in (or when the doc is missing them).
-  if (!data?.plan || !data?.entitlements) {
-    await userRef.set({ plan, entitlements }, { merge: true });
-  }
+      const entitlements = PLAN_ENTITLEMENTS[plan];
 
-  state.plan = plan;
-  state.entitlements = entitlements;
-  state.ready = true;
-  emit();
+      // Write plan + entitlements on first sign-in (or when the doc is missing them).
+      if (!data?.plan || !data?.entitlements) {
+        await userRef.set({ plan, entitlements }, { merge: true });
+      }
+
+      state.plan = plan;
+      state.entitlements = entitlements;
+      state.ready = true;
+      emit();
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (err: any) => {
+      console.error('[EntitlementsStore] snapshot error', err);
+    }
+  );
 }
 
 function reset() {
+  if (unsubSnapshot) {
+    unsubSnapshot();
+    unsubSnapshot = null;
+  }
   state.plan = 'free';
   state.entitlements = PLAN_ENTITLEMENTS.free;
   state.ready = false;
@@ -64,7 +80,7 @@ function reset() {
 }
 
 // Wire to auth lifecycle.
-window.addEventListener('marginalia:auth-changed', async (event) => {
+window.addEventListener('marginalia:auth-changed', (event) => {
   const { user, enabled } = (event as CustomEvent).detail as {
     enabled: boolean;
     ready: boolean;
@@ -81,7 +97,9 @@ window.addEventListener('marginalia:auth-changed', async (event) => {
   const db = (window as any).MarginaliaAuth?.db;
   if (!db) return;
 
-  await loadForUser(user.uid, db);
+  // Cancel any previous listener before starting a new one.
+  if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot = null; }
+  subscribeForUser(user.uid, db);
 });
 
 export const EntitlementsStore = {

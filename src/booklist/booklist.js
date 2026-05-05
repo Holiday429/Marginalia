@@ -1,6 +1,7 @@
 /* Booklist view — annual picks animation + streak */
 
 import { exportJSON, exportMarkdown, triggerDownload } from '../api/export.ts';
+import { openCheckout } from '../services/billing.ts';
 
 const BOOKLIST_TARGET_COUNT = 10;
 
@@ -1317,7 +1318,8 @@ function handleExport(format) {
 
   // export.json gates both formats (free users have this entitlement).
   if (entitlements && !entitlements.hasEntitlement('export.json')) {
-    showExportNote('Export is available on the Pro plan. Upgrade to download your library.');
+    showExportNote('Export is available on the Pro plan.');
+    openCheckout('pro', (err) => showExportNote(err));
     return;
   }
 
