@@ -84,7 +84,7 @@ M.ui.NewEntry = NewEntry;
 
 // 6a. AI layer
 import { MarginaliaAI } from './services/ai-gateway.ts';
-import { AIGenerateUI } from './ai/client/generate-ui.js';
+import { AIGenerateUI } from './ai/client/generate-ui.ts';
 import './ai/features/prompts/mindmap-gen.js';
 import './ai/features/prompts/concept-cards.js';
 import './ai/features/prompts/argument-breakdown.js';
