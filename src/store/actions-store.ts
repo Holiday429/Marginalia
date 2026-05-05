@@ -34,6 +34,17 @@ function _emit(): void {
 }
 
 function _colRef() {
+  // Lazy-init: if initWithUser hasn't been called yet but Firebase auth is
+  // already resolved (e.g. auth-changed fired before this listener registered),
+  // pull uid + db directly from MarginaliaAuth and initialise now.
+  if (!_uid || !_db) {
+    const auth = (window as any).MarginaliaAuth;
+    const uid  = auth?.user?.uid;
+    const db   = auth?.db;
+    if (uid && db) {
+      initWithUser(uid, db);
+    }
+  }
   if (!_uid || !_db) throw new Error('[ActionsStore] Not initialised');
   return _db.collection(`users/${_uid}/data/actions`);
 }

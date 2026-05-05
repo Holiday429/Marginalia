@@ -124,18 +124,16 @@ import { ActionsStore } from '../../store/actions-store.ts';
         const text  = input?.value.trim();
         if (!text) return;
 
-        if (!ActionsStore.getUid()) {
-          _showFormError(form, 'Sign in to save action items.');
-          return;
-        }
-
         input.value    = '';
         input.disabled = true;
         try {
           await ActionsStore.add(bookId, text);
         } catch (err) {
-          _showFormError(form, 'Could not save — please try again.');
-          input.value = text; // restore so user doesn't lose their text
+          input.value = text;
+          const msg = err?.message?.includes('Not initialised')
+            ? 'Sign in to save action items.'
+            : 'Could not save — please try again.';
+          _showFormError(form, msg);
         } finally {
           input.disabled = false;
           input.focus();
