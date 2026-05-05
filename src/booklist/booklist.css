@@ -973,3 +973,16 @@
   color: var(--color-text-secondary, #6b6560);
   margin: var(--space-3, 12px) 0 0;
 }
+
+/* ── Touch target fixes (iPad / touch devices) ────────────────────────────*/
+@media (pointer: coarse) {
+  .booklist-export__btn {
+    min-height: 44px;
+    padding: 10px 20px;
+  }
+
+  .booklist-source-track .chip,
+  .booklist-source-track button {
+    min-height: 44px;
+  }
+}

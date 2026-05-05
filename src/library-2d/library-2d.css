@@ -1413,3 +1413,15 @@ body[data-view='studio'] {
     font-size: clamp(24px, 8.2vw, 36px);
   }
 }
+
+/* ── Touch target fixes (iPad / touch devices) ────────────────────────────*/
+@media (pointer: coarse) {
+  #panel-library .library-search input {
+    height: 44px;
+  }
+
+  #panel-library .library-rail-btn,
+  #panel-library .library-topbar button {
+    min-height: 44px;
+  }
+}
