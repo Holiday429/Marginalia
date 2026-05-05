@@ -68,6 +68,10 @@ export function createThreeRoomPreview(host, options = {}) {
       scene.animateHeroBookPull(onComplete, durationMs);
     },
 
+    getHeroBookScreenPos() {
+      return scene.getHeroBookScreenPos();
+    },
+
     pause() {
       scene.pause();
     },
