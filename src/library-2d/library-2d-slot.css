@@ -1,5 +1,15 @@
 /* Marginalia · Shelf Wall slot — 3D room north wall */
 
+/* Pass pointer events through empty areas of the wall so the GLB hero book
+   and bookshelf behind the transparent slot container remain clickable. */
+.three-slot-root--shelfWall {
+  pointer-events: none;
+}
+
+.three-slot-root--shelfWall .sw-spine {
+  pointer-events: auto;
+}
+
 .sw-wall {
   display: flex;
   flex-direction: column;
@@ -7,7 +17,7 @@
   padding: 32px 36px;
   width: 1200px;
   min-height: 760px;
-  background: var(--bg-tool, #171410);
+  background: transparent;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -79,5 +89,5 @@
   font-size: 14px;
   color: var(--color-taupe-soft, #c4baa8);
   opacity: 0.6;
-  background: var(--bg-tool, #171410);
+  background: transparent;
 }
