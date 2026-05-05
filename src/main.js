@@ -98,6 +98,8 @@ M.ai.AIGenerateUI = AIGenerateUI;
 // 6b. Panel scripts
 import './book/panels/notes.js';
 import './book/panels/claude-import.js';
+import './book/panels/actions.js';
+import './book/panels/actions.css';
 
 // 6. Views (three-room/room-scene.js and preloader/hero-glb.js stay in index.html as type="module")
 // window.__heroGLBReadyPromise is set by hero-glb.js (HTML script tag, not bundled — see ADR 0002)
