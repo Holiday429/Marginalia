@@ -238,6 +238,20 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ## P2 progress notes
 
+### P2 Phase 2 (2026-05-05): Map view → BooksStore ✅ DONE (ed5aaed)
+
+- Removed 37-book `MAP_BOOKS` hardcoded array from `map.js`. Map now reads `BooksStore.getAll()` reactively.
+- `deriveMapGeo()` reads each book's `location`/`geo` fields directly — no more `window.BOOK_BY_ID` lookup.
+- `MAP_LIBRARY` / `MAP_GEO` are now mutable; rebuilt via `rebuildLibrary()` on every `marginalia:books-changed` event.
+- `initMap()` subscribes to `marginalia:books-changed`: repaints fills + updates header counts on any book add/change.
+- Subheader now shows located-book count; unlocated badge appears when user has books without a `location` field.
+- `mapAddBook` export removed — superseded by reactive BooksStore subscription.
+- Typed `location` and `geo` fields in `BookSchema` (`src/data/schema/book.ts`).
+- Unauthenticated visitors see seed books (sapiens has `location.country: 'IL'`).
+- `REGION_PROFILES` (cultural context, history, starters) remains static preset content — unchanged.
+
+---
+
 ### P2 Phase 1 (2026-05-05): shelfWall slot — Library 2D on the north wall ✅ DONE (c3d5450)
 
 - Created `src/library-2d/library-2d-slot.ts` implementing `SlotComponent`. Reads `BooksStore.getAll()` directly — first view to bypass `window.SHELF_BOOKS`. Groups spine cards by status (Reading / To Read / Finished / Confirm Later). Subscribes to `marginalia:books-changed` for live reactive updates.
