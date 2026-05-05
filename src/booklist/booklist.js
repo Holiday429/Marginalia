@@ -1319,7 +1319,7 @@ function handleExport(format) {
   // export.json gates both formats (free users have this entitlement).
   if (entitlements && !entitlements.hasEntitlement('export.json')) {
     showExportNote('Export is available on the Pro plan.');
-    openCheckout('pro', (err) => showExportNote(err));
+    openCheckout('pro_monthly', (err) => showExportNote(err));
     return;
   }
 

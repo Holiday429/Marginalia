@@ -25,7 +25,7 @@ async function getIdToken(): Promise<string | null> {
  * Creates a Lemon Squeezy checkout session via Cloud Function and returns the URL.
  * Throws if the user is not signed in or the function call fails.
  */
-export async function getCheckoutUrl(plan: 'pro' | 'lifetime'): Promise<string> {
+export async function getCheckoutUrl(plan: 'pro_monthly' | 'pro_yearly' | 'lifetime'): Promise<string> {
   const checkoutFnUrl = ENV.CHECKOUT_URL;
   if (!checkoutFnUrl) {
     throw new Error('Checkout URL not configured. Set VITE_CHECKOUT_URL in your .env file.');
@@ -64,7 +64,7 @@ export async function getCheckoutUrl(plan: 'pro' | 'lifetime'): Promise<string> 
  * Shows an error note via the provided callback if anything fails.
  */
 export async function openCheckout(
-  plan: 'pro' | 'lifetime',
+  plan: 'pro_monthly' | 'pro_yearly' | 'lifetime',
   onError: (msg: string) => void
 ): Promise<void> {
   try {
