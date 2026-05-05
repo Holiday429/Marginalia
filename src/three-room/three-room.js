@@ -2,6 +2,7 @@ import { RoomScene } from '../three/room.ts';
 import { ROOM_SKINS } from '../three/skins.ts';
 import { createNotesWallComponent } from '../components/notes-wall/notes-wall.js';
 import { createDeskSlotComponent } from '../components/reading-session/desk-slot.ts';
+import { createShelfWallComponent } from '../library-2d/library-2d-slot.ts';
 
 export function createThreeRoomPreview(host, options = {}) {
   if (!host) return null;
@@ -22,6 +23,9 @@ export function createThreeRoomPreview(host, options = {}) {
 
   // Mount desk slot — currently-reading book + session start/stop
   scene.mountSlot('desk', createDeskSlotComponent());
+
+  // Mount shelf wall — condensed spine-card view on the north wall
+  scene.mountSlot('shelfWall', createShelfWallComponent());
 
   return {
     goToPose(pose, immediate = false) {
