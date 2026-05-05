@@ -123,10 +123,19 @@ import { ActionsStore } from '../../store/actions-store.ts';
         const input = form.querySelector('input[name="text"]');
         const text  = input?.value.trim();
         if (!text) return;
+
+        if (!ActionsStore.getUid()) {
+          _showFormError(form, 'Sign in to save action items.');
+          return;
+        }
+
         input.value    = '';
         input.disabled = true;
         try {
           await ActionsStore.add(bookId, text);
+        } catch (err) {
+          _showFormError(form, 'Could not save — please try again.');
+          input.value = text; // restore so user doesn't lose their text
         } finally {
           input.disabled = false;
           input.focus();
@@ -137,10 +146,15 @@ import { ActionsStore } from '../../store/actions-store.ts';
       container.querySelectorAll('[data-action-done]').forEach((checkbox) => {
         checkbox.addEventListener('change', async (e) => {
           const id = e.currentTarget.dataset.actionDone;
-          if (e.currentTarget.checked) {
-            await ActionsStore.markDone(id, bookId);
-          } else {
-            await ActionsStore.reopen(id);
+          try {
+            if (e.currentTarget.checked) {
+              await ActionsStore.markDone(id, bookId);
+            } else {
+              await ActionsStore.reopen(id);
+            }
+          } catch {
+            // Revert checkbox state on failure
+            e.currentTarget.checked = !e.currentTarget.checked;
           }
         });
       });
@@ -148,14 +162,14 @@ import { ActionsStore } from '../../store/actions-store.ts';
       // Snooze buttons
       container.querySelectorAll('[data-action-snooze]').forEach((btn) => {
         btn.addEventListener('click', async () => {
-          await ActionsStore.snooze(btn.dataset.actionSnooze);
+          try { await ActionsStore.snooze(btn.dataset.actionSnooze); } catch { /* no-op */ }
         });
       });
 
       // Archive buttons
       container.querySelectorAll('[data-action-archive]').forEach((btn) => {
         btn.addEventListener('click', async () => {
-          await ActionsStore.archive(btn.dataset.actionArchive);
+          try { await ActionsStore.archive(btn.dataset.actionArchive); } catch { /* no-op */ }
         });
       });
     }
@@ -168,4 +182,15 @@ function escHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function _showFormError(form, message) {
+  let err = form.querySelector('.actions-form-error');
+  if (!err) {
+    err = document.createElement('p');
+    err.className = 'actions-form-error';
+    form.after(err);
+  }
+  err.textContent = message;
+  setTimeout(() => err.remove(), 4000);
 }
