@@ -2002,3 +2002,28 @@
 .rs-modal-save { background: var(--ink); color: var(--bg); }
 .rs-modal-save:hover { opacity: 0.85; }
 .rs-modal-skip:hover { background: var(--ink); color: var(--bg); }
+
+/* ── Touch target fixes (iPad / touch devices) ────────────────────────────
+   Only applied on coarse-pointer devices (touch screens). Desktop mice are
+   precise enough; these overrides are specifically for ≥44px tap targets.  */
+@media (pointer: coarse) {
+  /* Book tabs in horizontal-scroll mode at ≤1080px */
+  .book-tab-btn {
+    min-height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  /* Regen / dismiss / edit header buttons in AI panels */
+  .ai-regen-btn,
+  .ai-edit-btn,
+  .ai-revert-btn,
+  .ai-graph-btn,
+  .ai-generated-dismiss {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

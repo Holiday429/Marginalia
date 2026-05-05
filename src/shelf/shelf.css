@@ -1200,3 +1200,24 @@ body[data-view="shelf"] {
   }
 
 }
+
+/* ── Touch target fixes (iPad / touch devices) ────────────────────────────
+   nav-room-btn (28px), filter chips (30px), search input (38px) are below
+   the 44px WCAG touch target guideline. Lift only on coarse-pointer devices. */
+@media (pointer: coarse) {
+  .nav-room-btn {
+    height: auto;
+    min-height: 44px;
+    padding: 0 16px;
+  }
+
+  .shelf-filters .chip {
+    height: auto;
+    min-height: 44px;
+    padding: 0 16px;
+  }
+
+  .shelf-search input {
+    height: 44px;
+  }
+}

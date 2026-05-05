@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1a1714"/>
+  <!-- Open book -->
+  <rect x="96" y="176" width="140" height="188" rx="6" fill="none" stroke="#c68b4a" stroke-width="14"/>
+  <rect x="276" y="176" width="140" height="188" rx="6" fill="none" stroke="#c68b4a" stroke-width="14"/>
+  <line x1="236" y1="176" x2="256" y2="364" stroke="#c68b4a" stroke-width="10" stroke-linecap="round"/>
+  <line x1="276" y1="176" x2="256" y2="364" stroke="#c68b4a" stroke-width="10" stroke-linecap="round"/>
+  <!-- Margin mark -->
+  <line x1="120" y1="228" x2="212" y2="228" stroke="#c68b4a" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  <line x1="120" y1="256" x2="212" y2="256" stroke="#c68b4a" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  <line x1="120" y1="284" x2="172" y2="284" stroke="#c68b4a" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  <line x1="300" y1="228" x2="392" y2="228" stroke="#c68b4a" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  <line x1="300" y1="256" x2="392" y2="256" stroke="#c68b4a" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  <line x1="300" y1="284" x2="360" y2="284" stroke="#c68b4a" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+</svg>

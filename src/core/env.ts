@@ -9,6 +9,7 @@ export const ENV = {
   FIREBASE_APP_ID:             import.meta.env.VITE_FIREBASE_APP_ID             as string,
   WORKSPACE_ID:                import.meta.env.VITE_WORKSPACE_ID                as string,
   AI_GATEWAY_URL:              import.meta.env.VITE_AI_GATEWAY_URL              as string,
+  CHECKOUT_URL:                import.meta.env.VITE_CHECKOUT_URL                as string,
   SENTRY_DSN:                  import.meta.env.VITE_SENTRY_DSN                  as string | undefined,
   POSTHOG_KEY:                 import.meta.env.VITE_POSTHOG_KEY                 as string | undefined,
   POSTHOG_HOST:                import.meta.env.VITE_POSTHOG_HOST                as string | undefined,
