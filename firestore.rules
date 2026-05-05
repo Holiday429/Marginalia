@@ -10,6 +10,20 @@ service cloud.firestore {
       return isAuthed() && request.auth.uid == uid;
     }
 
+    // Public profile check: user doc must exist and profilePublic must be true.
+    function isPublicProfile(uid) {
+      let userDoc = get(/databases/$(database)/documents/users/$(uid));
+      return userDoc != null && userDoc.data.settings.profilePublic == true;
+    }
+
+    // /users/{uid} — account-level metadata (plan, entitlements, settings incl. slug/profilePublic)
+    // Read: self always; anyone if profilePublic is true (slug lookup for public profiles).
+    // Write: self only.
+    match /users/{uid} {
+      allow read: if isSelf(uid) || resource.data.settings.profilePublic == true;
+      allow write: if isSelf(uid);
+    }
+
     // /workspaces/{workspaceId}/userProfiles/{uid}
     match /workspaces/{workspaceId}/userProfiles/{uid} {
       allow read, write: if isSelf(uid);
@@ -21,7 +35,22 @@ service cloud.firestore {
     }
 
     // /workspaces/{workspaceId}/users/{uid}/books/{bookId}
+    // Read: self always; public if profilePublic AND book.shareInProfile.
     match /workspaces/{workspaceId}/users/{uid}/books/{bookId} {
+      allow read: if isSelf(uid)
+        || (isPublicProfile(uid) && resource.data.shareInProfile == true);
+      allow write: if isSelf(uid);
+    }
+
+    // /workspaces/{workspaceId}/users/{uid}/actions/{actionId}
+    match /workspaces/{workspaceId}/users/{uid}/actions/{actionId} {
+      allow read, write: if isSelf(uid);
+    }
+
+    // /notifications/{uid}/unread/{docId}
+    // Write: Cloud Function only (Admin SDK bypasses rules).
+    // Read + update (mark read): owner only.
+    match /notifications/{uid}/unread/{docId} {
       allow read, write: if isSelf(uid);
     }
 
