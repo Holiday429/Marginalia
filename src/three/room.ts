@@ -555,6 +555,20 @@ export class RoomScene {
     };
   }
 
+  /** Returns the hero book's current screen-space position as {x, y} (0–1 normalized),
+   *  or null if the model hasn't loaded yet. Used to position the DOM hotspot overlay. */
+  getHeroBookScreenPos(): { x: number; y: number } | null {
+    const model = this.namedModels.get('hero-book-shelf');
+    if (!model) return null;
+    const worldPos = new THREE.Vector3();
+    model.getWorldPosition(worldPos);
+    worldPos.project(this.camera);
+    return {
+      x: (worldPos.x + 1) / 2,
+      y: (-worldPos.y + 1) / 2,
+    };
+  }
+
   pause(): void {
     this._paused = true;
     window.cancelAnimationFrame(this.frameHandle);

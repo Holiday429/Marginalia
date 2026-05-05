@@ -516,6 +516,25 @@ body[data-view='room'] {
   height: 100%;
 }
 
+/* Transparent DOM hotspot positioned over the hero book via JS projection.
+   Sits above the WebGL canvas (z-index 1) so it receives pointer events. */
+.room-experience-stage {
+  position: relative;
+}
+
+.room-hero-hotspot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 88px;
+  height: 120px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+  padding: 0;
+}
+
 .room-panel {
   position: fixed;
   inset: 0;

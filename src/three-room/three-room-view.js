@@ -468,6 +468,65 @@ function mountRoomScene() {
     ROOM_VIEW_STATE.handle.setSkin(ROOM_VIEW_STATE.skinId);
     ROOM_VIEW_STATE.handle.goToPose(ROOM_VIEW_STATE.pose, true);
   }
+
+  mountHeroBookHotspot();
+}
+
+function mountHeroBookHotspot() {
+  const stage = document.getElementById('roomExperienceStage');
+  if (!stage) return;
+  if (stage.querySelector('.room-hero-hotspot')) return;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'room-hero-hotspot';
+  btn.setAttribute('aria-label', 'Open Library');
+  stage.appendChild(btn);
+
+  btn.addEventListener('mouseenter', (e) => {
+    ROOM_VIEW_STATE.hoverAction = 'heroBook';
+    ROOM_VIEW_STATE.hoverPoint = { x: e.clientX, y: e.clientY };
+    syncHoverBadge();
+  });
+  btn.addEventListener('mousemove', (e) => {
+    ROOM_VIEW_STATE.hoverPoint = { x: e.clientX, y: e.clientY };
+    syncHoverBadge();
+  });
+  btn.addEventListener('mouseleave', () => {
+    ROOM_VIEW_STATE.hoverAction = null;
+    syncHoverBadge();
+  });
+  btn.addEventListener('click', () => {
+    exitRoomViaHeroFlip();
+  });
+
+  // Track the hero book's projected screen position every frame.
+  let _raf = 0;
+  function tick() {
+    if (!ROOM_VIEW_STATE.handle || !stage.contains(btn)) return;
+    const pos = ROOM_VIEW_STATE.handle.getHeroBookScreenPos();
+    if (pos) {
+      const rect = stage.getBoundingClientRect();
+      const cx = pos.x * rect.width;
+      const cy = pos.y * rect.height;
+      btn.style.transform = `translate(${Math.round(cx - 44)}px, ${Math.round(cy - 60)}px)`;
+      btn.hidden = pos.x < 0 || pos.x > 1 || pos.y < 0 || pos.y > 1;
+    } else {
+      btn.hidden = true;
+    }
+    _raf = requestAnimationFrame(tick);
+  }
+  _raf = requestAnimationFrame(tick);
+
+  // Clean up when the room view is destroyed (handle.destroy called).
+  const origDestroy = ROOM_VIEW_STATE.handle?.destroy?.bind(ROOM_VIEW_STATE.handle);
+  if (ROOM_VIEW_STATE.handle && origDestroy) {
+    ROOM_VIEW_STATE.handle.destroy = function() {
+      cancelAnimationFrame(_raf);
+      btn.remove();
+      origDestroy();
+    };
+  }
 }
 
 function runRoomAction(action) {
