@@ -930,3 +930,46 @@
     font-size: 9px;
   }
 }
+
+/* ── Export section ──────────────────────────────────────────────────────── */
+
+.booklist-export {
+  padding: 0 var(--space-6, 24px) var(--space-8, 32px);
+}
+
+.booklist-export__desc {
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #6b6560);
+  margin: 0 0 var(--space-4, 16px);
+}
+
+.booklist-export__actions {
+  display: flex;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+}
+
+.booklist-export__btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border, #c8c0b8);
+  background: var(--color-surface, #faf8f5);
+  color: var(--color-text, #1a1714);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.booklist-export__btn:hover {
+  background: var(--color-surface-hover, #f0ebe4);
+  border-color: var(--color-border-strong, #a09890);
+}
+
+.booklist-export__note {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #6b6560);
+  margin: var(--space-3, 12px) 0 0;
+}

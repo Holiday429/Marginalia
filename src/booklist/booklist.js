@@ -1,5 +1,7 @@
 /* Booklist view — annual picks animation + streak */
 
+import { exportJSON, exportMarkdown, triggerDownload } from '../api/export.ts';
+
 const BOOKLIST_TARGET_COUNT = 10;
 
 const BOOKLIST_STATE = {
@@ -137,6 +139,22 @@ function renderBooklistShell() {
             </div>
           </section>
         </section>
+
+        <section class="booklist-export section-title-gap">
+          <div class="booklist-section-head booklist-section-head--regular">
+            <h2 class="section-subtitle booklist-heading">Export Library</h2>
+          </div>
+          <p class="booklist-export__desc">Download your full library — all books and highlights.</p>
+          <div class="booklist-export__actions">
+            <button type="button" class="booklist-export__btn" id="ybExportJsonBtn">
+              Download JSON
+            </button>
+            <button type="button" class="booklist-export__btn" id="ybExportMdBtn">
+              Download Markdown
+            </button>
+          </div>
+          <p class="booklist-export__note" id="ybExportNote" hidden></p>
+        </section>
       </main>
     </div>
   `;
@@ -203,6 +221,21 @@ function bindBooklistEvents() {
     if (!event.target.closest('#booklistShareBtn')) return;
     event.preventDefault();
     exportBooklist();
+  });
+
+  host.addEventListener('click', (event) => {
+    const jsonBtn = event.target.closest('#ybExportJsonBtn');
+    if (jsonBtn) {
+      event.preventDefault();
+      handleExport('json');
+      return;
+    }
+    const mdBtn = event.target.closest('#ybExportMdBtn');
+    if (mdBtn) {
+      event.preventDefault();
+      handleExport('markdown');
+      return;
+    }
   });
 
   window.addEventListener('resize', debounceBooklistHeatmap);
@@ -1264,6 +1297,40 @@ function toggleBooklistPick(uid) {
 }
 
 /* ── Export / Share ──────────────────────────────────────────────────────── */
+
+function showExportNote(msg) {
+  const note = document.getElementById('ybExportNote');
+  if (!note) return;
+  note.textContent = msg;
+  note.hidden = !msg;
+}
+
+function handleExport(format) {
+  const entitlements = window.M?.store?.EntitlementsStore;
+  const booksStore   = window.M?.store?.BooksStore;
+
+  // Must be signed in (BooksStore has a uid) to export real data.
+  if (!booksStore?.getUid()) {
+    showExportNote('Sign in to export your library.');
+    return;
+  }
+
+  // export.json gates both formats (free users have this entitlement).
+  if (entitlements && !entitlements.hasEntitlement('export.json')) {
+    showExportNote('Export is available on the Pro plan. Upgrade to download your library.');
+    return;
+  }
+
+  showExportNote('');
+
+  if (format === 'json') {
+    const blob = exportJSON();
+    triggerDownload(blob, `marginalia-export-${new Date().toISOString().slice(0, 10)}.json`);
+  } else {
+    const blob = exportMarkdown();
+    triggerDownload(blob, `marginalia-export-${new Date().toISOString().slice(0, 10)}.md`);
+  }
+}
 
 async function exportBooklist() {
   const year = BOOKLIST_STATE.year;
