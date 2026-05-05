@@ -1,13 +1,11 @@
 /* Marginalia · Shelf Wall slot — 3D room north wall */
 
-/* Pass pointer events through empty areas of the wall so the GLB hero book
-   and bookshelf behind the transparent slot container remain clickable. */
-.three-slot-root--shelfWall {
+/* The entire slot layer is pointer-events: none so clicks fall through to the
+   WebGL canvas for raycasting (hero book, bookshelf GLBs). Spine navigation
+   is handled via a window-level click listener using elementFromPoint. */
+.three-slot-root--shelfWall,
+.three-slot-root--shelfWall * {
   pointer-events: none;
-}
-
-.three-slot-root--shelfWall .sw-spine {
-  pointer-events: auto;
 }
 
 .sw-wall {

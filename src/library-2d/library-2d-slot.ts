@@ -107,15 +107,6 @@ function renderWall(container: HTMLElement): void {
   html += '</div>';
 
   container.innerHTML = html;
-
-  // Wire click → navigate to Book panel.
-  container.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-book-id]');
-    if (!btn?.dataset.bookId) return;
-    // App is still on window during P1/P2 transition. TODO(p2-cleanup): import App directly.
-    (window as unknown as Record<string, { show?: (id: string, params?: object) => void }>)
-      .App?.show?.('book', { id: btn.dataset.bookId });
-  }, { once: false });
 }
 
 export function createShelfWallComponent(): SlotComponent {
@@ -125,15 +116,32 @@ export function createShelfWallComponent(): SlotComponent {
     if (_container) renderWall(_container);
   }
 
+  // The CSS3DRenderer layer is pointer-events:none so spine <button>s can't
+  // receive DOM clicks directly. Instead we listen on the window and use
+  // elementFromPoint to find which spine (if any) was under the click.
+  // This keeps all pointer-events off the CSS3D layer so WebGL raycasting
+  // (hero book, bookshelf GLBs) continues to work unobstructed.
+  function onWindowClick(e: MouseEvent): void {
+    if (!_container) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const spine = el?.closest<HTMLElement>('[data-book-id]');
+    if (!spine?.dataset.bookId) return;
+    // App is still on window during P1/P2 transition. TODO(p2-cleanup): import App directly.
+    (window as unknown as Record<string, { show?: (id: string, params?: object) => void }>)
+      .App?.show?.('book', { id: spine.dataset.bookId });
+  }
+
   return {
     mount(container: HTMLElement): void {
       _container = container;
       renderWall(container);
       window.addEventListener('marginalia:books-changed', onBooksChanged);
+      window.addEventListener('click', onWindowClick);
     },
 
     unmount(): void {
       window.removeEventListener('marginalia:books-changed', onBooksChanged);
+      window.removeEventListener('click', onWindowClick);
       if (_container) _container.innerHTML = '';
       _container = null;
     },
