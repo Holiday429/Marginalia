@@ -238,6 +238,17 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ## P2 progress notes
 
+### P2 Phase 3 (2026-05-05): Action items — capture, list, remind ✅ DONE (e2a7770)
+
+- **ADR 0007** (`docs/decisions/0007-action-reminders-via-cloud-function.md`): documents the 3-tier reminder design (7/30/90 days), the `archived` status lifecycle, and the decision to keep per-book scope only (no global to-do).
+- **`src/data/schema/action.ts`**: Zod schema for the `Action` document. Status: `open | done | snoozed | archived`. Reminder tier fields: `remind7At`, `remind30At`, `remind90At` (epoch ms) + `reminded7/30/90` fired flags. `resolvedAt` set on done/archive.
+- **`src/store/actions-store.ts`**: Firestore listener on `users/{uid}/data/actions`. Exposes `getAll()`, `getByBook(bookId)`, `add()`, `markDone()`, `archive()`, `snooze()`, `reopen()`. Snooze resets all three tier timestamps from the snooze date. Wired to auth-changed in `main.js` alongside BooksStore/HighlightsStore.
+- **`src/book/panels/actions.js` + `actions.css`**: panel registered into `PanelRegistry`. Renders open/snoozed items with checkbox (done), snooze button (⏱), archive button (×). Resolved items collapsed under a `<details>` toggle. Add-action form at bottom. Subscribes to `ActionsStore` for live re-render; MutationObserver cleans up listener on panel swap.
+- **`functions/src/action-reminders.ts`**: scheduled Cloud Function (`every 24 hours`). CollectionGroup query on all `open`/`snoozed` actions across all users; fires the appropriate reminder tier if its timestamp is past and its flag is `false`. Writes `notifications/{uid}/unread/{id}` doc; sets `remindedN: true` on the action. Batched writes (flush at 490 ops). Exported from `functions/src/index.ts`.
+- **`src/components/action-notifications/`**: floating badge + panel component. Watches `notifications/{uid}/unread` on sign-in. Badge (bottom-right, fixed) shows unread count; click opens a panel grouping reminders by tier (90d → 30d → 7d). Each item has Open (navigates to book panel) and Dismiss actions. "Dismiss all" clears all. `mountActionNotifications` / `unmountActionNotifications` called from main.js on auth-changed.
+
+---
+
 ### P2 Phase 2 (2026-05-05): Map view → BooksStore ✅ DONE (ed5aaed)
 
 - Removed 37-book `MAP_BOOKS` hardcoded array from `map.js`. Map now reads `BooksStore.getAll()` reactively.
