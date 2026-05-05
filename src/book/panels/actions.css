@@ -1,0 +1,221 @@
+/* Marginalia · Actions panel styles */
+
+.actions-panel {
+  padding: 28px 32px 40px;
+  font-family: var(--font-serif);
+}
+
+.actions-panel-head {
+  margin-bottom: 24px;
+}
+
+.actions-panel-title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.actions-panel-desc {
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  color: var(--muted);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── List ───────────────────────────────────────────────────────────────── */
+
+.actions-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.actions-empty {
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  color: rgba(232,223,200,0.35);
+  padding: 12px 0;
+}
+
+/* ── Item ───────────────────────────────────────────────────────────────── */
+
+.actions-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: rgba(232,223,200,0.10);
+  transition: background 120ms ease;
+}
+
+.actions-item:hover {
+  background: rgba(232,223,200,0.16);
+}
+
+.actions-item--snoozed {
+  opacity: 0.72;
+}
+
+.actions-item--resolved {
+  background: transparent;
+  opacity: 0.55;
+}
+
+.actions-item-check-label {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.actions-item-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.actions-item-text {
+  flex: 1;
+  font-family: var(--font-serif);
+  font-size: var(--fs-14);
+  color: var(--paper);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.actions-item-text--done {
+  text-decoration: line-through;
+  color: rgba(232,223,200,0.40);
+}
+
+.actions-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.actions-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: rgba(232,223,200,0.45);
+  font-size: var(--fs-14);
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.actions-ctrl-btn:hover {
+  background: rgba(232,223,200,0.10);
+  color: var(--paper);
+}
+
+.actions-ctrl-btn--archive:hover {
+  color: var(--color-accent-deep);
+}
+
+.actions-item-status-tag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  color: var(--muted-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* ── Add form ───────────────────────────────────────────────────────────── */
+
+.actions-add-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.actions-add-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid rgba(232,223,200,0.25);
+  border-radius: 4px;
+  background: rgba(232,223,200,0.10);
+  font-family: var(--font-serif);
+  font-size: var(--fs-14);
+  color: var(--paper);
+  outline: none;
+  transition: border-color 120ms ease;
+}
+
+.actions-add-input:focus {
+  border-color: var(--accent);
+}
+
+.actions-add-input::placeholder {
+  color: rgba(232,223,200,0.40);
+}
+
+.actions-add-btn {
+  padding: 9px 18px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background: var(--color-accent);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  font-size: var(--fs-13);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease;
+  white-space: nowrap;
+}
+
+.actions-add-btn:hover {
+  background: var(--color-accent-gold);
+}
+
+/* ── Resolved section ───────────────────────────────────────────────────── */
+
+.actions-resolved {
+  margin-top: 8px;
+}
+
+.actions-resolved-toggle {
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  padding: 6px 0;
+}
+
+.actions-resolved-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.actions-list--resolved {
+  margin-top: 8px;
+  opacity: 0.7;
+}
+
+.actions-form-error {
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  color: var(--color-accent-deep);
+  margin: 6px 0 0;
+  padding: 0;
+}

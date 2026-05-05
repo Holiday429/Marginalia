@@ -4,6 +4,7 @@
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
+import { BooksStore } from '../store/books-store.ts';
 
 let __mapChart       = null;
 let __mapBooted      = false;
@@ -20,45 +21,7 @@ let __mapPointer    = { x: 0, y: 0 };
 let __mapGeoMode    = 'all';
 
 /* ── Book data ──────────────────────────────────────────────────────────── */
-
-const MAP_BOOKS = [
-  { id:"b1",  title:"Dream of the Red Chamber",      author:"Cao Xueqin",       bg:"#6b3020", text:"#f2e0c8", loc:"CN", province:"CN-11", city:"Beijing / Nanjing", year:1791, tags:["Classic","Family"] },
-  { id:"b2",  title:"The Three-Body Problem",        author:"Liu Cixin",        bg:"#1c3550", text:"#8eb8d4", loc:"CN", province:"CN-11", city:"Beijing",           year:2008, tags:["Sci-fi","Trilogy"] },
-  { id:"b3",  title:"Wild Swans",                    author:"Jung Chang",       bg:"#3e2214", text:"#e4c08a", loc:"CN", province:"CN-51", city:"Yibin, Sichuan",    year:1991, tags:["Memoir","Women"] },
-  { id:"b4",  title:"Wolf Totem",                    author:"Jiang Rong",       bg:"#324820", text:"#bcd4a0", loc:"CN", province:"CN-15", city:"Inner Mongolia",    year:2004, tags:["Fiction","Nature"] },
-  { id:"b5",  title:"Raise the Red Lantern",         author:"Su Tong",          bg:"#7a2e18", text:"#f0d0a8", loc:"CN", province:"CN-14", city:"Shanxi",            year:1990, tags:["Novella","Power"] },
-  { id:"b6",  title:"Soul Mountain",                 author:"Gao Xingjian",     bg:"#24402e", text:"#a0c8ae", loc:"CN", province:"CN-42", city:"Wuhan / Rivers",   year:1990, tags:["Nobel","Journey"] },
-  { id:"b7",  title:"Balzac & the Seamstress",       author:"Dai Sijie",        bg:"#5a3018", text:"#e0b88a", loc:"CN", province:"CN-43", city:"Phoenix, Hunan",   year:2000, tags:["Coming-of-age"] },
-  { id:"b8",  title:"Fortress Besieged",             author:"Qian Zhongshu",    bg:"#2e2010", text:"#e4c08a", loc:"CN", province:"CN-31", city:"Shanghai",          year:1947, tags:["Satire","Comedy"] },
-  { id:"b10", title:"Rickshaw Boy",                  author:"Lao She",          bg:"#301808", text:"#dcb880", loc:"CN", province:"CN-11", city:"Beijing",           year:1936, tags:["Classic","Labour"] },
-  { id:"b11", title:"Red Sorghum",                   author:"Mo Yan",           bg:"#601408", text:"#ecc0a0", loc:"CN", province:"CN-37", city:"Gaomi, Shandong",  year:1987, tags:["Nobel","War"] },
-  { id:"b13", title:"Border Town",                   author:"Shen Congwen",     bg:"#304e28", text:"#b0d098", loc:"CN", province:"CN-43", city:"Fenghuang, Hunan", year:1934, tags:["Pastoral","Romance"] },
-  { id:"b14", title:"The Analects",                  author:"Confucius",        bg:"#181008", text:"#dcc060", loc:"CN", province:"CN-37", city:"Qufu, Shandong",   year:-479, tags:["Philosophy","Classic"] },
-  { id:"b15", title:"1984",                          author:"George Orwell",    bg:"#141414", text:"#c03030", loc:"GB", city:"London",            year:1949, tags:["Dystopia"] },
-  { id:"b16", title:"Mrs Dalloway",                  author:"Virginia Woolf",   bg:"#58705a", text:"#d8e8d0", loc:"GB", city:"London",            year:1925, tags:["Modernist"] },
-  { id:"b17", title:"Wuthering Heights",             author:"Emily Brontë",     bg:"#201828", text:"#c8c0d8", loc:"GB", city:"Yorkshire",         year:1847, tags:["Gothic"] },
-  { id:"b18", title:"Middlemarch",                   author:"George Eliot",     bg:"#482c18", text:"#e4c080", loc:"GB", city:"English Midlands",  year:1872, tags:["Victorian"] },
-  { id:"b19", title:"Les Misérables",                author:"Victor Hugo",      bg:"#142818", text:"#90c09a", loc:"FR", city:"Paris",             year:1862, tags:["Epic","Revolution"] },
-  { id:"b20", title:"In Search of Lost Time",        author:"Marcel Proust",    bg:"#483428", text:"#d8c0a0", loc:"FR", city:"Paris",             year:1913, tags:["Modernist","Memory"] },
-  { id:"b21", title:"War and Peace",                 author:"Leo Tolstoy",      bg:"#141430", text:"#9090c8", loc:"RU", city:"Moscow",            year:1869, tags:["Epic"] },
-  { id:"b22", title:"The Master and Margarita",      author:"Mikhail Bulgakov", bg:"#2c0838", text:"#c898d8", loc:"RU", city:"Moscow",            year:1967, tags:["Magic realism"] },
-  { id:"b23", title:"Crime and Punishment",          author:"F. Dostoevsky",    bg:"#220614", text:"#c88888", loc:"RU", city:"St Petersburg",     year:1866, tags:["Psychological"] },
-  { id:"b24", title:"The Tale of Genji",             author:"Murasaki Shikibu", bg:"#582848", text:"#e0b0c8", loc:"JP", city:"Kyoto",             year:1008, tags:["Classic"] },
-  { id:"b25", title:"Norwegian Wood",                author:"Haruki Murakami",  bg:"#18301a", text:"#88c088", loc:"JP", city:"Tokyo",             year:1987, tags:["Contemporary"] },
-  { id:"b26", title:"Snow Country",                  author:"Yasunari Kawabata",bg:"#3e4e5a", text:"#c8d8e8", loc:"JP", city:"Niigata",           year:1948, tags:["Nobel"] },
-  { id:"b27", title:"The Great Gatsby",              author:"F.S. Fitzgerald",  bg:"#701e10", text:"#f4e0b0", loc:"US", city:"Long Island, NY",   year:1925, tags:["Jazz Age"] },
-  { id:"b28", title:"Moby-Dick",                     author:"Herman Melville",  bg:"#081828", text:"#70a8c0", loc:"US", city:"Nantucket",         year:1851, tags:["Epic","Sea"] },
-  { id:"b29", title:"Blood Meridian",                author:"Cormac McCarthy",  bg:"#480e08", text:"#d88860", loc:"US", city:"Texas border",      year:1985, tags:["Western"] },
-  { id:"b30", title:"The God of Small Things",       author:"Arundhati Roy",    bg:"#224218", text:"#a0d080", loc:"IN", city:"Kerala",            year:1997, tags:["Booker"] },
-  { id:"b31", title:"Midnight's Children",           author:"Salman Rushdie",   bg:"#643e08", text:"#ecc050", loc:"IN", city:"Bombay",            year:1981, tags:["Booker"] },
-  { id:"b32", title:"One Hundred Years of Solitude", author:"García Márquez",   bg:"#283e18", text:"#a0d870", loc:"CO", city:"Macondo",           year:1967, tags:["Nobel","Magic realism"] },
-  { id:"b33", title:"The Trial",                     author:"Franz Kafka",      bg:"#181820", text:"#9090a8", loc:"CZ", city:"Prague",            year:1925, tags:["Modernist","Absurd"] },
-  { id:"b34", title:"The Book of Disquiet",          author:"Fernando Pessoa",  bg:"#283040", text:"#98a8c0", loc:"PT", city:"Lisbon",            year:1982, tags:["Modernist"] },
-  { id:"b35", title:"Things Fall Apart",             author:"Chinua Achebe",    bg:"#482e08", text:"#e4b060", loc:"NG", city:"Igboland",          year:1958, tags:["Classic","Colonialism"] },
-  { id:"b36", title:"The Name of the Rose",          author:"Umberto Eco",      bg:"#200e04", text:"#c89848", loc:"IT", city:"Apennine abbey",    year:1980, tags:["Mystery","Medieval"] },
-  { id:"b37", title:"The House of the Spirits",      author:"Isabel Allende",   bg:"#3e1020", text:"#d88888", loc:"CL", city:"Santiago",          year:1982, tags:["Magic realism"] },
-  { id:"b38", title:"The Iliad",                     author:"Homer",            bg:"#604808", text:"#f4d040", loc:"GR", city:"Troy / Mycenae",    year:-750, tags:["Epic","Ancient"] },
-];
+// MAP_BOOKS static array removed — map now reads from BooksStore reactively.
 
 const MAP_MODE_META = {
   authorOrigin: {
@@ -239,42 +202,35 @@ const REGION_PROFILES = {
 };
 
 function deriveMapGeo(book) {
-  const detail = window.BOOK_BY_ID?.[book.id];
-  const detailGeo = detail?.geo || {};
-  const fallbackCountry = book.loc || detail?.location?.country || null;
-  const fallbackProvince = book.province || detail?.location?.province || null;
-  const fallbackCity = book.city || detail?.location?.city || null;
-  const contextPlace = detail?.context?.place || '';
-  const readerCountry = /(北京|中国|Shanghai|Beijing)/i.test(contextPlace) ? 'CN' : null;
+  // Prefer the book's own geo block (set by new-entry or AI), then fall back
+  // to location.country if only the simple field is present.
+  const bookGeo = book.geo || {};
+  const loc = book.location?.country || book.loc || null;
+  const province = book.location?.province || book.province || null;
+  const city = book.location?.city || book.city || null;
 
   return {
-    authorOrigin: detailGeo.authorOrigin || (fallbackCountry ? {
-      country: fallbackCountry,
-      province: fallbackProvince,
-      city: fallbackCity
-    } : null),
-    contentLocation: detailGeo.contentLocation || (fallbackCountry ? {
-      country: fallbackCountry,
-      province: fallbackProvince,
-      city: fallbackCity
-    } : null),
-    readerLocation: detailGeo.readerLocation || (readerCountry ? {
-      country: readerCountry,
-      city: contextPlace
-    } : null),
+    authorOrigin: bookGeo.authorOrigin || (loc ? { country: loc, province, city } : null),
+    contentLocation: bookGeo.contentLocation || (loc ? { country: loc, province, city } : null),
+    readerLocation: bookGeo.readerLocation || null,
   };
 }
 
-function buildMapLibrary(seedBooks) {
-  return seedBooks.map(book => {
-    const detail = window.BOOK_BY_ID?.[book.id];
-    const coverImage = detail?.cover?.image || null;
-    return {
-      ...book,
-      coverImage,
-      geo: deriveMapGeo(book),
-    };
-  });
+function buildMapLibrary(books) {
+  return books.map(book => ({
+    id:         book.id,
+    title:      book.title ?? book.meta?.title ?? String(book.id),
+    author:     book.author ?? book.meta?.author ?? '',
+    bg:         book.spine ?? book.cover?.bg ?? '#3a3a3a',
+    text:       book.text ?? book.cover?.text ?? '#e8dfc8',
+    coverImage: book.cover?.image ?? null,
+    tags:       book.tags ?? [],
+    year:       book.year ?? null,
+    loc:        book.location?.country ?? book.loc ?? null,
+    province:   book.location?.province ?? book.province ?? null,
+    city:       book.location?.city ?? book.city ?? null,
+    geo:        deriveMapGeo(book),
+  }));
 }
 
 function buildGeoBuckets(books) {
@@ -300,37 +256,14 @@ function buildGeoBuckets(books) {
   return buckets;
 }
 
-const MAP_LIBRARY = buildMapLibrary(MAP_BOOKS);
-const MAP_GEO = buildGeoBuckets(MAP_LIBRARY);
+// Mutable — rebuilt on every BooksStore change.
+let MAP_LIBRARY = buildMapLibrary(BooksStore.getAll());
+let MAP_GEO = buildGeoBuckets(MAP_LIBRARY);
 
-export const mapAddBook = window.mapAddBook = function(spineEntry) {
-  if (!spineEntry?.loc) return;
-  const entry = {
-    id:    spineEntry.id,
-    title: spineEntry.title,
-    author: spineEntry.author,
-    bg:    spineEntry.bg || spineEntry.spine || '#3a3a3a',
-    text:  spineEntry.text || '#e8dfc8',
-    loc:   spineEntry.loc,
-    year:  new Date().getFullYear(),
-    tags:  [],
-    coverImage: null,
-    geo: {
-      authorOrigin:    { country: spineEntry.loc },
-      contentLocation: { country: spineEntry.loc },
-      readerLocation:  null,
-    },
-  };
-  MAP_LIBRARY.push(entry);
-  MAP_BOOKS.push(entry);
-  // Insert into live geo buckets
-  ['authorOrigin', 'contentLocation'].forEach(mode => {
-    const countryId = spineEntry.loc;
-    if (!MAP_GEO[mode].countries[countryId]) MAP_GEO[mode].countries[countryId] = [];
-    MAP_GEO[mode].countries[countryId].push(entry);
-    MAP_GEO.allCountries.add(countryId);
-  });
-};
+function rebuildLibrary() {
+  MAP_LIBRARY = buildMapLibrary(BooksStore.getAll());
+  MAP_GEO = buildGeoBuckets(MAP_LIBRARY);
+}
 
 function activeCountryMap() {
   if (__mapGeoMode === 'all') return mergedCountryMap();
@@ -576,6 +509,15 @@ function setMapInteractionMode(mode = 'world') {
 function initMap() {
   document.getElementById('panel-map').innerHTML = mapShellHTML();
   bindMapShellEvents();
+
+  window.addEventListener('marginalia:books-changed', () => {
+    rebuildLibrary();
+    updateSubheaderCounts();
+    if (__mapBooted) {
+      repaintWorldFills();
+      repaintChinaFills();
+    }
+  });
 }
 
 function enterMap() {
@@ -600,7 +542,8 @@ function waitForAmCharts(cb, attempt = 0) {
 /* ── DOM scaffold ──────────────────────────────────────────────────────── */
 
 function mapShellHTML() {
-  const total     = MAP_LIBRARY.length;
+  const located   = MAP_LIBRARY.filter(b => b.loc).length;
+  const unlocated = MAP_LIBRARY.filter(b => !b.loc).length;
   const countries = activeCountries().size;
   let sharedHeader = '';
   if (typeof window.renderUnifiedPanelHeader === 'function') {
@@ -614,8 +557,9 @@ function mapShellHTML() {
     <div class="map-subheader">
       <div class="map-geo-filters" id="mapGeoFilters"></div>
       <div class="map-header-right">
-        <div class="map-chip"><strong id="mapBooksCount">${total}</strong> books mapped</div>
+        <div class="map-chip"><strong id="mapBooksCount">${located}</strong> books mapped</div>
         <div class="map-chip"><strong id="mapCountriesCount">${countries}</strong> countries</div>
+        <div class="map-chip map-chip--dim" id="mapUnlocatedBadge" ${unlocated === 0 ? 'hidden' : ''}>${unlocated} book${unlocated === 1 ? '' : 's'} not yet located</div>
       </div>
       <div class="map-breadcrumb" id="mapBreadcrumb" hidden></div>
     </div>
@@ -703,6 +647,14 @@ function renderGlobalGeoFilters() {
 function updateSubheaderCounts() {
   const countriesEl = document.getElementById('mapCountriesCount');
   if (countriesEl) countriesEl.textContent = String(activeCountries().size);
+  const booksEl = document.getElementById('mapBooksCount');
+  if (booksEl) booksEl.textContent = String(MAP_LIBRARY.filter(b => b.loc).length);
+  const unlocated = MAP_LIBRARY.filter(b => !b.loc).length;
+  const badgeEl = document.getElementById('mapUnlocatedBadge');
+  if (badgeEl) {
+    badgeEl.textContent = unlocated > 0 ? `${unlocated} book${unlocated === 1 ? '' : 's'} not yet located` : '';
+    badgeEl.hidden = unlocated === 0;
+  }
 }
 
 /* ── amCharts boot ─────────────────────────────────────────────────────── */

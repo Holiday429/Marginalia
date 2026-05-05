@@ -24,7 +24,18 @@ async function enterBook(params = {}) {
     : book;
 
   const root = document.getElementById('panel-book');
-  root.innerHTML = renderBook(bookView);
+  const sections = getBookSections(bookView);
+  root.innerHTML = renderBook(bookView, sections);
+
+  // Re-mount registered panels onto their live DOM nodes so event listeners
+  // survive the innerHTML serialisation round-trip (mountFn is set by
+  // _renderPanelSection for panels that use PanelRegistry.render()).
+  sections.forEach((s) => {
+    if (s.mountFn) {
+      const liveEl = root.querySelector(`#${CSS.escape(s.id)}`);
+      if (liveEl) s.mountFn(liveEl);
+    }
+  });
 
   // Mount AI generate toolbars
   window.AIGenerateUI?.mount(bookView, root);
@@ -248,8 +259,8 @@ async function enterBook(params = {}) {
 
 /* ── Render ──────────────────────────────────────────────────────────────── */
 
-function renderBook(b) {
-  const sections = getBookSections(b);
+function renderBook(b, sections) {
+  sections = sections || getBookSections(b);
   const first = sections[0];
 
   return `
@@ -307,12 +318,20 @@ function _getSectionsFromRegistry(b) {
 }
 
 function _renderPanelSection(b, panelId, panelLabel) {
-  // If a registered panel render function exists, use it
+  // If a registered panel render function exists, use it.
+  // We capture the rendered HTML for the initial innerHTML pass, then re-call
+  // render() on the real DOM node after insertion so event listeners survive.
   const panel = window.PanelRegistry?.get(panelId);
   if (panel?.render) {
     const container = document.createElement('div');
     panel.render(b, container);
-    return { id: panelId, label: panelLabel || panel.label, html: container.innerHTML };
+    return {
+      id:    panelId,
+      label: panelLabel || panel.label,
+      html:  container.innerHTML,
+      // Called by enterBook() after the section is in the live DOM.
+      mountFn: (liveEl) => panel.render(b, liveEl),
+    };
   }
 
   // Built-in renderers for panels that exist pre-4B

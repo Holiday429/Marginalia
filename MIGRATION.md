@@ -238,6 +238,42 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ## P2 progress notes
 
+### P2 Phase 4 (2026-05-05): Public profile pages ✅ DONE (fc859f3)
+
+- **ADR 0008** (`docs/decisions/0008-public-profile-spa-routing.md`): documents the decision to use hash-based SPA routing (`#/p/{slug}`) instead of a Cloud Function HTTP endpoint. No SEO in v1; accepted trade-off.
+- **`src/data/schema/book.ts`**: added `shareInProfile?: boolean` to `BookSchema`. Opt-in per-book; must be `true` for a book to appear on a public profile.
+- **`functions/src/profile-slug-check.ts`**: HTTP Callable that verifies slug uniqueness against `users` collection before writing. Enforces 3–32 char limit, lowercase alphanum + hyphens, reserved slug list. Exported from `functions/src/index.ts`.
+- **`src/profile/profile-settings.ts`**: settings panel — slug input with async availability check (debounced, calls `profileSlugCheck`), public toggle (`profilePublic`), and per-book sharing checkboxes. Writes to `users/{uid}.settings.{slug,profilePublic}` and `books/{id}.shareInProfile`. Gated on `hasEntitlement('profile.public')` (included in FREE plan).
+- **`src/profile/profile.ts`** + **`profile.css`**: public profile view. Reads profile by slug from `users` collection (where `settings.slug == slug`). Shows: avatar/initials, display name, book/read stats, rotating public highlight quote (8s interval, fade transition), public spine cards. Handles not-found, private, and error states gracefully. No auth required to view. All typography via `var(--font-serif)` / `var(--font-mono)`; all colors via CSS tokens; no raw hex.
+- **`src/core/view-registry.ts`**: registered `profile` view (init / enter / enterPanel).
+- **`src/core/app.js`**: `syncFromHash()` extended to parse `#/p/{slug}` → `PanelManager.open('profile', { slug })`. `showProfile(slug)` helper added to App API. Profile added to PanelManager-routed views list.
+- **`firestore.rules`**: `users/{uid}` readable by anyone when `settings.profilePublic == true` (enables slug lookup). `books/{bookId}` readable publicly when user is public AND `shareInProfile == true`. Added `actions/{actionId}` and `notifications/{uid}/unread/{docId}` rules (previously missing — hitting deny-all).
+
+### P2 Phase 3 (2026-05-05): Action items — capture, list, remind ✅ DONE (e2a7770)
+
+- **ADR 0007** (`docs/decisions/0007-action-reminders-via-cloud-function.md`): documents the 3-tier reminder design (7/30/90 days), the `archived` status lifecycle, and the decision to keep per-book scope only (no global to-do).
+- **`src/data/schema/action.ts`**: Zod schema for the `Action` document. Status: `open | done | snoozed | archived`. Reminder tier fields: `remind7At`, `remind30At`, `remind90At` (epoch ms) + `reminded7/30/90` fired flags. `resolvedAt` set on done/archive.
+- **`src/store/actions-store.ts`**: Firestore listener on `users/{uid}/data/actions`. Exposes `getAll()`, `getByBook(bookId)`, `add()`, `markDone()`, `archive()`, `snooze()`, `reopen()`. Snooze resets all three tier timestamps from the snooze date. Wired to auth-changed in `main.js` alongside BooksStore/HighlightsStore.
+- **`src/book/panels/actions.js` + `actions.css`**: panel registered into `PanelRegistry`. Renders open/snoozed items with checkbox (done), snooze button (⏱), archive button (×). Resolved items collapsed under a `<details>` toggle. Add-action form at bottom. Subscribes to `ActionsStore` for live re-render; MutationObserver cleans up listener on panel swap.
+- **`functions/src/action-reminders.ts`**: scheduled Cloud Function (`every 24 hours`). CollectionGroup query on all `open`/`snoozed` actions across all users; fires the appropriate reminder tier if its timestamp is past and its flag is `false`. Writes `notifications/{uid}/unread/{id}` doc; sets `remindedN: true` on the action. Batched writes (flush at 490 ops). Exported from `functions/src/index.ts`.
+- **`src/components/action-notifications/`**: floating badge + panel component. Watches `notifications/{uid}/unread` on sign-in. Badge (bottom-right, fixed) shows unread count; click opens a panel grouping reminders by tier (90d → 30d → 7d). Each item has Open (navigates to book panel) and Dismiss actions. "Dismiss all" clears all. `mountActionNotifications` / `unmountActionNotifications` called from main.js on auth-changed.
+
+---
+
+### P2 Phase 2 (2026-05-05): Map view → BooksStore ✅ DONE (ed5aaed)
+
+- Removed 37-book `MAP_BOOKS` hardcoded array from `map.js`. Map now reads `BooksStore.getAll()` reactively.
+- `deriveMapGeo()` reads each book's `location`/`geo` fields directly — no more `window.BOOK_BY_ID` lookup.
+- `MAP_LIBRARY` / `MAP_GEO` are now mutable; rebuilt via `rebuildLibrary()` on every `marginalia:books-changed` event.
+- `initMap()` subscribes to `marginalia:books-changed`: repaints fills + updates header counts on any book add/change.
+- Subheader now shows located-book count; unlocated badge appears when user has books without a `location` field.
+- `mapAddBook` export removed — superseded by reactive BooksStore subscription.
+- Typed `location` and `geo` fields in `BookSchema` (`src/data/schema/book.ts`).
+- Unauthenticated visitors see seed books (sapiens has `location.country: 'IL'`).
+- `REGION_PROFILES` (cultural context, history, starters) remains static preset content — unchanged.
+
+---
+
 ### P2 Phase 1 (2026-05-05): shelfWall slot — Library 2D on the north wall ✅ DONE (c3d5450)
 
 - Created `src/library-2d/library-2d-slot.ts` implementing `SlotComponent`. Reads `BooksStore.getAll()` directly — first view to bypass `window.SHELF_BOOKS`. Groups spine cards by status (Reading / To Read / Finished / Confirm Later). Subscribes to `marginalia:books-changed` for live reactive updates.

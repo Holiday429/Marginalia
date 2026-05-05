@@ -6,12 +6,33 @@ export const BookCoverSchema = z.object({
   storagePath: z.string().optional(),
 }).passthrough();
 
+export const BookLocationSchema = z.object({
+  country:  z.string(),
+  city:     z.string().optional(),
+  province: z.string().optional(),
+});
+
+export const BookGeoEntrySchema = z.object({
+  country:  z.string(),
+  city:     z.string().optional(),
+  province: z.string().optional(),
+});
+
+export const BookGeoSchema = z.object({
+  authorOrigin:    BookGeoEntrySchema.nullable().optional(),
+  contentLocation: BookGeoEntrySchema.nullable().optional(),
+  readerLocation:  BookGeoEntrySchema.nullable().optional(),
+});
+
 export const BookSchema = z.object({
-  cover:     BookCoverSchema.optional(),
-  status:    z.enum(['unread', 'reading', 'read', 'abandoned']).optional(),
-  startedAt: z.number().nullable().optional(),
-  finishedAt: z.number().nullable().optional(),
-  updatedAt:  z.unknown().optional(), // FieldValue or number
+  cover:          BookCoverSchema.optional(),
+  status:         z.enum(['unread', 'reading', 'read', 'abandoned']).optional(),
+  startedAt:      z.number().nullable().optional(),
+  finishedAt:     z.number().nullable().optional(),
+  updatedAt:      z.unknown().optional(), // FieldValue or number
+  location:       BookLocationSchema.nullable().optional(),
+  geo:            BookGeoSchema.nullable().optional(),
+  shareInProfile: z.boolean().optional(), // opt-in: show this book on public profile
 }).passthrough();
 
 export type Book = z.infer<typeof BookSchema>;

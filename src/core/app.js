@@ -90,13 +90,21 @@ const App = (() => {
       return;
     }
 
+    // Public profile route: #/p/{slug}
+    const profileMatch = rawHash.match(/^\/p\/([a-z0-9][a-z0-9-]{0,30}[a-z0-9]?)$/i);
+    if (profileMatch) {
+      const slug = profileMatch[1].toLowerCase();
+      if (PanelManager) PanelManager.open('profile', { slug });
+      return;
+    }
+
     const requestedView = toCanonicalViewName(rawHash);
     if (requestedView === 'room') {
       if (PanelManager) PanelManager.closeAll();
       return;
     }
 
-    if (['shelf', 'map', 'web', 'booklist'].includes(requestedView)) {
+    if (['shelf', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
       const params = routeParamsByView.get(requestedView) || {};
       routeParamsByView.delete(requestedView);
       if (PanelManager) PanelManager.open(requestedView, params);
@@ -242,8 +250,8 @@ const App = (() => {
       navigateTo('room');
       return;
     }
-    // shelf / map / web / booklist → open via PanelManager
-    if (['shelf', 'map', 'web', 'booklist'].includes(requestedView)) {
+    // shelf / map / web / booklist / profile → open via PanelManager
+    if (['shelf', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
       navigateTo(requestedView);
       return;
     }
@@ -348,10 +356,15 @@ const App = (() => {
       .join(' ');
   }
 
+  // Navigate to a public profile by slug — sets #/p/{slug} and opens panel.
+  function showProfile(slug) {
+    window.location.hash = `/p/${slug}`;
+  }
+
   // Start on preloader
   show('preloader');
 
-  return { show, showShelf, showRoom, navigateTo };
+  return { show, showShelf, showRoom, navigateTo, showProfile };
 })();
 
 export { App };

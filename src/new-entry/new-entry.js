@@ -882,11 +882,6 @@ export const NewEntry = window.NewEntry = (() => {
     // Sync to Library (arrival pool)
     enterLibrary();
 
-    // Sync to Map — push into MAP_BOOKS array if accessible
-    if (typeof window.mapAddBook === 'function') {
-      window.mapAddBook({ ...spineEntry, bg: state.spineColor });
-    }
-
     close();
     App.show('book', { id });
   }

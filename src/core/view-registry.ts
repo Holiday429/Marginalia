@@ -14,6 +14,7 @@ import { initBooklist, enterBooklist, enterPanel_booklist } from '../booklist/bo
 import { initBook, enterBook, enterPanel_book } from '../book/book.js';
 import { initMap, enterMap, enterPanel_map } from '../map/map.js';
 import { initWeb, enterWeb, enterPanel_web } from '../web/web.js';
+import { initProfile, enterProfile, enterPanel_profile } from '../profile/profile.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ViewFn = (params?: any) => void;
@@ -32,4 +33,5 @@ export const VIEW_REGISTRY: Record<string, ViewEntry> = {
   book:     { init: initBook,     enter: enterBook,     enterPanel: enterPanel_book },
   map:      { init: initMap,      enter: enterMap,      enterPanel: enterPanel_map },
   web:      { init: initWeb,      enter: enterWeb,      enterPanel: enterPanel_web },
+  profile:  { init: initProfile,  enter: enterProfile,  enterPanel: enterPanel_profile },
 };

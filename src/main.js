@@ -49,14 +49,18 @@ import { BooksStore } from './store/books-store.ts';
 import { HighlightsStore } from './store/highlights-store.ts';
 import { EntitlementsStore } from './store/entitlements-store.ts';
 import { AiResultsStore } from './store/ai-results-store.ts';
+import { ActionsStore } from './store/actions-store.ts';
+import { mountActionNotifications, unmountActionNotifications } from './components/action-notifications/action-notifications.ts';
 import { initReadingSession, teardownReadingSession } from './components/reading-session/reading-session.ts';
 import { mountFocusWidget } from './components/reading-session/focus-widget.ts';
 import './components/reading-session/reading-session.css';
+import './components/action-notifications/action-notifications.css';
 M.store.NotesStore = NotesStore;
 M.store.BooksStore = BooksStore;
 M.store.HighlightsStore = HighlightsStore;
 M.store.EntitlementsStore = EntitlementsStore;
 M.store.AiResultsStore = AiResultsStore;
+M.store.ActionsStore = ActionsStore;
 
 // 4. Core app utilities
 import { MarginaliaGraph } from './core/graph-data.js';
@@ -96,6 +100,8 @@ M.ai.AIGenerateUI = AIGenerateUI;
 // 6b. Panel scripts
 import './book/panels/notes.js';
 import './book/panels/claude-import.js';
+import './book/panels/actions.js';
+import './book/panels/actions.css';
 
 // 6. Views (three-room/room-scene.js and preloader/hero-glb.js stay in index.html as type="module")
 // window.__heroGLBReadyPromise is set by hero-glb.js (HTML script tag, not bundled — see ADR 0002)
@@ -106,14 +112,14 @@ import { initLibrary, enterLibrary, enterPanel_library } from './library-2d/libr
 import { initRoom, enterRoom, renderRoomTopTabs } from './three-room/three-room-view.js';
 import { initBooklist, enterBooklist, enterPanel_booklist } from './booklist/booklist.js';
 import { initBook, enterBook, enterPanel_book } from './book/book.js';
-import { initMap, enterMap, enterPanel_map, mapAddBook } from './map/map.js';
+import { initMap, enterMap, enterPanel_map } from './map/map.js';
 import { initWeb, enterWeb, enterPanel_web } from './web/web.js';
 M.views.initShelf = initShelf; M.views.enterShelf = enterShelf; M.views.enterPanel_shelf = enterPanel_shelf;
 M.views.initLibrary = initLibrary; M.views.enterLibrary = enterLibrary; M.views.enterPanel_library = enterPanel_library;
 M.views.initRoom = initRoom; M.views.enterRoom = enterRoom; M.views.renderRoomTopTabs = renderRoomTopTabs;
 M.views.initBooklist = initBooklist; M.views.enterBooklist = enterBooklist; M.views.enterPanel_booklist = enterPanel_booklist;
 M.views.initBook = initBook; M.views.enterBook = enterBook; M.views.enterPanel_book = enterPanel_book;
-M.views.initMap = initMap; M.views.enterMap = enterMap; M.views.enterPanel_map = enterPanel_map; M.views.mapAddBook = mapAddBook;
+M.views.initMap = initMap; M.views.enterMap = enterMap; M.views.enterPanel_map = enterPanel_map;
 M.views.initWeb = initWeb; M.views.enterWeb = enterWeb; M.views.enterPanel_web = enterPanel_web;
 M.ui.renderShelfSection = renderShelfSection;
 
@@ -128,11 +134,15 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     BooksStore.initWithUser(user.uid, db);
     HighlightsStore.initWithUser(user.uid, db);
     AiResultsStore.init(user.uid, db);
+    ActionsStore.initWithUser(user.uid, db);
+    mountActionNotifications(user.uid, db);
     initReadingSession(user.uid, db);
   } else {
     BooksStore.teardown();
     HighlightsStore.teardown();
     AiResultsStore.teardown();
+    ActionsStore.teardown();
+    unmountActionNotifications();
     teardownReadingSession();
   }
 });
