@@ -40,7 +40,7 @@
 .actions-empty {
   font-family: var(--font-mono);
   font-size: var(--fs-12);
-  color: var(--muted-soft);
+  color: rgba(232,223,200,0.35);
   padding: 12px 0;
 }
 
@@ -52,12 +52,12 @@
   gap: 10px;
   padding: 10px 12px;
   border-radius: 4px;
-  background: var(--paper);
+  background: rgba(232,223,200,0.10);
   transition: background 120ms ease;
 }
 
 .actions-item:hover {
-  background: var(--cream);
+  background: rgba(232,223,200,0.16);
 }
 
 .actions-item--snoozed {
@@ -87,14 +87,14 @@
   flex: 1;
   font-family: var(--font-serif);
   font-size: var(--fs-14);
-  color: var(--ink);
+  color: var(--paper);
   line-height: 1.5;
   word-break: break-word;
 }
 
 .actions-item-text--done {
   text-decoration: line-through;
-  color: var(--muted);
+  color: rgba(232,223,200,0.40);
 }
 
 .actions-item-controls {
@@ -113,15 +113,15 @@
   border: none;
   border-radius: 3px;
   background: transparent;
-  color: var(--muted);
+  color: rgba(232,223,200,0.45);
   font-size: var(--fs-14);
   cursor: pointer;
   transition: background 100ms ease, color 100ms ease;
 }
 
 .actions-ctrl-btn:hover {
-  background: var(--rule-soft);
-  color: var(--ink);
+  background: rgba(232,223,200,0.10);
+  color: var(--paper);
 }
 
 .actions-ctrl-btn--archive:hover {
@@ -149,12 +149,12 @@
 .actions-add-input {
   flex: 1;
   padding: 9px 12px;
-  border: 1px solid var(--rule-strong);
+  border: 1px solid rgba(232,223,200,0.25);
   border-radius: 4px;
-  background: var(--paper);
+  background: rgba(232,223,200,0.10);
   font-family: var(--font-serif);
   font-size: var(--fs-14);
-  color: var(--ink);
+  color: var(--paper);
   outline: none;
   transition: border-color 120ms ease;
 }
@@ -164,25 +164,25 @@
 }
 
 .actions-add-input::placeholder {
-  color: var(--muted-soft);
+  color: rgba(232,223,200,0.40);
 }
 
 .actions-add-btn {
   padding: 9px 18px;
-  border: none;
+  border: 1px solid var(--rule-strong);
   border-radius: 4px;
-  background: var(--navy);
-  color: var(--paper);
+  background: var(--color-accent);
+  color: var(--color-ink);
   font-family: var(--font-serif);
   font-size: var(--fs-13);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: background 120ms ease;
   white-space: nowrap;
 }
 
 .actions-add-btn:hover {
-  background: var(--color-navy-soft);
+  background: var(--color-accent-gold);
 }
 
 /* ── Resolved section ───────────────────────────────────────────────────── */
