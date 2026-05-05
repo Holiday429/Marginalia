@@ -92,70 +92,51 @@ function saveLocalTodos(todos) {
 export function createNotesWallComponent() {
   let containerRef = null;
   let unsubscribe = null;
+  let unsubscribeHighlights = null;
   let activeCard = null;
   let pendingFocusTodoId = null;
   let removingIds = new Set();
   let renderToken = 0;
 
+  function loadHighlights() {
+    const highlightsStore = window.M?.store?.HighlightsStore;
+    const booksStore = window.M?.store?.BooksStore;
+
+    // Authenticated: read live highlights from HighlightsStore, join bookTitle from BooksStore.
+    if (highlightsStore?.getUid()) {
+      return highlightsStore.getAll()
+        .filter((h) => h.quote)
+        .map((h) => {
+          const book = booksStore?.getById(h.bookId);
+          return {
+            quote: h.quote,
+            bookTitle: book?.titleZh || book?.title || h.bookTitle || '',
+          };
+        });
+    }
+
+    // Unauthenticated: fall back to seed highlights.
+    const sapiens = window.__SEED_SAPIENS;
+    if (sapiens?.highlights) {
+      return sapiens.highlights
+        .filter((h) => h.quote)
+        .map((h) => ({
+          quote: h.quote,
+          bookTitle: sapiens.titleZh || sapiens.title || 'Sapiens',
+        }));
+    }
+
+    return [];
+  }
+
   async function loadData() {
     const now = new Date();
-    const store = window.NotesStore;
-    const sapiens = window.__SEED_SAPIENS;
-    const allHighlights = [];
     const todos = loadLocalTodos();
     const followUps = [];
 
-    if (sapiens?.highlights) {
-      sapiens.highlights.forEach((highlight) => {
-        if (highlight.quote) {
-          allHighlights.push({
-            quote: highlight.quote,
-            bookTitle: sapiens.titleZh || sapiens.title || 'Sapiens',
-          });
-        }
-      });
-    }
+    const allHighlights = loadHighlights();
 
-    if (store) {
-      await store.ready();
-
-      const books = await store.getAllBooks();
-      for (const book of books) {
-        const highlights = await store.getHighlights(book.id);
-        highlights.forEach((highlight) => {
-          if (highlight.quote) {
-            allHighlights.push({
-              quote: highlight.quote,
-              bookTitle: book.titleZh || book.title || '',
-            });
-          }
-        });
-      }
-
-      if (sapiens?.actions?.length) {
-        const actionStatuses = await Promise.all(
-          sapiens.actions.map(async (action) => ({
-            action,
-            status: await store.getActionStatus(sapiens.id, action.id),
-          })),
-        );
-
-        actionStatuses.forEach(({ action, status }) => {
-          const resolvedStatus = status || action.status || 'todo';
-          if (resolvedStatus === 'done') return;
-          followUps.push({
-            id: `action:${sapiens.id}:${action.id}`,
-            source: 'action',
-            sourceBookId: sapiens.id,
-            actionId: action.id,
-            text: action.text,
-            createdAt: Date.now() - FOLLOWUP_MS - 1,
-            status: resolvedStatus,
-          });
-        });
-      }
-    }
-
+    // Follow-ups from old-style todo items (localStorage only for now).
     todos
       .filter(isFollowUp)
       .forEach((todo) => {
@@ -627,10 +608,17 @@ export function createNotesWallComponent() {
       containerRef.addEventListener('keydown', handleKeyDown);
       containerRef.addEventListener('focusout', handleFocusOut);
       render();
-      unsubscribe = window.NotesStore?.onChange(() => render());
+      // Re-render when Firestore highlights arrive (async after mount).
+      const onHighlightsChanged = () => render();
+      window.addEventListener('marginalia:highlights-changed', onHighlightsChanged);
+      unsubscribeHighlights = () => window.removeEventListener('marginalia:highlights-changed', onHighlightsChanged);
     },
 
     unmount() {
+      if (unsubscribeHighlights) {
+        unsubscribeHighlights();
+        unsubscribeHighlights = null;
+      }
       if (unsubscribe) {
         unsubscribe();
         unsubscribe = null;
