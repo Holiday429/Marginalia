@@ -5,6 +5,7 @@
 import { APP_VERSION } from './core/version.ts';
 import { M } from './core/namespace.ts';
 import { initAnalytics } from './services/analytics.ts';
+import { setLanguage } from './core/i18n.ts';
 console.debug('[marginalia] version', APP_VERSION);
 initAnalytics();
 
@@ -137,6 +138,11 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     ActionsStore.initWithUser(user.uid, db);
     mountActionNotifications(user.uid, db);
     initReadingSession(user.uid, db);
+    // Load user's language preference and apply immediately.
+    db.doc(`users/${user.uid}`).get().then((snap) => {
+      const lang = snap.data()?.settings?.language;
+      if (lang) setLanguage(lang);
+    }).catch(() => {});
   } else {
     BooksStore.teardown();
     HighlightsStore.teardown();
@@ -144,6 +150,7 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     ActionsStore.teardown();
     unmountActionNotifications();
     teardownReadingSession();
+    setLanguage('en');
   }
 });
 
