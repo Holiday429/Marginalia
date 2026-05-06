@@ -369,6 +369,12 @@ const App = (() => {
 
 export { App };
 
+// Legacy bridge: views that reference App as a bare global (shelf.js, library-2d.js, map.js, web.js)
+// have no import system — they use App as a module-scope free variable resolved at call time.
+// Setting window.App here ensures those calls work without importing app.js in each file.
+// TODO(p3-cleanup): add `import { App } from '../core/app.js'` to each view, then remove this.
+window.App = App;
+
 // Preloader registration — avoids the app.js ↔ preloader.js circular import.
 // main.js calls registerPreloader(enterPreloader) after both modules are loaded.
 let _enterPreloader = null;
