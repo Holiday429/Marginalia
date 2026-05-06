@@ -1,4 +1,8 @@
-/* Marginalia preloader — bookshelf swing + open animation */
+/* Marginalia preloader — bookshelf swing + open animation.
+   Loading contract:
+   1) app.js starts on 'preloader' before preloader.js is ready.
+   2) main.js calls registerPreloader(enterPreloader) once this module is loaded.
+   3) enterPreloader() is the only start entrypoint (do not auto-run on module eval). */
 import { App } from '../core/app.js';
 import { BOOKS } from '../data/mock/seed-spines.js';
 
@@ -16,7 +20,7 @@ const state = { ...TWEAK_DEFAULTS };
 const track = document.getElementById('track');
 
 function buildShelf(paletteName) {
-  const palette = BOOKS[paletteName] || BOOKS.editorial;
+  const palette = BOOKS?.[paletteName] || BOOKS?.editorial || [];
   track.innerHTML = '';
 
   const baseH = Math.min(window.innerHeight * 0.52, 460);
@@ -27,7 +31,7 @@ function buildShelf(paletteName) {
     const book = document.createElement('div');
     book.className = 'book';
     book.dataset.idx = idx;
-    if (b.hero)   { book.dataset.role = 'hero';   book.classList.add('hero-3d'); }
+    if (b.hero)   { book.dataset.role = 'hero';   book.classList.add('hero-3d', 'hero-fallback'); }
     if (b.accent) { book.dataset.role = 'accent'; }
 
     const h = Math.round(baseH * b.h);
@@ -387,7 +391,7 @@ function pickNudgeTargets(books, heroIdx) {
 }
 
 function getHeroIdx() {
-  return (BOOKS[state.palette] || BOOKS.editorial).findIndex(b => b.hero);
+  return (BOOKS?.[state.palette] || BOOKS?.editorial || []).findIndex(b => b.hero);
 }
 
 function enterCTAState(books, heroIdx) {
@@ -454,7 +458,19 @@ function runBookPreloadTransition(bookId) {
   }, 780));
 }
 
-function enterPreloader(params = {}) {
+let preloaderReadyPromise = null;
+async function ensurePreloaderReady() {
+  if (!preloaderReadyPromise) {
+    preloaderReadyPromise = (async () => {
+      applyDefaults();
+      await waitForHeroGLBReady(2000);
+    })();
+  }
+  await preloaderReadyPromise;
+}
+
+async function enterPreloader(params = {}) {
+  await ensurePreloaderReady();
   if (params.transitionBookId) {
     runBookPreloadTransition(params.transitionBookId);
     return;
@@ -556,15 +572,6 @@ async function waitForHeroGLBReady(timeoutMs = 2000) {
     wait(timeoutMs),
   ]);
 }
-
-async function bootPreloader() {
-  applyDefaults();
-  await waitForHeroGLBReady(2000);
-  buildShelf(state.palette);
-  setTimeout(runSequence, 120);
-}
-
-bootPreloader();
 
 let resizeTimer;
 let lastW = window.innerWidth;

@@ -24,6 +24,9 @@ export let renderPrimaryHeader = null;
 export let renderUnifiedPanelHeader = null;
 // eslint-disable-next-line prefer-const
 export let renderToolPageShell = null;
+// Preloader registration target — assigned by main.js after preloader module loads.
+// Do not import preloader.js directly in this file (it imports App, circular dependency).
+let _enterPreloader = null;
 
 const App = (() => {
   const NAV_ITEMS = [
@@ -377,9 +380,11 @@ window.App = App;
 
 // Preloader registration — avoids the app.js ↔ preloader.js circular import.
 // main.js calls registerPreloader(enterPreloader) after both modules are loaded.
-let _enterPreloader = null;
 export function registerPreloader(fn) {
   _enterPreloader = fn;
+  // App starts on preloader before this registration runs; kick it once now.
+  // Keep this eager call: removing it can leave first paint stuck on static title screen.
+  if (document.body?.dataset?.view === 'preloader') _enterPreloader?.();
 }
 
 // Update module-level exports from window (set inside the IIFE above).

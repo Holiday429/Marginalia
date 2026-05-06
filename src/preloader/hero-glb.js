@@ -57,8 +57,7 @@ export function mountHeroGLB(bookEl) {
   const bookInner = bookEl.querySelector('.book-inner');
   if (!bookInner) return;
 
-  bookEl.classList.remove('hero-fallback');
-  bookEl.classList.add('hero-glb');
+  // Keep CSS faces visible (hero-fallback) until GLB first frame is painted.
 
   const stage = document.createElement('div');
   stage.className = 'glb-stage';
@@ -243,6 +242,9 @@ export function mountHeroGLB(bookEl) {
     pivot.rotation.y = currentAngle;
     applySpacing(currentAngle);
     renderer.render(scene, camera);
+    // Switch from CSS fallback to GLB now that first frame is painted.
+    bookEl.classList.remove('hero-fallback');
+    bookEl.classList.add('hero-glb');
   }).catch((err) => {
     console.error('[hero-glb] load failed, falling back to CSS:', err);
     if (!mounted) return;

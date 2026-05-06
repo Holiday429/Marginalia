@@ -251,7 +251,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <!-- hero-glb runs early so window.__heroGLBReadyPromise is set before main.js -->
+  <!-- hero-glb must stay before main.js so window.__heroGLBReadyPromise exists for preloader boot.
+       Do not reorder these two script tags unless preloader loading contract is redesigned. -->
   <script type="module" src="src/preloader/hero-glb.js"></script>
 
   <!-- Vite entry: all other src/ scripts loaded in dependency order via src/main.js -->
