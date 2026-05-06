@@ -238,6 +238,21 @@ Move Marginalia from prototype-grade (raw `<script>` tags, `window.X` globals, c
 
 ## P2 progress notes
 
+### P2 Phase 5 (2026-05-06): zh-CN locale + window.M cleanup ✅ DONE
+
+- **ADR 0009** (`docs/decisions/0009-i18n-design.md`): key-based string registry (`t(key)`), runtime `en` fallback, AI sync script for auto-translating missing keys.
+- **`src/core/i18n.ts`**: ~250 `en` strings, full `zh-CN` locale. `setLanguage(lang)` called on sign-in (reads `users/{uid}.settings.language`). `getSupportedLocales()` / `getLocaleKeys()` exported for sync script and language switcher.
+- **`scripts/i18n-sync.ts`**: calls Claude Haiku to translate only missing/changed keys. Run via `npm run i18n:sync`. Requires `ANTHROPIC_API_KEY` in env (dev-only).
+- **Language switcher**: added to `profile-settings.ts` — dropdown (English / 中文), writes to `users/{uid}.settings.language`, calls `setLanguage()` immediately and fires `marginalia:ui-refresh`.
+- **`window.M` removed** from `main.js` — all callers now import stores/modules directly.
+- **`registerPreloader(fn)`** added to `app.js` — replaces `window.M?.views?.enterPreloader` pattern (avoids circular import).
+- **`action-notifications.ts`**: `App` imported directly (removes `window.App` TODO).
+- **`notes-wall.js`**: `HighlightsStore`, `BooksStore`, `NotesStore` imported directly.
+- **`booklist.js`**: `EntitlementsStore`, `BooksStore`, `NotesStore`, `BOOKLIST_CURATED` imported directly; `window.BOOK_BY_ID`/`SHELF_BOOKS`/`BOOK_DETAILS` replaced with `BooksStore` reads; `handleExport` uses `BooksStore.getUid()` / `EntitlementsStore.hasEntitlement()`.
+- **`book.js`**: `BooksStore`, `HighlightsStore`, `NotesStore`, `renderShelfSection` imported directly; `enterBook` uses `BooksStore.getById()`; highlights use `HighlightsStore.getAll().filter()` when authenticated.
+- **Remaining `window.X`** in `book.js` (`AIGenerateUI`, `PanelRegistry`, `MarginaliaGraph`, etc.) — not in scope for this phase; source modules don't yet export named symbols. Deferred to P3 cleanup.
+- **`BooksStore._emit()` bridge** (`window.BOOK_BY_ID/DETAILS/SHELF_BOOKS`) kept — `shelf.js` and `library-2d.js` still read these. Remove when those views are migrated (P3 cleanup).
+
 ### P2 Phase 4 (2026-05-05): Public profile pages ✅ DONE (fc859f3)
 
 - **ADR 0008** (`docs/decisions/0008-public-profile-spa-routing.md`): documents the decision to use hash-based SPA routing (`#/p/{slug}`) instead of a Cloud Function HTTP endpoint. No SEO in v1; accepted trade-off.
