@@ -7,6 +7,7 @@ import { BooksStore } from '../store/books-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { BOOKLIST_CURATED } from '../data/mock/curated-booklist.js';
 import { renderUnifiedPanelHeader, renderPrimaryHeader, renderToolPageShell } from '../core/app.js';
+import { SpineCard } from '../components/spine-card.js';
 
 const BOOKLIST_TARGET_COUNT = 10;
 
@@ -452,7 +453,7 @@ function renderSourceShelf(host, books) {
   books.forEach((book) => {
     const size  = getSourceSpineSize(book);
     const isPicked = BOOKLIST_STATE.selectedByUid.has(book.uid);
-    const spine = window.SpineCard.create({
+    const spine = SpineCard.create({
       title:        shorten(book.spineTitle,  34),
       author:       shorten(book.spineAuthor, 22),
       spine:        book.spine,

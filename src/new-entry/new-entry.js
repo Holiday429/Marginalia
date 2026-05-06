@@ -13,7 +13,7 @@ import { renderShelfSection } from '../shelf/shelf.js';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { BOOK_TYPES } from '../data/schema/book-types.js';
 
-export const NewEntry = window.NewEntry = (() => {
+export const NewEntry = (() => {
 
   /* ── Spine palette ───────────────────────────────────────────────────────── */
 

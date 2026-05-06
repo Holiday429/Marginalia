@@ -9,6 +9,7 @@
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
+import { NotesStore } from '../store/notes-store.js';
 
 export const MarginaliaGraph = (() => {
   const STATUS_STORAGE_KEY = 'marginalia.bookConceptLink.status.v1';
@@ -366,7 +367,7 @@ export const MarginaliaGraph = (() => {
     if (added === 0) return false;
 
     // Persist updated book record so graph survives reload
-    window.NotesStore?.saveBook(book);
+    NotesStore?.saveBook(book);
 
     graphState = buildGraphState();
     window.dispatchEvent(new CustomEvent('marginalia:graph-links-changed', {

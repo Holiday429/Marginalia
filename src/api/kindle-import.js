@@ -9,7 +9,9 @@
      KindleImport.mountUI(containerEl)  — renders a drag-drop zone
    ========================================================================== */
 
-export const KindleImport = window.KindleImport = (() => {
+import { NotesStore } from '../store/notes-store.js';
+
+export const KindleImport = (() => {
   const SEPARATOR = '==========';
 
   // ── Parser ───────────────────────────────────────────────────────────────
@@ -63,7 +65,7 @@ export const KindleImport = window.KindleImport = (() => {
   // ── Import ───────────────────────────────────────────────────────────────
 
   async function importToBook(bookId, clippings) {
-    if (!window.NotesStore) throw new Error('NotesStore not available');
+    if (!NotesStore) throw new Error('NotesStore not available');
     const highlights = clippings
       .filter(c => c.kind !== 'bookmark' && c.quote)
       .map(c => ({
@@ -74,7 +76,7 @@ export const KindleImport = window.KindleImport = (() => {
         kind:     c.kind === 'note' ? 'concept' : null,
         source:   'kindle',
       }));
-    await window.NotesStore.importHighlights(bookId, highlights);
+    await NotesStore.importHighlights(bookId, highlights);
     return highlights.length;
   }
 

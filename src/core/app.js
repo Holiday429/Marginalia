@@ -366,10 +366,6 @@ const App = (() => {
 
 export { App };
 
-// Legacy bridge: window.App kept for views not yet importing app.js directly.
-// TODO(p4-cleanup): remove once all views import App directly.
-window.App = App;
-
 // Assign render helpers from IIFE return so importers get the real functions.
 // eslint-disable-next-line no-import-assign
 renderPrimaryHeader = App.renderPrimaryHeader;

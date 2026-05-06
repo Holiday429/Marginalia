@@ -8,6 +8,8 @@ import { BooksStore } from '../store/books-store.ts';
 import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
 import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { MarginaliaAuth } from '../firebase/auth.js';
+import { SpineCard } from '../components/spine-card.js';
+import { NewEntry } from '../new-entry/new-entry.js';
 import {
   LIBRARY_STORAGE_KEY,
   LIBRARY_WORLD_WIDTH,
@@ -345,7 +347,7 @@ function handleRailAction(action, sourceBtn) {
   }
   if (action === 'add-books') {
     PanelManager?.open?.('shelf');
-    window.setTimeout(() => window.NewEntry?.mount?.(), 120);
+    window.setTimeout(() => NewEntry?.mount?.(), 120);
     return;
   }
   if (action === 'select') {
@@ -718,7 +720,7 @@ function createSpineCard(record, shelfId) {
   const size = getSpineSize(record);
   const titleIsCJK = containsCJK(record.title);
   const authorIsCJK = containsCJK(record.author);
-  const node = window.SpineCard.create({
+  const node = SpineCard.create({
     title: record.title,
     author: record.author,
     spine: record.spine,
@@ -1297,14 +1299,6 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
     LIBRARY_STATE.overlay.playing = false;
   }, 760));
 
-  // Optional hook: if Rive mesh runtime is attached by user, allow override
-  if (window.LibraryRiveMesh && typeof window.LibraryRiveMesh.play === 'function') {
-    try {
-      window.LibraryRiveMesh.play({ sourceEl, record, overlayEl: overlay });
-    } catch (err) {
-      logError(err, { context: 'Library Rive mesh hook' });
-    }
-  }
 }
 
 function buildOverlayActions(record, sourceShelfId) {

@@ -18,7 +18,7 @@
 
 import { logError } from '../services/analytics.ts';
 
-export const NotesStore = window.NotesStore = (() => {
+export const NotesStore = (() => {
   const DB_NAME    = 'marginalia-notes';
   const DB_VERSION = 3;
   const STORE_ACTIONS    = 'action-status';

@@ -4,6 +4,8 @@ import { BooksStore } from '../store/books-store.ts';
 import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
 import { SEED_BOOK_BY_ID, SEED_BOOK_DETAILS } from '../data/seed/index.js';
 import { renderPrimaryHeader, renderUnifiedPanelHeader } from '../core/app.js';
+import { SpineCard } from '../components/spine-card.js';
+import { NewEntry } from '../new-entry/new-entry.js';
 
 const SHELF_STATE = {
   filter: 'all',
@@ -106,7 +108,7 @@ function bindShelfEvents() {
 
   const newEntryBtn = document.getElementById('shelfNewEntryBtn');
   if (newEntryBtn) {
-    newEntryBtn.addEventListener('click', () => window.NewEntry?.mount());
+    newEntryBtn.addEventListener('click', () => NewEntry?.mount());
   }
 
   document.querySelectorAll('.shelf-filters .chip').forEach((chip) => {
@@ -370,7 +372,7 @@ function renderShelfSummary(visibleCount) {
 
 function createSpineButton(record) {
   const { width, height } = getSpineSize(record);
-  const btn = window.SpineCard.create({
+  const btn = SpineCard.create({
     title:        record.titleDisplay,
     author:       record.author || '',
     spine:        record.spine || '#2b2b2b',

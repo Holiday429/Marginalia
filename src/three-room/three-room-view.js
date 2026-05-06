@@ -4,6 +4,7 @@ import { App } from '../core/app.js';
 import { attachFocusWidgetTo } from '../components/reading-session/focus-widget.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { BooksStore } from '../store/books-store.ts';
+import { NewEntry } from '../new-entry/new-entry.js';
 
 const SPACE_ITEMS = [
   { id: 'shelf', label: 'Shelf', icon: 'shelf' },
@@ -538,7 +539,7 @@ function runRoomAction(action) {
   }
   if (action === 'add-book') {
     openPanel('shelf');
-    window.setTimeout(() => window.NewEntry?.mount?.(), 140);
+    window.setTimeout(() => NewEntry?.mount?.(), 140);
     return;
   }
   if (action === 'reading-now') {

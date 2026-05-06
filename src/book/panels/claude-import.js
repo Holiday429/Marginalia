@@ -41,11 +41,11 @@ import { NotesStore } from '../../store/notes-store.js';
 
   /* ── Extend NotesStore with visualNotes if not already present ─────────── */
   function ensureVisualNotesStore() {
-    if (window.NotesStore.getVisualNotes) return;
+    if (NotesStore.getVisualNotes) return;
 
     const _mem = {};
 
-    Object.assign(window.NotesStore, {
+    Object.assign(NotesStore, {
       async getVisualNotes(bookId) {
         return _mem[bookId] || [];
       },
@@ -82,7 +82,7 @@ import { NotesStore } from '../../store/notes-store.js';
     await NotesStore.ready?.();
 
     const bookId = book.id;
-    let notes = await window.NotesStore.getVisualNotes(bookId);
+    let notes = await NotesStore.getVisualNotes(bookId);
     let activeId = notes[0]?.id || null;
 
     function render() {
@@ -151,8 +151,8 @@ import { NotesStore } from '../../store/notes-store.js';
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
           const id = btn.dataset.vnDelete;
-          await window.NotesStore.deleteVisualNote(bookId, id);
-          notes = await window.NotesStore.getVisualNotes(bookId);
+          await NotesStore.deleteVisualNote(bookId, id);
+          notes = await NotesStore.getVisualNotes(bookId);
           activeId = notes[0]?.id || null;
           render();
         });
@@ -180,9 +180,9 @@ import { NotesStore } from '../../store/notes-store.js';
           content: injectFix(raw),
           createdAt: Date.now(),
         };
-        await window.NotesStore.saveVisualNote(bookId, note);
+        await NotesStore.saveVisualNote(bookId, note);
       }
-      notes = await window.NotesStore.getVisualNotes(bookId);
+      notes = await NotesStore.getVisualNotes(bookId);
       activeId = notes[notes.length - 1]?.id || null;
       render();
     }

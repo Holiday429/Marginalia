@@ -14,6 +14,7 @@ import { BookTypes } from '../data/schema/book-types.js';
 import { MarginaliaGraph } from '../core/graph-data.js';
 import { openConceptDrawer } from '../core/concept-ui.js';
 import { AIGenerateUI } from '../ai/client/generate-ui.ts';
+import { KindleImport } from '../api/kindle-import.js';
 
 let __currentBookId = null;
 
@@ -125,12 +126,12 @@ async function enterBook(params = {}) {
   // Kindle import zone toggle
   const hlKindleBtn  = root.querySelector('#hlKindleBtn');
   const hlKindleZone = root.querySelector('#hlKindleZone');
-  if (hlKindleBtn && hlKindleZone && window.KindleImport) {
+  if (hlKindleBtn && hlKindleZone && KindleImport) {
     hlKindleBtn.addEventListener('click', () => {
       const open = hlKindleZone.hidden;
       hlKindleZone.hidden = !open;
       if (open && !hlKindleZone.dataset.mounted) {
-        window.KindleImport.mountUI(hlKindleZone);
+        KindleImport.mountUI(hlKindleZone);
         hlKindleZone.dataset.mounted = '1';
       }
     });

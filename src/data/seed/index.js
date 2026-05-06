@@ -8,15 +8,17 @@
 
 import { __SEED_SAPIENS } from './sapiens.js';
 import { BOOK_TYPES } from '../schema/book-types.js';
+import { NotesStore } from '../../store/notes-store.js';
+import { BOOKS as SHELF_BOOKS } from '../mock/seed-spines.js';
 
-export const BOOK_DETAILS = window.BOOK_DETAILS = [
+export const BOOK_DETAILS = [
   __SEED_SAPIENS,
   // add more seed objects here as books are authored
 ].filter(Boolean);
 
 /* Lookup helper */
-export const BOOK_BY_ID = window.BOOK_BY_ID = Object.fromEntries(
-  window.BOOK_DETAILS.map((b) => [b.id, b])
+export const BOOK_BY_ID = Object.fromEntries(
+  BOOK_DETAILS.map((b) => [b.id, b])
 );
 
 export const SEED_BOOK_DETAILS = BOOK_DETAILS;
@@ -24,21 +26,21 @@ export const SEED_BOOK_BY_ID = BOOK_BY_ID;
 
 /* Load user-created books from IndexedDB and merge in (user books first) */
 document.addEventListener('DOMContentLoaded', async () => {
-  await window.NotesStore?.ready?.();
-  const userBooks = await window.NotesStore?.getAllBooks?.() || [];
+  await NotesStore?.ready?.();
+  const userBooks = await NotesStore?.getAllBooks?.() || [];
   if (!userBooks.length) return;
 
-  const seedIds = new Set(window.BOOK_DETAILS.map(b => b.id));
+  const seedIds = new Set(BOOK_DETAILS.map(b => b.id));
   let added = 0;
   for (const book of userBooks) {
     if (seedIds.has(book.id)) continue; // never overwrite seed data
-    window.BOOK_DETAILS.unshift(book);
-    window.BOOK_BY_ID[book.id] = book;
+    BOOK_DETAILS.unshift(book);
+    BOOK_BY_ID[book.id] = book;
 
     // Also inject into SHELF_BOOKS so the spine appears on the shelf
-    if (window.SHELF_BOOKS && !window.SHELF_BOOKS.find(s => s.id === book.id)) {
+    if (SHELF_BOOKS && !SHELF_BOOKS.find(s => s.id === book.id)) {
       const style = BOOK_TYPES?.[book.bookType];
-      window.SHELF_BOOKS.unshift({
+      SHELF_BOOKS.unshift({
         id:     book.id,
         title:  book.title,
         author: book.author || '',

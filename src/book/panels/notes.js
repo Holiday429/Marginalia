@@ -3,6 +3,7 @@ import { BookNoteSchema } from '../../data/schema/book-note.ts';
 import { MarginaliaAuth } from '../../firebase/auth.js';
 import { MARGINALIA_FIREBASE } from '../../firebase/config.js';
 import { PanelRegistry } from './registry.js';
+import { NotesStore } from '../../store/notes-store.js';
 
 /* ==========================================================================
    Marginalia · Notes panel
@@ -42,8 +43,8 @@ import { PanelRegistry } from './registry.js';
     }
 
     async function load() {
-      await window.NotesStore?.ready?.();
-      const record = await window.NotesStore?.getNote(bookId);
+      await NotesStore?.ready?.();
+      const record = await NotesStore?.getNote(bookId);
       if (record?.content) {
         editor.innerHTML = record.content;
       }
@@ -53,7 +54,7 @@ import { PanelRegistry } from './registry.js';
     async function save() {
       const content = editor.innerHTML;
       try {
-        await window.NotesStore?.saveNote(bookId, content);
+        await NotesStore?.saveNote(bookId, content);
         setStatus('Saved');
         // Firebase sync if signed in
         syncToFirebase(bookId, content);
