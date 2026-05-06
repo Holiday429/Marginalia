@@ -2,6 +2,10 @@
 
 import { exportJSON, exportMarkdown, triggerDownload } from '../api/export.ts';
 import { openCheckout } from '../services/billing.ts';
+import { EntitlementsStore } from '../store/entitlements-store.ts';
+import { BooksStore } from '../store/books-store.ts';
+import { NotesStore } from '../store/notes-store.js';
+import { BOOKLIST_CURATED } from '../data/mock/curated-booklist.js';
 
 const BOOKLIST_TARGET_COUNT = 10;
 
@@ -31,8 +35,7 @@ const BOOKLIST_LEVEL_LABELS = [
   'Deep notes + action',
 ];
 
-// Mock curated list — sourced from src/data/mock/curated-booklist.js (window.BOOKLIST_CURATED)
-const BOOKLIST_CURATED_DESC = window.BOOKLIST_CURATED || [];
+const BOOKLIST_CURATED_DESC = BOOKLIST_CURATED || [];
 
 const BOOKLIST_HEATMAP_CACHE = new Map();
 let BOOKLIST_RESIZE_TIMER = 0;
@@ -726,14 +729,14 @@ function renderPreviewStaticBook(book) {
   if (!host) return;
   host.classList.add('is-static-preview');
   host.appendChild(buildCenterPreviewFrame(book));
-  setPreviewOpenable(Boolean(book.id && window.BOOK_BY_ID?.[book.id]));
+  setPreviewOpenable(Boolean(book.id && BooksStore.getById(book.id)));
 }
 
 function openPreviewBookDetail() {
   const uid = BOOKLIST_STATE.previewBookUid;
   if (!uid) return;
   const book = BOOKLIST_STATE.selectedByUid.get(uid);
-  if (!book?.id || !window.BOOK_BY_ID?.[book.id]) return;
+  if (!book?.id || !BooksStore.getById(book.id)) return;
   App.show('book', { id: book.id });
 }
 
@@ -827,7 +830,7 @@ async function playCenterBook(book) {
   const frame = buildCenterPreviewFrame(book);
   frame.classList.add('is-entering');
   host.appendChild(frame);
-  setPreviewOpenable(Boolean(book.id && window.BOOK_BY_ID?.[book.id]));
+  setPreviewOpenable(Boolean(book.id && BooksStore.getById(book.id)));
 
   await waitFrame();
   frame.classList.add('is-entered');
@@ -912,19 +915,30 @@ function applyCuratedBooksToSelection(selectedBooks) {
 function picksKey(year) { return `booklist-picks::${year}`; }
 
 async function savePicksForYear(year, uids) {
-  await window.NotesStore?.ready?.();
-  await window.NotesStore?.saveAiResult('__booklist__', picksKey(year), uids);
+  await NotesStore?.ready?.();
+  await NotesStore?.saveAiResult('__booklist__', picksKey(year), uids);
 }
 
 async function loadPicksForYear(year) {
-  await window.NotesStore?.ready?.();
-  return window.NotesStore?.getAiResult('__booklist__', picksKey(year)) || null;
+  await NotesStore?.ready?.();
+  return NotesStore?.getAiResult('__booklist__', picksKey(year)) || null;
 }
 
 function buildSourceBooks() {
   const year = BOOKLIST_STATE.year;
-  const shelfBooks = Array.isArray(window.SHELF_BOOKS) ? window.SHELF_BOOKS : [];
-  const allDetailBooks = Array.isArray(window.BOOK_DETAILS) ? window.BOOK_DETAILS : [];
+  const allBooks = BooksStore.getAll();
+  // Build spine-format and detail arrays from BooksStore for year filtering.
+  const shelfBooks = allBooks.map((b) => ({
+    id:     b.id,
+    title:  b.title  ?? b.meta?.title  ?? '',
+    author: b.author ?? b.meta?.author ?? '',
+    spine:  b.spine  ?? b.cover?.bg    ?? '#14263e',
+    text:   b.text   ?? b.cover?.text  ?? '#e8dfc8',
+    w:      b.w      ?? 38,
+    h:      b.h      ?? 0.88,
+    status: b.status ?? b.user?.status ?? 'confirmed-later',
+  }));
+  const allDetailBooks = allBooks;
 
   // Filter detail books to those started or finished in the selected year
   const yearStr = String(year);
@@ -991,9 +1005,10 @@ function normalizeBookRecord(entry, index, detail, shelfEntry) {
 }
 
 function resolveDetail(entry, titleMap) {
-  const byId = window.BOOK_BY_ID || {};
-  if (entry?.id && byId[entry.id]) return byId[entry.id];
-
+  if (entry?.id) {
+    const found = BooksStore.getById(entry.id);
+    if (found) return found;
+  }
   const normalized = normalizeLookupTitle(entry?.title);
   if (normalized && titleMap.has(normalized)) return titleMap.get(normalized);
   return null;
@@ -1307,17 +1322,14 @@ function showExportNote(msg) {
 }
 
 function handleExport(format) {
-  const entitlements = window.M?.store?.EntitlementsStore;
-  const booksStore   = window.M?.store?.BooksStore;
-
   // Must be signed in (BooksStore has a uid) to export real data.
-  if (!booksStore?.getUid()) {
+  if (!BooksStore?.getUid()) {
     showExportNote('Sign in to export your library.');
     return;
   }
 
   // export.json gates both formats (free users have this entitlement).
-  if (entitlements && !entitlements.hasEntitlement('export.json')) {
+  if (!EntitlementsStore.hasEntitlement('export.json')) {
     showExportNote('Export is available on the Pro plan.');
     openCheckout('pro_monthly', (err) => showExportNote(err));
     return;

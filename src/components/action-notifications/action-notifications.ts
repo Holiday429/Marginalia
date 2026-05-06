@@ -8,6 +8,7 @@
 
 import { logError } from '../../services/analytics.ts';
 import { ENV } from '../../core/env.ts';
+import { App } from '../../core/app.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FirestoreDB = any;
@@ -161,7 +162,7 @@ function _bindEvents(root: HTMLElement): void {
       const { notifId, bookId } = li.dataset as { notifId?: string; bookId?: string };
       if (notifId) await _markRead(notifId);
       if (bookId) {
-        (window as any).App?.show?.('book', { id: bookId }); // TODO(p2-cleanup): remove after phase 5 window.M cleanup
+        App?.show?.('book', { id: bookId });
       }
     });
   });

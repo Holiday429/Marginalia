@@ -149,7 +149,7 @@ const App = (() => {
 
     // Run init once, enter every time — resolved from VIEW_REGISTRY.
     // preloader is excluded: it imports App itself (circular), so its
-    // enterPreloader is registered on M.views by main.js and called via window.M.
+    // enterPreloader is registered via registerPreloader() in main.js.
     if (canonicalName !== 'preloader') {
       if (!initialized.has(canonicalName)) {
         VIEW_REGISTRY[canonicalName]?.init?.(params);
@@ -158,7 +158,7 @@ const App = (() => {
       VIEW_REGISTRY[canonicalName]?.enter?.(params);
     } else {
       if (!initialized.has('preloader')) initialized.add('preloader');
-      window.M?.views?.enterPreloader?.(params);
+      _enterPreloader?.(params);
     }
 
     // Highlight nav state
@@ -368,6 +368,13 @@ const App = (() => {
 })();
 
 export { App };
+
+// Preloader registration — avoids the app.js ↔ preloader.js circular import.
+// main.js calls registerPreloader(enterPreloader) after both modules are loaded.
+let _enterPreloader = null;
+export function registerPreloader(fn) {
+  _enterPreloader = fn;
+}
 
 // Update module-level exports from window (set inside the IIFE above).
 // eslint-disable-next-line no-import-assign

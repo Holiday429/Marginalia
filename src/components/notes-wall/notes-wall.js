@@ -1,4 +1,7 @@
 import './notes-wall.css';
+import { HighlightsStore } from '../../store/highlights-store.ts';
+import { BooksStore } from '../../store/books-store.ts';
+import { NotesStore } from '../../store/notes-store.js';
 
 const WALL_WIDTH = 880;
 const WALL_HEIGHT = 520;
@@ -99,15 +102,12 @@ export function createNotesWallComponent() {
   let renderToken = 0;
 
   function loadHighlights() {
-    const highlightsStore = window.M?.store?.HighlightsStore;
-    const booksStore = window.M?.store?.BooksStore;
-
     // Authenticated: read live highlights from HighlightsStore, join bookTitle from BooksStore.
-    if (highlightsStore?.getUid()) {
-      return highlightsStore.getAll()
+    if (HighlightsStore?.getUid()) {
+      return HighlightsStore.getAll()
         .filter((h) => h.quote)
         .map((h) => {
-          const book = booksStore?.getById(h.bookId);
+          const book = BooksStore?.getById(h.bookId);
           return {
             quote: h.quote,
             bookTitle: book?.titleZh || book?.title || h.bookTitle || '',
@@ -503,7 +503,7 @@ export function createNotesWallComponent() {
 
     if (id.startsWith('action:')) {
       const [, bookId, actionId] = id.split(':');
-      await window.NotesStore?.setActionStatus(bookId, actionId, 'done');
+      await NotesStore?.setActionStatus(bookId, actionId, 'done');
     }
   }
 

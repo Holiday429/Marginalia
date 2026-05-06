@@ -9,10 +9,8 @@ import { setLanguage } from './core/i18n.ts';
 console.debug('[marginalia] version', APP_VERSION);
 initAnalytics();
 
-// M is the single namespace root. All migrated globals are registered below
-// alongside their window.X shims. window.M is exported for bridge code.
-// TODO(p0-cleanup): remove window.M after phase 3 — callers should import M directly.
-window.M = M;
+// M is the single namespace root. All migrated globals are registered on it
+// for legacy bridge code that still reads via M.*.
 
 // 1. Schema + type system
 import { BOOK_TYPES, BookTypes } from './data/schema/book-types.js';
@@ -67,7 +65,7 @@ M.store.ActionsStore = ActionsStore;
 import { MarginaliaGraph } from './core/graph-data.js';
 M.store.MarginaliaGraph = MarginaliaGraph;
 import { PanelManager } from './core/panel-manager.js';
-import { App, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell } from './core/app.js';
+import { App, registerPreloader, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell } from './core/app.js';
 M.ui.App = App;
 import { openConceptDrawer, closeConceptDrawer } from './core/concept-ui.js';
 M.ui.PanelManager = PanelManager;
@@ -108,6 +106,7 @@ import './book/panels/actions.css';
 // window.__heroGLBReadyPromise is set by hero-glb.js (HTML script tag, not bundled — see ADR 0002)
 import { enterPreloader } from './preloader/preloader.js';
 M.views.enterPreloader = enterPreloader;
+registerPreloader(enterPreloader);
 import { initShelf, enterShelf, enterPanel_shelf, renderShelfSection } from './shelf/shelf.js';
 import { initLibrary, enterLibrary, enterPanel_library } from './library-2d/library-2d.js';
 import { initRoom, enterRoom, renderRoomTopTabs } from './three-room/three-room-view.js';
