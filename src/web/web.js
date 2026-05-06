@@ -4,6 +4,7 @@
 
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
+import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
 
 let __webBooted = false;
 let __webSvg = null;
@@ -30,12 +31,7 @@ function enterWeb() {
 }
 
 function webShellHTML() {
-  let sharedHeader = '';
-  if (typeof window.renderUnifiedPanelHeader === 'function') {
-    sharedHeader = window.renderUnifiedPanelHeader('graph');
-  } else if (typeof window.renderPrimaryHeader === 'function') {
-    sharedHeader = `<div class="shared-header-wrap">${window.renderPrimaryHeader('graph')}</div>`;
-  }
+  const sharedHeader = renderUnifiedPanelHeader('graph');
 
   const content = `
     ${sharedHeader}
@@ -100,10 +96,7 @@ function webShellHTML() {
       <button class="web-ctrl-btn" id="webReset" type="button" style="font-size:13px;letter-spacing:0.06em">fit</button>
     </div>
   `;
-  if (typeof window.renderToolPageShell === 'function') {
-    return window.renderToolPageShell('web', `<div class="web-page">${content}</div>`);
-  }
-  return content;
+  return renderToolPageShell('web', `<div class="web-page">${content}</div>`);
 }
 
 function bindWebShellEvents() {

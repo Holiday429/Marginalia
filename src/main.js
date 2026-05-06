@@ -50,13 +50,8 @@ import { MarginaliaGraph } from './core/graph-data.js';
 M.store.MarginaliaGraph = MarginaliaGraph;
 import { PanelManager } from './core/panel-manager.js';
 import { App, registerPreloader, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell } from './core/app.js';
-M.ui.App = App;
 import { openConceptDrawer, closeConceptDrawer } from './core/concept-ui.js';
 M.ui.PanelManager = PanelManager;
-M.ui.renderPrimaryHeader = renderPrimaryHeader;
-M.ui.renderUnifiedPanelHeader = renderUnifiedPanelHeader;
-M.ui.renderToolPageShell = renderToolPageShell;
-M.ui.openConceptDrawer = openConceptDrawer;
 M.ui.closeConceptDrawer = closeConceptDrawer;
 
 // 4b. API adapters

@@ -8,6 +8,7 @@ import { HighlightsStore } from '../store/highlights-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { renderShelfSection } from '../shelf/shelf.js';
 import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.js';
+import { renderPrimaryHeader } from '../core/app.js';
 
 let __currentBookId = null;
 
@@ -406,8 +407,8 @@ function _getSectionsLegacy(b) {
 /* ── Section renderers ───────────────────────────────────────────────────── */
 
 function renderMasthead(b) {
-  if (typeof window.renderPrimaryHeader === 'function') {
-    return window.renderPrimaryHeader('shelf', { showNewEntry: true, actionLabel: 'New Note', actionId: 'bookNewNoteBtn' });
+  if (renderPrimaryHeader) {
+    return renderPrimaryHeader('shelf', { showNewEntry: true, actionLabel: 'New Note', actionId: 'bookNewNoteBtn' });
   }
   return `
     <header class="book-masthead">

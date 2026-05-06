@@ -549,9 +549,9 @@ function runRoomAction(action) {
   }
 }
 
-window.renderRoomTopTabs = function renderRoomTopTabs(options = {}) {
+function renderRoomTopTabs(options = {}) {
   return renderRoomTopTabsMarkup(options);
-};
+}
 
 function getReadingNowBookId() {
   const fromCore = Array.isArray(window.BOOKS)
@@ -806,5 +806,4 @@ function exitRoomViaHeroFlip() {
   });
 }
 
-export { initRoom, enterRoom };
-export const renderRoomTopTabs = window.renderRoomTopTabs;
+export { initRoom, enterRoom, renderRoomTopTabs };

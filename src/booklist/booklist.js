@@ -6,6 +6,7 @@ import { EntitlementsStore } from '../store/entitlements-store.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { BOOKLIST_CURATED } from '../data/mock/curated-booklist.js';
+import { renderUnifiedPanelHeader, renderPrimaryHeader, renderToolPageShell } from '../core/app.js';
 
 const BOOKLIST_TARGET_COUNT = 10;
 
@@ -65,12 +66,7 @@ function renderBooklistShell() {
   const host = document.getElementById('panel-booklist');
   if (!host) return;
 
-  let sharedHeader = '';
-  if (typeof window.renderUnifiedPanelHeader === 'function') {
-    sharedHeader = window.renderUnifiedPanelHeader('booklist');
-  } else if (typeof window.renderPrimaryHeader === 'function') {
-    sharedHeader = `<div class="shared-header-wrap">${window.renderPrimaryHeader('booklist')}</div>`;
-  }
+  const sharedHeader = renderUnifiedPanelHeader('booklist');
 
   const content = `
     <div class="booklist-shell">
@@ -162,9 +158,7 @@ function renderBooklistShell() {
       </main>
     </div>
   `;
-  host.innerHTML = typeof window.renderToolPageShell === 'function'
-    ? window.renderToolPageShell('booklist', content)
-    : content;
+  host.innerHTML = renderToolPageShell('booklist', content);
 }
 
 function bindBooklistEvents() {

@@ -320,8 +320,6 @@ const App = (() => {
     `;
   }
 
-  window.renderPrimaryHeader = renderPrimaryHeader;
-
   function renderUnifiedPanelHeader(activeView) {
     return `
       <div class="shared-header-wrap">
@@ -329,8 +327,6 @@ const App = (() => {
       </div>
     `;
   }
-
-  window.renderUnifiedPanelHeader = renderUnifiedPanelHeader;
 
   function renderToolPageShell(pageType, contentHTML = '') {
     const safeType = String(pageType || 'tool').trim().toLowerCase();
@@ -342,8 +338,6 @@ const App = (() => {
       </div>
     `;
   }
-
-  window.renderToolPageShell = renderToolPageShell;
 
   function toServiceTitleCase(text) {
     return String(text || '')
@@ -367,16 +361,22 @@ const App = (() => {
   // Start on preloader
   show('preloader');
 
-  return { show, showShelf, showRoom, navigateTo, showProfile };
+  return { show, showShelf, showRoom, navigateTo, showProfile, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell };
 })();
 
 export { App };
 
-// Legacy bridge: views that reference App as a bare global (shelf.js, library-2d.js, map.js, web.js)
-// have no import system — they use App as a module-scope free variable resolved at call time.
-// Setting window.App here ensures those calls work without importing app.js in each file.
-// TODO(p3-cleanup): add `import { App } from '../core/app.js'` to each view, then remove this.
+// Legacy bridge: window.App kept for views not yet importing app.js directly.
+// TODO(p4-cleanup): remove once all views import App directly.
 window.App = App;
+
+// Assign render helpers from IIFE return so importers get the real functions.
+// eslint-disable-next-line no-import-assign
+renderPrimaryHeader = App.renderPrimaryHeader;
+// eslint-disable-next-line no-import-assign
+renderUnifiedPanelHeader = App.renderUnifiedPanelHeader;
+// eslint-disable-next-line no-import-assign
+renderToolPageShell = App.renderToolPageShell;
 
 // Preloader registration — avoids the app.js ↔ preloader.js circular import.
 // main.js calls registerPreloader(enterPreloader) after both modules are loaded.
@@ -386,11 +386,3 @@ export function registerPreloader(fn) {
   // Keep this eager call: removing it can leave first paint stuck on static title screen.
   if (document.body?.dataset?.view === 'preloader') _enterPreloader?.();
 }
-
-// Update module-level exports from window (set inside the IIFE above).
-// eslint-disable-next-line no-import-assign
-renderPrimaryHeader = window.renderPrimaryHeader;
-// eslint-disable-next-line no-import-assign
-renderUnifiedPanelHeader = window.renderUnifiedPanelHeader;
-// eslint-disable-next-line no-import-assign
-renderToolPageShell = window.renderToolPageShell;

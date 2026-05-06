@@ -5,6 +5,7 @@
 
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
+import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
 
 let __mapChart       = null;
 let __mapBooted      = false;
@@ -259,6 +260,7 @@ function buildGeoBuckets(books) {
 // Mutable — rebuilt on every BooksStore change.
 let MAP_LIBRARY = buildMapLibrary(BooksStore.getAll());
 let MAP_GEO = buildGeoBuckets(MAP_LIBRARY);
+let setMapGeoMode = null;
 
 function rebuildLibrary() {
   MAP_LIBRARY = buildMapLibrary(BooksStore.getAll());
@@ -545,12 +547,7 @@ function mapShellHTML() {
   const located   = MAP_LIBRARY.filter(b => b.loc).length;
   const unlocated = MAP_LIBRARY.filter(b => !b.loc).length;
   const countries = activeCountries().size;
-  let sharedHeader = '';
-  if (typeof window.renderUnifiedPanelHeader === 'function') {
-    sharedHeader = window.renderUnifiedPanelHeader('map');
-  } else if (typeof window.renderPrimaryHeader === 'function') {
-    sharedHeader = `<div class="shared-header-wrap">${window.renderPrimaryHeader('map')}</div>`;
-  }
+  const sharedHeader = renderUnifiedPanelHeader('map');
   const content = `
     ${sharedHeader}
 
@@ -594,10 +591,7 @@ function mapShellHTML() {
       <div class="map-panel-body" id="mapPanelBody"></div>
     </div>
   `;
-  if (typeof window.renderToolPageShell === 'function') {
-    return window.renderToolPageShell('map', `<div class="map-page">${content}</div>`);
-  }
-  return content;
+  return renderToolPageShell('map', `<div class="map-page">${content}</div>`);
 }
 
 function bindMapShellEvents() {
@@ -892,7 +886,7 @@ function bootMap() {
   }
   __mapGoWorldFn = goWorld;
 
-  window.__setMapGeoMode = (mode) => {
+  setMapGeoMode = (mode) => {
     __mapGeoMode = mode;
     renderGlobalGeoFilters();
     updateSubheaderCounts();
@@ -979,8 +973,8 @@ function repaintChinaFills(series = __mapChinaSeries) {
 function setGeoMode(mode) {
   const isValid = mode === 'all' || !!MAP_MODE_META[mode];
   if (!isValid || mode === __mapGeoMode) return;
-  if (typeof window.__setMapGeoMode === 'function') {
-    window.__setMapGeoMode(mode);
+  if (typeof setMapGeoMode === 'function') {
+    setMapGeoMode(mode);
   } else {
     __mapGeoMode = mode;
     renderGlobalGeoFilters();

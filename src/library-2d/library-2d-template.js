@@ -1,4 +1,5 @@
 import { LIBRARY_TAB_ITEMS } from './library-2d-state.js';
+import { renderRoomTopTabs } from '../three-room/three-room-view.js';
 
 function renderFallbackTopTabs(activeId = 'shelf') {
   return LIBRARY_TAB_ITEMS.map((item) => `
@@ -40,14 +41,12 @@ function renderLeftRail() {
 }
 
 export function renderLibraryShell() {
-  const roomTabs = typeof window.renderRoomTopTabs === 'function'
-    ? window.renderRoomTopTabs({
-      activeId: 'shelf',
-      dataAttr: 'library-panel',
-      className: 'room-top-tabs room-top-tabs--library',
-      ariaLabel: 'Library Tabs',
-    })
-    : `<nav class="room-top-tabs room-top-tabs--library" aria-label="Library Tabs">${renderFallbackTopTabs('shelf')}</nav>`;
+  const roomTabs = renderRoomTopTabs({
+    activeId: 'shelf',
+    dataAttr: 'library-panel',
+    className: 'room-top-tabs room-top-tabs--library',
+    ariaLabel: 'Library Tabs',
+  });
 
   return `
     <div class="page library-page">

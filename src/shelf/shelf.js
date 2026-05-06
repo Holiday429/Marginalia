@@ -3,6 +3,7 @@
 import { BooksStore } from '../store/books-store.ts';
 import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
 import { SEED_BOOK_BY_ID, SEED_BOOK_DETAILS } from '../data/seed/index.js';
+import { renderPrimaryHeader, renderUnifiedPanelHeader } from '../core/app.js';
 
 const SHELF_STATE = {
   filter: 'all',
@@ -27,10 +28,8 @@ function initShelf() {
   SHELF_STATE.contextExpanded = true;
 
   const headerWrap = document.getElementById('shelfHeaderWrap');
-  if (headerWrap && typeof window.renderUnifiedPanelHeader === 'function') {
-    headerWrap.innerHTML = window.renderUnifiedPanelHeader('shelf');
-  } else if (headerWrap && typeof window.renderPrimaryHeader === 'function') {
-    headerWrap.innerHTML = window.renderPrimaryHeader('shelf');
+  if (headerWrap) {
+    headerWrap.innerHTML = renderUnifiedPanelHeader('shelf');
   }
 
   bindShelfEvents();
