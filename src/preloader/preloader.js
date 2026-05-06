@@ -1,5 +1,6 @@
 /* Marginalia preloader — bookshelf swing + open animation */
 import { App } from '../core/app.js';
+import { BOOKS } from '../data/mock/seed-spines.js';
 
 const TWEAK_DEFAULTS = {
   speed: 0.8,
@@ -15,7 +16,7 @@ const state = { ...TWEAK_DEFAULTS };
 const track = document.getElementById('track');
 
 function buildShelf(paletteName) {
-  const palette = window.BOOKS[paletteName] || window.BOOKS.editorial;
+  const palette = BOOKS[paletteName] || BOOKS.editorial;
   track.innerHTML = '';
 
   const baseH = Math.min(window.innerHeight * 0.52, 460);
@@ -386,7 +387,7 @@ function pickNudgeTargets(books, heroIdx) {
 }
 
 function getHeroIdx() {
-  return (window.BOOKS[state.palette] || window.BOOKS.editorial).findIndex(b => b.hero);
+  return (BOOKS[state.palette] || BOOKS.editorial).findIndex(b => b.hero);
 }
 
 function enterCTAState(books, heroIdx) {
