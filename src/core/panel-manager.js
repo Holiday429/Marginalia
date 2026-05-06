@@ -285,5 +285,4 @@ const PanelManager = (() => {
   return { open, close, closeAll, setRoomHandle, getActive, primeTransition };
 })();
 
-window.PanelManager = PanelManager;
 export { PanelManager };

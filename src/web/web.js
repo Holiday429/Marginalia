@@ -5,6 +5,8 @@
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
+import { MarginaliaGraph } from '../core/graph-data.js';
+import { openConceptDrawer } from '../core/concept-ui.js';
 
 let __webBooted = false;
 let __webSvg = null;
@@ -175,9 +177,9 @@ function bootWeb() {
 }
 
 function renderWebGraph() {
-  if (!__webSvg || typeof d3 === 'undefined' || !window.MarginaliaGraph) return;
+  if (!__webSvg || typeof d3 === 'undefined' || !MarginaliaGraph) return;
 
-  const snapshot = window.MarginaliaGraph.getGraphSnapshot({
+  const snapshot = MarginaliaGraph.getGraphSnapshot({
     query: __webQuery,
     mode: __webMode,
     topConceptLimit: __webQuery ? 18 : 10,
@@ -244,7 +246,7 @@ function renderWebGraph() {
     .on('mouseleave', webHideTip)
     .on('click', (event, node) => {
       __webFocusConceptId = node.id;
-      window.openConceptDrawer?.(node.id);
+      openConceptDrawer(node.id);
       renderWebGraph();
     });
 
@@ -367,7 +369,7 @@ function buildWebFilters(snapshot) {
     button.addEventListener('click', () => {
       __webFocusConceptId = concept.id;
       renderWebGraph();
-      window.openConceptDrawer?.(concept.id);
+      openConceptDrawer(concept.id);
     });
     panel.appendChild(button);
   });
@@ -447,7 +449,7 @@ function webShowConceptTip(event, concept) {
   document.getElementById('ttBody').textContent = `${concept.bookCount} book link${concept.bookCount !== 1 ? 's' : ''} · click for reading history`;
   const container = document.getElementById('ttBooks');
   container.innerHTML = '';
-  (window.MarginaliaGraph.getConceptDetails(concept.id)?.relatedBooks || []).slice(0, 5).forEach(({ book }) => {
+  (MarginaliaGraph.getConceptDetails(concept.id)?.relatedBooks || []).slice(0, 5).forEach(({ book }) => {
     const chip = document.createElement('span');
     chip.className = 'web-tt-book';
     chip.textContent = shortBookTitle(book.titleZh || book.title);

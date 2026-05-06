@@ -10,7 +10,7 @@ import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 
-export const MarginaliaGraph = window.MarginaliaGraph = (() => {
+export const MarginaliaGraph = (() => {
   const STATUS_STORAGE_KEY = 'marginalia.bookConceptLink.status.v1';
 
   const RELATION_META = {

@@ -15,8 +15,9 @@
    ========================================================================== */
 
 import { logError } from '../../services/analytics.ts';
+import { BookTypes } from '../../data/schema/book-types.js';
 
-export const AIFeatureRegistry = window.AIFeatureRegistry = (() => {
+export const AIFeatureRegistry = (() => {
   const _features = {
 
     /* ── Fiction ──────────────────────────────────────────────────────────── */
@@ -123,7 +124,7 @@ export const AIFeatureRegistry = window.AIFeatureRegistry = (() => {
      * @returns {Array<{id, label, panel, outputType}>}
      */
     forBook(book) {
-      const ids = window.BookTypes.getAiFeatures(book);
+      const ids = BookTypes.getAiFeatures(book);
       return ids
         .map(id => ({ id, ...(_features[id] || {}) }))
         .filter(f => f.label);

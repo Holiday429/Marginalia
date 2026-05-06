@@ -7,6 +7,7 @@
    ========================================================================== */
 
 import { __SEED_SAPIENS } from './sapiens.js';
+import { BOOK_TYPES } from '../schema/book-types.js';
 
 export const BOOK_DETAILS = window.BOOK_DETAILS = [
   __SEED_SAPIENS,
@@ -36,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Also inject into SHELF_BOOKS so the spine appears on the shelf
     if (window.SHELF_BOOKS && !window.SHELF_BOOKS.find(s => s.id === book.id)) {
-      const style = window.BOOK_TYPES?.[book.bookType];
+      const style = BOOK_TYPES?.[book.bookType];
       window.SHELF_BOOKS.unshift({
         id:     book.id,
         title:  book.title,

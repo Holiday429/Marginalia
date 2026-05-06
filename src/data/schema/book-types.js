@@ -12,7 +12,7 @@
    AI feature ids must exist in src/ai/features/registry.js.
    ========================================================================== */
 
-export const BOOK_TYPES = window.BOOK_TYPES = {
+export const BOOK_TYPES = {
 
   fiction: {
     label: 'Fiction',
@@ -61,25 +61,25 @@ export const BOOK_TYPES = window.BOOK_TYPES = {
  * @param {object} book
  * @returns {string[]}
  */
-export const BookTypes = window.BookTypes = {
+export const BookTypes = {
   getPanels(book) {
     if (Array.isArray(book.panels) && book.panels.length) return book.panels;
-    const type = window.BOOK_TYPES[book.bookType];
+    const type = BOOK_TYPES[book.bookType];
     return type ? type.defaultPanels : ['overview', 'highlights', 'notes', 'claude-import'];
   },
 
   getAiFeatures(book) {
     if (Array.isArray(book.aiFeatures) && book.aiFeatures.length) return book.aiFeatures;
-    const type = window.BOOK_TYPES[book.bookType];
+    const type = BOOK_TYPES[book.bookType];
     return type ? type.defaultAiFeatures : [];
   },
 
   getTypeLabel(bookType) {
-    return window.BOOK_TYPES[bookType]?.label || 'General';
+    return BOOK_TYPES[bookType]?.label || 'General';
   },
 
   /** All registered type ids, in display order. */
   all() {
-    return Object.keys(window.BOOK_TYPES);
+    return Object.keys(BOOK_TYPES);
   },
 };

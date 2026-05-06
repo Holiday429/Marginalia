@@ -5,9 +5,10 @@
 */
 
 import { ActionsStore } from '../../store/actions-store.ts';
+import { PanelRegistry } from './registry.js';
 
 (function registerActionsPanel() {
-  window.PanelRegistry.set('actions', function renderActions(book, container) {
+  PanelRegistry.set('actions', function renderActions(book, container) {
     const bookId = book.id;
 
     // ── Initial render ────────────────────────────────────────────────────

@@ -3,9 +3,7 @@
    ========================================================================== */
 
 import { BooksStore } from '../store/books-store.ts';
-
-window.openConceptDrawer = openConceptDrawer;
-window.closeConceptDrawer = closeConceptDrawer;
+import { MarginaliaGraph } from './graph-data.js';
 
 let __conceptDrawerReady = false;
 let __conceptDrawerState = null;
@@ -44,7 +42,7 @@ function ensureConceptDrawer() {
 
 function openConceptDrawer(conceptId, options = {}) {
   ensureConceptDrawer();
-  const details = window.MarginaliaGraph?.getConceptDetails(conceptId, options);
+  const details = MarginaliaGraph?.getConceptDetails(conceptId, options);
   if (!details) return;
 
   __conceptDrawerState = { conceptId, options };
@@ -85,8 +83,8 @@ function renderConceptDrawerBody(details, options) {
     : '';
 
   const relatedBooks = details.relatedBooks.map(({ book, link, context }) => {
-    const relation = window.MarginaliaGraph.getRelationMeta(link.relationType);
-    const statusMeta = window.MarginaliaGraph.getLinkStatusMeta(link.status);
+    const relation = MarginaliaGraph.getRelationMeta(link.relationType);
+    const statusMeta = MarginaliaGraph.getLinkStatusMeta(link.status);
     const evidence = link.evidenceHighlights.map((item) => `
       <article class="concept-evidence-card">
         <div class="concept-evidence-meta">${item.page ? `p. ${esc(item.page)} · ` : ''}${esc(item.chapter || '')}</div>
@@ -159,7 +157,7 @@ function bindConceptDrawerEvents() {
       const linkId = button.dataset.linkId;
       const status = button.dataset.linkStatus;
       if (!linkId || !status) return;
-      window.MarginaliaGraph?.setBookConceptLinkStatus(linkId, status);
+      MarginaliaGraph?.setBookConceptLinkStatus(linkId, status);
     });
   });
 }

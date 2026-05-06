@@ -11,6 +11,7 @@ import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
 import { NotesStore } from '../store/notes-store.js';
 import { renderShelfSection } from '../shelf/shelf.js';
 import { MarginaliaAuth } from '../firebase/auth.js';
+import { BOOK_TYPES } from '../data/schema/book-types.js';
 
 export const NewEntry = window.NewEntry = (() => {
 
@@ -811,7 +812,7 @@ export const NewEntry = window.NewEntry = (() => {
     const coverImgSrc = dialog.querySelector('#neCoverImg')?.src || null;
     const coverIsBlob = coverImgSrc?.startsWith('blob:');
 
-    const typeConfig    = window.BOOK_TYPES?.[bookType] || {};
+    const typeConfig    = BOOK_TYPES?.[bookType] || {};
     const defaultPanels = typeConfig.defaultPanels || ['overview', 'highlights', 'notes', 'claude-import'];
     const aiFeatures    = typeConfig.defaultAiFeatures || [];
 

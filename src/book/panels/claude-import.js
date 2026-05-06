@@ -13,6 +13,8 @@
 
 import { MarginaliaAuth } from '../../firebase/auth.js';
 import { MARGINALIA_FIREBASE } from '../../firebase/config.js';
+import { PanelRegistry } from './registry.js';
+import { NotesStore } from '../../store/notes-store.js';
 
 (function registerVisualNotesPanel() {
 
@@ -75,9 +77,9 @@ import { MARGINALIA_FIREBASE } from '../../firebase/config.js';
   }
 
   /* ── Panel render ─────────────────────────────────────────────────────── */
-  window.PanelRegistry.set('claude-import', async function renderVisualNotes(book, container) {
+  PanelRegistry.set('claude-import', async function renderVisualNotes(book, container) {
     ensureVisualNotesStore();
-    await window.NotesStore.ready?.();
+    await NotesStore.ready?.();
 
     const bookId = book.id;
     let notes = await window.NotesStore.getVisualNotes(bookId);

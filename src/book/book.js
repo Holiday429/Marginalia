@@ -9,6 +9,11 @@ import { NotesStore } from '../store/notes-store.js';
 import { renderShelfSection } from '../shelf/shelf.js';
 import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.js';
 import { renderPrimaryHeader } from '../core/app.js';
+import { PanelRegistry } from './panels/registry.js';
+import { BookTypes } from '../data/schema/book-types.js';
+import { MarginaliaGraph } from '../core/graph-data.js';
+import { openConceptDrawer } from '../core/concept-ui.js';
+import { AIGenerateUI } from '../ai/client/generate-ui.ts';
 
 let __currentBookId = null;
 
@@ -45,7 +50,7 @@ async function enterBook(params = {}) {
   });
 
   // Mount AI generate toolbars
-  window.AIGenerateUI?.mount(bookView, root);
+  AIGenerateUI?.mount(bookView, root);
 
   // Wire up sidebar tabs
   root.querySelectorAll('.book-tab-btn').forEach(btn => {
@@ -168,8 +173,8 @@ async function enterBook(params = {}) {
   root.querySelectorAll('[data-open-concept-id]').forEach((item) => {
     item.addEventListener('click', () => {
       const conceptId = item.dataset.openConceptId;
-      if (!conceptId || typeof window.openConceptDrawer !== 'function') return;
-      window.openConceptDrawer(conceptId, { focusBookId: id });
+      if (!conceptId) return;
+      openConceptDrawer(conceptId, { focusBookId: id });
     });
   });
 
@@ -292,7 +297,7 @@ function getBookSections(b) {
   // Phase 4A: if PanelRegistry is available, use it to drive the tab list.
   // Panel render functions registered via PanelRegistry.set() take priority;
   // built-in legacy renderers are used as fallback so nothing breaks.
-  if (window.PanelRegistry && window.BookTypes) {
+  if (PanelRegistry && BookTypes) {
     return _getSectionsFromRegistry(b);
   }
   // Legacy fallback (pre-4A books or registry not yet loaded)
@@ -300,7 +305,7 @@ function getBookSections(b) {
 }
 
 function _getSectionsFromRegistry(b) {
-  const panels = window.PanelRegistry.forBook(b);
+  const panels = PanelRegistry.forBook(b);
   const sections = [];
 
   for (const panel of panels) {
@@ -319,7 +324,7 @@ function _renderPanelSection(b, panelId, panelLabel) {
   // If a registered panel render function exists, use it.
   // We capture the rendered HTML for the initial innerHTML pass, then re-call
   // render() on the real DOM node after insertion so event listeners survive.
-  const panel = window.PanelRegistry?.get(panelId);
+  const panel = PanelRegistry?.get(panelId);
   if (panel?.render) {
     const container = document.createElement('div');
     panel.render(b, container);
@@ -641,8 +646,8 @@ function renderRelatedConcepts(b) {
       <h2>Related Concepts</h2>
       <div class="related-concept-grid">
         ${items.map(({ concept, link, context }) => {
-          const statusMeta = window.MarginaliaGraph.getLinkStatusMeta(link.status);
-          const relationMeta = window.MarginaliaGraph.getRelationMeta(link.relationType);
+          const statusMeta = MarginaliaGraph.getLinkStatusMeta(link.status);
+          const relationMeta = MarginaliaGraph.getRelationMeta(link.relationType);
           return `
             <article class="related-concept-card${link.status === 'suggested' ? ' is-suggested' : ''}" data-open-concept-id="${esc(concept.id)}" role="button" tabindex="0">
               <div class="related-concept-meta">
@@ -929,8 +934,8 @@ function normalizeHighlightKind(kind) {
 }
 
 function getBookGraphConcepts(bookId) {
-  if (!window.MarginaliaGraph?.getBookRelatedConcepts) return [];
-  return window.MarginaliaGraph.getBookRelatedConcepts(bookId);
+  if (!MarginaliaGraph?.getBookRelatedConcepts) return [];
+  return MarginaliaGraph.getBookRelatedConcepts(bookId);
 }
 
 function coverArt(id) {

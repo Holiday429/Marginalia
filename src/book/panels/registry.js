@@ -15,8 +15,9 @@
    ========================================================================== */
 
 import { logError } from '../../services/analytics.ts';
+import { BookTypes } from '../../data/schema/book-types.js';
 
-export const PanelRegistry = window.PanelRegistry = (() => {
+export const PanelRegistry = (() => {
   const _panels = {
 
     /* ── Universal panels ─────────────────────────────────────────────────── */
@@ -153,7 +154,7 @@ export const PanelRegistry = window.PanelRegistry = (() => {
      * @returns {Array<{id, label, icon, render}>}
      */
     forBook(book) {
-      const ids = window.BookTypes.getPanels(book);
+      const ids = BookTypes.getPanels(book);
       return ids
         .map(id => ({ id, ...(_panels[id] || {}) }))
         .filter(p => p.label);  // drop unknown ids silently

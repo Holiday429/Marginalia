@@ -2,6 +2,7 @@ import { validateWrite, withMeta } from '../../services/db.ts';
 import { BookNoteSchema } from '../../data/schema/book-note.ts';
 import { MarginaliaAuth } from '../../firebase/auth.js';
 import { MARGINALIA_FIREBASE } from '../../firebase/config.js';
+import { PanelRegistry } from './registry.js';
 
 /* ==========================================================================
    Marginalia · Notes panel
@@ -12,7 +13,7 @@ import { MARGINALIA_FIREBASE } from '../../firebase/config.js';
    ========================================================================== */
 
 (function registerNotesPanel() {
-  window.PanelRegistry.set('notes', function renderNotes(book, container) {
+  PanelRegistry.set('notes', function renderNotes(book, container) {
     container.innerHTML = `
       <section class="notes-panel">
         <div class="notes-panel-head">

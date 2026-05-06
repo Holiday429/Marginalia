@@ -3,6 +3,7 @@ import { PanelManager } from '../core/panel-manager.js';
 import { App } from '../core/app.js';
 import { attachFocusWidgetTo } from '../components/reading-session/focus-widget.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
+import { BooksStore } from '../store/books-store.ts';
 
 const SPACE_ITEMS = [
   { id: 'shelf', label: 'Shelf', icon: 'shelf' },
@@ -554,11 +555,8 @@ function renderRoomTopTabs(options = {}) {
 }
 
 function getReadingNowBookId() {
-  const fromCore = Array.isArray(window.BOOKS)
-    ? window.BOOKS.find((book) => String(book?.status || '').toLowerCase() === 'reading')
-    : null;
-  if (fromCore?.id) return fromCore.id;
-  return 'sapiens';
+  const reading = BooksStore.getAll().find((book) => String(book?.status || '').toLowerCase() === 'reading');
+  return reading?.id || 'sapiens';
 }
 
 function applyRoomPose(pose) {

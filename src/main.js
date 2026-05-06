@@ -16,10 +16,6 @@ initAnalytics();
 import { BOOK_TYPES, BookTypes } from './data/schema/book-types.js';
 import { PanelRegistry } from './book/panels/registry.js';
 import { AIFeatureRegistry } from './ai/features/registry.js';
-M.data.BOOK_TYPES = BOOK_TYPES;
-M.data.BookTypes = BookTypes;
-M.ui.PanelRegistry = PanelRegistry;
-M.ai.AIFeatureRegistry = AIFeatureRegistry;
 
 // 2. Firebase layer
 import { MARGINALIA_FIREBASE } from './firebase/config.js';
@@ -51,8 +47,6 @@ M.store.MarginaliaGraph = MarginaliaGraph;
 import { PanelManager } from './core/panel-manager.js';
 import { App, registerPreloader, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell } from './core/app.js';
 import { openConceptDrawer, closeConceptDrawer } from './core/concept-ui.js';
-M.ui.PanelManager = PanelManager;
-M.ui.closeConceptDrawer = closeConceptDrawer;
 
 // 4b. API adapters
 import { KindleImport } from './api/kindle-import.js';
