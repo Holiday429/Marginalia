@@ -7,6 +7,7 @@ import { BooksStore } from '../store/books-store.ts';
 import { HighlightsStore } from '../store/highlights-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { renderShelfSection } from '../shelf/shelf.js';
+import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.js';
 
 let __currentBookId = null;
 
@@ -14,8 +15,7 @@ function initBook() {}
 
 async function enterBook(params = {}) {
   const id = params.id || __currentBookId || 'sapiens';
-  // TODO(p2-cleanup): remove window.BOOK_BY_ID fallback once BooksStore._emit bridge is removed.
-  const book = BooksStore.getById(id) ?? (window.BOOK_BY_ID && window.BOOK_BY_ID[id]);
+  const book = BooksStore.getById(id);
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
   __currentBookId = id;
 
@@ -180,14 +180,14 @@ async function enterBook(params = {}) {
     uploadInput.addEventListener('change', async () => {
       const file = uploadInput.files?.[0];
       if (!file) return;
-      if (!window.MarginaliaStorage?.isEnabled?.()) {
+      if (!MarginaliaStorage?.isEnabled?.()) {
         if (uploadStatus) uploadStatus.textContent = 'Storage not enabled';
         return;
       }
       if (uploadStatus) uploadStatus.textContent = 'Uploading...';
       try {
-        const uploaded = await window.MarginaliaStorage.uploadCoverImage({ file, bookId: id });
-        await window.MarginaliaBooksCloud?.setBookCover({
+        const uploaded = await MarginaliaStorage.uploadCoverImage({ file, bookId: id });
+        await MarginaliaBooksCloud?.setBookCover({
           bookId: id,
           imageUrl: uploaded.downloadURL,
           storagePath: uploaded.path,

@@ -4,6 +4,10 @@ import { logError } from '../services/analytics.ts';
 import { withMeta } from '../services/db.ts';
 import { renderLibraryShell } from './library-2d-template.js';
 import { PanelManager } from '../core/panel-manager.js';
+import { BooksStore } from '../store/books-store.ts';
+import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
+import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
+import { MarginaliaAuth } from '../firebase/auth.js';
 import {
   LIBRARY_STORAGE_KEY,
   LIBRARY_WORLD_WIDTH,
@@ -386,14 +390,14 @@ function syncLibraryRecords() {
   const map = new Map();
   const seen = new Map();
 
-  (window.SHELF_BOOKS || []).forEach((book, index) => {
+  (SHELF_BOOKS || []).forEach((book, index) => {
     const rawBase = String(book.id || `${book.title || 'book'}-${book.author || 'author'}`).toLowerCase();
     const base = slugify(rawBase);
     const count = (seen.get(base) || 0) + 1;
     seen.set(base, count);
     const key = count === 1 ? base : `${base}-${count}`;
 
-    const detail = book.id ? window.BOOK_BY_ID?.[book.id] : null;
+    const detail = book.id ? (BooksStore.getById(book.id) ?? SEED_BOOK_BY_ID[book.id]) : null;
     const record = {
       key,
       id: book.id || '',
@@ -1684,7 +1688,7 @@ function syncStatusToSource(bookKey, shelfId) {
   if (!record) return;
   record.status = status;
 
-  const source = window.SHELF_BOOKS?.[record.sourceIndex];
+  const source = SHELF_BOOKS?.[record.sourceIndex];
   if (source) source.status = status;
 }
 
@@ -1788,7 +1792,7 @@ function saveLayout() {
   }
 
   // Debounced Firestore write (≥500ms after last drag-end) when signed in.
-  const auth = window.MarginaliaAuth;
+  const auth = MarginaliaAuth;
   const uid  = auth?.user?.uid;
   const db   = auth?.db;
   if (!uid || !db) return;
@@ -1804,7 +1808,7 @@ function saveLayout() {
 
 async function readStoredLayout() {
   // Prefer Firestore when signed in; fall back to localStorage.
-  const auth = window.MarginaliaAuth;
+  const auth = MarginaliaAuth;
   const uid  = auth?.user?.uid;
   const db   = auth?.db;
 

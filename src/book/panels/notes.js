@@ -1,5 +1,7 @@
 import { validateWrite, withMeta } from '../../services/db.ts';
 import { BookNoteSchema } from '../../data/schema/book-note.ts';
+import { MarginaliaAuth } from '../../firebase/auth.js';
+import { MARGINALIA_FIREBASE } from '../../firebase/config.js';
 
 /* ==========================================================================
    Marginalia · Notes panel
@@ -81,9 +83,9 @@ import { BookNoteSchema } from '../../data/schema/book-note.ts';
   });
 
   function syncToFirebase(bookId, content) {
-    const auth = window.MarginaliaAuth;
+    const auth = MarginaliaAuth;
     if (!auth?.user || !auth?.db) return;
-    const workspaceId = window.MARGINALIA_FIREBASE?.workspaceId || 'default';
+    const workspaceId = MARGINALIA_FIREBASE?.workspaceId || 'default';
     try {
       const payload = withMeta(validateWrite(BookNoteSchema, { content }));
       auth.db

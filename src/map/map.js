@@ -1577,7 +1577,7 @@ function renderBookRow(b) {
     </div>
     <div class="mb-arrow">→</div>`;
   row.addEventListener('click', () => {
-    if (window.BOOK_BY_ID?.[b.id]) App.show('book', { id: b.id });
+    if (BooksStore.getById(b.id)) App.show('book', { id: b.id });
   });
   return row;
 }

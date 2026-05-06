@@ -3,6 +3,7 @@
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
+import { BooksStore } from '../store/books-store.ts';
 
 let __webBooted = false;
 let __webSvg = null;
@@ -307,7 +308,7 @@ function renderWebGraph() {
     .on('mousemove', (event) => webMoveTip(event))
     .on('mouseleave', webHideTip)
     .on('click', (event, node) => {
-      if (window.BOOK_BY_ID?.[node.id]) App.show('book', { id: node.id });
+      if (BooksStore.getById(node.id)) App.show('book', { id: node.id });
     });
 
   bookEls.append('circle')

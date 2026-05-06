@@ -1,5 +1,9 @@
 /* Shelf view */
 
+import { BooksStore } from '../store/books-store.ts';
+import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
+import { SEED_BOOK_BY_ID, SEED_BOOK_DETAILS } from '../data/seed/index.js';
+
 const SHELF_STATE = {
   filter: 'all',
   query: '',
@@ -39,7 +43,7 @@ function enterShelf() {
 
 function renderStatsBar() {
   const shelfBooks = SHELF_RECORDS;
-  const detailBooks = window.BOOK_DETAILS || [];
+  const detailBooks = BooksStore.getAll().length ? BooksStore.getAll() : SEED_BOOK_DETAILS;
 
   const finished = shelfBooks.filter(b => b.status === 'finished').length;
   const reading = shelfBooks.filter(b => b.status === 'reading');
@@ -91,7 +95,6 @@ function refreshShelfFromSource() {
 
 // Expose for NewEntry to trigger a re-render after adding a book
 export const renderShelfSection = refreshShelfFromSource;
-window.renderShelfSection = refreshShelfFromSource;
 
 function bindShelfEvents() {
   if (SHELF_BOUND) return;
@@ -183,14 +186,14 @@ function bindShelfEvents() {
 
 function buildShelfRecords() {
   const records = [];
-  (window.SHELF_BOOKS || []).forEach((b, index) => {
+  (SHELF_BOOKS || []).forEach((b, index) => {
     let detailId = b.id || matchBookId(b.title);
-    if (!detailId || !window.BOOK_BY_ID?.[detailId]) {
+    if (!detailId || !(BooksStore.getById(detailId) ?? SEED_BOOK_BY_ID[detailId])) {
       detailId = ensureShelfDetailRecord(b, index);
     }
     const key = `${slugify(b.title)}-${index}`;
     const title = toTitleCase(b.title);
-    const detail = detailId ? window.BOOK_BY_ID?.[detailId] : null;
+    const detail = detailId ? (BooksStore.getById(detailId) ?? SEED_BOOK_BY_ID[detailId]) : null;
     const statusText = statusToLabel(b.status);
     const translatedTags = detailId === 'sapiens'
       ? ['Anthropology', 'Macro History', 'Cognitive Revolution', 'Narrative']
@@ -235,12 +238,13 @@ function ensureShelfDetailRecord(shelfBook, index) {
   const baseId = explicitId || slugify(shelfBook.title || `book-${index + 1}`);
   let detailId = baseId;
   let dedupe = 2;
-  while (window.BOOK_BY_ID?.[detailId] && window.BOOK_BY_ID[detailId].title !== shelfBook.title) {
+  while ((BooksStore.getById(detailId) ?? SEED_BOOK_BY_ID[detailId])?.title !== undefined &&
+         (BooksStore.getById(detailId) ?? SEED_BOOK_BY_ID[detailId]).title !== shelfBook.title) {
     detailId = `${baseId}-${dedupe++}`;
   }
-  if (window.BOOK_BY_ID?.[detailId]) return detailId;
+  if (BooksStore.getById(detailId) ?? SEED_BOOK_BY_ID[detailId]) return detailId;
 
-  const template = window.BOOK_BY_ID?.sapiens || window.BOOK_DETAILS?.[0];
+  const template = SEED_BOOK_BY_ID.sapiens || SEED_BOOK_DETAILS[0];
   if (!template) return null;
 
   const detail = deepClone(template);
@@ -261,8 +265,8 @@ function ensureShelfDetailRecord(shelfBook, index) {
   detail.meta.edition = detail.meta.edition || 'Template entry';
   detail.summary = `${detail.title} uses the current Sapiens note architecture as a placeholder entry.`;
 
-  window.BOOK_DETAILS.push(detail);
-  window.BOOK_BY_ID[detail.id] = detail;
+  SEED_BOOK_DETAILS.push(detail);
+  SEED_BOOK_BY_ID[detail.id] = detail;
   return detail.id;
 }
 
@@ -278,7 +282,7 @@ function deepClone(value) {
 }
 
 function resolveCoverSrc(book, detailId) {
-  const detail = detailId ? window.BOOK_BY_ID?.[detailId] : null;
+  const detail = detailId ? (BooksStore.getById(detailId) ?? SEED_BOOK_BY_ID[detailId]) : null;
   if (detail?.cover?.image) return detail.cover.image;
   return '';
 }
@@ -518,7 +522,7 @@ function renderShelfDeepPanel(record) {
   const panel = document.getElementById('shelfDeepPanel');
   if (!panel) return;
 
-  const detail = record?.detailId ? window.BOOK_BY_ID?.[record.detailId] : null;
+  const detail = record?.detailId ? (BooksStore.getById(record.detailId) ?? SEED_BOOK_BY_ID[record.detailId]) : null;
   const context = getBookContextSections(detail);
   const contextMeta = getBookContextMeta(detail);
   if (!detail || !context.length) {
@@ -565,7 +569,7 @@ function renderShelfActionPanel(record) {
   const panel = document.getElementById('shelfActionPanel');
   if (!panel) return;
 
-  const detail = record?.detailId ? window.BOOK_BY_ID?.[record.detailId] : null;
+  const detail = record?.detailId ? (BooksStore.getById(record.detailId) ?? SEED_BOOK_BY_ID[record.detailId]) : null;
   const actions = (detail?.actions || []).slice(0, 3);
   if (!record) {
     panel.hidden = true;
@@ -669,7 +673,7 @@ function applyRecordStatus(key, nextStatus) {
   const previousStatusLabel = statusToLabel(record.status);
   record.status = nextStatus;
 
-  const detail = record.detailId ? window.BOOK_BY_ID?.[record.detailId] : null;
+  const detail = record.detailId ? (BooksStore.getById(record.detailId) ?? SEED_BOOK_BY_ID[record.detailId]) : null;
   if (detail) detail.status = nextStatus === 'want' ? 'wishlist' : nextStatus;
 
   if (record.preview.subtitle === previousStatusLabel) {

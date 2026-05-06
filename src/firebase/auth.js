@@ -1,6 +1,7 @@
 import { validateWrite, withMeta, withMetaCreate, isLegacyDoc } from '../services/db.ts';
 import { UserProfileSchema } from '../data/schema/user-profile.ts';
 import { logError, identifyUser } from '../services/analytics.ts';
+import { MARGINALIA_FIREBASE } from './config.js';
 
 /* ==========================================================================
    Marginalia · Firebase auth gate
@@ -10,7 +11,7 @@ import { logError, identifyUser } from '../services/analytics.ts';
    - Social login: Google one-tap (popup)
    ========================================================================== */
 
-export const MarginaliaAuth = window.MarginaliaAuth = (() => {
+export const MarginaliaAuth = (() => {
   const authState = {
     enabled: false,
     app: null,
@@ -30,7 +31,7 @@ export const MarginaliaAuth = window.MarginaliaAuth = (() => {
   init();
 
   function init() {
-    const runtime = window.MARGINALIA_FIREBASE || {};
+    const runtime = MARGINALIA_FIREBASE || {};
     if (!runtime.enabled) {
       syncAuthTriggers();
       dispatchAuthState();
@@ -526,7 +527,7 @@ export const MarginaliaAuth = window.MarginaliaAuth = (() => {
   }
 
   function getWorkspaceId() {
-    return window.MARGINALIA_FIREBASE?.workspaceId || 'default';
+    return MARGINALIA_FIREBASE?.workspaceId || 'default';
   }
 
   function dispatchAuthState() {

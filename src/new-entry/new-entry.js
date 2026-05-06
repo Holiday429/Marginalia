@@ -6,6 +6,11 @@ import { logEvent, logError } from '../services/analytics.ts';
 import { withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { enterLibrary } from '../library-2d/library-2d.js';
+import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
+import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
+import { NotesStore } from '../store/notes-store.js';
+import { renderShelfSection } from '../shelf/shelf.js';
+import { MarginaliaAuth } from '../firebase/auth.js';
 
 export const NewEntry = window.NewEntry = (() => {
 
@@ -837,7 +842,7 @@ export const NewEntry = window.NewEntry = (() => {
 
     logEvent('book_added', { bookId: id, status });
 
-    const auth = window.MarginaliaAuth;
+    const auth = MarginaliaAuth;
     const uid  = auth?.user?.uid;
     const db   = auth?.db;
 
@@ -851,13 +856,10 @@ export const NewEntry = window.NewEntry = (() => {
         logError(err instanceof Error ? err : new Error(String(err)), { context: 'NewEntry Firestore write' });
       }
     } else {
-      // Unauthenticated demo path: mutate globals so seed-backed views update.
-      if (!window.BOOK_DETAILS) window.BOOK_DETAILS = [];
-      if (!window.BOOK_BY_ID)   window.BOOK_BY_ID   = {};
-      window.BOOK_DETAILS.unshift(fullBook);
-      window.BOOK_BY_ID[id] = fullBook;
-      // TODO(p0-cleanup): remove window.BOOK_DETAILS / BOOK_BY_ID mutations once unauthenticated demo path is fully removed.
-      window.NotesStore?.saveBook(fullBook);
+      // Unauthenticated demo path: mutate seed arrays so views update.
+      SEED_BOOK_DETAILS.unshift(fullBook);
+      SEED_BOOK_BY_ID[id] = fullBook;
+      NotesStore?.saveBook(fullBook);
     }
 
     // Spine entry for shelf + library
@@ -874,10 +876,8 @@ export const NewEntry = window.NewEntry = (() => {
     };
 
     // Sync to SHELF_BOOKS + re-render shelf
-    if (window.SHELF_BOOKS) {
-      window.SHELF_BOOKS.unshift(spineEntry);
-    }
-    if (typeof window.renderShelfSection === 'function') window.renderShelfSection();
+    SHELF_BOOKS.unshift(spineEntry);
+    renderShelfSection();
 
     // Sync to Library (arrival pool)
     enterLibrary();

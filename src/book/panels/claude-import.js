@@ -11,6 +11,9 @@
      Firebase:  users/{uid}/books/{bookId}/visualNotes/{id}  (content as string)
    ========================================================================== */
 
+import { MarginaliaAuth } from '../../firebase/auth.js';
+import { MARGINALIA_FIREBASE } from '../../firebase/config.js';
+
 (function registerVisualNotesPanel() {
 
   /* ── CSS injected into every iframe to fix truncation ─────────────────── */
@@ -58,9 +61,9 @@
   }
 
   function syncVisualNoteToFirebase(bookId, note) {
-    const auth = window.MarginaliaAuth;
+    const auth = MarginaliaAuth;
     if (!auth?.user || !auth?.db) return;
-    const workspaceId = window.MARGINALIA_FIREBASE?.workspaceId || 'default';
+    const workspaceId = MARGINALIA_FIREBASE?.workspaceId || 'default';
     auth.db
       .collection('workspaces').doc(workspaceId)
       .collection('users').doc(auth.user.uid)

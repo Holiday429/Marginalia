@@ -14,11 +14,16 @@ import { validateWrite, withMeta, withMetaCreate } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { GraphLinkStatusSchema } from '../data/schema/graph-link-status.ts';
 import { logError } from '../services/analytics.ts';
+import { SEED_BOOK_BY_ID, SEED_BOOK_DETAILS } from '../data/seed/index.js';
+import { MarginaliaAuth } from './auth.js';
+import { MARGINALIA_FIREBASE } from './config.js';
+import { MarginaliaGraph } from '../core/graph-data.js';
+import { NotesStore } from '../store/notes-store.js';
 
 /* ── Books sync ─────────────────────────────────────────────────────────── */
 
-export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
-  if (!window.MarginaliaAuth?.enabled) {
+export const MarginaliaBooksCloud = (() => {
+  if (!MarginaliaAuth?.enabled) {
     return {
       enabled: false,
       async setBookCover() { throw new Error('Firebase auth is not enabled.'); },
@@ -28,14 +33,14 @@ export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
   const state = {
     enabled: true,
     uid: '',
-    workspaceId: window.MARGINALIA_FIREBASE?.workspaceId || 'default',
+    workspaceId: MARGINALIA_FIREBASE?.workspaceId || 'default',
     unsubscribe: null,
   };
 
-  window.MarginaliaAuth.onAuthStateChange(({ user, ready }) => {
+  MarginaliaAuth.onAuthStateChange(({ user, ready }) => {
     if (!ready) return;
     detachListener();
-    if (!user || !window.MarginaliaAuth.db) return;
+    if (!user || !MarginaliaAuth.db) return;
     state.uid = user.uid;
     attachListener();
   });
@@ -63,18 +68,18 @@ export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
   }
 
   function applyBookOverride(bookId, data) {
-    const detail = window.BOOK_BY_ID?.[bookId];
+    const detail = SEED_BOOK_BY_ID[bookId];
     if (!detail) return;
     if (!detail.cover) detail.cover = {};
     if (data.cover?.image) {
       detail.cover.image = data.cover.image;
-      const item = (window.BOOK_DETAILS || []).find((b) => b.id === bookId);
+      const item = SEED_BOOK_DETAILS.find((b) => b.id === bookId);
       if (item) { if (!item.cover) item.cover = {}; item.cover.image = data.cover.image; }
     }
   }
 
   function booksCollectionRef() {
-    return window.MarginaliaAuth.db
+    return MarginaliaAuth.db
       .collection('workspaces').doc(state.workspaceId)
       .collection('users').doc(state.uid)
       .collection('books');
@@ -91,33 +96,33 @@ export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
 /* ── Graph sync ─────────────────────────────────────────────────────────── */
 
 (function initGraphSync() {
-  if (!window.MarginaliaGraph || !window.MarginaliaAuth?.enabled) return;
+  if (!MarginaliaGraph || !MarginaliaAuth?.enabled) return;
 
   let unsubscribeDoc = null;
 
-  window.MarginaliaAuth.onAuthStateChange(async ({ user, ready }) => {
+  MarginaliaAuth.onAuthStateChange(async ({ user, ready }) => {
     if (!ready) return;
     detachSnapshot();
-    if (!user || !window.MarginaliaAuth.db) {
-      window.MarginaliaGraph.setStatusPersistence(null, 'local');
-      window.MarginaliaGraph.clearRemoteStatusOverrides();
+    if (!user || !MarginaliaAuth.db) {
+      MarginaliaGraph.setStatusPersistence(null, 'local');
+      MarginaliaGraph.clearRemoteStatusOverrides();
       return;
     }
     const docRef = getLinkStatusDocRef(user.uid);
-    window.MarginaliaGraph.setStatusPersistence(async ({ overrides }) => {
+    MarginaliaGraph.setStatusPersistence(async ({ overrides }) => {
       const raw = { overrides };
       const payload = withMeta(validateWrite(GraphLinkStatusSchema, raw));
       await docRef.set(payload, { merge: true });
     }, 'firebase');
     unsubscribeDoc = docRef.onSnapshot((snapshot) => {
       const data = snapshot.exists ? snapshot.data() : {};
-      window.MarginaliaGraph.useRemoteStatusOverrides(data?.overrides || {}, 'firebase');
+      MarginaliaGraph.useRemoteStatusOverrides(data?.overrides || {}, 'firebase');
     }, (err) => logError(err, { context: 'db:graph snapshot' }));
   });
 
   function getLinkStatusDocRef(uid) {
-    const workspaceId = window.MARGINALIA_FIREBASE?.workspaceId || 'default';
-    return window.MarginaliaAuth.db
+    const workspaceId = MARGINALIA_FIREBASE?.workspaceId || 'default';
+    return MarginaliaAuth.db
       .collection('workspaces').doc(workspaceId)
       .collection('users').doc(uid)
       .collection('graph').doc('linkStatus');
@@ -131,9 +136,9 @@ export const MarginaliaBooksCloud = window.MarginaliaBooksCloud = (() => {
 
 /* ── Storage service ─────────────────────────────────────────────────────── */
 
-export const MarginaliaStorage = window.MarginaliaStorage = (() => {
+export const MarginaliaStorage = (() => {
   function isEnabled() {
-    return Boolean(window.MarginaliaAuth?.enabled && window.MarginaliaAuth?.storage);
+    return Boolean(MarginaliaAuth?.enabled && MarginaliaAuth?.storage);
   }
 
   async function uploadCoverImage({ file, bookId }) {
@@ -150,7 +155,7 @@ export const MarginaliaStorage = window.MarginaliaStorage = (() => {
 
   async function uploadFile({ file, path, contentType }) {
     if (!(file instanceof Blob)) throw new Error('file must be a Blob/File.');
-    const ref = window.MarginaliaAuth.storage.ref().child(path);
+    const ref = MarginaliaAuth.storage.ref().child(path);
     await ref.put(file, {
       contentType,
       customMetadata: { workspaceId: getWorkspaceId(), uid: getUid() },
@@ -164,11 +169,11 @@ export const MarginaliaStorage = window.MarginaliaStorage = (() => {
 
   function requireAuth() {
     if (!isEnabled()) throw new Error('Storage is not enabled.');
-    if (!window.MarginaliaAuth?.user?.uid) throw new Error('User must be signed in.');
+    if (!MarginaliaAuth?.user?.uid) throw new Error('User must be signed in.');
   }
 
-  function getUid()         { return window.MarginaliaAuth.user.uid; }
-  function getWorkspaceId() { return window.MARGINALIA_FIREBASE?.workspaceId || 'default'; }
+  function getUid()         { return MarginaliaAuth.user.uid; }
+  function getWorkspaceId() { return MARGINALIA_FIREBASE?.workspaceId || 'default'; }
 
   function sanitize(value) {
     return String(value || '').trim().toLowerCase()

@@ -1,15 +1,15 @@
 /* ==========================================================================
    Marginalia · Seed index — assembles BOOK_DETAILS from per-book seed files
    --------------------------------------------------------------------------
-   Load order in index.html: all seed/{book}.js files BEFORE this file.
    To add a new book:
-     1. Create src/data/seed/{book-id}.js  (exports window.__SEED_{ID})
-     2. Add the script tag to index.html   (before this file)
-     3. Add window.__SEED_{ID} to the array below
+     1. Create src/data/seed/{book-id}.js  (exports the seed object)
+     2. Import it below and add to the BOOK_DETAILS array
    ========================================================================== */
 
+import { __SEED_SAPIENS } from './sapiens.js';
+
 export const BOOK_DETAILS = window.BOOK_DETAILS = [
-  window.__SEED_SAPIENS,
+  __SEED_SAPIENS,
   // add more seed objects here as books are authored
 ].filter(Boolean);
 
@@ -17,6 +17,9 @@ export const BOOK_DETAILS = window.BOOK_DETAILS = [
 export const BOOK_BY_ID = window.BOOK_BY_ID = Object.fromEntries(
   window.BOOK_DETAILS.map((b) => [b.id, b])
 );
+
+export const SEED_BOOK_DETAILS = BOOK_DETAILS;
+export const SEED_BOOK_BY_ID = BOOK_BY_ID;
 
 /* Load user-created books from IndexedDB and merge in (user books first) */
 document.addEventListener('DOMContentLoaded', async () => {

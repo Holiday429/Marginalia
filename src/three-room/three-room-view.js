@@ -2,6 +2,7 @@ import { createThreeRoomPreview } from './three-room.js';
 import { PanelManager } from '../core/panel-manager.js';
 import { App } from '../core/app.js';
 import { attachFocusWidgetTo } from '../components/reading-session/focus-widget.ts';
+import { MarginaliaAuth } from '../firebase/auth.js';
 
 const SPACE_ITEMS = [
   { id: 'shelf', label: 'Shelf', icon: 'shelf' },
@@ -601,7 +602,7 @@ function syncRoomTitle() {
   const title = document.getElementById('roomTitle');
   if (!title) return;
 
-  const user = window.MarginaliaAuth?.user || null;
+  const user = MarginaliaAuth?.user || null;
   const rawName = String(user?.displayName || '').trim();
   if (!rawName) {
     title.textContent = 'Room';
@@ -620,7 +621,7 @@ function syncRoomUserCard() {
   if (!card || !avatar) return;
   const uploadedAvatar = loadUploadedAvatarData();
 
-  const user = window.MarginaliaAuth?.user || null;
+  const user = MarginaliaAuth?.user || null;
   if (!user) {
     card.setAttribute('aria-label', 'Open Login Panel');
     avatar.textContent = 'R';

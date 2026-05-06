@@ -7,6 +7,8 @@
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
+import { BooksStore } from '../store/books-store.ts';
+import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 
 export const MarginaliaGraph = window.MarginaliaGraph = (() => {
   const STATUS_STORAGE_KEY = 'marginalia.bookConceptLink.status.v1';
@@ -32,7 +34,7 @@ export const MarginaliaGraph = window.MarginaliaGraph = (() => {
   let graphState = buildGraphState();
 
   function buildGraphState() {
-    const books = Array.isArray(window.BOOK_DETAILS) ? window.BOOK_DETAILS : [];
+    const books = BooksStore.getAll().length ? BooksStore.getAll() : SEED_BOOK_DETAILS;
     const statusOverrides = getStatusOverrides();
     const conceptsById = new Map();
     const contextsById = new Map();
@@ -334,7 +336,7 @@ export const MarginaliaGraph = window.MarginaliaGraph = (() => {
    * contextTag, relationType, strength, description, readerUnderstanding.
    */
   function addConceptsFromAI(bookId, concepts) {
-    const book = graphState.booksById[bookId] || window.BOOK_BY_ID?.[bookId];
+    const book = graphState.booksById[bookId] || BooksStore.getById(bookId) || SEED_BOOK_BY_ID[bookId];
     if (!book) return false;
 
     if (!book.graph) book.graph = {};

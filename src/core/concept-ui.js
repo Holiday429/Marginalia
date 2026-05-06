@@ -2,6 +2,8 @@
    Marginalia · Global concept drawer
    ========================================================================== */
 
+import { BooksStore } from '../store/books-store.ts';
+
 window.openConceptDrawer = openConceptDrawer;
 window.closeConceptDrawer = closeConceptDrawer;
 
@@ -145,7 +147,7 @@ function bindConceptDrawerEvents() {
   document.querySelectorAll('[data-open-book-id]').forEach((button) => {
     button.addEventListener('click', () => {
       const bookId = button.dataset.openBookId;
-      if (bookId && window.BOOK_BY_ID?.[bookId]) {
+      if (bookId && BooksStore.getById(bookId)) {
         closeConceptDrawer();
         App.show('book', { id: bookId });
       }

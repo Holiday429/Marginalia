@@ -2,6 +2,7 @@ import './notes-wall.css';
 import { HighlightsStore } from '../../store/highlights-store.ts';
 import { BooksStore } from '../../store/books-store.ts';
 import { NotesStore } from '../../store/notes-store.js';
+import { __SEED_SAPIENS } from '../../data/seed/sapiens.js';
 
 const WALL_WIDTH = 880;
 const WALL_HEIGHT = 520;
@@ -116,7 +117,7 @@ export function createNotesWallComponent() {
     }
 
     // Unauthenticated: fall back to seed highlights.
-    const sapiens = window.__SEED_SAPIENS;
+    const sapiens = __SEED_SAPIENS;
     if (sapiens?.highlights) {
       return sapiens.highlights
         .filter((h) => h.quote)

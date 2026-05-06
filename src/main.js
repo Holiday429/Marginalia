@@ -21,26 +21,10 @@ M.data.BookTypes = BookTypes;
 M.ui.PanelRegistry = PanelRegistry;
 M.ai.AIFeatureRegistry = AIFeatureRegistry;
 
-// 1b. Mock / seed data
-import { BOOKS, SHELF_BOOKS } from './data/mock/seed-spines.js';
-import { BOOKLIST_CURATED } from './data/mock/curated-booklist.js';
-import { __SEED_SAPIENS } from './data/seed/sapiens.js';
-import { BOOK_DETAILS, BOOK_BY_ID } from './data/seed/index.js';
-M.data.BOOKS = BOOKS;
-M.data.SHELF_BOOKS = SHELF_BOOKS;
-M.data.BOOKLIST_CURATED = BOOKLIST_CURATED;
-M.data.__SEED_SAPIENS = __SEED_SAPIENS;
-M.data.BOOK_DETAILS = BOOK_DETAILS;
-M.data.BOOK_BY_ID = BOOK_BY_ID;
-
 // 2. Firebase layer
 import { MARGINALIA_FIREBASE } from './firebase/config.js';
 import { MarginaliaAuth } from './firebase/auth.js';
 import { MarginaliaBooksCloud, MarginaliaStorage } from './firebase/db.js';
-M.services.MARGINALIA_FIREBASE = MARGINALIA_FIREBASE;
-M.services.MarginaliaAuth = MarginaliaAuth;
-M.services.MarginaliaBooksCloud = MarginaliaBooksCloud;
-M.services.MarginaliaStorage = MarginaliaStorage;
 
 // 3. State stores
 import { NotesStore } from './store/notes-store.js';
