@@ -3,6 +3,10 @@
    ========================================================================== */
 
 import { logEvent, logError } from '../services/analytics.ts';
+import { BooksStore } from '../store/books-store.ts';
+import { HighlightsStore } from '../store/highlights-store.ts';
+import { NotesStore } from '../store/notes-store.js';
+import { renderShelfSection } from '../shelf/shelf.js';
 
 let __currentBookId = null;
 
@@ -10,15 +14,17 @@ function initBook() {}
 
 async function enterBook(params = {}) {
   const id = params.id || __currentBookId || 'sapiens';
-  const book = window.BOOK_BY_ID && window.BOOK_BY_ID[id];
+  // TODO(p2-cleanup): remove window.BOOK_BY_ID fallback once BooksStore._emit bridge is removed.
+  const book = BooksStore.getById(id) ?? (window.BOOK_BY_ID && window.BOOK_BY_ID[id]);
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
   __currentBookId = id;
 
-  // Wait for NotesStore, then merge user highlights + action statuses into a
-  // view-local copy so seed data is never mutated.
-  await window.NotesStore?.ready?.();
-  const userHighlights  = (await window.NotesStore?.getHighlights(id)) || [];
-  const mergedHighlights = [...(book.highlights || []), ...userHighlights];
+  // Merge live user highlights from HighlightsStore (Firestore) with any
+  // seed highlights baked into the book object. View-local copy — seed never mutated.
+  const liveHighlights = HighlightsStore.getUid()
+    ? HighlightsStore.getAll().filter((h) => h.bookId === id)
+    : ((await NotesStore?.getHighlights(id)) || []);
+  const mergedHighlights = [...(book.highlights || []), ...liveHighlights];
   const bookView = mergedHighlights.length
     ? { ...book, highlights: mergedHighlights }
     : book;
@@ -103,7 +109,7 @@ async function enterBook(params = {}) {
         chapter:    hlForm.querySelector('#hlFormChapter')?.value.trim() || null,
         annotation: hlForm.querySelector('#hlFormNote')?.value.trim() || null,
       };
-      await window.NotesStore?.saveHighlight(id, highlight);
+      await NotesStore?.saveHighlight(id, highlight);
       logEvent('highlight_saved', { bookId: id });
       // Re-enter to rebuild merged list
       enterBook({ id });
@@ -131,7 +137,7 @@ async function enterBook(params = {}) {
       e.stopPropagation();
       const hlId = btn.dataset.hlDelete;
       if (!hlId) return;
-      await window.NotesStore?.deleteHighlight(id, hlId);
+      await NotesStore?.deleteHighlight(id, hlId);
       enterBook({ id });
     });
   });
@@ -141,7 +147,7 @@ async function enterBook(params = {}) {
     // Apply any persisted override immediately
     const actionId = item.dataset.id;
     if (actionId) {
-      window.NotesStore?.getActionStatus(id, actionId).then(saved => {
+      NotesStore?.getActionStatus(id, actionId).then(saved => {
         if (saved === null) return;
         item.classList.toggle('done', saved === 'done');
         const tag = item.querySelector('.action-tag');
@@ -154,7 +160,7 @@ async function enterBook(params = {}) {
       const status = done ? 'done' : 'todo';
       const tag = item.querySelector('.action-tag');
       if (tag) tag.textContent = done ? 'Completed' : 'Pending';
-      if (actionId) window.NotesStore?.setActionStatus(id, actionId, status);
+      if (actionId) NotesStore?.setActionStatus(id, actionId, status);
     });
   });
 
@@ -226,7 +232,7 @@ async function enterBook(params = {}) {
   root.querySelectorAll('.connection-item[data-book-id]').forEach(item => {
     item.addEventListener('click', () => {
       const id = item.dataset.bookId;
-      if (id && window.BOOK_BY_ID?.[id]) App.show('book', { id });
+      if (id && BooksStore.getById(id)) App.show('book', { id });
     });
   });
 
@@ -238,20 +244,11 @@ async function enterBook(params = {}) {
       if (!bookId) return;
       if (!confirm(`Remove "${book.title}" from your library? This cannot be undone.`)) return;
 
-      // Remove from IndexedDB
-      await window.NotesStore?.deleteBook(bookId);
-
-      // Remove from in-memory registries
-      window.BOOK_DETAILS = (window.BOOK_DETAILS || []).filter(b => b.id !== bookId);
-      delete window.BOOK_BY_ID?.[bookId];
-
-      // Remove from SHELF_BOOKS
-      if (window.SHELF_BOOKS) {
-        window.SHELF_BOOKS = window.SHELF_BOOKS.filter(b => b.id !== bookId);
-      }
+      // Remove from IndexedDB (legacy local store)
+      await NotesStore?.deleteBook(bookId);
 
       // Re-render shelf and navigate back
-      if (typeof window.renderShelfSection === 'function') window.renderShelfSection();
+      renderShelfSection();
       App.show('shelf');
     });
   }
@@ -807,7 +804,7 @@ function renderConnections(b) {
       <h2>Related Books</h2>
       <ul class="connection-list">
         ${(b.connections || []).map(item => {
-          const canOpen = Boolean(item.id && window.BOOK_BY_ID?.[item.id]);
+          const canOpen = Boolean(item.id && BooksStore.getById(item.id));
           return `
             <li class="connection-item${canOpen ? ' is-openable' : ''}"${canOpen ? ` data-book-id="${esc(item.id)}"` : ''}>
               <div class="connection-main">
@@ -865,7 +862,7 @@ function renderAiPlaceholder(label) {
 }
 
 function renderFooter(b) {
-  const total = (window.BOOK_DETAILS || []).length;
+  const total = BooksStore.getAll().length;
   return `
     <footer class="book-foot">
       <span>Marginalia · ${esc(b.titleZh || b.title)}</span>
