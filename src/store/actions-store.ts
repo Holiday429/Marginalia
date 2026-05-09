@@ -1,5 +1,5 @@
 /* Marginalia · Actions Store
-   Firestore listener on users/{uid}/data/actions.
+   Firestore listener on workspaces/{wsId}/users/{uid}/actions.
    Per-book knowledge-conversion tasks; see ADR 0007 for design rationale.
 
    Authenticated:   onSnapshot on the full actions collection.
@@ -61,7 +61,11 @@ function initWithUser(uid: string, db: FirestoreDB): void {
   _uid = uid;
   _db = db;
 
-  const col = db.collection(`users/${uid}/data/actions`);
+  const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
+  const col = db
+    .collection('workspaces').doc(wsId)
+    .collection('users').doc(uid)
+    .collection('actions');
   _unsubscribe = col.onSnapshot(
     (snapshot: any) => {
       _actions = snapshot.docs.map((doc: any) => ({
