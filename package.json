@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "typecheck:room": "tsc --noEmit -p tsconfig.room-check.json",
     "check:entitlements": "! grep -rn \"plan === '\" src/ --exclude='entitlements-store.ts'",
     "test:rules": "vitest run tests/firestore-rules.test.ts",
     "i18n:sync": "npx tsx scripts/i18n-sync.ts"
