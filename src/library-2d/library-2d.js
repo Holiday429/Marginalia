@@ -71,7 +71,7 @@ function scheduleDefaultFrontView() {
 }
 
 function applyLibraryEntry(params = {}, { immediate = false } = {}) {
-  const source = params?.source === 'room' ? 'room' : 'studio';
+  const source = params?.source === 'room' ? 'room' : 'library';
   const mode = params?.mode === 'search' ? 'search' : 'organize';
   LIBRARY_STATE.entrySource = source;
   LIBRARY_STATE.entryMode = mode;
@@ -83,7 +83,7 @@ function applyLibraryEntry(params = {}, { immediate = false } = {}) {
     if (source === 'room') {
       root.classList.add('is-room-entry');
       window.setTimeout(() => {
-        if (document.body.dataset.view !== 'studio') return;
+        if (document.body.dataset.view !== 'library-2d') return;
         root.classList.remove('is-room-entry');
       }, 520);
     } else {

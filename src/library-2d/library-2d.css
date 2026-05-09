@@ -5,6 +5,7 @@
   background: var(--bg);
 }
 
+body[data-view='library-2d'],
 body[data-view='studio'] {
   --library-ink-soft: rgba(232, 223, 200, 0.7);
   --library-ink-faint: rgba(232, 223, 200, 0.54);
@@ -40,7 +41,7 @@ body[data-view='studio'] {
 }
 
 #panel-library.is-room-entry .library-main {
-  animation: studioRoomEntry 0.46s cubic-bezier(.2, .8, .2, 1);
+  animation: libraryRoomEntry 0.46s cubic-bezier(.2, .8, .2, 1);
 }
 
 #panel-library .library-head {
@@ -266,7 +267,7 @@ body[data-view='studio'] {
   background: linear-gradient(180deg, rgba(232, 223, 200, 0.04), rgba(232, 223, 200, 0.01));
 }
 
-@keyframes studioRoomEntry {
+@keyframes libraryRoomEntry {
   0% {
     opacity: 0.56;
     transform: scale(0.988) translateY(10px);

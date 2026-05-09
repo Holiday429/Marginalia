@@ -11,6 +11,7 @@ import { VIEW_REGISTRY } from './view-registry.ts';
 const PANEL_IDS = ['library', 'shelf', 'map', 'book', 'todo', 'profile', 'web', 'booklist'];
 const PANEL_ALIASES = {
   graph: 'web',
+  studio: 'library',
 };
 
 const FULL_COVER_PANELS = new Set(['library', 'shelf', 'map', 'book', 'web', 'booklist', 'todo', 'profile']);

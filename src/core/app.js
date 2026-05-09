@@ -53,6 +53,7 @@ const App = (() => {
   const routeParamsByView = new Map();
 
   function toCanonicalViewName(name) {
+    if (name === 'studio') return 'library';
     if (name === 'graph') return 'web';
     return name;
   }
@@ -107,7 +108,7 @@ const App = (() => {
       return;
     }
 
-    if (['shelf', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
+    if (['library', 'shelf', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
       const params = routeParamsByView.get(requestedView) || {};
       routeParamsByView.delete(requestedView);
       if (PanelManager) PanelManager.open(requestedView, params);
@@ -254,7 +255,7 @@ const App = (() => {
       return;
     }
     // shelf / map / web / booklist / profile → open via PanelManager
-    if (['shelf', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
+    if (['library', 'shelf', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
       navigateTo(requestedView);
       return;
     }
