@@ -89,11 +89,7 @@ function applyLibraryEntry(params = {}, { immediate = false } = {}) {
     }
   }
 
-  const roomBtn = document.getElementById('libraryOpenRoomBtn');
-  if (roomBtn) {
-    roomBtn.textContent = source === 'room' ? 'Back To 3D Room' : 'Open 3D Room';
-  }
-
+  syncLibrarySearchPlaceholder(mode);
   markLibraryEntryFocus(mode);
   if (source !== 'room') return;
 
@@ -111,11 +107,27 @@ function markLibraryEntryFocus(mode) {
   if (organize) organize.classList.toggle('is-entry-focus', mode !== 'search');
 }
 
+function syncLibrarySearchPlaceholder(mode) {
+  const input = document.getElementById('librarySearchInput');
+  if (input) {
+    input.placeholder = mode === 'search'
+      ? 'Search by title and press Enter...'
+      : 'Locate a book on your shelves...';
+  }
+}
+
 function focusLibraryMode(mode, smooth = true) {
   const targetId = mode === 'search' ? 'librarySearchSection' : 'libraryOrganizeSection';
   const target = document.getElementById(targetId);
   if (!target) return;
   target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+  if (mode === 'search') {
+    const input = document.getElementById('librarySearchInput');
+    if (input instanceof HTMLInputElement) {
+      input.focus({ preventScroll: true });
+      input.select();
+    }
+  }
 }
 
 function bindLibraryEvents() {
@@ -126,11 +138,6 @@ function bindLibraryEvents() {
   if (!root) return;
 
   root.addEventListener('click', (event) => {
-    if (event.target.closest('#libraryOpenRoomBtn')) {
-      App.show('room');
-      return;
-    }
-
     const panelBtn = event.target.closest('[data-library-panel]');
     if (panelBtn) {
       openLibraryPanel(panelBtn.dataset.libraryPanel || '');
@@ -329,7 +336,7 @@ function bindLibraryEvents() {
 }
 
 function openLibraryPanel(panelId) {
-  if (!panelId || panelId === 'shelf') return;
+  if (!panelId || panelId === 'library' || panelId === 'shelf') return;
   if (PanelManager?.open) {
     PanelManager.open(panelId);
     return;
@@ -344,8 +351,7 @@ function handleRailAction(action, sourceBtn) {
     return;
   }
   if (action === 'add-books') {
-    PanelManager?.open?.('shelf');
-    window.setTimeout(() => NewEntry?.mount?.(), 120);
+    NewEntry?.mount?.();
     return;
   }
   if (action === 'select') {

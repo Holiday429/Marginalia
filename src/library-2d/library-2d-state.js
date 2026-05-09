@@ -9,7 +9,7 @@ export const LIBRARY_MAX_ROWS = 6;
 export const LIBRARY_WHEEL_STEP = 0.018;
 
 export const LIBRARY_TAB_ITEMS = [
-  { id: 'shelf', label: 'Shelf' },
+  { id: 'library', label: 'Library' },
   { id: 'map', label: 'Map' },
   { id: 'web', label: 'Graph' },
   { id: 'booklist', label: 'Booklist' },

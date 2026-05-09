@@ -30,7 +30,7 @@ let _enterPreloader = null;
 
 const App = (() => {
   const NAV_ITEMS = [
-    { view: 'room',     label: 'Library',  icon: 'library', href: '#room' },
+    { view: 'library',  label: 'Library',  icon: 'library', href: '#library' },
     { view: 'shelf',    label: 'Shelf',    icon: 'shelf',   href: '#shelf' },
     { view: 'map',      label: 'Map',      icon: 'map',     href: '#map' },
     { view: 'graph',    label: 'Graph',    icon: 'graph',   href: '#graph' },
@@ -289,11 +289,6 @@ const App = (() => {
       <a href="${item.href}" class="nav-link${item.view === activeNavView ? ' active' : ''}" data-view="${item.view}">${renderNavIcon(item.icon)}${item.label}</a>
     `).join('');
 
-    const showRoomReturn = ['shelf', 'map', 'web', 'booklist'].includes(canonicalView);
-    const roomReturnBtn = showRoomReturn
-      ? `<button class="nav-room-btn" type="button" data-view="room">Back To Room</button>`
-      : '';
-
     const resolvedActionLabel = actionLabel || sharedAction?.label || (showNewEntry ? 'Add Book' : '');
     const resolvedActionId = actionId || sharedAction?.id || '';
     const actionBtn = (resolvedActionLabel)
@@ -312,7 +307,6 @@ const App = (() => {
           <span class="wordmark-sub">Margins are where thinking happens</span>
         </div>
         <nav class="nav">
-          ${roomReturnBtn}
           ${links}
           ${actionBtn}
           ${authBtn}
@@ -321,10 +315,50 @@ const App = (() => {
     `;
   }
 
-  function renderUnifiedPanelHeader(activeView) {
+  function renderUnifiedPanelHeader(activeView, { actionLabel = '', actionId = '', rightHTML = '' } = {}) {
+    const canonicalView = toCanonicalViewName(activeView);
+    const activeNavView = toNavViewName(canonicalView);
+    const sharedAction = HEADER_ACTION_BY_VIEW[canonicalView] || null;
+    const NAV_ICON_SYMBOLS = {
+      library: 'icon-nav-library',
+      shelf: 'icon-nav-shelf',
+      map: 'icon-nav-map',
+      graph: 'icon-nav-graph',
+      list: 'icon-nav-list',
+    };
+
+    function renderNavIcon(iconKey) {
+      const symbolId = NAV_ICON_SYMBOLS[iconKey];
+      if (!symbolId) return '';
+      return `<span class="panel-tab__icon" aria-hidden="true"><svg class="panel-tab__icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#${symbolId}"></use></svg></span>`;
+    }
+
+    const tabs = NAV_ITEMS.map((item) => `
+      <a href="${item.href}" class="panel-tab${item.view === activeNavView ? ' is-active' : ''}" data-view="${item.view}">
+        ${renderNavIcon(item.icon)}
+        <span class="panel-tab__label">${item.label}</span>
+      </a>
+    `).join('');
+
+    const resolvedActionLabel = actionLabel || sharedAction?.label || '';
+    const resolvedActionId = actionId || sharedAction?.id || '';
+    const defaultRight = resolvedActionLabel
+      ? `<button class="panel-header-action"${resolvedActionId ? ` id="${resolvedActionId}"` : ''}>${toServiceTitleCase(resolvedActionLabel)}</button>`
+      : '';
+
     return `
-      <div class="shared-header-wrap">
-        ${renderPrimaryHeader(activeView)}
+      <div class="shared-header-wrap shared-header-wrap--panel">
+        <header class="shared-masthead panel-masthead">
+          <button class="panel-brand" type="button" data-view="room" aria-label="Return to 3D room">
+            <span class="panel-brand__wordmark">Marginalia</span>
+          </button>
+          <nav class="panel-tabs" aria-label="Primary pages">
+            ${tabs}
+          </nav>
+          <div class="panel-header-right">
+            ${rightHTML || defaultRight}
+          </div>
+        </header>
       </div>
     `;
   }

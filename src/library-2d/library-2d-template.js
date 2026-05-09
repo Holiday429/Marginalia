@@ -1,13 +1,4 @@
-import { LIBRARY_TAB_ITEMS } from './library-2d-state.js';
-import { renderRoomTopTabs } from '../three-room/three-room-view.js';
-
-function renderFallbackTopTabs(activeId = 'shelf') {
-  return LIBRARY_TAB_ITEMS.map((item) => `
-    <button type="button" class="room-nav-item${item.id === activeId ? ' is-active' : ''}" data-library-panel="${item.id}" aria-label="${item.label}">
-      <span>${item.label}</span>
-    </button>
-  `).join('');
-}
+import { renderUnifiedPanelHeader } from '../core/app.js';
 
 function renderLeftRail() {
   return `
@@ -41,29 +32,22 @@ function renderLeftRail() {
 }
 
 export function renderLibraryShell() {
-  const roomTabs = renderRoomTopTabs({
-    activeId: 'shelf',
-    dataAttr: 'library-panel',
-    className: 'room-top-tabs room-top-tabs--library',
-    ariaLabel: 'Library Tabs',
+  const header = renderUnifiedPanelHeader('library', {
+    rightHTML: `
+      <div class="library-header-search" id="librarySearchSection">
+        <form class="library-topbar-search" id="librarySearchForm" autocomplete="off">
+          <label class="sr-only" for="librarySearchInput">Search books</label>
+          <input id="librarySearchInput" type="search" placeholder="Search by title..." />
+          <button type="submit" class="library-search-submit">Locate</button>
+          <p class="library-search-feedback" id="librarySearchFeedback" aria-live="polite"></p>
+        </form>
+      </div>
+    `,
   });
 
   return `
     <div class="page library-page">
-      <header class="library-topbar" id="librarySearchSection">
-        <div class="library-topbar-left">
-          <button type="button" class="library-back-btn" id="libraryOpenRoomBtn">Back To Room</button>
-          <h1>Organize</h1>
-          <p>Arrange your books, your way.</p>
-        </div>
-        ${roomTabs}
-        <form class="library-topbar-search" id="librarySearchForm" autocomplete="off">
-          <label class="sr-only" for="librarySearchInput">Search books</label>
-          <input id="librarySearchInput" type="search" placeholder="Search books..." />
-          <button type="submit" class="library-search-submit">Locate</button>
-          <p class="library-search-feedback" id="librarySearchFeedback" aria-live="polite"></p>
-        </form>
-      </header>
+      ${header}
 
       <section class="library-main">
         ${renderLeftRail()}

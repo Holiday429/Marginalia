@@ -7,7 +7,7 @@ import { BooksStore } from '../store/books-store.ts';
 import { NewEntry } from '../new-entry/new-entry.js';
 
 const SPACE_ITEMS = [
-  { id: 'shelf', label: 'Shelf', icon: 'shelf' },
+  { id: 'library', label: 'Library', icon: 'library' },
   { id: 'map', label: 'Map', icon: 'map' },
   { id: 'web', label: 'Graph', icon: 'graph' },
   { id: 'booklist', label: 'Booklist', icon: 'list' },
@@ -21,7 +21,7 @@ const QUICK_ACTION_ITEMS = [
 ];
 
 const COLLAPSED_TAB_ITEMS = [
-  { id: 'shelf', label: 'Shelf', icon: 'shelf' },
+  { id: 'library', label: 'Library', icon: 'library' },
   { id: 'map', label: 'Map', icon: 'map' },
   { id: 'web', label: 'Graph', icon: 'graph' },
   { id: 'booklist', label: 'Booklist', icon: 'list' },
@@ -32,9 +32,9 @@ const ROOM_AVATAR_STORAGE_KEY = 'marginalia_room_avatar_data_url';
 const HOVER_META_BY_ACTION = {
   map: { icon: 'map', title: 'Map', description: 'Explore Reading Places' },
   shelf: { icon: 'search', title: 'Search', description: 'Find Books And Notes' },
-  organize: { icon: 'shelf', title: 'Shelf', description: 'Browse Your Collection' },
+  organize: { icon: 'library', title: 'Library', description: 'Organize Your Shelves' },
   sapiens: { icon: 'reading-now', title: 'Keep Reading', description: 'Continue Current Book' },
-  heroBook: { icon: 'booklist', title: 'Open Library', description: 'Enter Book Space' },
+  heroBook: { icon: 'library', title: 'Open Library', description: 'Organize Your Library' },
 };
 
 const ROOM_VIEW_STATE = {
@@ -50,6 +50,8 @@ const ROOM_VIEW_STATE = {
   hoverAction: null,
   hoverPoint: { x: 0, y: 0 },
   authBound: false,
+  quickSearchOpen: false,
+  quickSearchMessage: '',
 };
 
 const PANEL_POSES = {
@@ -126,6 +128,20 @@ function buildRoomMarkup() {
         <section class="room-sidebar-group room-sidebar-group--actions">
           <h2 class="room-group-title">Quick Actions</h2>
           ${renderNavItems(QUICK_ACTION_ITEMS, 'room-action')}
+        </section>
+
+        <section class="room-quick-search" id="roomQuickSearch" hidden>
+          <form class="room-quick-search__form" id="roomQuickSearchForm" autocomplete="off">
+            <label class="sr-only" for="roomQuickSearchInput">Search library by title</label>
+            <input
+              id="roomQuickSearchInput"
+              class="room-quick-search__input"
+              type="search"
+              placeholder="Search by title..."
+              enterkeyhint="search"
+            >
+          </form>
+          <p class="room-quick-search__status" id="roomQuickSearchStatus" aria-live="polite"></p>
         </section>
 
         <div class="room-focus-slot" id="roomFocusWidgetSlot"></div>
@@ -237,6 +253,7 @@ function renderNavItems(items, dataAttr, activeId = '') {
 }
 
 function renderIcon(iconId) {
+  if (iconId === 'library') return symbolIcon('icon-nav-library');
   if (iconId === 'shelf') return symbolIcon('icon-nav-shelf');
   if (iconId === 'map') return symbolIcon('icon-nav-map');
   if (iconId === 'graph') return symbolIcon('icon-nav-graph');
@@ -286,6 +303,8 @@ function initRoom() {
 
   ROOM_VIEW_STATE.sidebarCollapsed = true;
   ROOM_VIEW_STATE.settingsOpen = false;
+  ROOM_VIEW_STATE.quickSearchOpen = false;
+  ROOM_VIEW_STATE.quickSearchMessage = '';
 
   if (ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle.destroy();
@@ -302,6 +321,7 @@ function initRoom() {
   syncRoomUserCard();
   syncPoseButtons();
   syncFreeLookButton();
+  syncRoomQuickSearch();
   const focusSlot = document.getElementById('roomFocusWidgetSlot');
   if (focusSlot) attachFocusWidgetTo(focusSlot);
 }
@@ -315,6 +335,7 @@ function enterRoom() {
   syncRoomUserCard();
   syncPoseButtons();
   syncFreeLookButton();
+  syncRoomQuickSearch();
   const focusSlot = document.getElementById('roomFocusWidgetSlot');
   if (focusSlot) attachFocusWidgetTo(focusSlot);
 }
@@ -397,7 +418,8 @@ function bindRoomEvents() {
     if (navBtn) {
       const panelId = navBtn.dataset.roomNav;
       if (!panelId) return;
-      if (panelId === 'todo') runRoomAction('todo');
+      if (panelId === 'library') openPanel('library', { mode: 'organize' });
+      else if (panelId === 'todo') runRoomAction('todo');
       else openPanel(panelId);
       ROOM_VIEW_STATE.settingsOpen = false;
       syncRoomChrome();
@@ -445,6 +467,20 @@ function bindRoomEvents() {
     }
   });
 
+  root.addEventListener('input', (event) => {
+    const input = event.target.closest('#roomQuickSearchInput');
+    if (!input) return;
+    ROOM_VIEW_STATE.quickSearchMessage = '';
+    syncRoomQuickSearch();
+  });
+
+  root.addEventListener('submit', (event) => {
+    const form = event.target.closest('#roomQuickSearchForm');
+    if (!form) return;
+    event.preventDefault();
+    submitRoomQuickSearch();
+  });
+
 }
 
 function mountRoomScene() {
@@ -454,8 +490,8 @@ function mountRoomScene() {
   if (!ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage, {
       onGlobeSelect: () => openPanel('map'),
-      onLaptopSelect: () => openPanel('library', { mode: 'search' }),
-      onOrganizeSelect: () => openPanel('shelf'),
+      onLaptopSelect: () => openPanel('shelf'),
+      onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),
       onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),
       onInteractiveHover: (action, pointer) => {
@@ -534,11 +570,11 @@ function mountHeroBookHotspot() {
 
 function runRoomAction(action) {
   if (action === 'search') {
-    openPanel('library', { mode: 'search' });
+    openRoomQuickSearch();
     return;
   }
   if (action === 'add-book') {
-    openPanel('shelf');
+    openPanel('library', { mode: 'organize' });
     window.setTimeout(() => NewEntry?.mount?.(), 140);
     return;
   }
@@ -612,6 +648,100 @@ function syncRoomTitle() {
   const safeName = parsedName || 'Room';
   const possessive = safeName.toLowerCase().endsWith('s') ? `${safeName}' Room` : `${safeName}'s Room`;
   title.textContent = possessive;
+}
+
+function syncRoomQuickSearch() {
+  const shell = document.getElementById('roomQuickSearch');
+  const status = document.getElementById('roomQuickSearchStatus');
+  if (!shell || !status) return;
+
+  shell.hidden = !ROOM_VIEW_STATE.quickSearchOpen;
+  shell.classList.toggle('is-open', ROOM_VIEW_STATE.quickSearchOpen);
+  status.textContent = ROOM_VIEW_STATE.quickSearchMessage;
+}
+
+function openRoomQuickSearch() {
+  ROOM_VIEW_STATE.quickSearchOpen = true;
+  ROOM_VIEW_STATE.quickSearchMessage = '';
+  syncRoomQuickSearch();
+  requestAnimationFrame(() => {
+    const input = document.getElementById('roomQuickSearchInput');
+    if (input instanceof HTMLInputElement) {
+      input.focus();
+      input.select();
+    }
+  });
+}
+
+function closeRoomQuickSearch() {
+  ROOM_VIEW_STATE.quickSearchOpen = false;
+  ROOM_VIEW_STATE.quickSearchMessage = '';
+  syncRoomQuickSearch();
+}
+
+function submitRoomQuickSearch() {
+  const input = document.getElementById('roomQuickSearchInput');
+  if (!(input instanceof HTMLInputElement)) return;
+
+  const query = input.value.trim();
+  if (!query) {
+    ROOM_VIEW_STATE.quickSearchMessage = 'Enter a book title.';
+    syncRoomQuickSearch();
+    input.focus();
+    return;
+  }
+
+  const match = findRoomBookMatch(query);
+  if (!match) {
+    ROOM_VIEW_STATE.quickSearchMessage = 'No matching title found.';
+    syncRoomQuickSearch();
+    input.focus();
+    input.select();
+    return;
+  }
+
+  closeRoomQuickSearch();
+  input.value = '';
+  openPanel('book', { id: match.id });
+}
+
+function findRoomBookMatch(query) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return null;
+
+  const scored = BooksStore.getAll()
+    .map((book) => {
+      const titles = getRoomBookTitles(book);
+      let bestScore = -1;
+
+      titles.forEach((title) => {
+        const normalizedTitle = title.toLowerCase();
+        if (normalizedTitle === normalizedQuery) bestScore = Math.max(bestScore, 300);
+        else if (normalizedTitle.startsWith(normalizedQuery)) bestScore = Math.max(bestScore, 220);
+        else if (normalizedTitle.includes(normalizedQuery)) bestScore = Math.max(bestScore, 140);
+      });
+
+      return {
+        book,
+        score: bestScore,
+        titleLength: titles[0]?.length || 999,
+      };
+    })
+    .filter((entry) => entry.score >= 0)
+    .sort((a, b) => b.score - a.score || a.titleLength - b.titleLength);
+
+  return scored[0]?.book || null;
+}
+
+function getRoomBookTitles(book) {
+  const meta = book?.meta || {};
+  const values = [book?.title, book?.titleZh, meta?.title, meta?.titleZh];
+  return values.reduce((titles, value) => {
+    const normalized = String(value || '').trim();
+    if (!normalized || titles.includes(normalized)) return titles;
+    titles.push(normalized);
+    return titles;
+  }, []);
 }
 
 function syncRoomUserCard() {
@@ -702,6 +832,7 @@ function openPanel(panelId, params = {}) {
   if (ROOM_VIEW_STATE.transitioning) return;
   ROOM_VIEW_STATE.transitioning = true;
   ROOM_VIEW_STATE.hoverAction = null;
+  closeRoomQuickSearch();
   syncHoverBadge();
   const roomTransition = buildRoomTransitionMeta(panelId);
   const nextParams = { ...params, __roomTransition: roomTransition };
@@ -745,6 +876,7 @@ function buildRoomTransitionMeta(panelId) {
 function exitRoomViaHeroFlip() {
   if (ROOM_VIEW_STATE.transitioning) return;
   ROOM_VIEW_STATE.transitioning = true;
+  closeRoomQuickSearch();
 
   const overlay = document.createElement('div');
   overlay.style.cssText = [
