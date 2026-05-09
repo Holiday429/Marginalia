@@ -3,7 +3,7 @@
    tiered reminders at 7 / 30 / 90 days after creation (or after last snooze).
 
    On each firing:
-     - Writes a notification doc to notifications/{uid}/unread/{notifId}
+     - Writes a notification doc to workspaces/{wsId}/notifications/{uid}/unread/{notifId}
      - Sets the corresponding remindedN flag to true on the action doc
 
    See ADR 0007 for design rationale (tiers, lifecycle, no auto-deletion).
@@ -72,8 +72,8 @@ export const actionReminders = scheduler.onSchedule(
         // Write notification doc under the same workspace
         const notifRef = db
           .collection('workspaces').doc(wsId)
-          .collection('users').doc(uid)
-          .collection('notifications').doc();
+          .collection('notifications').doc(uid)
+          .collection('unread').doc();
 
         batch.set(notifRef, {
           type:      'action_reminder',

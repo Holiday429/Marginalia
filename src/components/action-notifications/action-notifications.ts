@@ -1,5 +1,5 @@
 /* Marginalia · Action Notifications
-   Watches notifications/{uid}/unread for action reminder docs written by
+   Watches workspaces/{wsId}/notifications/{uid}/unread for action reminder docs written by
    the actionReminders Cloud Function. Shows a badge and a dismissible panel
    listing overdue actions grouped by reminder tier (7d / 30d / 90d).
 
@@ -44,8 +44,8 @@ export function mountActionNotifications(uid: string, db: FirestoreDB): void {
   const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
   const col = db
     .collection('workspaces').doc(wsId)
-    .collection('users').doc(uid)
-    .collection('notifications');
+    .collection('notifications').doc(uid)
+    .collection('unread');
   _unsubscribe = col.onSnapshot(
     (snap: any) => {
       _notifs = snap.docs
@@ -185,8 +185,8 @@ async function _markRead(notifId: string): Promise<void> {
     const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
     await _db
       .collection('workspaces').doc(wsId)
-      .collection('users').doc(_uid)
-      .collection('notifications').doc(notifId)
+      .collection('notifications').doc(_uid)
+      .collection('unread').doc(notifId)
       .update({ read: true });
   } catch (err) {
     logError(err as Error, { context: 'ActionNotifications markRead' });

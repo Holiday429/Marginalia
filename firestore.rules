@@ -47,10 +47,10 @@ service cloud.firestore {
       allow read, write: if isSelf(uid);
     }
 
-    // /notifications/{uid}/unread/{docId}
+    // /workspaces/{workspaceId}/notifications/{uid}/unread/{docId}
     // Write: Cloud Function only (Admin SDK bypasses rules).
     // Read + update (mark read): owner only.
-    match /notifications/{uid}/unread/{docId} {
+    match /workspaces/{workspaceId}/notifications/{uid}/unread/{docId} {
       allow read, write: if isSelf(uid);
     }
 
