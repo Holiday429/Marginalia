@@ -14,6 +14,7 @@ import {
 import { resolveAiContent } from '../../data/schema/ai-block.ts';
 
 const FALLBACK_PROMPT_VERSION = '1';
+const AI_MODEL_LABEL = 'deepseek-chat';
 
 export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
 
@@ -138,7 +139,7 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
       <div class="ai-generated-header">
         <span class="ai-badge">✦ AI Generated</span>
         ${hasUserEdit ? '<span class="ai-user-edited-badge">Edited</span>' : ''}
-        <span class="ai-generated-model">${fromCache ? 'cached' : 'deepseek-chat'}</span>
+        <span class="ai-generated-model">${fromCache ? 'cached' : AI_MODEL_LABEL}</span>
         ${canAddToGraph ? `<button class="ai-graph-btn" type="button" title="Add concepts to graph">+ Graph</button>` : ''}
         <button class="ai-edit-btn" type="button" title="Edit">✎ Edit</button>
         ${hasUserEdit ? `<button class="ai-revert-btn" type="button" title="Revert to original">↩ Revert</button>` : ''}

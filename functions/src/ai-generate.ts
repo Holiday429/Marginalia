@@ -20,6 +20,8 @@ if (process.env.SENTRY_DSN) {
 admin.initializeApp();
 
 const db = admin.firestore();
+const AI_PROVIDER = 'deepseek';
+const AI_MODEL = 'deepseek-chat';
 
 // Token bucket state stored in Firestore under users/{uid}/rateLimits/ai
 const RATE_LIMIT_PER_MINUTE = 10;
@@ -114,6 +116,8 @@ export const aiGenerate = functions.onRequest(
     const auditRef = db.doc(`audit/ai_calls/${uid}/${Date.now()}`);
     const auditData = {
       featureId: featureId || null,
+      provider: AI_PROVIDER,
+      model: AI_MODEL,
       promptLength: prompt.length,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       status: 'started',
@@ -127,13 +131,14 @@ export const aiGenerate = functions.onRequest(
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
+    res.write(`data: ${JSON.stringify({ meta: { provider: AI_PROVIDER, model: AI_MODEL } })}\n\n`);
 
     let fullText = '';
     let streamError: Error | null = null;
 
     try {
       const stream = await client.chat.completions.create({
-        model: 'deepseek-chat',
+        model: AI_MODEL,
         messages: [
           { role: 'system', content: 'Return only valid JSON. No markdown fences, no explanation.' },
           { role: 'user',   content: prompt },

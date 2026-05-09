@@ -54,6 +54,8 @@ export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).Marg
     }
 
     try {
+      let provider = 'deepseek';
+      let model = 'deepseek-chat';
       const res = await fetch(gatewayUrl, {
         method: 'POST',
         headers: {
@@ -85,8 +87,14 @@ export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).Marg
           const payload = trimmed.slice(6);
           if (payload === '[DONE]') continue;
           try {
-            const json = JSON.parse(payload) as { delta?: string; error?: string };
+            const json = JSON.parse(payload) as {
+              delta?: string;
+              error?: string;
+              meta?: { provider?: string; model?: string };
+            };
             if (json.error) throw new Error(json.error);
+            if (json.meta?.provider) provider = json.meta.provider;
+            if (json.meta?.model) model = json.meta.model;
             const delta = json.delta || '';
             if (delta) { full += delta; onChunk?.(delta); }
           } catch (parseErr) {
@@ -96,7 +104,7 @@ export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).Marg
           }
         }
       }
-      logEvent('ai_generated', { featureId });
+      logEvent('ai_generated', { featureId, provider, model });
       onDone?.(full);
     } catch (err) {
       onError?.(err instanceof Error ? err : new Error(String(err)));
