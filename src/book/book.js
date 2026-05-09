@@ -10,7 +10,7 @@ import { renderShelfSection } from '../shelf/shelf.js';
 import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.js';
 import { renderPrimaryHeader } from '../core/app.js';
 import { PanelRegistry } from './panels/registry.js';
-import { BookTypes } from '../data/schema/book-types.js';
+import { buildBookDetailModel, BOOK_SECTION_LABELS } from './book-detail.js';
 import { MarginaliaGraph } from '../core/graph-data.js';
 import { openConceptDrawer } from '../core/concept-ui.js';
 import { AIGenerateUI } from '../ai/client/generate-ui.ts';
@@ -21,7 +21,8 @@ let __currentBookId = null;
 function initBook() {}
 
 async function enterBook(params = {}) {
-  const id = params.id || __currentBookId || 'sapiens';
+  const fallbackId = BooksStore.getAll()[0]?.id || 'sapiens';
+  const id = params.id || __currentBookId || fallbackId;
   const book = BooksStore.getById(id);
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
   __currentBookId = id;
@@ -32,9 +33,10 @@ async function enterBook(params = {}) {
     ? HighlightsStore.getAll().filter((h) => h.bookId === id)
     : ((await NotesStore?.getHighlights(id)) || []);
   const mergedHighlights = [...(book.highlights || []), ...liveHighlights];
-  const bookView = mergedHighlights.length
+  const rawBookView = mergedHighlights.length
     ? { ...book, highlights: mergedHighlights }
     : book;
+  const bookView = buildBookDetailModel(rawBookView);
 
   const root = document.getElementById('panel-book');
   const sections = getBookSections(bookView);
@@ -295,118 +297,44 @@ function renderBook(b, sections) {
 }
 
 function getBookSections(b) {
-  // Phase 4A: if PanelRegistry is available, use it to drive the tab list.
-  // Panel render functions registered via PanelRegistry.set() take priority;
-  // built-in legacy renderers are used as fallback so nothing breaks.
-  if (PanelRegistry && BookTypes) {
-    return _getSectionsFromRegistry(b);
-  }
-  // Legacy fallback (pre-4A books or registry not yet loaded)
-  return _getSectionsLegacy(b);
-}
+  const sections = b.sections.map((sectionId) => {
+    switch (sectionId) {
+      case 'overview':
+        return { id: sectionId, label: BOOK_SECTION_LABELS[sectionId], html: renderOverview(b) };
+      case 'highlights':
+        return { id: sectionId, label: BOOK_SECTION_LABELS[sectionId], html: renderHighlights(b) };
+      case 'visual-notes':
+        return renderVisualNotesSection(b);
+      case 'cultural-context':
+        return {
+          id: sectionId,
+          label: BOOK_SECTION_LABELS[sectionId],
+          html: b.culturalContext.length ? renderCulturalContext(b) : renderAiPlaceholder('Cultural Context'),
+        };
+      case 'related-books':
+        return {
+          id: sectionId,
+          label: BOOK_SECTION_LABELS[sectionId],
+          html: b.relatedBooks.length ? renderConnections(b) : renderAiPlaceholder('Related Books'),
+        };
+      case 'notes':
+        return renderNotesSection(b);
+      case 'actions':
+        return renderMountedPanelSection({
+          id: sectionId,
+          label: BOOK_SECTION_LABELS[sectionId],
+          book: b,
+          panelId: 'actions',
+          fallbackHtml: renderActions(b),
+        });
+      default:
+        return null;
+    }
+  }).filter(Boolean);
 
-function _getSectionsFromRegistry(b) {
-  const panels = PanelRegistry.forBook(b);
-  const sections = [];
-
-  for (const panel of panels) {
-    const section = _renderPanelSection(b, panel.id, panel.label);
-    if (section) sections.push(section);
-  }
-
-  // Always ensure at least overview is shown
   if (!sections.length) {
     sections.push({ id: 'overview', label: 'Overview', html: renderOverview(b) });
   }
-  return sections;
-}
-
-function _renderPanelSection(b, panelId, panelLabel) {
-  // If a registered panel render function exists, use it.
-  // We capture the rendered HTML for the initial innerHTML pass, then re-call
-  // render() on the real DOM node after insertion so event listeners survive.
-  const panel = PanelRegistry?.get(panelId);
-  if (panel?.render) {
-    const container = document.createElement('div');
-    panel.render(b, container);
-    return {
-      id:    panelId,
-      label: panelLabel || panel.label,
-      html:  container.innerHTML,
-      // Called by enterBook() after the section is in the live DOM.
-      mountFn: (liveEl) => panel.render(b, liveEl),
-    };
-  }
-
-  // Built-in renderers for panels that exist pre-4B
-  switch (panelId) {
-    case 'overview':
-      return { id: 'overview', label: 'Overview', html: renderOverview(b) };
-    case 'conclusion':
-      return { id: 'conclusion', label: 'My Conclusion', html: renderIntegration(b) };
-    case 'highlights':
-      return b.highlights?.length
-        ? { id: 'highlights', label: 'Key Notes & Highlights', html: renderHighlights(b) }
-        : null;
-    case 'concept-cards':
-    case 'concepts':
-      return {
-        id: 'concepts', label: 'Related Concepts',
-        html: getBookGraphConcepts(b.id).length ? renderRelatedConcepts(b) : renderAiPlaceholder('Concepts'),
-      };
-    case 'mindmap':
-      return {
-        id: 'knowledge', label: 'Knowledge Structure',
-        html: b.mindmap ? renderMindmap(b) : renderAiPlaceholder('Knowledge Structure'),
-      };
-    case 'related':
-      return b.connections?.length
-        ? { id: 'related', label: 'Related Books', html: renderConnections(b) }
-        : null;
-    case 'actions':
-      return {
-        id: 'actions', label: 'Action List',
-        html: b.actions?.length ? renderActions(b) : renderAiPlaceholder('Action List'),
-      };
-    case 'context':
-      return b.context
-        ? { id: 'context', label: 'Reading Context', html: renderContext(b) }
-        : null;
-    case 'geo-context':
-    case 'cultural':
-      return b.cultural?.length
-        ? { id: 'cultural', label: 'Cultural Annotations', html: renderCultural(b) }
-        : null;
-    case 'characters':
-    case 'timeline':
-    case 'notes':
-    case 'claude-import':
-      // Not yet implemented — silently skip until 4B/4C
-      return null;
-    default:
-      return null;
-  }
-}
-
-function _getSectionsLegacy(b) {
-  const sections = [
-    { id: 'overview',   label: 'Overview',               html: renderOverview(b) },
-    { id: 'conclusion', label: 'My Conclusion',           html: renderIntegration(b) },
-  ];
-  if (b.highlights?.length)
-    sections.push({ id: 'highlights', label: 'Key Notes & Highlights', html: renderHighlights(b) });
-  if (b.cultural?.length)
-    sections.push({ id: 'cultural',   label: 'Cultural Annotations',   html: renderCultural(b) });
-  if (getBookGraphConcepts(b.id).length)
-    sections.push({ id: 'concepts',   label: 'Related Concepts',       html: renderRelatedConcepts(b) });
-  if (b.mindmap)
-    sections.push({ id: 'knowledge',  label: 'Knowledge Structure',     html: renderMindmap(b) });
-  if (b.connections?.length)
-    sections.push({ id: 'related',    label: 'Related Books',           html: renderConnections(b) });
-  if (b.actions?.length)
-    sections.push({ id: 'actions',    label: 'Action List',             html: renderActions(b) });
-  if (b.context)
-    sections.push({ id: 'context',    label: 'Reading Context',         html: renderContext(b) });
   return sections;
 }
 
@@ -445,7 +373,6 @@ function renderOverview(b) {
       k: 'Reading Window',
       v: `${formatDate(b.meta.startedAt)} – ${formatDate(b.meta.finishedAt)}`
     },
-    b.context?.place && { k: 'Reading location', v: `<em>${truncate(b.context.place, 30)}</em>` },
     b.meta?.edition   && { k: 'Edition',      v: esc(b.meta.edition) },
     b.meta?.pages     && { k: 'Total Pages',   v: `${b.meta.pages} 页` },
     b.meta?.readingHours && b.meta?.startedAt && b.meta?.finishedAt && {
@@ -548,12 +475,14 @@ function renderHighlights(b) {
   return `
     <section class="highlights-section">
       <div class="section-head">
-        <h2>Key Notes &amp; Highlights</h2>
+        <h2>Highlights</h2>
         <span class="sh-meta">${items.length} excerpts</span>
       </div>
-      <ul class="highlight-list" id="hlList">
-        ${items.map((h, i) => renderHighlightItem(h, i)).join('')}
-      </ul>
+      ${items.length ? `
+        <ul class="highlight-list" id="hlList">
+          ${items.map((h, i) => renderHighlightItem(h, i)).join('')}
+        </ul>
+      ` : `<div class="ai-panel-placeholder"><span>No highlights yet — import them from Kindle or add them manually below.</span></div>`}
       <div class="hl-add-row">
         <button class="hl-add-btn" type="button" id="hlAddBtn">+ Add highlight</button>
         <button class="hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
@@ -611,23 +540,23 @@ function renderHighlightItem(h, i) {
         ${h.annotation ? `
           <br>
           <button class="hl-annotation-toggle" type="button">
-            <span class="tog-icon">+</span> Cultural note
+            <span class="tog-icon">+</span> Culture note
           </button>
           <div class="hl-annotation">
-            <div class="hl-annotation-tag">Note</div>
+            <div class="hl-annotation-tag">Culture note</div>
             <p>${esc(h.annotation)}</p>
           </div>` : ''}
       </div>
     </li>`;
 }
 
-function renderCultural(b) {
+function renderCulturalContext(b) {
   return `
     <section class="cultural-bg">
       <div class="section-label">§ 04 — Cultural Context</div>
-      <h2 class="section-title">Cultural Annotations</h2>
+      <h2 class="section-title">Cultural Context</h2>
       <div class="cultural-grid">
-        ${b.cultural.map(c => `
+        ${b.culturalContext.map(c => `
           <div class="cultural-item">
             <div class="ci-tag">${esc(c.tag)}</div>
             <div class="ci-term"${c.conceptId ? ` data-open-concept-id="${esc(c.conceptId)}" role="button" tabindex="0"` : ''}>${esc(c.term)}</div>
@@ -690,8 +619,8 @@ function renderMindmap(b) {
 
   return `
     <section class="mindmap-section">
-      <div class="section-label">§ 05 — Visual Knowledge View</div>
-      <h2 class="mindmap-title">${esc(mm.title || 'Knowledge Structure')}</h2>
+      <div class="section-label">§ 03 — Visual Notes</div>
+      <h2 class="mindmap-title">${esc(mm.title || 'Visual Notes')}</h2>
       <div class="mindmap-sub">${esc(mm.subtitle || `${b.titleZh || b.title} · concepts / timeline / arguments`)}</div>
 
       <div class="mm-top-tabs">
@@ -807,10 +736,10 @@ function renderMindmap(b) {
 function renderConnections(b) {
   return `
     <section class="connections-section">
-      <div class="section-label">§ 06 — Cross-book Connections</div>
+      <div class="section-label">§ 05 — Cross-book Connections</div>
       <h2>Related Books</h2>
       <ul class="connection-list">
-        ${(b.connections || []).map(item => {
+        ${b.relatedBooks.map(item => {
           const canOpen = Boolean(item.id && BooksStore.getById(item.id));
           return `
             <li class="connection-item${canOpen ? ' is-openable' : ''}"${canOpen ? ` data-book-id="${esc(item.id)}"` : ''}>
@@ -831,41 +760,89 @@ function renderConnections(b) {
 }
 
 function renderActions(b) {
+  const actions = b.actions || [];
   return `
     <section class="actions-section">
       <div class="section-label">§ 07 — Actions</div>
-      <h2>Action List</h2>
-      <ul class="action-list">
-        ${b.actions.map(a => `
-          <li class="action-item${a.status === 'done' ? ' done' : ''}" data-id="${esc(a.id)}">
-            <div class="action-check"></div>
-            <div class="action-text">${esc(a.text)}</div>
-            <span class="action-tag">${esc(normalizeActionTag(a.tag) || statusLabel(a.status))}</span>
-          </li>`).join('')}
-      </ul>
-    </section>
-  `;
-}
-
-function renderContext(b) {
-  const c = b.context;
-  const block = (label, body, tags) => `
-    <div class="ctx-block">
-      <div class="ctx-label">${label}</div>
-      <div class="ctx-content">${body ? esc(body).replace(/\n/g, '<br>') : ''}</div>
-      ${tags?.length ? `<div class="ctx-tags">${tags.map(t => `<span class="ctx-tag">${esc(t)}</span>`).join('')}</div>` : ''}
-    </div>`;
-  return `
-    <section class="context-section">
-      ${block('§ 08 · Reading Location', c.place)}
-      ${block('§ 08 · Mindset', c.mood, c.moodTags)}
-      ${block('§ 08 · Life Context', c.life, c.lifeTags)}
+      <h2>Actions</h2>
+      ${actions.length ? `
+        <ul class="action-list">
+          ${actions.map(a => `
+            <li class="action-item${a.status === 'done' ? ' done' : ''}" data-id="${esc(a.id)}">
+              <div class="action-check"></div>
+              <div class="action-text">${esc(a.text)}</div>
+              <span class="action-tag">${esc(normalizeActionTag(a.tag) || statusLabel(a.status))}</span>
+            </li>`).join('')}
+        </ul>
+      ` : renderAiPlaceholder('Actions')}
     </section>
   `;
 }
 
 function renderAiPlaceholder(label) {
   return `<div class="ai-panel-placeholder"><span>No ${esc(label)} yet — use the Generate button above to create one with AI.</span></div>`;
+}
+
+function renderNotesSection(b) {
+  const contextHtml = b.readingContextBlocks.length
+    ? `
+      <section class="context-section">
+        ${b.readingContextBlocks.map((block) => `
+          <div class="ctx-block">
+            <div class="ctx-label">${esc(block.label)}</div>
+            <div class="ctx-content">${esc(block.body).replace(/\n/g, '<br>')}</div>
+            ${block.tags?.length ? `<div class="ctx-tags">${block.tags.map((tag) => `<span class="ctx-tag">${esc(tag)}</span>`).join('')}</div>` : ''}
+          </div>
+        `).join('')}
+      </section>
+    `
+    : `<div class="ai-panel-placeholder"><span>No reading context yet — add your own notes to capture when and why this book met you.</span></div>`;
+
+  return renderMountedPanelSection({
+    id: 'notes',
+    label: BOOK_SECTION_LABELS.notes,
+    book: b,
+    panelId: 'notes',
+    leadingHtml: contextHtml,
+  });
+}
+
+function renderVisualNotesSection(b) {
+  const visualHtml = b.mindmap
+    ? renderMindmap(b)
+    : '';
+
+  return renderMountedPanelSection({
+    id: 'visual-notes',
+    label: BOOK_SECTION_LABELS['visual-notes'],
+    book: b,
+    panelId: 'visual-notes',
+    leadingHtml: visualHtml,
+    fallbackHtml: b.mindmap ? '' : renderAiPlaceholder('Visual Notes'),
+  });
+}
+
+function renderMountedPanelSection({ id, label, book, panelId, leadingHtml = '', fallbackHtml = '' }) {
+  const panel = PanelRegistry?.get(panelId) || null;
+
+  if (!panel?.render) {
+    return {
+      id,
+      label,
+      html: `${leadingHtml}${fallbackHtml}`,
+    };
+  }
+
+  const slotMarkup = `<div data-book-panel-slot="${esc(panelId)}"></div>`;
+  return {
+    id,
+    label,
+    html: `${leadingHtml}${slotMarkup}`,
+    mountFn: (liveEl) => {
+      const slot = liveEl.querySelector(`[data-book-panel-slot="${CSS.escape(panelId)}"]`);
+      if (slot) panel.render(book, slot);
+    },
+  };
 }
 
 function renderFooter(b) {

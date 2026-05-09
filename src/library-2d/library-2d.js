@@ -5,8 +5,6 @@ import { withMeta } from '../services/db.ts';
 import { renderLibraryShell } from './library-2d-template.js';
 import { PanelManager } from '../core/panel-manager.js';
 import { BooksStore } from '../store/books-store.ts';
-import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
-import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
@@ -392,14 +390,14 @@ function syncLibraryRecords() {
   const map = new Map();
   const seen = new Map();
 
-  (SHELF_BOOKS || []).forEach((book, index) => {
+  (BooksStore.getShelfBooks() || []).forEach((book, index) => {
     const rawBase = String(book.id || `${book.title || 'book'}-${book.author || 'author'}`).toLowerCase();
     const base = slugify(rawBase);
     const count = (seen.get(base) || 0) + 1;
     seen.set(base, count);
     const key = count === 1 ? base : `${base}-${count}`;
 
-    const detail = book.id ? (BooksStore.getById(book.id) ?? SEED_BOOK_BY_ID[book.id]) : null;
+    const detail = book.id ? BooksStore.getById(book.id) : null;
     const record = {
       key,
       id: book.id || '',
@@ -1682,7 +1680,7 @@ function syncStatusToSource(bookKey, shelfId) {
   if (!record) return;
   record.status = status;
 
-  const source = SHELF_BOOKS?.[record.sourceIndex];
+  const source = BooksStore.getShelfBooks()?.[record.sourceIndex];
   if (source) source.status = status;
 }
 

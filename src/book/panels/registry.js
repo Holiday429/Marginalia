@@ -43,6 +43,13 @@ export const PanelRegistry = (() => {
       render: null,
     },
 
+    'visual-notes': {
+      label: 'Visual Notes',
+      icon: '⧉',
+      universal: true,
+      render: null,
+    },
+
     'claude-import': {
       label: 'Visual Notes',
       icon: '⧉',
@@ -96,7 +103,7 @@ export const PanelRegistry = (() => {
     /* ── Essay / Self-help panels ────────────────────────────────────────── */
 
     actions: {
-      label: 'To Do',
+      label: 'Actions',
       icon: '◻',
       universal: false,
       render: null,
@@ -119,7 +126,7 @@ export const PanelRegistry = (() => {
     },
 
     context: {
-      label: 'Reading Context',
+      label: 'Notes',
       icon: '◐',
       universal: false,
       render: null,
