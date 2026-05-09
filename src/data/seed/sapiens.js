@@ -15,7 +15,7 @@ export const __SEED_SAPIENS = window.__SEED_SAPIENS = {
   bookType: 'nonfiction',
   // Explicit panel list — preserves all pre-4A sections for this book.
   // New books that don't specify panels inherit the nonfiction default.
-  panels: ['overview', 'conclusion', 'highlights', 'notes', 'claude-import', 'geo-context', 'concept-cards', 'mindmap', 'related', 'actions', 'context'],
+  panels: ['overview', 'highlights', 'visual-notes', 'cultural-context', 'related-books', 'notes', 'actions'],
   aiFeatures: ['mindmap-gen', 'timeline-gen', 'concept-cards'],
   title: 'Sapiens: A Brief History of Humankind',
   titleZh: '人类简史',

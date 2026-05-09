@@ -77,7 +77,7 @@ import { NotesStore } from '../../store/notes-store.js';
   }
 
   /* ── Panel render ─────────────────────────────────────────────────────── */
-  PanelRegistry.set('claude-import', async function renderVisualNotes(book, container) {
+  async function renderVisualNotes(book, container) {
     ensureVisualNotesStore();
     await NotesStore.ready?.();
 
@@ -217,7 +217,10 @@ import { NotesStore } from '../../store/notes-store.js';
     }
 
     render();
-  });
+  }
+
+  PanelRegistry.set('visual-notes', renderVisualNotes);
+  PanelRegistry.set('claude-import', renderVisualNotes);
 
   function esc(s) {
     return String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]);

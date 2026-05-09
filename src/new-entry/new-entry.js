@@ -7,7 +7,7 @@ import { withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { enterLibrary } from '../library-2d/library-2d.js';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
-import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
+import { BooksStore } from '../store/books-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { renderShelfSection } from '../shelf/shelf.js';
 import { MarginaliaAuth } from '../firebase/auth.js';
@@ -789,7 +789,7 @@ export const NewEntry = (() => {
 
   /* ── Submit ──────────────────────────────────────────────────────────────── */
 
-  function submitNewEntry(dialog) {
+  async function submitNewEntry(dialog) {
     const title = dialog.querySelector('#neTitle')?.value.trim();
     if (!title) {
       dialog.querySelector('#neTitle')?.focus();
@@ -813,7 +813,7 @@ export const NewEntry = (() => {
     const coverIsBlob = coverImgSrc?.startsWith('blob:');
 
     const typeConfig    = BOOK_TYPES?.[bookType] || {};
-    const defaultPanels = typeConfig.defaultPanels || ['overview', 'highlights', 'notes', 'claude-import'];
+    const defaultPanels = typeConfig.defaultPanels || ['overview', 'highlights', 'notes', 'actions'];
     const aiFeatures    = typeConfig.defaultAiFeatures || [];
 
     // Resolve ISO country code from typed name
@@ -853,11 +853,12 @@ export const NewEntry = (() => {
         const validated = validateWrite(BookSchema, fullBook);
         const payload   = withMetaCreate(validated);
         const wsId = (window.MARGINALIA_FIREBASE?.workspaceId) || 'default';
-        db
+        await db
           .collection('workspaces').doc(wsId)
           .collection('users').doc(uid)
           .collection('books').doc(id)
           .set(payload);
+        BooksStore.addOptimisticBook(fullBook);
       } catch (err) {
         logError(err instanceof Error ? err : new Error(String(err)), { context: 'NewEntry Firestore write' });
       }
@@ -866,23 +867,8 @@ export const NewEntry = (() => {
       SEED_BOOK_DETAILS.unshift(fullBook);
       SEED_BOOK_BY_ID[id] = fullBook;
       NotesStore?.saveBook(fullBook);
+      BooksStore.addOptimisticBook(fullBook);
     }
-
-    // Spine entry for shelf + library
-    const spineEntry = {
-      id, title, author,
-      spine: state.spineColor,
-      text:  state.textColor,
-      w:     state.thickness,
-      h:     0.88,
-      status,
-      font:  style.font,
-      weight: style.weight,
-      loc:   isoCode || undefined,
-    };
-
-    // Sync to SHELF_BOOKS + re-render shelf
-    SHELF_BOOKS.unshift(spineEntry);
     renderShelfSection();
 
     // Sync to Library (arrival pool)

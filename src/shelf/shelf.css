@@ -597,6 +597,15 @@ body[data-view="shelf"] {
   align-self: end;
 }
 
+.shelf-preview-panel.is-openable {
+  cursor: pointer;
+}
+
+.shelf-preview-panel.is-openable:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
 .shelf-layout:not(.is-expanded) .shelf-preview-panel {
   display: none;
 }
@@ -644,12 +653,8 @@ body[data-view="shelf"] {
   overflow: hidden;
   background: #0f1217;
   box-shadow: 0 14px 26px rgba(0, 0, 0, 0.45);
-  cursor: default;
+  cursor: inherit;
   transition: transform 0.28s cubic-bezier(.2, .8, .2, 1), box-shadow 0.28s ease;
-}
-
-.shelf-preview-cover.is-openable {
-  cursor: pointer;
 }
 
 .shelf-preview-cover.is-landing {

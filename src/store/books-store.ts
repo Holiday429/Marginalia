@@ -4,7 +4,7 @@
    Single source of truth for book data visible to views.
 
    Authenticated path:  Firestore onSnapshot on workspaces/{wsId}/users/{uid}/books.
-   Unauthenticated path: Seed data from window.BOOK_DETAILS (demo only).
+   Demo path:          Seed data is shown until the user has their own books.
 
    Views should read via BooksStore.getAll() / BooksStore.getById(id)
    and re-render on the 'marginalia:books-changed' event.
@@ -24,8 +24,11 @@ interface BookRecord {
 
 let _books: BookRecord[] = [];
 let _byId: Record<string, BookRecord> = {};
+let _shelfBooks: Record<string, unknown>[] = [];
 let _unsubscribe: (() => void) | null = null;
 let _uid: string | null = null;
+let _hasOwnBooks = false;
+let _usingDemoData = true;
 
 function _toSpineRecord(b: BookRecord): Record<string, unknown> {
   // Shelf expects flat { title, author, spine, text, w, h, status, font, weight }.
@@ -54,19 +57,28 @@ function _emit() {
   // TODO(p0-cleanup): remove once all views read from BooksStore directly.
   (window as any).BOOK_BY_ID = _byId;
   (window as any).BOOK_DETAILS = _books;
-  // Shelf expects spine-format records; map each book to that shape.
-  (window as any).SHELF_BOOKS = _books.map(_toSpineRecord);
+  (window as any).SHELF_BOOKS = _shelfBooks;
 
   window.dispatchEvent(new CustomEvent('marginalia:books-changed', {
     detail: { books: _books },
   }));
 }
 
+function _setVisibleBooks(books: BookRecord[], options: { hasOwnBooks: boolean; usingDemoData: boolean }) {
+  _books = books;
+  _byId = Object.fromEntries(_books.map((b) => [b.id, b]));
+  _shelfBooks = _books.map(_toSpineRecord);
+  _hasOwnBooks = options.hasOwnBooks;
+  _usingDemoData = options.usingDemoData;
+}
+
 function _loadSeed() {
   // Use the imported seed reference directly — window.BOOK_DETAILS is now owned
   // by _emit() and will be overwritten, so we cannot read from it here.
-  _books = Array.isArray(SEED_DETAILS) ? [...SEED_DETAILS] : [];
-  _byId  = { ...SEED_BY_ID };
+  _setVisibleBooks(Array.isArray(SEED_DETAILS) ? [...SEED_DETAILS] : [], {
+    hasOwnBooks: false,
+    usingDemoData: true,
+  });
 }
 
 /** Called when user signs in. Starts the Firestore onSnapshot listener. */
@@ -83,8 +95,12 @@ function initWithUser(uid: string, db: FirestoreDB) {
 
   _unsubscribe = bookColRef.onSnapshot(
     (snapshot: any) => {
-      _books = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-      _byId  = Object.fromEntries(_books.map((b) => [b.id, b]));
+      const userBooks = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+      if (userBooks.length > 0) {
+        _setVisibleBooks(userBooks, { hasOwnBooks: true, usingDemoData: false });
+      } else {
+        _loadSeed();
+      }
       _emit();
     },
     (error: Error) => {
@@ -111,10 +127,34 @@ function getUid(): string | null {
   return _uid;
 }
 
+function getShelfBooks(): Record<string, unknown>[] {
+  return _shelfBooks;
+}
+
+function hasOwnBooks(): boolean {
+  return _hasOwnBooks;
+}
+
+function isUsingDemoData(): boolean {
+  return _usingDemoData;
+}
+
+function addOptimisticBook(book: BookRecord): void {
+  const base = _usingDemoData ? [] : _books;
+  const next = base.filter((item) => item.id !== book.id);
+  next.unshift(book);
+  _setVisibleBooks(next, { hasOwnBooks: true, usingDemoData: false });
+  _emit();
+}
+
 export const BooksStore = (window as any).BooksStore = {
   initWithUser,
   teardown,
   getUid,
+  getShelfBooks,
+  hasOwnBooks,
+  isUsingDemoData,
+  addOptimisticBook,
   getAll():                  BookRecord[]         { return _books; },
   getById(id: string):       BookRecord | undefined { return _byId[id]; },
   getByStatus(status: string): BookRecord[]        { return _books.filter((b) => b.status === status); },

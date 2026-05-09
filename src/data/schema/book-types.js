@@ -17,35 +17,35 @@ export const BOOK_TYPES = {
   fiction: {
     label: 'Fiction',
     description: 'Novels, short stories, literary fiction',
-    defaultPanels: ['overview', 'highlights', 'notes', 'characters', 'timeline', 'claude-import'],
+    defaultPanels: ['overview', 'highlights', 'related-books', 'notes', 'actions'],
     defaultAiFeatures: ['character-map', 'timeline-gen'],
   },
 
   nonfiction: {
     label: 'Nonfiction',
     description: 'Science, history, biography',
-    defaultPanels: ['overview', 'highlights', 'notes', 'mindmap', 'concept-cards', 'actions', 'claude-import'],
+    defaultPanels: ['overview', 'highlights', 'visual-notes', 'cultural-context', 'related-books', 'notes', 'actions'],
     defaultAiFeatures: ['mindmap-gen', 'concept-cards', 'action-suggest'],
   },
 
   social: {
     label: 'Social Science',
     description: 'Sociology, philosophy, gender studies, economics',
-    defaultPanels: ['overview', 'highlights', 'notes', 'concept-cards', 'actions', 'claude-import'],
+    defaultPanels: ['overview', 'highlights', 'visual-notes', 'cultural-context', 'related-books', 'notes', 'actions'],
     defaultAiFeatures: ['concept-cards', 'argument-breakdown', 'action-suggest'],
   },
 
   travel: {
     label: 'Travel',
     description: 'Travel writing, place-based narrative, cultural reportage',
-    defaultPanels: ['overview', 'highlights', 'notes', 'geo-context', 'actions', 'claude-import'],
+    defaultPanels: ['overview', 'highlights', 'cultural-context', 'related-books', 'notes', 'actions'],
     defaultAiFeatures: ['geo-context', 'action-suggest'],
   },
 
   essay: {
     label: 'Essay / Self-help',
     description: 'Personal essays, self-help, life writing',
-    defaultPanels: ['overview', 'highlights', 'notes', 'concept-cards', 'actions', 'claude-import'],
+    defaultPanels: ['overview', 'highlights', 'related-books', 'notes', 'actions'],
     defaultAiFeatures: ['action-suggest', 'argument-breakdown'],
   },
 
@@ -65,7 +65,7 @@ export const BookTypes = {
   getPanels(book) {
     if (Array.isArray(book.panels) && book.panels.length) return book.panels;
     const type = BOOK_TYPES[book.bookType];
-    return type ? type.defaultPanels : ['overview', 'highlights', 'notes', 'claude-import'];
+    return type ? type.defaultPanels : ['overview', 'highlights', 'notes', 'actions'];
   },
 
   getAiFeatures(book) {
