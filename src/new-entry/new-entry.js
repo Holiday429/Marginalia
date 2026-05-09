@@ -852,7 +852,12 @@ export const NewEntry = (() => {
       try {
         const validated = validateWrite(BookSchema, fullBook);
         const payload   = withMetaCreate(validated);
-        db.collection(`users/${uid}/data/books`).doc(id).set(payload);
+        const wsId = (window.MARGINALIA_FIREBASE?.workspaceId) || 'default';
+        db
+          .collection('workspaces').doc(wsId)
+          .collection('users').doc(uid)
+          .collection('books').doc(id)
+          .set(payload);
       } catch (err) {
         logError(err instanceof Error ? err : new Error(String(err)), { context: 'NewEntry Firestore write' });
       }

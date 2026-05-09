@@ -3,7 +3,7 @@
    --------------------------------------------------------------------------
    Single source of truth for book data visible to views.
 
-   Authenticated path:  Firestore onSnapshot on users/{uid}/data/books.
+   Authenticated path:  Firestore onSnapshot on workspaces/{wsId}/users/{uid}/books.
    Unauthenticated path: Seed data from window.BOOK_DETAILS (demo only).
 
    Views should read via BooksStore.getAll() / BooksStore.getById(id)
@@ -11,6 +11,7 @@
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
+import { ENV } from '../core/env.ts';
 import { BOOK_DETAILS as SEED_DETAILS, BOOK_BY_ID as SEED_BY_ID } from '../data/seed/index.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,8 +75,11 @@ function initWithUser(uid: string, db: FirestoreDB) {
   teardown();
   _uid = uid;
 
-  // Firestore path per CLAUDE.md: users/{uid}/data/books/{bookId}
-  const bookColRef = db.collection(`users/${uid}/data/books`);
+  const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
+  const bookColRef = db
+    .collection('workspaces').doc(wsId)
+    .collection('users').doc(uid)
+    .collection('books');
 
   _unsubscribe = bookColRef.onSnapshot(
     (snapshot: any) => {
