@@ -1,6 +1,6 @@
-/* Shelf view styles */
+/* Search view styles */
 
-body[data-view="shelf"] {
+body[data-view="search"] {
   font-family: 'Fraunces', serif;
   background: var(--bg);
   color: var(--ink);
@@ -155,7 +155,7 @@ body[data-view="shelf"] {
   border-bottom: 1px solid var(--rule);
 }
 
-#view-shelf .section-head h2 {
+#view-search .section-head h2 {
   font-family: 'IBM Plex Mono', monospace;
   font-weight: 500;
   font-size: clamp(28px, 3.2vw, 40px);

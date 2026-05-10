@@ -39,6 +39,7 @@ export const LIBRARY_STATE = {
   searchIndex: 0,
   overlay: { playing: false, key: '', sourceShelfId: '', timers: [] },
   activeShelfId: '',
+  arrangeMode: 'status',
   entrySource: 'library',
   entryMode: 'organize',
   bound: false,

@@ -6,7 +6,7 @@ import { logEvent, logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { HighlightsStore } from '../store/highlights-store.ts';
 import { NotesStore } from '../store/notes-store.js';
-import { renderShelfSection } from '../shelf/shelf.js';
+import { renderSearchSection } from '../search/search.js';
 import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.js';
 import { renderPrimaryHeader } from '../core/app.js';
 import { PanelRegistry } from './panels/registry.js';
@@ -257,8 +257,8 @@ async function enterBook(params = {}) {
       await NotesStore?.deleteBook(bookId);
 
       // Re-render shelf and navigate back
-      renderShelfSection();
-      App.show('shelf');
+      renderSearchSection();
+      App.show('search');
     });
   }
 }
@@ -342,15 +342,15 @@ function getBookSections(b) {
 
 function renderMasthead(b) {
   if (renderPrimaryHeader) {
-    return renderPrimaryHeader('shelf', { showNewEntry: true, actionLabel: 'New Note', actionId: 'bookNewNoteBtn' });
+    return renderPrimaryHeader('search', { showNewEntry: true, actionLabel: 'New Note', actionId: 'bookNewNoteBtn' });
   }
   return `
     <header class="book-masthead">
-      <a href="#" class="wordmark" data-view="shelf">Marginalia
+      <a href="#" class="wordmark" data-view="search">Marginalia
         <span class="wordmark-sub">Margins are where thinking happens</span>
       </a>
       <nav class="book-breadcrumb">
-        <a data-view="shelf">Shelf</a>
+        <a data-view="search">Search</a>
         <span class="sep">›</span>
         <span class="current">${esc(b.titleZh || b.title)}</span>
       </nav>

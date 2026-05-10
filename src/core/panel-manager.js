@@ -2,29 +2,30 @@
    Marginalia · Panel Manager
    --------------------------------------------------------------------------
    Manages overlay panels that appear above the 3D room shell.
-   Panels: 'library' | 'map' | 'book' | 'todo' | 'profile' | 'web' | 'booklist'
+   Panels: 'search' | 'library' | 'map' | 'book' | 'todo' | 'profile' | 'web' | 'booklist'
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
 import { VIEW_REGISTRY } from './view-registry.ts';
 
-const PANEL_IDS = ['library', 'shelf', 'map', 'book', 'todo', 'profile', 'web', 'booklist'];
+const PANEL_IDS = ['search', 'library', 'map', 'book', 'todo', 'profile', 'web', 'booklist'];
 const PANEL_ALIASES = {
   graph: 'web',
   studio: 'library',
+  shelf: 'search',
 };
 
-const FULL_COVER_PANELS = new Set(['library', 'shelf', 'map', 'book', 'web', 'booklist', 'todo', 'profile']);
+const FULL_COVER_PANELS = new Set(['search', 'library', 'map', 'book', 'web', 'booklist', 'todo', 'profile']);
 
 // Panels whose DOM element has a non-standard ID (not panel-{id})
 const PANEL_ELEMENT_ID = {
-  shelf: 'view-shelf',
+  search: 'view-search',
 };
 
 // Maps panel ID → body[data-view] value used by CSS selectors
 const PANEL_DATA_VIEW = {
+  search:   'search',
   library:  'library-2d',
-  shelf:    'shelf',
   map:      'map',
   book:     'book',
   web:      'web',
@@ -34,8 +35,8 @@ const PANEL_DATA_VIEW = {
 };
 
 const PANEL_ORIGIN_BY_ID = {
+  search: 'left',
   library: 'left',
-  shelf: 'left',
   map: 'desk-left',
   web: 'wall',
   booklist: 'desk',

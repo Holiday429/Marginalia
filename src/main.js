@@ -67,7 +67,7 @@ import './book/panels/actions.css';
 // window.__heroGLBReadyPromise is set by hero-glb.js (HTML script tag, not bundled — see ADR 0002)
 import { enterPreloader } from './preloader/preloader.js';
 registerPreloader(enterPreloader);
-import { initShelf, enterShelf, enterPanel_shelf, renderShelfSection } from './shelf/shelf.js';
+import { initSearch, enterSearch, enterPanel_search, renderSearchSection } from './search/search.js';
 import { initLibrary, enterLibrary, enterPanel_library } from './library-2d/library-2d.js';
 import { initRoom, enterRoom, renderRoomTopTabs } from './three-room/three-room-view.js';
 import { initBooklist, enterBooklist, enterPanel_booklist } from './booklist/booklist.js';

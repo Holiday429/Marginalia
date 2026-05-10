@@ -9,7 +9,7 @@ import { enterLibrary } from '../library-2d/library-2d.js';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { BooksStore } from '../store/books-store.ts';
 import { NotesStore } from '../store/notes-store.js';
-import { renderShelfSection } from '../shelf/shelf.js';
+import { renderSearchSection } from '../search/search.js';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { BOOK_TYPES } from '../data/schema/book-types.js';
 
@@ -869,7 +869,7 @@ export const NewEntry = (() => {
       NotesStore?.saveBook(fullBook);
       BooksStore.addOptimisticBook(fullBook);
     }
-    renderShelfSection();
+    renderSearchSection();
 
     // Sync to Library (arrival pool)
     enterLibrary();

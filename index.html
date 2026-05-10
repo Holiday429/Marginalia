@@ -24,7 +24,7 @@
 
   <link rel="stylesheet" href="src/core/base.css">
   <link rel="stylesheet" href="src/preloader/preloader.css">
-  <link rel="stylesheet" href="src/shelf/shelf.css">
+  <link rel="stylesheet" href="src/search/search.css">
   <link rel="stylesheet" href="src/library-2d/library-2d.css">
   <link rel="stylesheet" href="src/three-room/three-room.css">
   <link rel="stylesheet" href="src/components/notes-wall/notes-wall.css">
@@ -47,6 +47,10 @@
 </head>
 <body data-view="preloader">
   <svg aria-hidden="true" width="0" height="0" style="position:absolute; width:0; height:0; overflow:hidden;">
+    <symbol id="icon-nav-search" viewBox="0 0 16 16">
+      <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.35"/>
+      <path d="M10.5 10.5 14 14" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+    </symbol>
     <symbol id="icon-nav-shelf" viewBox="0 0 16 16">
       <rect x="1.5" y="2" width="3" height="12" rx="0.6" fill="none" stroke="currentColor" stroke-width="1.4"/>
       <rect x="6.5" y="2" width="3" height="12" rx="0.6" fill="none" stroke="currentColor" stroke-width="1.4"/>
@@ -137,14 +141,14 @@
 
 
   <!-- ============================================================
-       VIEW: SHELF
+       VIEW: SEARCH
        ============================================================ -->
-  <div id="view-shelf" class="room-panel" hidden>
-  <div class="tool-page-shell tool-page-shell--shelf">
-  <div class="tool-page-inner tool-page-inner--shelf">
+  <div id="view-search" class="room-panel" hidden>
+  <div class="tool-page-shell tool-page-shell--search">
+  <div class="tool-page-inner tool-page-inner--search">
   <div class="page">
 
-    <div class="shared-header-wrap" id="shelfHeaderWrap"></div>
+    <div class="shared-header-wrap" id="searchHeaderWrap"></div>
 
     <div class="shelf-stats-bar" id="shelfStatsBar">
       <div class="shelf-stat">
@@ -221,7 +225,7 @@
   </div>
   </div>
   </div>
-  </div><!-- /view-shelf -->
+  </div><!-- /view-search -->
 
   <!-- ============================================================
        ROOM SHELL — persistent, never hidden
@@ -239,8 +243,8 @@
   <div id="panel-todo"     class="room-panel" hidden></div>
   <div id="panel-profile"  class="room-panel" hidden></div>
 
-  <!-- TODO(p0-cleanup): view-shelf kept for preloader transition; merge into panel-library later. -->
-  <!-- view-shelf is declared above in the shelf section -->
+  <!-- TODO(p0-cleanup): view-search kept for preloader transition; merge into panel-library later. -->
+  <!-- view-search is declared above in the search section -->
 
 
   <!-- Firebase SDK -->

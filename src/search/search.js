@@ -1,4 +1,4 @@
-/* Shelf view */
+/* Search view */
 
 import { BooksStore } from '../store/books-store.ts';
 import { SEED_BOOK_BY_ID, SEED_BOOK_DETAILS } from '../data/seed/index.js';
@@ -22,21 +22,21 @@ function containsCJK(value) {
   return /[一-鿿぀-ヿ]/.test(String(value || ''));
 }
 
-function initShelf() {
+function initSearch() {
   SHELF_STATE.selectedKey = null;
   SHELF_STATE.isExpanded = false;
   SHELF_STATE.query = '';
 
-  const headerWrap = document.getElementById('shelfHeaderWrap');
+  const headerWrap = document.getElementById('searchHeaderWrap');
   if (headerWrap) {
-    headerWrap.innerHTML = renderUnifiedPanelHeader('shelf');
+    headerWrap.innerHTML = renderUnifiedPanelHeader('search');
   }
 
   bindShelfEvents();
   refreshShelfFromSource();
 }
 
-function enterShelf() {
+function enterSearch() {
   refreshShelfFromSource();
 }
 
@@ -69,7 +69,7 @@ function renderStatsBar() {
 }
 
 function animateIn() {
-  const page = document.querySelector('#view-shelf .page');
+  const page = document.querySelector('#view-search .page');
   if (!page) return;
   page.style.opacity = '0';
   page.style.transform = 'scale(1.01)';
@@ -93,7 +93,7 @@ function refreshShelfFromSource() {
 }
 
 // Expose for NewEntry to trigger a re-render after adding a book
-export const renderShelfSection = refreshShelfFromSource;
+export const renderSearchSection = refreshShelfFromSource;
 
 function bindShelfEvents() {
   if (SHELF_BOUND) return;
@@ -104,7 +104,7 @@ function bindShelfEvents() {
     refreshShelfFromSource();
   });
 
-  const newEntryBtn = document.getElementById('shelfNewEntryBtn');
+  const newEntryBtn = document.getElementById('searchNewEntryBtn');
   if (newEntryBtn) {
     newEntryBtn.addEventListener('click', () => NewEntry?.mount());
   }
@@ -601,5 +601,5 @@ function escapeHTML(str) {
   ));
 }
 
-export { initShelf, enterShelf };
-export function enterPanel_shelf(params = {}) { enterShelf(params); }
+export { initSearch, enterSearch };
+export function enterPanel_search(params = {}) { enterSearch(params); }

@@ -112,7 +112,7 @@ function syncLibrarySearchPlaceholder(mode) {
   if (input) {
     input.placeholder = mode === 'search'
       ? 'Search by title and press Enter...'
-      : 'Locate a book on your shelves...';
+      : 'Locate a book on your shelf';
   }
 }
 
@@ -336,7 +336,7 @@ function bindLibraryEvents() {
 }
 
 function openLibraryPanel(panelId) {
-  if (!panelId || panelId === 'library' || panelId === 'shelf') return;
+  if (!panelId || panelId === 'library' || panelId === 'search' || panelId === 'shelf') return;
   if (PanelManager?.open) {
     PanelManager.open(panelId);
     return;
@@ -354,27 +354,9 @@ function handleRailAction(action, sourceBtn) {
     NewEntry?.mount?.();
     return;
   }
-  if (action === 'select') {
-    LIBRARY_STATE.selectMode = !LIBRARY_STATE.selectMode;
-    document.getElementById('panel-library')?.classList.toggle('is-select-mode', LIBRARY_STATE.selectMode);
-    sourceBtn?.classList.toggle('is-active', LIBRARY_STATE.selectMode);
-    renderStatusLine(LIBRARY_STATE.selectMode ? 'Select mode enabled. Click shelves to focus and batch adjust.' : '');
-    if (!LIBRARY_STATE.selectMode) renderStatusLine();
-    return;
-  }
-  if (action === 'group') {
-    applyArrangement('status');
-    renderLibrary();
-    fitShelvesToViewport({ animated: true, padding: 28 });
-    saveLayout();
-    return;
-  }
   if (action === 'rename') {
     const target = getShelfById(LIBRARY_STATE.activeShelfId);
-    if (!target) {
-      renderStatusLine('Select a shelf to rename.');
-      return;
-    }
+    if (!target) return;
     const next = window.prompt('Rename shelf', target.name);
     if (!next || !next.trim()) return;
     target.name = next.trim().slice(0, 28);
@@ -383,12 +365,19 @@ function handleRailAction(action, sourceBtn) {
     return;
   }
   if (action === 'delete') {
-    if (!LIBRARY_STATE.activeShelfId) {
-      renderStatusLine('Select a shelf to delete.');
-      return;
-    }
+    if (!LIBRARY_STATE.activeShelfId) return;
     removeShelf(LIBRARY_STATE.activeShelfId);
   }
+}
+
+function syncLibraryRailState() {
+  const edit = document.getElementById('libraryRailEdit');
+  if (edit) edit.hidden = !Boolean(getShelfById(LIBRARY_STATE.activeShelfId));
+
+  document.querySelectorAll('#panel-library [data-arrange]').forEach((button) => {
+    const mode = button.getAttribute('data-arrange') || '';
+    button.classList.toggle('is-active', mode === LIBRARY_STATE.arrangeMode);
+  });
 }
 
 function syncLibraryRecords() {
@@ -525,9 +514,9 @@ function mergeLayoutWithRecords() {
 function renderLibrary() {
   applySceneModeState();
   renderStats();
-  renderStatusLine();
   renderSearchFeedback();
   renderShelves();
+  syncLibraryRailState();
   updateSearchHighlight();
   applyViewTransform(false);
   syncOverlayWithRenderedBook();
@@ -561,7 +550,7 @@ function renderStatusLine(customText) {
     return;
   }
 
-  line.textContent = 'Drag shelf backboards to move shelves.';
+  line.textContent = '';
 }
 
 function renderSearchFeedback(customText) {
@@ -611,7 +600,6 @@ function renderShelves() {
     bay.style.top = `${Math.round(shelf.y)}px`;
     setShelfTransform(bay, shelf);
 
-    const canRemove = !LIBRARY_DEFAULT_SHELVES.some((base) => base.id === shelf.id);
     const canAddRow = (shelf.rows || 2) < LIBRARY_MAX_ROWS;
 
     bay.innerHTML = `
@@ -625,7 +613,6 @@ function renderShelves() {
             <button type="button" class="chip chip-mini${shelf.viewMode === 'spine' ? ' active' : ''}" data-shelf-id="${escapeHTML(shelf.id)}" data-shelf-mode="spine">Spine</button>
             <button type="button" class="chip chip-mini${shelf.viewMode === 'cover' ? ' active' : ''}" data-shelf-id="${escapeHTML(shelf.id)}" data-shelf-mode="cover">Cover</button>
             <button type="button" class="chip chip-mini${shelf.viewMode === 'mix' ? ' active' : ''}" data-shelf-id="${escapeHTML(shelf.id)}" data-shelf-mode="mix">Mix</button>
-            ${canRemove ? `<button type="button" class="library-remove-btn" data-remove-shelf="${escapeHTML(shelf.id)}" aria-label="Remove shelf">x</button>` : ''}
           </div>
         </div>
       </div>
@@ -1579,6 +1566,7 @@ function removeShelf(shelfId) {
     confirmShelf.bookKeys.push(...shelf.bookKeys);
   }
   LIBRARY_STATE.shelves = LIBRARY_STATE.shelves.filter((item) => item.id !== shelfId);
+  if (LIBRARY_STATE.activeShelfId === shelfId) LIBRARY_STATE.activeShelfId = '';
 
   renderLibrary();
   saveLayout();
@@ -1610,9 +1598,11 @@ function setActiveShelf(shelfId) {
   document.querySelectorAll('#panel-library .library-bay').forEach((bay) => {
     bay.classList.toggle('is-active', bay.dataset.shelfId === LIBRARY_STATE.activeShelfId);
   });
+  syncLibraryRailState();
 }
 
 function applyArrangement(mode) {
+  LIBRARY_STATE.arrangeMode = mode === 'reset' ? 'status' : mode;
   if (mode === 'status' || mode === 'reset') {
     arrangeByStatus();
     return;

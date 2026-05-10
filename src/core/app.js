@@ -16,6 +16,7 @@
 import { PanelManager } from './panel-manager.js';
 import { logEvent, logError } from '../services/analytics.ts';
 import { VIEW_REGISTRY } from './view-registry.ts';
+import { renderPrimaryTabsMarkup } from './primary-tabs.js';
 
 // Module-level exports for render helpers — set by App IIFE below.
 // eslint-disable-next-line prefer-const
@@ -30,14 +31,14 @@ let _enterPreloader = null;
 
 const App = (() => {
   const NAV_ITEMS = [
+    { view: 'search',   label: 'Search',   icon: 'search',  href: '#search' },
     { view: 'library',  label: 'Library',  icon: 'library', href: '#library' },
-    { view: 'shelf',    label: 'Shelf',    icon: 'shelf',   href: '#shelf' },
     { view: 'map',      label: 'Map',      icon: 'map',     href: '#map' },
     { view: 'graph',    label: 'Graph',    icon: 'graph',   href: '#graph' },
     { view: 'booklist', label: 'Booklist', icon: 'list',    href: '#booklist' },
   ];
   const HEADER_ACTION_BY_VIEW = {
-    shelf:    { label: 'Add Book',     id: 'shelfNewEntryBtn' },
+    search:   { label: 'Add Book',     id: 'searchNewEntryBtn' },
     map:      { label: '↩ Back',       id: 'mapWorldBtn' },
     web:      { label: '◈ New Concept', id: 'webNewConceptBtn' },
     booklist: { label: '↗ Share',      id: 'booklistShareBtn' },
@@ -45,7 +46,7 @@ const App = (() => {
 
   const views = {
     preloader: document.getElementById('view-preloader'),
-    shelf:     document.getElementById('view-shelf'),   // TODO(p0-cleanup): merge into panel-library
+    search:    document.getElementById('view-search'),  // TODO(p0-cleanup): merge into panel-library
     // room is the persistent shell — not in views, never toggled by show()
   };
 
@@ -55,11 +56,13 @@ const App = (() => {
   function toCanonicalViewName(name) {
     if (name === 'studio') return 'library';
     if (name === 'graph') return 'web';
+    if (name === 'shelf') return 'search';
     return name;
   }
 
   function toNavViewName(name) {
     if (name === 'web') return 'graph';
+    if (name === 'shelf') return 'search';
     return name;
   }
 
@@ -108,7 +111,7 @@ const App = (() => {
       return;
     }
 
-    if (['library', 'shelf', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
+    if (['search', 'library', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
       const params = routeParamsByView.get(requestedView) || {};
       routeParamsByView.delete(requestedView);
       if (PanelManager) PanelManager.open(requestedView, params);
@@ -174,20 +177,20 @@ const App = (() => {
   }
 
   let transitioning = false;
-  function showShelf() {
+  function showSearch() {
     if (transitioning) return;
     transitioning = true;
 
     const preloader = views.preloader;
-    const shelf     = views.shelf;
+    const search    = views.search;
 
-    // Reveal shelf underneath the preloader, then fade preloader out
-    shelf.hidden = false;
-    document.body.dataset.view = 'shelf';
-    setActiveNav('shelf');
-    if (!initialized.has('shelf')) {
-      try { VIEW_REGISTRY.shelf?.init?.(); } catch(e) { logError(e, { context: 'App initShelf' }); }
-      initialized.add('shelf');
+    // Reveal search underneath the preloader, then fade preloader out
+    search.hidden = false;
+    document.body.dataset.view = 'search';
+    setActiveNav('search');
+    if (!initialized.has('search')) {
+      try { VIEW_REGISTRY.search?.init?.(); } catch(e) { logError(e, { context: 'App initSearch' }); }
+      initialized.add('search');
     }
 
     preloader.style.position   = 'fixed';
@@ -254,8 +257,8 @@ const App = (() => {
       navigateTo('room');
       return;
     }
-    // shelf / map / web / booklist / profile → open via PanelManager
-    if (['library', 'shelf', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
+    // search / library / map / web / booklist / profile → open via PanelManager
+    if (['search', 'library', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
       navigateTo(requestedView);
       return;
     }
@@ -272,6 +275,7 @@ const App = (() => {
     const activeNavView = toNavViewName(canonicalView);
     const sharedAction = HEADER_ACTION_BY_VIEW[canonicalView] || null;
     const NAV_ICON_SYMBOLS = {
+      search: 'icon-nav-search',
       shelf: 'icon-nav-shelf',
       library: 'icon-nav-library',
       map: 'icon-nav-map',
@@ -319,27 +323,6 @@ const App = (() => {
     const canonicalView = toCanonicalViewName(activeView);
     const activeNavView = toNavViewName(canonicalView);
     const sharedAction = HEADER_ACTION_BY_VIEW[canonicalView] || null;
-    const NAV_ICON_SYMBOLS = {
-      library: 'icon-nav-library',
-      shelf: 'icon-nav-shelf',
-      map: 'icon-nav-map',
-      graph: 'icon-nav-graph',
-      list: 'icon-nav-list',
-    };
-
-    function renderNavIcon(iconKey) {
-      const symbolId = NAV_ICON_SYMBOLS[iconKey];
-      if (!symbolId) return '';
-      return `<span class="panel-tab__icon" aria-hidden="true"><svg class="panel-tab__icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#${symbolId}"></use></svg></span>`;
-    }
-
-    const tabs = NAV_ITEMS.map((item) => `
-      <a href="${item.href}" class="panel-tab${item.view === activeNavView ? ' is-active' : ''}" data-view="${item.view}">
-        ${renderNavIcon(item.icon)}
-        <span class="panel-tab__label">${item.label}</span>
-      </a>
-    `).join('');
-
     const resolvedActionLabel = actionLabel || sharedAction?.label || '';
     const resolvedActionId = actionId || sharedAction?.id || '';
     const defaultRight = resolvedActionLabel
@@ -349,12 +332,20 @@ const App = (() => {
     return `
       <div class="shared-header-wrap shared-header-wrap--panel">
         <header class="shared-masthead panel-masthead">
-          <button class="panel-brand" type="button" data-view="room" aria-label="Return to 3D room">
-            <span class="panel-brand__wordmark">Marginalia</span>
-          </button>
-          <nav class="panel-tabs" aria-label="Primary pages">
-            ${tabs}
-          </nav>
+          <div class="panel-header-left">
+            <button class="panel-brand" type="button" data-view="room" aria-label="Return to 3D room">
+              <span class="panel-brand__wordmark">Marginalia</span>
+            </button>
+          </div>
+          <div class="panel-header-center">
+            ${renderPrimaryTabsMarkup({
+              activeId: activeNavView,
+              dataAttr: 'view',
+              valueKey: 'route',
+              className: 'room-top-tabs room-top-tabs--panel',
+              ariaLabel: 'Primary pages',
+            })}
+          </div>
           <div class="panel-header-right">
             ${rightHTML || defaultRight}
           </div>
@@ -396,7 +387,7 @@ const App = (() => {
   // Start on preloader
   show('preloader');
 
-  return { show, showShelf, showRoom, navigateTo, showProfile, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell };
+  return { show, showSearch, showRoom, navigateTo, showProfile, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell };
 })();
 
 export { App };

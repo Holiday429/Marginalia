@@ -1,6 +1,7 @@
 import { createThreeRoomPreview } from './three-room.js';
 import { PanelManager } from '../core/panel-manager.js';
 import { App } from '../core/app.js';
+import { renderPrimaryTabsMarkup } from '../core/primary-tabs.js';
 import { attachFocusWidgetTo } from '../components/reading-session/focus-widget.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { BooksStore } from '../store/books-store.ts';
@@ -20,13 +21,6 @@ const QUICK_ACTION_ITEMS = [
   { id: 'todo', label: 'To Do', icon: 'todo' },
 ];
 
-const COLLAPSED_TAB_ITEMS = [
-  { id: 'library', label: 'Library', icon: 'library' },
-  { id: 'map', label: 'Map', icon: 'map' },
-  { id: 'web', label: 'Graph', icon: 'graph' },
-  { id: 'booklist', label: 'Booklist', icon: 'list' },
-  { id: 'todo', label: 'To Do', icon: 'todo' },
-];
 const ROOM_AVATAR_STORAGE_KEY = 'marginalia_room_avatar_data_url';
 
 const HOVER_META_BY_ACTION = {
@@ -55,6 +49,7 @@ const ROOM_VIEW_STATE = {
 };
 
 const PANEL_POSES = {
+  search: 'shelf',
   library: 'shelf',
   shelf: 'shelf',
   map: 'approach',
@@ -66,6 +61,7 @@ const PANEL_POSES = {
 };
 
 const PANEL_TRANSITION_MS = {
+  search: 420,
   library: 420,
   shelf: 420,
   map: 460,
@@ -76,8 +72,9 @@ const PANEL_TRANSITION_MS = {
   booklist: 360,
 };
 
-const HASH_ROUTED_PANELS = new Set(['shelf', 'map', 'web', 'booklist']);
+const HASH_ROUTED_PANELS = new Set(['search', 'map', 'web', 'booklist']);
 const ROOM_TRANSITION_ORIGIN_MAP = {
+  search: 'left',
   library: 'left',
   shelf: 'left',
   map: 'desk-left',
@@ -143,9 +140,11 @@ function buildRoomMarkup() {
           </form>
           <p class="room-quick-search__status" id="roomQuickSearchStatus" aria-live="polite"></p>
         </section>
-
-        <div class="room-focus-slot" id="roomFocusWidgetSlot"></div>
       </aside>
+
+      <section class="room-focus-dock" id="roomFocusDock" aria-label="Focus Session">
+        <div class="room-focus-slot" id="roomFocusWidgetSlot"></div>
+      </section>
 
       ${renderRoomTopTabsMarkup()}
 
@@ -236,11 +235,13 @@ function renderRoomTopTabsMarkup({
   className = 'room-top-tabs',
   ariaLabel = 'Room Top Tabs',
 } = {}) {
-  return `
-    <nav class="${className}" aria-label="${ariaLabel}">
-      ${renderNavItems(COLLAPSED_TAB_ITEMS, dataAttr, activeId)}
-    </nav>
-  `;
+  return renderPrimaryTabsMarkup({
+    activeId,
+    dataAttr,
+    valueKey: 'panel',
+    className,
+    ariaLabel,
+  });
 }
 
 function renderNavItems(items, dataAttr, activeId = '') {
@@ -339,6 +340,7 @@ function enterRoom() {
   const focusSlot = document.getElementById('roomFocusWidgetSlot');
   if (focusSlot) attachFocusWidgetTo(focusSlot);
 }
+
 
 function ensureRoomDom() {
   const root = document.getElementById('view-room');
@@ -490,7 +492,7 @@ function mountRoomScene() {
   if (!ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage, {
       onGlobeSelect: () => openPanel('map'),
-      onLaptopSelect: () => openPanel('shelf'),
+      onLaptopSelect: () => openPanel('search'),
       onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),
       onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),

@@ -198,7 +198,7 @@ function notFoundHTML(slug: string): string {
     <div class="prof-state">
       <p class="prof-state__title">Profile not found</p>
       <p class="prof-state__body">No reader has claimed the handle <strong>${escapeHtml(slug)}</strong> yet.</p>
-      <a class="prof-state__link" href="#shelf">Back to shelf</a>
+      <a class="prof-state__link" href="#search">Back to search</a>
     </div>
   `;
 }
@@ -208,7 +208,7 @@ function privateHTML(name: string): string {
     <div class="prof-state">
       <p class="prof-state__title">${escapeHtml(name)}</p>
       <p class="prof-state__body">This profile is private.</p>
-      <a class="prof-state__link" href="#shelf">Back to shelf</a>
+      <a class="prof-state__link" href="#search">Back to search</a>
     </div>
   `;
 }
