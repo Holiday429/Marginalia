@@ -98,23 +98,34 @@ export function renderLibraryShell() {
               <button type="button" class="library-zoom-btn library-zoom-fit" id="libraryZoomFit">Fit</button>
             </div>
           </div>
-
-          <div class="library-book-overlay" id="libraryBookOverlay" hidden>
-            <div class="library-overlay-book" id="libraryOverlayBook">
-              <div class="library-overlay-book-face library-overlay-book-spine" id="libraryOverlaySpine"></div>
-              <div class="library-overlay-book-face library-overlay-book-cover" id="libraryOverlayCover"></div>
-            </div>
-            <article class="library-overlay-info" id="libraryOverlayInfo">
-              <button type="button" class="library-overlay-close" id="libraryOverlayClose" aria-label="Close book inspector">x</button>
-              <h4 id="libraryOverlayTitle"></h4>
-              <p id="libraryOverlayAuthor"></p>
-              <p id="libraryOverlaySummary"></p>
-              <div class="library-overlay-tags" id="libraryOverlayTags"></div>
-              <div class="library-overlay-actions" id="libraryOverlayActions"></div>
-            </article>
-          </div>
         </section>
       </section>
+
+    </div>
+
+    <div class="library-book-overlay" id="libraryBookOverlay" hidden>
+      <div class="library-overlay-shell" id="libraryOverlayShell">
+        <button type="button" class="library-overlay-close" id="libraryOverlayClose" aria-label="Close book inspector">x</button>
+        <div class="library-overlay-stage" id="libraryOverlayStage">
+          <div class="library-overlay-book" id="libraryOverlayBook">
+            <div class="library-overlay-book-face library-overlay-book-spine" id="libraryOverlaySpine"></div>
+            <div class="library-overlay-book-face library-overlay-book-cover" id="libraryOverlayCover"></div>
+          </div>
+          <article class="library-overlay-info" id="libraryOverlayInfo">
+            <div class="library-overlay-info-copy">
+              <p class="library-overlay-eyebrow" id="libraryOverlayEyebrow"></p>
+              <h4 id="libraryOverlayTitle"></h4>
+              <p id="libraryOverlayAuthor"></p>
+              <div class="library-overlay-divider" id="libraryOverlayDivider" aria-hidden="true"></div>
+              <p id="libraryOverlaySummary"></p>
+            </div>
+            <div class="library-overlay-info-footer">
+              <div class="library-overlay-tags" id="libraryOverlayTags"></div>
+              <div class="library-overlay-actions" id="libraryOverlayActions"></div>
+            </div>
+          </article>
+        </div>
+      </div>
     </div>
   `;
 }

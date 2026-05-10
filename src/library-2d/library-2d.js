@@ -138,6 +138,15 @@ function bindLibraryEvents() {
   if (!root) return;
 
   root.addEventListener('click', (event) => {
+    if (
+      LIBRARY_STATE.overlay.key
+      && !event.target.closest('#libraryOverlayStage')
+      && !event.target.closest('.library-draggable')
+    ) {
+      closeBookInspector();
+      return;
+    }
+
     const panelBtn = event.target.closest('[data-library-panel]');
     if (panelBtn) {
       openLibraryPanel(panelBtn.dataset.libraryPanel || '');
@@ -202,7 +211,7 @@ function bindLibraryEvents() {
       const record = LIBRARY_STATE.recordByKey.get(bookKey);
       if (record?.id) {
         closeBookInspector({ immediate: true });
-        App.show('book', { id: record.id });
+        PanelManager.open('book', { id: record.id });
       }
       return;
     }
@@ -894,7 +903,13 @@ function onBookDragEnd(event) {
   if (!drag || !matchesActivePointer(event, 'book-drag')) return;
 
   if (!drag.moved) {
+    const record = LIBRARY_STATE.recordByKey.get(drag.bookKey);
+    const sourceEl = drag.sourceEl;
+    const sourceShelfId = drag.sourceShelfId;
     cleanupBookDrag();
+    if (record && sourceEl?.isConnected) {
+      playBookInteraction(sourceEl, record, sourceShelfId);
+    }
     return;
   }
 
@@ -1190,12 +1205,21 @@ function moveBookToShelf(bookKey, targetShelfId, targetIndex) {
   syncStatusToSource(bookKey, targetShelfId);
 }
 
+function setOverlayPhase(overlay, phase) {
+  if (!overlay) return;
+  overlay.className = phase
+    ? `library-book-overlay is-${phase}`
+    : 'library-book-overlay';
+}
+
 function playBookInteraction(sourceEl, record, sourceShelfId) {
   const overlay = document.getElementById('libraryBookOverlay');
   const book = document.getElementById('libraryOverlayBook');
   const spineFace = document.getElementById('libraryOverlaySpine');
   const coverFace = document.getElementById('libraryOverlayCover');
   const info = document.getElementById('libraryOverlayInfo');
+  const eyebrow = document.getElementById('libraryOverlayEyebrow');
+  const divider = document.getElementById('libraryOverlayDivider');
   const title = document.getElementById('libraryOverlayTitle');
   const author = document.getElementById('libraryOverlayAuthor');
   const summary = document.getElementById('libraryOverlaySummary');
@@ -1216,36 +1240,65 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
   LIBRARY_STATE.overlay.playing = true;
   LIBRARY_STATE.overlay.key = record.key;
   LIBRARY_STATE.overlay.sourceShelfId = sourceShelfId || sourceEl.dataset.shelfId || '';
+  const sourceFace = sourceEl.classList.contains('library-cover') ? 'cover' : 'spine';
+  const spineSize = getSpineSize(record);
 
-  const localLeft = rect.left - sceneRect.left;
-  const localTop = rect.top - sceneRect.top;
-  const liftY = clampInt(rect.height * 0.28, 34, 74, 48);
-  const expandedHeight = clampInt(rect.height * 1.48, Math.max(220, rect.height + 64), 332, rect.height + 108);
-  const coverWidth = clampInt(expandedHeight * 0.68, 126, 204, 164);
-  const infoWidth = clampInt(expandedHeight * 1.42, 286, 430, 336);
-  const gap = 0;
-  const expandedWidth = rect.width + gap + Math.max(coverWidth, infoWidth);
-  const expandedLeft = clamp(localLeft, 24, sceneRect.width - expandedWidth - 24, localLeft);
-  const expandedTop = clamp(localTop - ((expandedHeight - rect.height) * 0.48) - liftY, 24, sceneRect.height - expandedHeight - 24, localTop - liftY);
-  const titleSize = clampInt(expandedHeight * 0.27, 34, 82, 54);
+  const expandedHeight = clampInt(
+    Math.max(rect.height * 1.86, spineSize.height + 138),
+    300,
+    420,
+    368,
+  );
+  const coverWidth = clampInt(Math.max(spineSize.width * 5.1, expandedHeight * 0.62), 220, 280, 248);
+  const infoWidth = clampInt(Math.round(coverWidth * 0.86), 198, 244, 220);
+  const gap = clampInt(coverWidth * 0.02, 4, 8, 6);
+  const expandedWidth = spineSize.width + gap + infoWidth;
+  const viewportInset = 18;
+  const minLeft = Math.max(viewportInset, sceneRect.left + 24);
+  const maxLeft = Math.min(window.innerWidth - expandedWidth - viewportInset, sceneRect.right - expandedWidth - 24);
+  const minTop = Math.max(viewportInset, sceneRect.top + 24);
+  const maxTop = Math.min(window.innerHeight - expandedHeight - viewportInset, sceneRect.bottom - expandedHeight - 24);
+  const expandedLeft = clamp(
+    sceneRect.left + ((sceneRect.width - expandedWidth) / 2),
+    minLeft,
+    Math.max(minLeft, maxLeft),
+    sceneRect.left + ((sceneRect.width - expandedWidth) / 2),
+  );
+  const expandedTop = clamp(
+    sceneRect.top + ((sceneRect.height - expandedHeight) / 2),
+    minTop,
+    Math.max(minTop, maxTop),
+    sceneRect.top + ((sceneRect.height - expandedHeight) / 2),
+  );
+  const originX = rect.left - expandedLeft;
+  const originY = rect.top - expandedTop;
+  const titleSize = clampInt(
+    containsCJK(record.title)
+      ? coverWidth * (record.title.length > 10 ? 0.18 : 0.21)
+      : coverWidth * (record.title.length > 26 ? 0.13 : 0.145),
+    24,
+    40,
+    containsCJK(record.title) ? 34 : 30,
+  );
 
   overlay.hidden = false;
-  overlay.className = 'library-book-overlay is-start';
+  setOverlayPhase(overlay, 'start');
   overlay.dataset.bookKey = record.key;
   overlay.dataset.sourceShelfId = LIBRARY_STATE.overlay.sourceShelfId;
-  overlay.style.setProperty('--overlay-source-width', `${rect.width}px`);
-  overlay.style.setProperty('--overlay-source-height', `${rect.height}px`);
+  overlay.dataset.sourceFace = sourceFace;
+  overlay.style.setProperty('--overlay-origin-width', `${rect.width}px`);
+  overlay.style.setProperty('--overlay-origin-height', `${rect.height}px`);
+  overlay.style.setProperty('--overlay-origin-x', `${originX}px`);
+  overlay.style.setProperty('--overlay-origin-y', `${originY}px`);
+  overlay.style.setProperty('--overlay-origin-scale-x', `${(rect.width / Math.max(1, spineSize.width)).toFixed(4)}`);
+  overlay.style.setProperty('--overlay-origin-scale-y', `${(rect.height / Math.max(1, expandedHeight)).toFixed(4)}`);
+  overlay.style.setProperty('--overlay-spine-width', `${spineSize.width}px`);
   overlay.style.setProperty('--overlay-open-width', `${expandedWidth}px`);
   overlay.style.setProperty('--overlay-open-height', `${expandedHeight}px`);
   overlay.style.setProperty('--overlay-cover-width', `${coverWidth}px`);
   overlay.style.setProperty('--overlay-info-width', `${infoWidth}px`);
   overlay.style.setProperty('--overlay-gap', `${gap}px`);
-  overlay.style.setProperty('--overlay-lift-y', `${liftY}px`);
   overlay.style.setProperty('--overlay-title-size', `${titleSize}px`);
-  overlay.style.left = `${expandedLeft}px`;
-  overlay.style.top = `${expandedTop}px`;
-  overlay.style.width = `${expandedWidth}px`;
-  overlay.style.height = `${expandedHeight}px`;
 
   sourceEl.classList.add('is-lift-origin');
 
@@ -1270,43 +1323,42 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
     `;
   }
 
-  title.textContent = record.title;
+  if (eyebrow) eyebrow.textContent = '';
+  if (divider) divider.hidden = !firstOverlaySentence(record.summary);
+  title.textContent = primaryOverlayTitle(record.title);
   author.textContent = record.author;
-  summary.textContent = record.summary;
+  summary.textContent = firstOverlaySentence(record.summary);
   tags.innerHTML = (record.tags || []).slice(0, 4).map((tag) => `<span>${escapeHTML(tag)}</span>`).join('');
   actions.innerHTML = buildOverlayActions(record, LIBRARY_STATE.overlay.sourceShelfId);
 
   requestAnimationFrame(() => {
     document.getElementById('panel-library')?.classList.add('is-inspecting');
-    overlay.className = 'library-book-overlay is-lift';
-  });
-
-  LIBRARY_STATE.overlay.timers.push(window.setTimeout(() => {
-    overlay.className = 'library-book-overlay is-cover';
-  }, 260));
-
-  LIBRARY_STATE.overlay.timers.push(window.setTimeout(() => {
-    overlay.className = 'library-book-overlay is-open';
+    setOverlayPhase(overlay, 'open');
     LIBRARY_STATE.overlay.playing = false;
-  }, 760));
-
+  });
 }
 
 function buildOverlayActions(record, sourceShelfId) {
-  const actions = [];
-  if (record.id) {
-    actions.push(`<button type="button" class="chip" data-open-book="${escapeHTML(record.key)}">Read More</button>`);
+  void sourceShelfId;
+  if (!record.id) {
+    return '<button type="button" class="library-overlay-readmore" data-overlay-close="true">Close</button>';
   }
+  return `<button type="button" class="library-overlay-readmore" data-open-book="${escapeHTML(record.key)}">Read More <span aria-hidden="true">→</span></button>`;
+}
 
-  LIBRARY_STATE.shelves
-    .filter((shelf) => shelf.id !== sourceShelfId)
-    .slice(0, 3)
-    .forEach((shelf) => {
-      actions.push(`<button type="button" class="chip chip-mini" data-move-book="${escapeHTML(record.key)}" data-to-shelf="${escapeHTML(shelf.id)}">Move To ${escapeHTML(shelf.name)}</button>`);
-    });
+function firstOverlaySentence(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const match = text.match(/^(.+?[。！？.!?])(?:\s|$)/);
+  if (match) return match[1].trim();
+  return text.length > 86 ? `${text.slice(0, 85).trim()}…` : text;
+}
 
-  actions.push('<button type="button" class="chip chip-ghost" data-overlay-close="true">Close</button>');
-  return actions.join('');
+function primaryOverlayTitle(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const match = text.match(/^(.+?)(?:\s*[:：]\s*|\s+[—-]\s+|\s+\|\s+)/);
+  return (match?.[1] || text).trim();
 }
 
 function closeBookInspector({ immediate = false } = {}) {
@@ -1316,9 +1368,10 @@ function closeBookInspector({ immediate = false } = {}) {
   clearOverlayTimers();
   const finalize = () => {
     overlay.hidden = true;
-    overlay.className = 'library-book-overlay';
+    setOverlayPhase(overlay, '');
     delete overlay.dataset.bookKey;
     delete overlay.dataset.sourceShelfId;
+    delete overlay.dataset.sourceFace;
     document.querySelectorAll('#panel-library .is-lift-origin').forEach((node) => {
       node.classList.remove('is-lift-origin');
     });
@@ -1333,9 +1386,9 @@ function closeBookInspector({ immediate = false } = {}) {
     return;
   }
 
-  overlay.className = 'library-book-overlay is-closing';
+  setOverlayPhase(overlay, 'closing');
   LIBRARY_STATE.overlay.playing = true;
-  LIBRARY_STATE.overlay.timers.push(window.setTimeout(finalize, 280));
+  LIBRARY_STATE.overlay.timers.push(window.setTimeout(finalize, 360));
 }
 
 function clearOverlayTimers() {
