@@ -2,6 +2,8 @@
   "countryId": "RU",
   "countryName": "Russia",
   "countryNameZh": "俄罗斯",
+  "region": "Eastern Europe",
+  "literaryLanguages": ["Russian"],
   "version": 1,
   "updatedAt": "2025-05-16",
 
@@ -40,6 +42,8 @@
         "year": 1886,
         "note": "一个成功的法官得了绝症，在死亡来临的过程中意识到自己整个人生都是虚假的。托尔斯泰用极度精准的笔法呈现这个过程，没有多余的道德说教。读完（约两小时）之后，对人如何面对自己的生命这个问题的感受会发生不可逆的变化。俄国文学最有效的第一入口。",
         "type": "Fiction",
+        "originalLanguage": "ru",
+        "isbn": "9780199238484",
         "coverPath": ""
       },
       {
@@ -48,6 +52,8 @@
         "year": 1967,
         "note": "魔鬼带着随从来到斯大林时代的莫斯科，用荒诞喜剧的方式拆解苏联社会的虚伪与恐惧。同时穿插一条关于彼拉多审判耶稣的历史线，两个时空互相照亮。这本书在苏联被禁止出版二十六年，手稿在地下流传——这个事实本身就是俄国文学史的一部分。",
         "type": "Fiction",
+        "originalLanguage": "ru",
+        "isbn": "9780141180144",
         "coverPath": ""
       },
       {
@@ -56,8 +62,19 @@
         "year": 1946,
         "note": "一位流亡哲学家梳理俄国思想传统的核心问题：末世论、弥赛亚意识、自由与权威的张力。读完之后再看任何俄国文学或当代俄罗斯政治，都会多一层结构性的理解。它不长，但密度很高——适合在读过一两部俄国小说之后再来读。",
         "type": "Nonfiction",
+        "originalLanguage": "ru",
+        "isbn": "9780821410042",
         "coverPath": ""
       }
+    ],
+
+    "notableAuthors": [
+      { "name": "列夫·托尔斯泰", "nameEn": "Leo Tolstoy", "period": "1828–1910" },
+      { "name": "陀思妥耶夫斯基", "nameEn": "Fyodor Dostoevsky", "period": "1821–1881" },
+      { "name": "米哈伊尔·布尔加科夫", "nameEn": "Mikhail Bulgakov", "period": "1891–1940" },
+      { "name": "鲍里斯·帕斯捷尔纳克", "nameEn": "Boris Pasternak", "period": "1890–1960" },
+      { "name": "果戈里", "nameEn": "Nikolai Gogol", "period": "1809–1852" },
+      { "name": "安娜·阿赫玛托娃", "nameEn": "Anna Akhmatova", "period": "1889–1966" }
     ]
   }
 }

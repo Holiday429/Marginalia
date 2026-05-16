@@ -2,6 +2,8 @@
   "countryId": "CN",
   "countryName": "China",
   "countryNameZh": "中国",
+  "region": "East Asia",
+  "literaryLanguages": ["Chinese"],
   "version": 1,
   "updatedAt": "2025-05-16",
 
@@ -40,6 +42,8 @@
         "year": 1993,
         "note": "把宏大历史压回个体命运。一个人的一生跨越了土改、大跃进、文革，每一次历史浪潮都以最具体的方式落在他的家人身上。语言极简，但信息密度极高，是现代中国经验最高效的第一入口。",
         "type": "Fiction",
+        "originalLanguage": "zh",
+        "isbn": "9787506365437",
         "coverPath": ""
       },
       {
@@ -48,6 +52,8 @@
         "year": 1948,
         "note": "理解中国社会结构的底层逻辑——差序格局、礼治秩序、无讼传统。读完之后再看任何中国小说里的人情关系与权力运作，都会清晰很多。这是一本薄书，但它提供的分析框架影响深远。",
         "type": "Nonfiction",
+        "originalLanguage": "zh",
+        "isbn": "9787108039453",
         "coverPath": ""
       },
       {
@@ -56,8 +62,19 @@
         "year": 1934,
         "note": "在进入革命叙事和城市现代性之前，先看现代化来临之前的乡土伦理与日常节奏。沈从文的湘西是一个有完整感知系统的世界，不是背景，而是另一套价值语言。读完会对现代化意味着什么有更立体的感受。",
         "type": "Fiction",
+        "originalLanguage": "zh",
+        "isbn": "9787020090723",
         "coverPath": ""
       }
+    ],
+
+    "notableAuthors": [
+      { "name": "鲁迅", "nameEn": "Lu Xun", "period": "1880s–1930s" },
+      { "name": "余华", "nameEn": "Yu Hua", "period": "1960s–" },
+      { "name": "沈从文", "nameEn": "Shen Congwen", "period": "1900s–1980s" },
+      { "name": "张爱玲", "nameEn": "Eileen Chang", "period": "1920s–1990s" },
+      { "name": "莫言", "nameEn": "Mo Yan", "period": "1950s–" },
+      { "name": "阿来", "nameEn": "Alai", "period": "1960s–" }
     ]
   }
 }

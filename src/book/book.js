@@ -5,6 +5,7 @@
 import { logEvent, logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { HighlightsStore } from '../store/highlights-store.ts';
+import { ActionsStore } from '../store/actions-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { renderSearchSection } from '../search/search.js';
 import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.js';
@@ -33,9 +34,18 @@ async function enterBook(params = {}) {
     ? HighlightsStore.getAll().filter((h) => h.bookId === id)
     : ((await NotesStore?.getHighlights(id)) || []);
   const mergedHighlights = [...(book.highlights || []), ...liveHighlights];
-  const rawBookView = mergedHighlights.length
-    ? { ...book, highlights: mergedHighlights }
-    : book;
+
+  // Merge actions: ActionsStore (Firestore) takes precedence over any actions
+  // baked into the book object (seed data). For unauthenticated users the
+  // book-embedded actions array is used as-is.
+  const liveActions = ActionsStore.getUid()
+    ? ActionsStore.getByBook(id)
+    : (book.actions || []);
+  const rawBookView = {
+    ...book,
+    ...(mergedHighlights.length ? { highlights: mergedHighlights } : {}),
+    ...(ActionsStore.getUid() ? { actions: liveActions } : {}),
+  };
   const bookView = buildBookDetailModel(rawBookView);
 
   const root = document.getElementById('panel-book');
@@ -151,25 +161,38 @@ async function enterBook(params = {}) {
     });
   });
 
-  // Wire up action items — persist status to NotesStore
+  // Wire up action items — persist status to ActionsStore (Firestore) when
+  // authenticated, falling back to NotesStore (IndexedDB) for demo visitors.
+  const isAuthed = !!ActionsStore.getUid();
   root.querySelectorAll('.action-item').forEach(item => {
-    // Apply any persisted override immediately
     const actionId = item.dataset.id;
-    if (actionId) {
+    if (!actionId) return;
+
+    // Initial state is already rendered by renderActions() from the live
+    // ActionsStore snapshot. For unauthenticated visitors, read from IndexedDB.
+    if (!isAuthed) {
       NotesStore?.getActionStatus(id, actionId).then(saved => {
         if (saved === null) return;
         item.classList.toggle('done', saved === 'done');
         const tag = item.querySelector('.action-tag');
-        if (tag) tag.textContent = saved === 'done' ? 'Completed' : saved === 'doing' ? 'In Progress' : 'Pending';
-      });
+        if (tag) tag.textContent = saved === 'done' ? 'Completed' : 'Pending';
+      }).catch(e => logError(e, { context: 'book action status load' }));
     }
 
     item.addEventListener('click', () => {
-      const done = item.classList.toggle('done');
-      const status = done ? 'done' : 'todo';
+      const willBeDone = !item.classList.contains('done');
+      item.classList.toggle('done', willBeDone);
       const tag = item.querySelector('.action-tag');
-      if (tag) tag.textContent = done ? 'Completed' : 'Pending';
-      if (actionId) NotesStore?.setActionStatus(id, actionId, status);
+      if (tag) tag.textContent = willBeDone ? 'Completed' : 'Pending';
+
+      if (isAuthed) {
+        const op = willBeDone
+          ? ActionsStore.markDone(actionId, id)
+          : ActionsStore.reopen(actionId);
+        op.catch(e => logError(e, { context: 'book action status save' }));
+      } else {
+        NotesStore?.setActionStatus(id, actionId, willBeDone ? 'done' : 'todo');
+      }
     });
   });
 
@@ -899,7 +922,7 @@ function formatTitle(t) {
 }
 
 function statusLabel(s) {
-  return { done: 'Completed', doing: 'In Progress', todo: 'Pending' }[s] || s;
+  return { open: 'Pending', done: 'Completed', snoozed: 'Snoozed', archived: 'Archived', doing: 'In Progress', todo: 'Pending' }[s] || s;
 }
 
 function normalizeActionTag(tag) {

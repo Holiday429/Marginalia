@@ -79,6 +79,17 @@ export const AIFeatureRegistry = (() => {
       promptId: 'action-suggest',
     },
 
+    /* ── Profile ──────────────────────────────────────────────────────────── */
+
+    'reader-portrait': {
+      label: 'Generate reader portrait',
+      panel: 'reader-portrait',
+      outputType: 'json',
+      promptId: 'reader-portrait',
+      // Not gated by book type — applies to the full library, not a single book.
+      profileFeature: true,
+    },
+
   };
 
   /* ── Prompt store (populated by individual prompt files) ─────────────── */

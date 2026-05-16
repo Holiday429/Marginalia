@@ -29,6 +29,7 @@ const HOVER_META_BY_ACTION = {
   organize: { icon: 'library', title: 'Library', description: 'Organize Your Shelves' },
   sapiens: { icon: 'reading-now', title: 'Keep Reading', description: 'Continue Current Book' },
   heroBook: { icon: 'library', title: 'Open Library', description: 'Organize Your Library' },
+  profile: { icon: 'profile', title: 'Profile', description: 'Public Reading Page' },
 };
 
 const ROOM_VIEW_STATE = {
@@ -259,6 +260,12 @@ function renderIcon(iconId) {
   if (iconId === 'map') return symbolIcon('icon-nav-map');
   if (iconId === 'graph') return symbolIcon('icon-nav-graph');
   if (iconId === 'list' || iconId === 'booklist') return symbolIcon('icon-nav-list');
+  if (iconId === 'profile') return `
+    <svg viewBox="0 0 18 18" class="room-svg-icon">
+      <circle cx="9" cy="6.5" r="2.8" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+      <path d="M3 15.5c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+    </svg>
+  `;
   if (iconId === 'search') {
     return `
       <svg viewBox="0 0 18 18" class="room-svg-icon">
@@ -496,6 +503,7 @@ function mountRoomScene() {
       onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),
       onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),
+      onPhotoFrameSelect: () => openPanel('profile'),
       onInteractiveHover: (action, pointer) => {
         ROOM_VIEW_STATE.hoverAction = action || null;
         if (pointer) ROOM_VIEW_STATE.hoverPoint = pointer;
