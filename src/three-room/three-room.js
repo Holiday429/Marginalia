@@ -15,6 +15,7 @@ export function createThreeRoomPreview(host, options = {}) {
     onOrganizeSelect: typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : undefined,
     onSapiensSelect: typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : undefined,
     onHeroBookSelect: typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : undefined,
+    onPhotoFrameSelect: typeof options.onPhotoFrameSelect === 'function' ? options.onPhotoFrameSelect : undefined,
     onInteractiveHover: typeof options.onInteractiveHover === 'function' ? options.onInteractiveHover : undefined,
   });
 
