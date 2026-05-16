@@ -734,7 +734,7 @@ function bootMap() {
     chinaSeries.hide();
     worldSeries.show();
     setBreadcrumb('world', 'World', null);
-    closePanel();
+    dismissPanel();
     resetWorldFills(worldSeries);
     resetWorldHome();
   }
@@ -1361,11 +1361,23 @@ function renderPanel() {
   document.body.classList.add('map-panel-open');
 }
 
-function closePanel() {
+// Closes only the panel DOM — used internally by goWorld() to avoid recursion.
+function dismissPanel() {
   __mapPanelState = null;
   const panelEl = document.getElementById('mapPanel');
   panelEl.classList.remove('open');
   document.body.classList.remove('map-panel-open');
+}
+
+// Closes panel and resets map to fit view — used by the × close button.
+function closePanel() {
+  dismissPanel();
+  __mapFocusedCountryId = null;
+  if (typeof __mapGoWorldFn === 'function') {
+    __mapGoWorldFn();
+  } else if (__mapChart) {
+    __mapChart.goHome();
+  }
 }
 
 function renderPanelTabs() {
