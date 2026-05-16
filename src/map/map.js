@@ -1066,7 +1066,7 @@ function getHoverAnchorPoint(poly) {
   const bounds = hoverViewportBounds();
   const p = fromPoly || __mapPointer;
   return {
-    x: Math.max(bounds.left + 118, Math.min(p.x, bounds.right - 118)),
+    x: Math.max(bounds.left + 60, Math.min(p.x, bounds.right - 60)),
     y: Math.max(bounds.top + 52, Math.min(p.y, bounds.bottom - 152)),
   };
 }
@@ -1163,30 +1163,69 @@ function buildHoverMetaContent(countryId, countryName) {
 }
 
 function buildHoverSlotTemplates(zone) {
-  const yBias = zone.vertical === 'top' ? 56 : (zone.vertical === 'bottom' ? -56 : 0);
-  const centerTemplate = {
-    country: [{ dx: 0, dy: -86 }, { dx: 0, dy: 84 }],
-    dna: [{ dx: -218, dy: -154 }, { dx: -226, dy: 92 }, { dx: 214, dy: -154 }],
-    voices: [{ dx: 218, dy: -154 }, { dx: 226, dy: 92 }, { dx: -214, dy: -154 }],
-    entry: [{ dx: -214, dy: 92 }, { dx: -214, dy: -154 }, { dx: 214, dy: 92 }],
-    cue: [{ dx: 214, dy: 92 }, { dx: 214, dy: -154 }, { dx: -214, dy: 92 }],
-  };
-  const edgeTemplate = {
-    country: [{ dx: 142, dy: -78 }, { dx: 160, dy: 84 }],
-    dna: [{ dx: 238, dy: -138 }, { dx: 282, dy: -8 }, { dx: 242, dy: 114 }],
-    voices: [{ dx: 328, dy: -20 }, { dx: 282, dy: -8 }, { dx: 330, dy: 104 }],
-    entry: [{ dx: 242, dy: 114 }, { dx: 282, dy: -8 }, { dx: 238, dy: -138 }],
-    cue: [{ dx: 352, dy: 100 }, { dx: 352, dy: -128 }, { dx: 328, dy: 24 }],
+  // Each card is assigned a primary quadrant (TL, TR, BL, BR) relative to the anchor.
+  // Candidates are ordered: ideal → same-side alternative → opposite-side escape hatches.
+  // Vertical bias nudges everything away from the viewport edge the anchor is near.
+  const yBias = zone.vertical === 'top' ? 64 : (zone.vertical === 'bottom' ? -64 : 0);
+
+  // Quadrant offsets: dx/dy are center-of-card relative to anchor center.
+  // Positive dx = right of anchor, positive dy = below anchor.
+  const TL = { dx: -240, dy: -148 };
+  const TR = { dx: 240, dy: -148 };
+  const BL = { dx: -240, dy: 110 };
+  const BR = { dx: 240, dy: 110 };
+
+  // When anchor is near the left edge, shift all cards rightward.
+  // When near the right edge, shift leftward.
+  const hShift = zone.horizontal === 'left' ? 120 : (zone.horizontal === 'right' ? -120 : 0);
+
+  const raw = {
+    // Country name: above anchor, fallback below
+    country: [
+      { dx: 0, dy: -96 },
+      { dx: 0, dy: 94 },
+      { dx: -80, dy: -96 },
+      { dx: 80, dy: -96 },
+    ],
+    // Literary DNA → top-left primary
+    dna: [
+      TL,
+      { dx: TL.dx, dy: BL.dy },           // bottom-left
+      { dx: TR.dx, dy: TL.dy },           // top-right escape
+      { dx: TL.dx - 40, dy: TL.dy - 60 }, // further out TL
+      { dx: TR.dx + 40, dy: TR.dy - 60 }, // further out TR
+    ],
+    // Representative voices → top-right primary
+    voices: [
+      TR,
+      { dx: TR.dx, dy: BR.dy },           // bottom-right
+      { dx: TL.dx, dy: TR.dy },           // top-left escape
+      { dx: TR.dx + 40, dy: TR.dy - 60 },
+      { dx: TL.dx - 40, dy: TL.dy - 60 },
+    ],
+    // Entry work → bottom-left primary
+    entry: [
+      BL,
+      { dx: BL.dx, dy: TL.dy },           // top-left
+      { dx: BR.dx, dy: BL.dy },           // bottom-right escape
+      { dx: BL.dx - 40, dy: BL.dy + 60 },
+      { dx: BR.dx + 40, dy: BR.dy + 60 },
+    ],
+    // Context cue → bottom-right primary
+    cue: [
+      BR,
+      { dx: BR.dx, dy: TR.dy },           // top-right
+      { dx: BL.dx, dy: BR.dy },           // bottom-left escape
+      { dx: BR.dx + 40, dy: BR.dy + 60 },
+      { dx: BL.dx - 40, dy: BL.dy + 60 },
+    ],
   };
 
-  const base = zone.horizontal === 'center' ? centerTemplate : edgeTemplate;
-  const side = zone.horizontal === 'right' ? -1 : 1;
-  const isCenter = zone.horizontal === 'center';
   return Object.fromEntries(
-    Object.entries(base).map(([key, list]) => [
+    Object.entries(raw).map(([key, list]) => [
       key,
       list.map(slot => ({
-        dx: isCenter ? slot.dx : slot.dx * side,
+        dx: slot.dx + (key === 'country' ? 0 : hShift),
         dy: slot.dy + yBias,
       })),
     ])
@@ -1265,24 +1304,53 @@ function layoutHoverMetaNodes(nodes, anchor, keepOut) {
       w: node.width,
       h: node.height,
     }));
-    const fallback = rawCandidates.length ? rawCandidates : [{
+    const baseCandidates = rawCandidates.length ? rawCandidates : [{
       x: anchor.x + 120,
       y: anchor.y - 80,
       w: node.width,
       h: node.height,
     }];
 
+    // Expand candidate pool by nudging each base candidate in 8 directions.
+    const nudges = [0, 1, -1, 2, -2, 3, -3];
+    const expandedCandidates = [];
+    for (const base of baseCandidates) {
+      for (const ny of nudges) {
+        for (const nx of nudges) {
+          if (nx === 0 && ny === 0) {
+            expandedCandidates.push(base);
+          } else {
+            expandedCandidates.push({ ...base, x: base.x + nx * 48, y: base.y + ny * 48 });
+          }
+        }
+      }
+    }
+
+    // First pass: strict — no overlap with keepOut or any placed card.
     let chosen = null;
-    for (const candidate of fallback) {
+    for (const candidate of expandedCandidates) {
       const rect = clampHoverRect(candidate);
-      if (rectsOverlap(rect, keepOut, 12)) continue;
-      if (placed.some(prev => rectsOverlap(rect, prev, 12))) continue;
+      if (rectsOverlap(rect, keepOut, 8)) continue;
+      if (placed.some(prev => rectsOverlap(rect, prev, 8))) continue;
       chosen = rect;
       break;
     }
+
+    // Second pass: allow slight keepOut overlap if needed, but never overlap placed cards.
     if (!chosen) {
-      chosen = pickLeastOverlapRect(fallback, keepOut, placed);
+      for (const candidate of expandedCandidates) {
+        const rect = clampHoverRect(candidate);
+        if (placed.some(prev => rectsOverlap(rect, prev, 4))) continue;
+        chosen = rect;
+        break;
+      }
     }
+
+    // Last resort: minimize total overlap area.
+    if (!chosen) {
+      chosen = pickLeastOverlapRect(baseCandidates, keepOut, placed);
+    }
+
     placed.push(chosen);
     return { ...node, x: chosen.x, y: chosen.y };
   });
