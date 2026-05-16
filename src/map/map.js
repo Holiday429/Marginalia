@@ -6,6 +6,7 @@
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
+import { loadProfile, prefetchProfiles, getCachedProfile, buildFallbackProfile } from './geo-profiles.js';
 
 let __mapChart       = null;
 let __mapBooted      = false;
@@ -49,158 +50,6 @@ const MAP_TAB_META = [
   { id: 'keywords', label: 'Keywords' },
   { id: 'starter',  label: 'Starter' },
 ];
-
-const REGION_PROFILES = {
-  CN: {
-    culture: '中国文学的阅读入口，不只是“朝代更替”或“历史事件”，而是制度秩序、家庭伦理、地方经验与现代化断裂的长期共振。很多中国文本会把私人命运放在大历史压力之下推进，人物的情感、责任与选择常常同时被家族结构、礼法传统和国家叙事牵引。作为 demo，可以把它理解成一种“多尺度叙事训练”：同一部作品里，个体心理、社会阶层、城乡空间与文明记忆会在同一条线里交错出现。',
-    history: [
-      '帝制传统、士大夫文化与经典教育长期塑造了“何为正统、何为修身”的阅读背景。',
-      '晚清到二十世纪的剧烈转型，使现代中国写作天然带着制度变迁、知识断裂与身份重组的焦虑。',
-      '地方书写很重要。北京、上海、西南、边疆与乡土叙事常常代表不同的现代经验。',
-      '五四以来的语言转向（文言到白话）不仅改变表达形式，也改变了“谁能说话、如何说话”的文学政治。',
-      '改革开放后的城市化与市场化，让代际记忆、阶层流动和地方失语成为新一代叙事的核心张力。',
-      '当代中国科幻把国家发展、技术乌托邦与文明危机并置，形成与现实主义并行的第二叙事通道。'
-    ],
-    keywords: ['家国叙事', '礼法秩序', '地方经验', '现代性断裂', '乡土中国', '城市化焦虑', '知识分子伦理', '革命记忆', '代际创伤', '历史叙事', '技术想象', '文明尺度'],
-    starters: [
-      {
-        title: '红楼梦',
-        author: '曹雪芹',
-        note: '先建立“中国叙事”的母体：家族结构、礼法秩序、情感伦理与衰败意识。',
-        type: 'Classic Baseline',
-        cover: 'assets/covers/红楼梦.jpg',
-      },
-      {
-        title: '活着',
-        author: '余华',
-        note: '把宏大历史压回个体命运，最适合作为现代中国经验的第一入口。',
-        type: 'Modern Entry',
-        cover: 'assets/covers/活着.jpg',
-      },
-      {
-        title: '边城',
-        author: '沈从文',
-        note: '补上地方经验与乡土审美，理解现代化来临前后的伦理与节奏变化。',
-        type: 'Regional Lens',
-        cover: 'assets/covers/边城.jpg',
-      },
-      {
-        title: '三体',
-        author: '刘慈欣',
-        note: '进入中国科幻路径：国家叙事、技术想象与文明尺度在同一框架里展开。',
-        type: 'Sci-fi axis',
-        cover: 'assets/covers/三体.jpg',
-      }
-    ],
-    hover: {
-      dna: ['家国同构', '礼法与人情', '现代化断裂'],
-      voices: ['鲁迅', '余华'],
-      entry: {
-        title: '活着',
-        reason: '从个体命运切入，快速建立近现代中国社会感受。',
-      },
-      cue: '如果只把中国文学读成“历史故事”，会错过它真正的强度。先看家庭伦理、地方经验与国家叙事如何在同一人物身上拉扯。'
-    }
-  },
-  GB: {
-    culture: '英国阅读语境很适合进入“阶层如何长进日常”的问题：礼仪、教育、婚姻、财产、工业化和帝国余波，常常比宏大口号更深地嵌在人物行动里。',
-    history: [
-      '从乡绅社会到工业社会，英国文学反复处理阶层流动与制度惯性的矛盾。',
-      '伦敦既是现代都市样本，也是帝国中心的精神投影。',
-      '现代主义在英国往往表现为内心时间、意识流与战后失序感。'
-    ],
-    keywords: ['阶层秩序', '都市现代性', '经验主义', '内心时间', '帝国余波'],
-    starters: [
-      { title: 'Pride and Prejudice', author: 'Jane Austen', note: '从婚姻与礼仪切入阶层社会。' },
-      { title: 'Mrs Dalloway', author: 'Virginia Woolf', note: '进入现代都市与意识流。' },
-      { title: 'The Road to Wigan Pier', author: 'George Orwell', note: '补足工业社会与阶层观察。' }
-    ]
-  },
-  FR: {
-    culture: '法国常是“思想先于立场显形”的阅读现场。城市、沙龙、革命、世俗化与知识分子传统，让文本天然带着论辩感与形式自觉。',
-    history: [
-      '革命传统让政治、人民与公共空间成为文学和思想写作的长期母题。',
-      '巴黎不仅是地理中心，也常是欲望、记忆与现代感官经验的浓缩器。',
-      '法国文学与哲学之间的边界较薄，叙事经常同时在做思想实验。'
-    ],
-    keywords: ['革命传统', '知识分子', '世俗化', '都市感官', '记忆书写'],
-    starters: [
-      { title: 'Les Misérables', author: 'Victor Hugo', note: '宏大历史与个人伦理同时进入。' },
-      { title: 'The Stranger', author: 'Albert Camus', note: '存在主义入口足够轻。' },
-      { title: 'Swann’s Way', author: 'Marcel Proust', note: '从记忆与感知打开法国现代性。' }
-    ]
-  },
-  RU: {
-    culture: '俄罗斯阅读入口通常不是“情节”，而是极端处境中的精神强度。宗教、苦难、帝国广度与知识分子自我审判，会把人物推向伦理和存在的边界。',
-    history: [
-      '十九世纪俄罗斯文学几乎承担了哲学和社会批判的双重角色。',
-      '从沙俄到苏联，国家权力与个体灵魂的张力是持续母题。',
-      '大城市与边疆、宫廷与地下室，经常构成俄国叙事的尺度反差。'
-    ],
-    keywords: ['苦难意识', '灵魂审判', '帝国尺度', '知识分子', '宗教伦理'],
-    starters: [
-      { title: 'Crime and Punishment', author: 'Fyodor Dostoevsky', note: '最直接进入精神压力场。' },
-      { title: 'The Death of Ivan Ilyich', author: 'Leo Tolstoy', note: '短篇更适合第一本。' },
-      { title: 'The Master and Margarita', author: 'Mikhail Bulgakov', note: '进入苏联语境下的荒诞与讽刺。' }
-    ]
-  },
-  JP: {
-    culture: '日本文本常擅长处理留白、感受密度与关系中的微小位移。读日本文学，常不是追求“说了什么”，而是追踪“没有说透的部分”。',
-    history: [
-      '宫廷传统、物哀审美与近代化冲击共同塑造了日本叙事的细部感。',
-      '战后文学尤其关注个体疏离、城市孤独与消费社会下的空心化。',
-      '地方与季节感很重要，景物往往不是背景，而是情绪结构的一部分。'
-    ],
-    keywords: ['物哀', '留白', '都市孤独', '关系微差', '季节感'],
-    starters: [
-      { title: 'The Tale of Genji', author: 'Murasaki Shikibu', note: '看传统审美的源头。' },
-      { title: 'Snow Country', author: 'Yasunari Kawabata', note: '短而纯，适合作为质感入口。' },
-      { title: 'Norwegian Wood', author: 'Haruki Murakami', note: '现代读者最容易进入的门。' }
-    ]
-  },
-  US: {
-    culture: '美国写作很适合观察“个人神话如何与制度现实碰撞”。移动性、边疆想象、种族结构、资本逻辑与自我发明欲，会在很多文本里同时出现。',
-    history: [
-      '从建国叙事到资本扩张，美国文学长期围绕成功、自由与暴力的代价展开。',
-      '城市、郊区、公路和边境是高频场景，空间本身就代表价值观冲突。',
-      '二十世纪以后，消费文化与身份政治不断重写“美国梦”的内容。'
-    ],
-    keywords: ['美国梦', '边疆神话', '资本逻辑', '身份政治', '流动性'],
-    starters: [
-      { title: 'The Great Gatsby', author: 'F. Scott Fitzgerald', note: '美国梦的明亮表面与空心内核。' },
-      { title: 'Beloved', author: 'Toni Morrison', note: '补足被主流叙事压住的历史。' },
-      { title: 'Moby-Dick', author: 'Herman Melville', note: '从史诗尺度理解美国执念。' }
-    ]
-  },
-  IN: {
-    culture: '印度阅读入口通常要同时接受多重时间层叠：宗教、殖民、语言、多民族与后殖民现代国家并行存在，文本往往天然复杂且多声部。',
-    history: [
-      '殖民经验让英语写作在印度既是表达工具，也是权力历史的残留。',
-      '家族、宗教与国家形成常常不是分开的线，而是同一张网。',
-      '城市与地方、现代法治与传统共同体之间的摩擦，会反复返回小说现场。'
-    ],
-    keywords: ['后殖民', '多语言', '家族叙事', '宗教政治', '民族国家'],
-    starters: [
-      { title: 'The God of Small Things', author: 'Arundhati Roy', note: '从家庭和地方进入大结构。' },
-      { title: 'Midnight’s Children', author: 'Salman Rushdie', note: '国家历史与个人身体绑在一起。' },
-      { title: 'India After Gandhi', author: 'Ramachandra Guha', note: '历史背景补得很快。' }
-    ]
-  },
-  IL: {
-    culture: '以色列相关写作很适合作为“历史压强如何进入现实感”的入口。宗教传统、国家建立、战争记忆与现代科技社会常并置出现。',
-    history: [
-      '圣经传统与现代民族国家建构在这里持续叠加，时间感非常厚。',
-      '安全、边界与身份问题会把公共议题直接压到个人生活层面。',
-      '很多以色列作者天然擅长在宏观历史和日常伦理之间快速切换。'
-    ],
-    keywords: ['国家建构', '历史压强', '宗教世俗', '边界政治', '记忆伦理'],
-    starters: [
-      { title: 'Sapiens', author: 'Yuval Noah Harari', note: '从宏观历史视角看以色列知识语境。' },
-      { title: 'A Tale of Love and Darkness', author: 'Amos Oz', note: '国家建立与家庭记忆并看。' },
-      { title: 'To the End of the Land', author: 'David Grossman', note: '进入战争与私人关系。' }
-    ]
-  }
-};
 
 function deriveMapGeo(book) {
   // Prefer the book's own geo block (set by new-entry or AI), then fall back
@@ -511,6 +360,9 @@ function setMapInteractionMode(mode = 'world') {
 function initMap() {
   document.getElementById('panel-map').innerHTML = mapShellHTML();
   bindMapShellEvents();
+
+  // Pre-warm profiles for the most-clicked countries.
+  prefetchProfiles(['CN', 'US', 'RU']);
 
   window.addEventListener('marginalia:books-changed', () => {
     rebuildLibrary();
@@ -1013,28 +865,32 @@ function showHoverPreview(countryId, countryName, activePoly) {
   });
 }
 
-function showHoverPreviewRich(countryId, countryName, activePoly) {
+function renderHoverRich(stage, anchor, countryId, countryName) {
+  const content = buildHoverMetaContent(countryId, countryName);
+  const metaNodes = buildHoverMetaNodes(anchor, countryName, content);
+  const keepOut = { x: anchor.x - 108, y: anchor.y - 68, w: 216, h: 136 };
+  const laidOut = layoutHoverMetaNodes(metaNodes, anchor, keepOut);
+  stage.innerHTML = laidOut.map(node =>
+    `<div class="${node.wrapperClass || 'map-hover-meta'} ${node.cls || ''}" style="left:${node.x}px;top:${node.y}px;width:${node.width}px">${node.html}</div>`
+  ).join('');
+}
+
+async function showHoverPreviewRich(countryId, countryName, activePoly) {
   dimAllExcept(__mapWorldSeries, activePoly, countryId);
 
   const stage = document.getElementById('mapHoverStage');
   if (!stage) return;
 
   const anchor = getHoverAnchorPoint(activePoly);
-  const content = buildHoverMetaContent(countryId, countryName);
-  const metaNodes = buildHoverMetaNodes(anchor, countryName, content);
 
-  const keepOut = {
-    x: anchor.x - 108,
-    y: anchor.y - 68,
-    w: 216,
-    h: 136,
-  };
-  const laidOut = layoutHoverMetaNodes(metaNodes, anchor, keepOut);
-  const nodesHtml = laidOut.map(node =>
-    `<div class="${node.wrapperClass || 'map-hover-meta'} ${node.cls || ''}" style="left:${node.x}px;top:${node.y}px;width:${node.width}px">${node.html}</div>`
-  );
+  // Render immediately with whatever is cached (fallback if not yet loaded).
+  renderHoverRich(stage, anchor, countryId, countryName);
 
-  stage.innerHTML = nodesHtml.join('');
+  // Fetch profile; if still hovering the same country when it arrives, redraw.
+  const raw = await loadProfile(countryId);
+  if (raw && __mapHoverCountryId === countryId) {
+    renderHoverRich(stage, anchor, countryId, countryName);
+  }
 }
 
 function showHoverTitleCloud(books, activePoly, options = {}) {
@@ -1118,7 +974,7 @@ function uniqueCompact(values, max = Infinity) {
 }
 
 function buildHoverMetaContent(countryId, countryName) {
-  const profile = buildRegionContext(countryId, countryName);
+  const profile = buildRegionContextSync(countryId, countryName);
   const hover = profile.hover || {};
   const books = allCountryBooks(countryId);
   const keywordText = uniqueCompact(
@@ -1246,9 +1102,9 @@ function buildHoverMetaNodes(anchor, countryName, content) {
   return [
     {
       wrapperClass: 'map-hover-country-name',
-      width: 168,
+      width: 260,
       height: 46,
-      candidates: slotsToHoverCandidates(anchor, slotMap.country, 168, 46),
+      candidates: slotsToHoverCandidates(anchor, slotMap.country, 260, 46),
       html: `<span>${escapeHTML(countryName)}</span>`,
     },
     {
@@ -1257,7 +1113,7 @@ function buildHoverMetaNodes(anchor, countryName, content) {
       height: 74,
       candidates: slotsToHoverCandidates(anchor, slotMap.dna, 198, 74),
       html: `
-        <div class="map-hover-meta-kicker">literary dna</div>
+        <div class="map-hover-meta-kicker">Literary DNA</div>
         <div class="map-hover-meta-text">${escapeHTML(content.keywordText)}</div>
       `,
     },
@@ -1267,7 +1123,7 @@ function buildHoverMetaNodes(anchor, countryName, content) {
       height: 74,
       candidates: slotsToHoverCandidates(anchor, slotMap.voices, 194, 74),
       html: `
-        <div class="map-hover-meta-kicker">representative voices</div>
+        <div class="map-hover-meta-kicker">Representative Voices</div>
         <div class="map-hover-meta-text">${escapeHTML(content.voiceText)}</div>
       `,
     },
@@ -1277,7 +1133,7 @@ function buildHoverMetaNodes(anchor, countryName, content) {
       height: 94,
       candidates: slotsToHoverCandidates(anchor, slotMap.entry, 212, 94),
       html: `
-        <div class="map-hover-meta-kicker">entry work</div>
+        <div class="map-hover-meta-kicker">Entry Work</div>
         <div class="map-hover-meta-entry-title">${escapeHTML(content.entryTitle)}</div>
         <div class="map-hover-meta-entry-note">${escapeHTML(content.entryReason)}</div>
       `,
@@ -1288,7 +1144,7 @@ function buildHoverMetaNodes(anchor, countryName, content) {
       height: 108,
       candidates: slotsToHoverCandidates(anchor, slotMap.cue, 230, 108),
       html: `
-        <div class="map-hover-meta-kicker">context cue</div>
+        <div class="map-hover-meta-kicker">Context Cue</div>
         <div class="map-hover-meta-text">${escapeHTML(content.cueText)}</div>
       `,
     },
@@ -1435,9 +1291,10 @@ function brighten(hex, amount) {
 
 /* ── Panel ──────────────────────────────────────────────────────────────── */
 
-function openCountryPanel(countryId, name) {
+async function openCountryPanel(countryId, name) {
   const books = allCountryBooks(countryId);
 
+  // Open panel immediately with fallback context so it feels instant.
   __mapPanelState = {
     type: 'country',
     countryId,
@@ -1446,17 +1303,25 @@ function openCountryPanel(countryId, name) {
     filterMode: __mapGeoMode,
     activeTab: 'books',
     books,
-    context: buildRegionContext(countryId, name),
+    context: buildRegionContextSync(countryId, name),
     showProvinceLabels: countryId !== 'CN',
   };
-
   renderPanel();
+
+  // Fetch real profile in background; re-render non-books tabs if panel is still open.
+  buildRegionContext(countryId, name, profile => {
+    if (__mapPanelState?.countryId === countryId) {
+      __mapPanelState.context = profile;
+      if (__mapPanelState.activeTab !== 'books') renderPanelBody();
+    }
+  });
 }
 
-function openProvincePanel(provinceId, name, books = allProvinceBooks(provinceId)) {
+async function openProvincePanel(provinceId, name, books = allProvinceBooks(provinceId)) {
   const provinceName = PROV_NAMES[provinceId] || name;
   const parentCountryId = inferProvinceCountry(provinceId, books);
   const parentCountryLabel = countryLabelFromId(parentCountryId);
+
   __mapPanelState = {
     type: 'province',
     countryId: parentCountryId,
@@ -1466,11 +1331,17 @@ function openProvincePanel(provinceId, name, books = allProvinceBooks(provinceId
     filterMode: __mapGeoMode,
     activeTab: 'books',
     books,
-    context: buildRegionContext(parentCountryId, provinceName),
+    context: buildRegionContextSync(parentCountryId, provinceName),
     showProvinceLabels: false,
   };
-
   renderPanel();
+
+  buildRegionContext(parentCountryId, provinceName, profile => {
+    if (__mapPanelState?.provinceId === provinceId) {
+      __mapPanelState.context = profile;
+      if (__mapPanelState.activeTab !== 'books') renderPanelBody();
+    }
+  });
 }
 
 function renderPanel() {
@@ -1696,23 +1567,34 @@ function countryLabelFromId(countryId) {
   return label || countryId;
 }
 
-function buildRegionContext(countryId, label) {
-  const profile = REGION_PROFILES[countryId];
-  if (profile) return profile;
+// Flatten a loaded geo-profile JSON into the shape the panel renderers expect.
+function normalizeProfile(raw) {
+  if (!raw) return null;
+  const p = raw.panel || {};
   return {
-    culture: `${label} 目前还没有落入你的书单，但它依然适合作为“文化盲区入口”来读。先别急着找代表作，先问这个地区的语言、国家形成、宗教结构和城市经验怎样塑造了它的问题意识。`,
-    history: [
-      `${label} 的阅读通常值得先补一条简短历史线：国家形成、殖民或战争经验、现代化节奏。`,
-      `优先寻找能把地方日常和大结构连起来的作品：小说、回忆录、历史随笔通常比纯理论更好进入。`,
-      `把它当成“语境训练”而不是知识清单，会更快建立阅读抓手。`
-    ],
-    keywords: ['国家形成', '地方经验', '语言层次', '历史记忆', '宗教与世俗', '现代化节奏'],
-    starters: [
-      { title: '先读一部地区小说', note: `用人物关系进入 ${label} 的日常秩序与情感结构。`, type: 'Path 01' },
-      { title: '再补一本历史概述', note: `把 ${label} 的制度转型、战争或殖民线索串起来。`, type: 'Path 02' },
-      { title: '最后看回忆录或思想随笔', note: '让个人经验把抽象历史重新压回现实。', type: 'Path 03' }
-    ]
+    hover:    raw.hover    || {},
+    culture:  p.culture   || raw.culture  || '',
+    history:  p.history   || raw.history  || [],
+    keywords: p.keywords  || raw.keywords || [],
+    starters: p.starters  || raw.starters || [],
   };
+}
+
+// Synchronous: returns cached profile or fallback immediately.
+// Use for hover previews where async rendering would flicker.
+function buildRegionContextSync(countryId, label) {
+  const cached = getCachedProfile(countryId);
+  return normalizeProfile(cached) || normalizeProfile(buildFallbackProfile(countryId, label));
+}
+
+// Async: fetches the profile, then calls onReady(profile) when available.
+// Returns the fallback immediately for callers that need something now.
+async function buildRegionContext(countryId, label, onReady) {
+  const fallback = normalizeProfile(buildFallbackProfile(countryId, label));
+  const raw = await loadProfile(countryId).catch(() => null);
+  const profile = normalizeProfile(raw) || fallback;
+  if (onReady) onReady(profile);
+  return profile;
 }
 
 function buildKeywordNarrative(label, keywords) {
