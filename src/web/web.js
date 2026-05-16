@@ -57,45 +57,47 @@ function webShellHTML() {
       </div>
     </div>
 
-    <aside class="web-sidebar-filter" id="webFilters" aria-hidden="true"></aside>
-    <svg id="webGraph"></svg>
+    <div class="web-stage">
+      <aside class="web-sidebar-filter" id="webFilters" aria-hidden="true"></aside>
+      <svg id="webGraph"></svg>
 
-    <div class="web-hint" id="webHint">Click a concept for its reading history · drag to inspect</div>
+      <div class="web-hint" id="webHint">Click a concept for its reading history · drag to inspect</div>
 
-    <div class="web-tooltip" id="webTooltip">
-      <div class="web-tt-tag" id="ttTag"></div>
-      <div class="web-tt-name" id="ttName"></div>
-      <div class="web-tt-body" id="ttBody"></div>
-      <div class="web-tt-books" id="ttBooks"></div>
-    </div>
+      <div class="web-tooltip" id="webTooltip">
+        <div class="web-tt-tag" id="ttTag"></div>
+        <div class="web-tt-name" id="ttName"></div>
+        <div class="web-tt-body" id="ttBody"></div>
+        <div class="web-tt-books" id="ttBooks"></div>
+      </div>
 
-    <div class="web-legend">
-      <div class="web-legend-row">
-        <div class="web-legend-dot" style="background:rgba(213,170,100,0.86)"></div>
-        <span>Concept</span>
+      <div class="web-legend">
+        <div class="web-legend-row">
+          <div class="web-legend-dot" style="background:rgba(213,170,100,0.86)"></div>
+          <span>Concept</span>
+        </div>
+        <div class="web-legend-row">
+          <div class="web-legend-dot" style="background:rgba(232,223,200,0.3);border:1px solid rgba(232,223,200,0.4)"></div>
+          <span>Book</span>
+        </div>
+        <div class="web-legend-row">
+          <div class="web-legend-square"></div>
+          <span>Cultural context</span>
+        </div>
+        <div class="web-legend-row">
+          <div class="web-legend-line" style="background:rgba(213,170,100,0.58)"></div>
+          <span>Confirmed</span>
+        </div>
+        <div class="web-legend-row">
+          <div class="web-legend-line is-dashed"></div>
+          <span>AI suggested</span>
+        </div>
       </div>
-      <div class="web-legend-row">
-        <div class="web-legend-dot" style="background:rgba(232,223,200,0.3);border:1px solid rgba(232,223,200,0.4)"></div>
-        <span>Book</span>
-      </div>
-      <div class="web-legend-row">
-        <div class="web-legend-square"></div>
-        <span>Cultural context</span>
-      </div>
-      <div class="web-legend-row">
-        <div class="web-legend-line" style="background:rgba(213,170,100,0.58)"></div>
-        <span>Confirmed</span>
-      </div>
-      <div class="web-legend-row">
-        <div class="web-legend-line is-dashed"></div>
-        <span>AI suggested</span>
-      </div>
-    </div>
 
-    <div class="web-controls">
-      <button class="web-ctrl-btn" id="webZoomIn" type="button">+</button>
-      <button class="web-ctrl-btn" id="webZoomOut" type="button">−</button>
-      <button class="web-ctrl-btn" id="webReset" type="button" style="font-size:13px;letter-spacing:0.06em">fit</button>
+      <div class="web-controls">
+        <button class="web-ctrl-btn" id="webZoomIn" type="button">+</button>
+        <button class="web-ctrl-btn" id="webZoomOut" type="button">−</button>
+        <button class="web-ctrl-btn" id="webReset" type="button" style="font-size:13px;letter-spacing:0.06em">fit</button>
+      </div>
     </div>
   `;
   return renderToolPageShell('web', `<div class="web-page">${content}</div>`);

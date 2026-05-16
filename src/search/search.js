@@ -2,6 +2,7 @@
 
 import { BooksStore } from '../store/books-store.ts';
 import { SEED_BOOK_BY_ID, SEED_BOOK_DETAILS } from '../data/seed/index.js';
+import { SHELF_BOOKS as MOCK_SPINES } from '../data/mock/seed-spines.js';
 import { renderUnifiedPanelHeader } from '../core/app.js';
 import { PanelManager } from '../core/panel-manager.js';
 import { SpineCard } from '../components/spine-card.js';
@@ -41,7 +42,7 @@ function enterSearch() {
 }
 
 function renderStatsBar() {
-  const shelfBooks = SHELF_RECORDS;
+  const shelfBooks = SHELF_RECORDS.filter(b => !b._isMock);
   const detailBooks = BooksStore.getAll();
 
   const finished = shelfBooks.filter(b => b.status === 'finished').length;
@@ -156,9 +157,20 @@ function bindShelfEvents() {
   });
 }
 
+function buildMockSpines() {
+  const userTitles = new Set(
+    (BooksStore.getShelfBooks() || []).map((b) => slugify(b.title))
+  );
+  return (Array.isArray(MOCK_SPINES) ? MOCK_SPINES : [])
+    .filter((s) => s.id !== 'sapiens' && !userTitles.has(slugify(s.title)))
+    .map((s, i) => ({ ...s, id: `mock-${i}`, _isMock: true }));
+}
+
 function buildShelfRecords() {
   const records = [];
-  (BooksStore.getShelfBooks() || []).forEach((b, index) => {
+  const userSpines = BooksStore.getShelfBooks() || [];
+  const allSpines = [...userSpines, ...buildMockSpines()];
+  allSpines.forEach((b, index) => {
     let detailId = b.id || matchBookId(b.title);
     if (!detailId || !BooksStore.getById(detailId)) {
       detailId = ensureShelfDetailRecord(b, index);
@@ -314,6 +326,7 @@ function renderShelfSummary(visibleCount) {
   if (!countEl) return;
 
   const totals = SHELF_RECORDS.reduce((acc, book) => {
+    if (book._isMock) return acc;
     if (book.status === 'finished') acc.finished += 1;
     else if (book.status === 'reading') acc.reading += 1;
     else if (book.status === 'want') acc.want += 1;
@@ -507,6 +520,7 @@ function openSelectedBook() {
 
 function getFilteredBooks() {
   return SHELF_RECORDS.filter((b) => {
+    if (b._isMock && SHELF_STATE.query) return false;
     const status = b.status;
     if (SHELF_STATE.filter === 'finished' && status !== 'finished') return false;
     if (SHELF_STATE.filter === 'reading' && status !== 'reading') return false;

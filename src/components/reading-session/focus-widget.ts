@@ -6,7 +6,6 @@ import {
   getActive,
   start as sessionStart,
   stop as sessionStop,
-  formatDuration,
 } from './reading-session.ts';
 import { BooksStore } from '../../store/books-store.ts';
 
@@ -42,13 +41,28 @@ function getReadingBooks() {
 
 function getTimerDisplay(): string {
   const active = getActive();
-  if (!active) return '—';
+  if (!active) return '';
 
   if (state.mode === 'pomodoro' && state.pomodoroEnd) {
     const remaining = Math.max(0, state.pomodoroEnd - Date.now());
-    return formatDuration(remaining);
+    return `${Math.max(1, Math.ceil(remaining / 60000))} min`;
   }
-  return formatDuration(Date.now() - active.startedAt);
+  const elapsed = Math.max(0, Date.now() - active.startedAt);
+  return `${Math.max(1, Math.ceil(elapsed / 60000))} min`;
+}
+
+function renderPomodoroButton(isPomodoro: boolean, isActive: boolean): string {
+  const progress = isPomodoro && isActive ? _pomodoroProgress() : 0;
+  return `
+    <button
+      class="fw-mode-btn fw-mode-btn--pomodoro${isPomodoro ? ' fw-mode-btn--active' : ''}"
+      type="button"
+      data-fw-mode="pomodoro"
+      style="--fw-progress:${progress}%;"
+    >
+      <span class="fw-mode-btn__text">25 min</span>
+    </button>
+  `;
 }
 
 function render(host: HTMLElement): void {
@@ -68,18 +82,13 @@ function render(host: HTMLElement): void {
     <div class="fw-panel${state.collapsed ? ' fw-panel--collapsed' : ''}${isActive ? ' fw-panel--active' : ''}">
       <button class="fw-collapse-btn" type="button" data-fw-collapse aria-label="Toggle focus widget">
         <span class="fw-dot${isActive ? ' fw-dot--active' : ''}"></span>
-        <span class="fw-collapse-label">${state.collapsed && isActive ? timer : 'Focus Session'}</span>
+        <span class="fw-collapse-label">Reading</span>
+        <span class="fw-collapse-time" data-fw-timer>${timer}</span>
         <span class="fw-collapse-icon">${state.collapsed ? '▲' : '▼'}</span>
       </button>
 
       ${state.collapsed ? '' : `
         <div class="fw-body">
-          ${isActive ? `
-            <div class="fw-head">
-              <span class="fw-timer" data-fw-timer>${timer}</span>
-            </div>
-          ` : ''}
-
           ${!isActive && books.length ? `
             <div class="fw-book-row">
               <label class="fw-book-label">Reading</label>
@@ -96,14 +105,8 @@ function render(host: HTMLElement): void {
 
           <div class="fw-mode-row">
             <button class="fw-mode-btn${!isPomodoro ? ' fw-mode-btn--active' : ''}" type="button" data-fw-mode="free">Free</button>
-            <button class="fw-mode-btn${isPomodoro ? ' fw-mode-btn--active' : ''}" type="button" data-fw-mode="pomodoro">25 min</button>
+            ${renderPomodoroButton(isPomodoro, isActive)}
           </div>
-
-          ${isPomodoro && isActive ? `
-            <div class="fw-pom-bar">
-              <div class="fw-pom-fill" style="width:${_pomodoroProgress()}%"></div>
-            </div>
-          ` : ''}
 
           <div class="fw-actions">
             ${isActive
@@ -162,12 +165,13 @@ function _startTicker(host: HTMLElement): void {
     const active = getActive();
     if (!active) { clearInterval(state.tickerId!); state.tickerId = null; return; }
     const display = getTimerDisplay();
-    const timerEl = host.querySelector('[data-fw-timer]');
-    if (timerEl) timerEl.textContent = display;
-    const labelEl = host.querySelector('.fw-collapse-label');
-    if (labelEl && state.collapsed) labelEl.textContent = display;
-    const fill = host.querySelector<HTMLElement>('.fw-pom-fill');
-    if (fill) fill.style.width = `${_pomodoroProgress()}%`;
+    host.querySelectorAll<HTMLElement>('[data-fw-timer]').forEach((timerEl) => {
+      timerEl.textContent = display;
+    });
+    const pomodoroBtn = host.querySelector<HTMLElement>('.fw-mode-btn--pomodoro');
+    if (pomodoroBtn && state.mode === 'pomodoro') {
+      pomodoroBtn.style.setProperty('--fw-progress', `${_pomodoroProgress()}%`);
+    }
   }, 1000);
 }
 

@@ -329,7 +329,9 @@ body {
 
 .panel-masthead {
   position: relative;
-  min-height: 56px;
+  min-height: 74px;
+  display: flex;
+  align-items: center;
 }
 
 .panel-header-left,
@@ -349,15 +351,16 @@ body {
 .panel-header-center {
   position: absolute;
   left: 50%;
-  top: 0;
+  top: 50%;
   z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   width: auto;
-  max-width: calc(100vw - 440px);
+  max-width: calc(100vw - 360px);
   min-width: 0;
+  overflow: hidden;
 }
 
 .panel-brand {
@@ -391,6 +394,7 @@ body {
   width: fit-content;
   max-width: 100%;
   min-width: min-content;
+  overflow-x: auto;
   padding: 5px;
   border-radius: 18px;
   border: 1px solid rgba(248, 234, 212, 0.34);
@@ -399,7 +403,9 @@ body {
     radial-gradient(120% 120% at 0% 0%, rgba(255, 238, 214, 0.16), rgba(255, 238, 214, 0) 56%);
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(18px) saturate(128%);
+  scrollbar-width: none;
 }
+.panel-masthead .room-top-tabs::-webkit-scrollbar { display: none; }
 
 .panel-masthead .room-top-tabs .room-nav-item {
   border: 0;
@@ -444,8 +450,9 @@ body {
 
 .panel-header-right {
   position: absolute;
-  top: 10px;
+  top: 50%;
   right: 0;
+  transform: translateY(-50%);
   z-index: 2;
   display: flex;
   align-items: center;
@@ -474,11 +481,17 @@ body {
 }
 
 @media (max-width: 1180px) {
+  .panel-header-center {
+    max-width: calc(100vw - 300px);
+  }
+}
+
+@media (max-width: 900px) {
   .panel-masthead {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 14px;
+    gap: 10px;
     min-height: 0;
   }
 

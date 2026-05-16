@@ -20,12 +20,23 @@ body[data-view="web"] { overflow: hidden; }
 }
 
 #panel-web .tool-page-inner {
-  min-height: calc(100vh - 68px);
+  min-height: 100vh;
 }
 
 .web-page {
   position: relative;
-  min-height: calc(100vh - 68px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100vh;
+  padding: 20px 20px 20px;
+  overflow: hidden;
+}
+
+.web-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -45,27 +56,23 @@ body[data-view="web"] {
 
 /* ── Header ────────────────────────────────────────────────────────────── */
 #panel-web .shared-header-wrap {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  z-index: 30;
-  padding: 20px 56px 0;
-  background: linear-gradient(180deg, rgba(18, 16, 13, 0.68), rgba(18, 16, 13, 0));
-  pointer-events: none;
+  position: relative;
+  z-index: 60;
+  padding: 0;
 }
 #panel-web .shared-masthead {
   pointer-events: auto;
 }
 
 .web-subheader {
-  position: absolute;
-  top: 112px;
-  left: 56px;
-  right: 56px;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
+  flex-wrap: nowrap;
+  gap: 10px;
   z-index: 24;
   pointer-events: none;
+  min-width: 0;
 }
 
 .web-filter-toggle {
@@ -133,7 +140,8 @@ body[data-view="web"] {
 }
 
 .web-search input {
-  width: 220px;
+  width: 160px;
+  min-width: 80px;
   border: 0;
   outline: 0;
   background: transparent;
@@ -376,8 +384,8 @@ body[data-view="web"] {
 /* ── Side filter ────────────────────────────────────────────────────────── */
 .web-sidebar-filter {
   position: absolute;
-  top: 158px;
-  left: 56px;
+  top: 10px;
+  left: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -443,22 +451,32 @@ body[data-view="web"] {
 
 @media (max-width: 980px) {
   .web-page {
-    min-height: calc(100vh - 48px);
+    min-height: 100vh;
+    padding-top: 14px;
   }
 
   #panel-web .shared-header-wrap {
-    padding: 20px 20px 0;
+    position: relative;
   }
 
   .web-subheader {
-    top: 166px;
-    left: 20px;
-    right: 20px;
-    flex-wrap: wrap;
+    position: relative;
   }
 
   .web-header-right {
     display: none;
+  }
+
+  .web-sidebar-filter {
+    top: 70px;
+    left: 20px;
+    min-width: 150px;
+  }
+}
+
+@media (max-width: 700px) {
+  .web-subheader {
+    flex-wrap: wrap;
   }
 
   .web-search {
@@ -469,21 +487,11 @@ body[data-view="web"] {
   .web-search input {
     width: 100%;
   }
-
-  .web-sidebar-filter {
-    top: 242px;
-    left: 20px;
-    min-width: 150px;
-  }
 }
 
 @media (max-width: 640px) {
-  .web-subheader {
-    top: 190px;
-  }
-
   .web-sidebar-filter {
-    top: 218px;
+    top: 54px;
     left: 20px;
     right: 20px;
     min-width: 0;

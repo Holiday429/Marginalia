@@ -60,17 +60,32 @@
   font-weight: var(--weight-service-ui, 400);
 }
 
+.fw-collapse-time {
+  margin-left: auto;
+  min-width: 0;
+  text-align: right;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(249, 235, 213, 0.94);
+}
+
 .fw-collapse-icon { margin-left: auto; font-size: 0.5rem; opacity: 0.4; }
+
+.fw-collapse-time + .fw-collapse-icon {
+  margin-left: 8px;
+}
 
 .fw-panel--collapsed .fw-collapse-btn {
   /* no change needed — collapsed just hides .fw-body */
 }
 
-.fw-body { padding: 4px 8px 8px; display: flex; flex-direction: column; gap: 10px; }
-
-.fw-head { display: flex; align-items: baseline; }
-
-.fw-timer { font-size: 1.3rem; font-weight: 600; color: rgba(249, 235, 213, 0.96); letter-spacing: 0.02em; font-family: var(--font-mono, monospace); }
+.fw-body {
+  padding: 4px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
 .fw-book-row { display: flex; flex-direction: column; gap: 4px; }
 .fw-book-label { font-size: 10px; letter-spacing: 0.06em; color: rgba(244, 228, 205, 0.74); font-family: var(--font-service-ui, var(--font-mono, monospace)); }
@@ -114,16 +129,28 @@
 .fw-mode-btn:hover { border-color: rgba(244,228,205,0.38); color: rgba(249,235,213,0.9); }
 .fw-mode-btn--active { border-color: rgba(255, 214, 150, 0.66); color: rgba(249, 235, 213, 0.95); background: rgba(219, 166, 89, 0.26); }
 
-.fw-pom-bar {
-  height: 2px;
-  background: rgba(244,228,205,0.12);
-  border-radius: 1px;
-  overflow: hidden;
+.fw-mode-btn--pomodoro {
+  --fw-progress: 0%;
+  position: relative;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgba(53, 41, 31, 0.92), rgba(53, 41, 31, 0.92)) padding-box,
+    conic-gradient(
+      from -90deg,
+      rgba(219, 166, 89, 0.9) 0 var(--fw-progress),
+      rgba(244, 228, 205, 0.2) var(--fw-progress) 100%
+    ) border-box;
 }
-.fw-pom-fill {
-  height: 100%;
-  background: rgba(219, 166, 89, 0.8);
-  transition: width 1s linear;
+
+.fw-mode-btn--pomodoro:hover {
+  border-color: transparent;
+}
+
+.fw-mode-btn__text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .fw-actions { display: flex; gap: 8px; }

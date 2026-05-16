@@ -561,34 +561,36 @@ function mapShellHTML() {
       <div class="map-breadcrumb" id="mapBreadcrumb" hidden></div>
     </div>
 
-    <div id="mapChart"></div>
+    <div class="map-stage">
+      <div id="mapChart"></div>
 
-    <div class="map-zoom">
-      <div class="map-zoom-btn" id="mapZoomIn">+</div>
-      <div class="map-zoom-btn" id="mapZoomOut">−</div>
-      <div class="map-zoom-sep"></div>
-      <div class="map-zoom-btn map-zoom-fit" id="mapZoomHome">Fit</div>
-    </div>
-
-    <div class="map-hint" id="mapHint">Hover for a hint · click to open regional context</div>
-
-    <!-- Hover tooltip -->
-    <div class="map-tooltip" id="mapTooltip">
-      <span class="map-tooltip-name" id="mapTooltipName"></span>
-      <span class="map-tooltip-count" id="mapTooltipCount"></span>
-    </div>
-
-    <div class="map-hover-stage" id="mapHoverStage"></div>
-
-    <!-- Side panel -->
-    <div class="map-panel" id="mapPanel">
-      <div class="map-panel-head">
-        <div class="map-panel-place" id="mapPanelPlace">—</div>
-        <div class="map-panel-sub"   id="mapPanelSub">—</div>
-        <div class="map-panel-close" id="mapPanelClose">×</div>
+      <div class="map-zoom">
+        <div class="map-zoom-btn" id="mapZoomIn">+</div>
+        <div class="map-zoom-btn" id="mapZoomOut">−</div>
+        <div class="map-zoom-sep"></div>
+        <div class="map-zoom-btn map-zoom-fit" id="mapZoomHome">Fit</div>
       </div>
-      <div class="map-panel-tabs" id="mapPanelTabs"></div>
-      <div class="map-panel-body" id="mapPanelBody"></div>
+
+      <div class="map-hint" id="mapHint">Hover for a hint · click to open regional context</div>
+
+      <!-- Hover tooltip -->
+      <div class="map-tooltip" id="mapTooltip">
+        <span class="map-tooltip-name" id="mapTooltipName"></span>
+        <span class="map-tooltip-count" id="mapTooltipCount"></span>
+      </div>
+
+      <div class="map-hover-stage" id="mapHoverStage"></div>
+
+      <!-- Side panel -->
+      <div class="map-panel" id="mapPanel">
+        <div class="map-panel-head">
+          <div class="map-panel-place" id="mapPanelPlace">—</div>
+          <div class="map-panel-sub" id="mapPanelSub">—</div>
+          <div class="map-panel-close" id="mapPanelClose">×</div>
+        </div>
+        <div class="map-panel-tabs" id="mapPanelTabs"></div>
+        <div class="map-panel-body" id="mapPanelBody"></div>
+      </div>
     </div>
   `;
   return renderToolPageShell('map', `<div class="map-page">${content}</div>`);
