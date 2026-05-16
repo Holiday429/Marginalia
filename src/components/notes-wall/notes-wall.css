@@ -400,7 +400,7 @@
 .followup-empty {
   grid-column: 1 / -1;
   padding: 26px 16px;
-  border: 1px dashed rgba(239, 226, 207, 0.72);
+  border: 1px solid rgba(239, 226, 207, 0.72);
   border-radius: 2px;
   background: rgba(248, 239, 228, 0.28);
   font-size: 14px;
@@ -655,7 +655,7 @@
 }
 
 .followup-detail__body.is-editable {
-  border-bottom: 1px dashed rgba(96, 72, 50, 0.28);
+  border-bottom: 1px solid rgba(96, 72, 50, 0.28);
 }
 
 .followup-detail__actions {

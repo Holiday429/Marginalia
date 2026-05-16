@@ -8,6 +8,7 @@ import {
   stop as sessionStop,
 } from './reading-session.ts';
 import { BooksStore } from '../../store/books-store.ts';
+import { logError } from '../../services/analytics.ts';
 
 const POMODORO_MS = 25 * 60 * 1000;
 
@@ -191,7 +192,7 @@ function _onPomodoroEnd(host: HTMLElement): void {
   if (dot) { dot.classList.add('fw-dot--pom-done'); dot.classList.remove('fw-dot--active'); }
   setTimeout(() => dot?.classList.remove('fw-dot--pom-done'), 3000);
   // Stop automatically
-  sessionStop().then(() => render(host));
+  sessionStop().then(() => render(host)).catch((e: unknown) => logError(e, { context: 'focus-widget pomodoro stop' }));
 }
 
 let _host: HTMLElement | null = null;

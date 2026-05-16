@@ -31,6 +31,83 @@ interface MapStop {
   lng: number;
 }
 
+// ── Colour palette — mirrors map.js exactly ──────────────────────────────────
+
+const COUNTRY_COLOR: Record<string, string> = {
+  US:'#4a5c3d', CA:'#3d4f5c', MX:'#5c4a3d',
+  GT:'#4a3d5c', BZ:'#3d5c4a', HN:'#5c3d4a', SV:'#3d5c3d',
+  NI:'#5c503d', CR:'#3d4a5c', PA:'#5c4e3d',
+  CU:'#4a5c3d', JM:'#3d3d5c', HT:'#5c3d3d', DO:'#3d5c5c',
+  CO:'#3d5c4a', VE:'#5c3d3d', GY:'#4a3d5c', SR:'#3d5c3d',
+  EC:'#5c4a3d', PE:'#3d4f5c', BR:'#4c5c3d', BO:'#5c503d',
+  PY:'#3d4a5c', CL:'#5c3d4a', AR:'#3d5c5c', UY:'#5c4e3d',
+  PT:'#4a3d5c', ES:'#3d5c4a', FR:'#5c3d4a', GB:'#3d3d5c',
+  IE:'#5c4a3d', NL:'#3d5c3d', BE:'#5c3d3d', LU:'#4a5c3d',
+  CH:'#3d4f5c', DE:'#5c503d', AT:'#3d4a5c', DK:'#5c4e3d',
+  SE:'#4a3d5c', NO:'#3d5c4a', FI:'#5c3d4a',
+  IT:'#5c3d50', GR:'#3d4c5c', AL:'#5c453d', RS:'#4c5c3d',
+  HR:'#5c3d45', BA:'#455c3d', SI:'#5c453d', ME:'#3d4a5c',
+  MK:'#5c4e3d', BG:'#3d5c3d', RO:'#5c3d3d',
+  PL:'#3d4f5c', CZ:'#5c4a3d', SK:'#4a3d5c', HU:'#3d5c3d',
+  UA:'#5c503d', BY:'#3d3d5c', MD:'#5c3d4a',
+  LT:'#3d5c4a', LV:'#5c4e3d', EE:'#4a5c3d',
+  RU:'#3d4a5c', KZ:'#5c4a3d', UZ:'#3d5c3d', TM:'#5c3d3d',
+  KG:'#4a3d5c', TJ:'#3d5c5c', AF:'#5c503d',
+  TR:'#5c3d4a', SY:'#3d4f5c', LB:'#5c4e3d', IL:'#4a3d5c',
+  JO:'#3d5c4a', IQ:'#5c3d3d', IR:'#4c5c3d', SA:'#5c453d',
+  YE:'#3d4a5c', OM:'#5c4e3d', AE:'#4a5c3d', QA:'#3d3d5c',
+  KW:'#5c4a3d', BH:'#3d5c3d',
+  PK:'#5c3d4a', IN:'#4a5c3d', BD:'#3d4f5c', NP:'#5c4a3d',
+  LK:'#4a3d5c', MM:'#3d5c4a', TH:'#5c3d50',
+  VN:'#3d4c5c', KH:'#5c453d', LA:'#4c5c3d', MY:'#5c3d45',
+  SG:'#455c3d', ID:'#5c4a3d', PH:'#3d5c3d', TL:'#5c3d3d',
+  CN:'#4a3d5c', MN:'#3d5c4a', KP:'#5c503d', KR:'#3d3d5c',
+  JP:'#5c3d4a', TW:'#3d4a5c',
+  NG:'#5c4e3d', GH:'#4a5c3d', CI:'#3d4f5c', SN:'#5c4a3d',
+  ML:'#4a3d5c', BF:'#3d5c3d', NE:'#5c3d3d', CM:'#3d5c5c',
+  TD:'#5c503d', SD:'#3d4a5c', SS:'#5c4e3d', ET:'#4a5c3d',
+  SO:'#3d3d5c', KE:'#5c4a3d', TZ:'#4a3d5c', UG:'#3d5c4a',
+  RW:'#5c3d4a', BI:'#3d4f5c', CD:'#5c4e3d', CG:'#4c5c3d',
+  GA:'#5c453d', AO:'#3d4a5c', ZM:'#5c3d45', ZW:'#455c3d',
+  MZ:'#5c4a3d', MW:'#3d5c3d', MG:'#5c3d3d', ZA:'#3d4c5c',
+  NA:'#5c503d', BW:'#4a3d5c', LS:'#3d5c5c', SZ:'#5c4e3d',
+  MA:'#4a5c3d', DZ:'#3d4f5c', TN:'#5c3d4a', LY:'#4a3d5c',
+  EG:'#3d5c4a', MR:'#5c4e3d',
+  AU:'#3d3d5c', NZ:'#5c3d4a', PG:'#4a5c3d', FJ:'#3d5c3d',
+};
+
+const COUNTRY_BOOST: Record<string, string> = {
+  CN:'#6a547a', GB:'#4a5a7a', FR:'#4a6a5a', RU:'#4a4a7a',
+  JP:'#7a4a6a', US:'#5a7a4a', IN:'#7a6a4a', CO:'#4a7a5a',
+  GR:'#4a6a8a', CZ:'#5a5a7a', PT:'#5a4a7a', NG:'#7a5a4a',
+  IT:'#7a4a6a', CL:'#6a4a5a',
+};
+
+const PALETTE = [
+  '#5c3d4a','#3d4f5c','#4a5c3d','#5c4a3d','#3d3d5c',
+  '#5c3d3d','#3d5c4a','#5c503d','#4a3d5c','#3d5c5c',
+];
+
+const WATER_FILL   = '#1a1714';
+const UNLIT_FILL   = '#3a2e22';   // default — all countries before avatar arrives
+const DIMMED_FILL  = '#2a2318';   // non-visited once journey starts
+
+function _hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
+}
+
+function _baseColor(id: string): string {
+  return COUNTRY_COLOR[id] || PALETTE[Math.abs(_hashStr(id)) % PALETTE.length];
+}
+
+function _brighten(hex: string, amount: number): string {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const clamp = (v: number) => Math.min(255, Math.max(0, v));
+  return '#' + [clamp(r+amount),clamp(g+amount),clamp(b+amount)].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
 // Approximate country centroids (covers the most common author origins)
 const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   CN: [35.86, 104.19], US: [37.09, -95.71], GB: [55.37, -3.43],
@@ -81,6 +158,7 @@ export class ProfileMap {
   private dim: GeoDim = 'authorOrigin';
   private root: any = null;
   private chart: any = null;
+  private polygonSeries: any = null;
   private travelerSeries: any = null;
   private pointSeries: any = null;
   private lineSeries: any = null;
@@ -91,6 +169,8 @@ export class ProfileMap {
   private stopIdx = 0;
   private animT0 = 0;
   private playing = true;
+  private activeCountry = '';
+  private visitedCountries = new Set<string>();
   private readonly SEG_MS = 2600;
   private readonly DWELL_MS = 2000;
 
@@ -116,6 +196,7 @@ export class ProfileMap {
       this.root._logo?.set('forceHidden', true);
       this.root.setThemes([am5themes_Animated.new(this.root)]);
 
+      // Water background
       this.chart = this.root.container.children.push(am5map.MapChart.new(this.root, {
         projection: am5map.geoNaturalEarth1(),
         panX: 'none',
@@ -123,19 +204,28 @@ export class ProfileMap {
         wheelY: 'none',
         minZoomLevel: 1,
         maxZoomLevel: 1,
+        background: am5.Rectangle.new(this.root, {
+          fill: am5.color(WATER_FILL),
+          fillOpacity: 1,
+        }),
       }));
 
-      // Base polygons
-      const base = this.chart.series.push(am5map.MapPolygonSeries.new(this.root, {
+      // World polygons — coloured per country, mirrors main map palette
+      this.polygonSeries = this.chart.series.push(am5map.MapPolygonSeries.new(this.root, {
         geoJSON: am5geodata_worldLow,
         exclude: ['AQ'],
       }));
-      base.mapPolygons.template.setAll({
-        fill: am5.color(0x2a2318),
-        stroke: am5.color(0x1a1510),
+      this.polygonSeries.mapPolygons.template.setAll({
+        stroke: am5.color(0x16191f),
         strokeWidth: 0.4,
         fillOpacity: 1,
         interactive: false,
+      });
+      // All countries start unlit — avatar journey reveals colour progressively
+      this.polygonSeries.events.on('datavalidated', () => {
+        this.polygonSeries.mapPolygons.each((poly: any) => {
+          poly.set('fill', am5.color(UNLIT_FILL));
+        });
       });
 
       // Lines
@@ -186,6 +276,7 @@ export class ProfileMap {
     cancelAnimationFrame(this.rafId);
     this.stopIdx = 0;
     this.animT0 = 0;
+    this._resetCountryColors();
     this._render();
   }
 
@@ -305,6 +396,39 @@ export class ProfileMap {
     }
   }
 
+  private _lightCountry(id: string): void {
+    if (!this.polygonSeries) return;
+    if (this.activeCountry === id) return;
+    this.activeCountry = id;
+    this.visitedCountries.add(id);
+    const am5 = (window as any).am5;
+    this.polygonSeries.mapPolygons.each((poly: any) => {
+      const polyId = poly.dataItem?.get('id') ?? '';
+      if (polyId === id) {
+        // Currently active — boosted colour
+        const boost = COUNTRY_BOOST[polyId] || _brighten(_baseColor(polyId), 50);
+        poly.set('fill', am5.color(boost));
+      } else if (this.visitedCountries.has(polyId)) {
+        // Previously visited — base palette colour stays lit
+        poly.set('fill', am5.color(_baseColor(polyId)));
+      } else {
+        // Never visited — dark unlit tone
+        poly.set('fill', am5.color(DIMMED_FILL));
+      }
+    });
+  }
+
+  private _resetCountryColors(): void {
+    if (!this.polygonSeries) return;
+    const am5 = (window as any).am5;
+    this.activeCountry = '';
+    this.visitedCountries.clear();
+    // Reset to unlit — next journey will reveal colours again
+    this.polygonSeries.mapPolygons.each((poly: any) => {
+      poly.set('fill', am5.color(UNLIT_FILL));
+    });
+  }
+
   private _updateCaption(idx: number): void {
     if (!this.captionEl) return;
     const stop = this.stops[idx];
@@ -318,6 +442,8 @@ export class ProfileMap {
     `;
     // Sync avatar color to book spine
     if (this.avatar && stop.book.spine) this.avatar.setAccentColor(stop.book.spine);
+    // Light up the active country, dim all others
+    this._lightCountry(stop.country);
   }
 }
 

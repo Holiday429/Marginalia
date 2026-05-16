@@ -5,9 +5,6 @@ export interface MarginaliaData {
   BOOK_TYPES: Record<string, unknown>;
   BookTypes: unknown;
   BOOKS: unknown;
-  SHELF_BOOKS: unknown;
-  BOOK_DETAILS: unknown;
-  BOOK_BY_ID: unknown;
   BOOKLIST_CURATED: unknown;
   __SEED_SAPIENS: unknown;
 }

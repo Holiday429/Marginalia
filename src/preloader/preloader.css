@@ -7,7 +7,7 @@ body[data-view="preloader"] html {
 }
 body[data-view="preloader"] {
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-mono);
 }
 
 /* #view-preloader 现在是 body 的直接子元素，它自己承担 flex 容器职责 */
@@ -538,7 +538,7 @@ body[data-view="preloader"] {
   border: 1px solid rgba(26,23,20,0.12);
   border-radius: 4px;
   padding: 18px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--ink);
   z-index: 40;

@@ -11,6 +11,8 @@ import { logError, logEvent } from '../services/analytics.ts';
 import { renderProfileSettings } from './profile-settings.ts';
 import { ProfileMap } from './profile-map.ts';
 import { ProfileHeatmap } from './profile-heatmap.ts';
+import { MarginaliaAuth } from '../firebase/auth.js';
+import { ENV } from '../core/env.ts';
 import './profile.css';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,15 +81,32 @@ export function initProfile(): void {
   _initialized = false;
 }
 
-export async function enterProfile(params: { slug?: string } = {}): Promise<void> {
+export async function enterProfile(params: { slug?: string; _settingsOnly?: boolean; _preview?: boolean; _uid?: string } = {}): Promise<void> {
   const container = document.getElementById('panel-profile');
   if (!container) return;
 
-  // Settings mode: no slug → show settings for the signed-in user
-  if (!params.slug) {
+  // Settings-only mode (explicit, e.g. from nav settings link)
+  if (params._settingsOnly) {
     container.innerHTML = settingsShellHTML();
     const settingsEl = container.querySelector<HTMLElement>('#profSettingsMount');
     if (settingsEl) await renderProfileSettings(settingsEl);
+    return;
+  }
+
+  // No slug supplied → owner clicked the photo frame.
+  // Load their profile directly by uid — always show the profile page, never redirect to settings.
+  if (!params.slug && !params._uid) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const auth = MarginaliaAuth as any;
+    const uid: string | null = auth.user?.uid ?? null;
+    const db = auth.db;
+
+    if (db && uid) {
+      return enterProfile({ _uid: uid, _preview: true });
+    }
+
+    // Not signed in → nothing to show
+    container.innerHTML = errorHTML('Sign in to view your profile.');
     return;
   }
 
@@ -102,29 +121,43 @@ export async function enterProfile(params: { slug?: string } = {}): Promise<void
   }
 
   try {
-    const profileData = await lookupBySlug(db, params.slug);
+    let profileData: PublicProfileData | null;
+    let ownerPreview = false;
+
+    if (params._uid) {
+      // Owner viewing their own profile: load directly, skip public gate
+      profileData = await lookupByUid(db, params._uid);
+      ownerPreview = true;
+    } else {
+      profileData = await lookupBySlug(db, params.slug!);
+    }
+
     if (!profileData) {
-      container.innerHTML = notFoundHTML(params.slug);
+      container.innerHTML = notFoundHTML(params.slug ?? '');
       return;
     }
-    if (!profileData.profilePublic) {
+
+    // For external viewers, enforce the profilePublic gate
+    if (!ownerPreview && !profileData.profilePublic) {
       container.innerHTML = privateHTML(profileData.displayName);
       return;
     }
 
     const [books, highlights] = await Promise.all([
-      fetchPublicBooks(db, profileData.uid),
-      fetchPublicHighlights(db, profileData.uid),
+      fetchPublicBooks(db, profileData.uid, ownerPreview),
+      fetchPublicHighlights(db, profileData.uid, ownerPreview),
     ]);
     const [stats, sessionDays] = await Promise.all([
       fetchStats(db, profileData.uid, books),
       fetchSessions(db, profileData.uid),
     ]);
 
-    container.innerHTML = profileHTML(profileData, books, highlights, stats, sessionDays);
+    const isOwner = ownerPreview;
+    container.innerHTML = profileHTML(profileData, books, highlights, stats, sessionDays, isOwner);
     bindProfileEvents(container, highlights, books);
     mountSections(container, books, highlights, sessionDays, profileData);
-    logEvent('profile_viewed', { slug: params.slug });
+    if (isOwner) bindPreviewBar(container);
+    logEvent('profile_viewed', { slug: profileData.slug });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logError(err instanceof Error ? err : new Error(msg), { context: 'enterProfile' });
@@ -139,7 +172,31 @@ export function enterPanel_profile(params: { slug?: string } = {}): void {
 // ── Firestore helpers ─────────────────────────────────────────────────────────
 
 function getDb(): FirestoreDB | null {
-  return (window as any).MarginaliaAuth?.db ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (MarginaliaAuth as any).db ?? null;
+}
+
+function _buildProfileData(uid: string, data: Record<string, any>): PublicProfileData {
+  const settings = data.settings ?? {};
+  const profileSettings = settings.profileSections ?? {};
+  return {
+    uid,
+    slug:          settings.slug ?? '',
+    profilePublic: settings.profilePublic ?? false,
+    displayName:   data.displayName || settings.username || settings.slug || uid,
+    avatarUrl:     data.avatarUrl ?? undefined,
+    bio:           settings.bio ?? undefined,
+    showMap:       profileSettings.map     !== false,
+    showPortrait:  profileSettings.portrait === true,
+    showRhythm:    profileSettings.rhythm  !== false,
+    showDesk:      profileSettings.desk    !== false,
+  };
+}
+
+async function lookupByUid(db: FirestoreDB, uid: string): Promise<PublicProfileData | null> {
+  const snap = await db.doc(`users/${uid}`).get();
+  if (!snap.exists) return null;
+  return _buildProfileData(uid, snap.data() as Record<string, any>);
 }
 
 async function lookupBySlug(db: FirestoreDB, slug: string): Promise<PublicProfileData | null> {
@@ -152,33 +209,63 @@ async function lookupBySlug(db: FirestoreDB, slug: string): Promise<PublicProfil
   if (snap.empty) return null;
 
   const doc = snap.docs[0];
-  const data = doc.data() as Record<string, any>;
-  const settings = data.settings ?? {};
-
-  const profileSettings = settings.profileSections ?? {};
-  return {
-    uid:           doc.id,
-    slug:          settings.slug ?? slug,
-    profilePublic: settings.profilePublic ?? false,
-    displayName:   data.displayName || settings.username || slug,
-    avatarUrl:     data.avatarUrl ?? undefined,
-    bio:           settings.bio ?? undefined,
-    showMap:       profileSettings.map     !== false,
-    showPortrait:  profileSettings.portrait === true,   // off by default
-    showRhythm:    profileSettings.rhythm  !== false,
-    showDesk:      profileSettings.desk    !== false,
-  };
+  return _buildProfileData(doc.id, doc.data() as Record<string, any>);
 }
 
-async function fetchPublicBooks(db: FirestoreDB, uid: string): Promise<PublicBook[]> {
-  const wsId: string = (window as any).MARGINALIA_FIREBASE?.workspaceId ?? 'default';
-  const snap = await db
-    .collection(`workspaces/${wsId}/users/${uid}/books`)
-    .where('shareInProfile', '==', true)
-    .limit(40)
-    .get();
+// Demo books shown when the owner's shelf is empty, to preview the map + layout
+const DEMO_BOOKS: PublicBook[] = [
+  {
+    id: '__demo_cn',
+    title: '活着',
+    author: '余华',
+    spine: '#3d2b1f',
+    text: '#e8c97a',
+    status: 'read',
+    finishedAt: Date.now() - 30 * 86400000,
+    genre: 'Fiction',
+    language: 'Chinese',
+    year: 1993,
+    geo: { authorOrigin: { country: 'CN', city: 'Hangzhou' }, contentLocation: { country: 'CN' } },
+  },
+  {
+    id: '__demo_fr',
+    title: 'The Little Prince',
+    author: 'Antoine de Saint-Exupéry',
+    spine: '#4a6741',
+    text: '#f2e6c2',
+    status: 'read',
+    finishedAt: Date.now() - 60 * 86400000,
+    genre: 'Fiction',
+    language: 'French',
+    year: 1943,
+    geo: { authorOrigin: { country: 'FR', city: 'Lyon' }, contentLocation: { country: 'FR' } },
+  },
+  {
+    id: '__demo_us',
+    title: 'The Great Gatsby',
+    author: 'F. Scott Fitzgerald',
+    spine: '#1c3a5e',
+    text: '#f0dfa0',
+    status: 'reading',
+    finishedAt: 0,
+    genre: 'Fiction',
+    language: 'English',
+    year: 1925,
+    geo: { authorOrigin: { country: 'US', city: 'St. Paul' }, contentLocation: { country: 'US' } },
+  },
+];
 
-  return snap.docs
+async function fetchPublicBooks(db: FirestoreDB, uid: string, ownerPreview = false): Promise<PublicBook[]> {
+  const wsId: string = ENV.WORKSPACE_ID || 'default';
+  const colRef = db
+    .collection('workspaces').doc(wsId)
+    .collection('users').doc(uid)
+    .collection('books');
+  const snap = await (ownerPreview
+    ? colRef.limit(40).get()
+    : colRef.where('shareInProfile', '==', true).limit(40).get());
+
+  const books = snap.docs
     .map((doc: any) => {
       const d    = doc.data() as Record<string, any>;
       const meta  = d.meta  ?? {};
@@ -202,14 +289,38 @@ async function fetchPublicBooks(db: FirestoreDB, uid: string): Promise<PublicBoo
           contentLocation: bookGeo.contentLocation ?? (loc ? { country: loc } : undefined),
           readerLocation:  bookGeo.readerLocation  ?? undefined,
         },
-      };
+      } as PublicBook;
     })
     .sort((a: PublicBook, b: PublicBook) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
+
+  // In owner preview: always append demo books (with geo data) so map + sections are visible.
+  // Real books take priority — demos fill gaps only for layout/map preview.
+  if (ownerPreview) {
+    const existingIds = new Set(books.map((b: PublicBook) => b.id));
+    const extras = DEMO_BOOKS.filter(d => !existingIds.has(d.id));
+    return [...books, ...extras];
+  }
+  return books;
 }
 
-async function fetchPublicHighlights(db: FirestoreDB, uid: string): Promise<PublicHighlight[]> {
-  const wsId: string = (window as any).MARGINALIA_FIREBASE?.workspaceId ?? 'default';
+async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview = false): Promise<PublicHighlight[]> {
+  const wsId: string = ENV.WORKSPACE_ID || 'default';
   try {
+    // Owner preview: load highlights directly from their subcollection (no index needed)
+    if (ownerPreview) {
+      const snap = await db
+        .collection('workspaces').doc(wsId)
+        .collection('users').doc(uid)
+        .collection('highlights')
+        .limit(20)
+        .get();
+      return snap.docs.map((doc: any) => {
+        const d = doc.data() as Record<string, any>;
+        return { quote: d.quote ?? '', bookTitle: d.bookTitle ?? '', bookId: d.bookId ?? undefined };
+      }).filter((h: PublicHighlight) => h.quote.length > 0);
+    }
+
+    // Public viewers: collectionGroup query (requires Firestore composite index)
     const snap = await db
       .collectionGroup('highlights')
       .where('uid', '==', uid)
@@ -222,16 +333,17 @@ async function fetchPublicHighlights(db: FirestoreDB, uid: string): Promise<Publ
       return { quote: d.quote ?? '', bookTitle: d.bookTitle ?? '', bookId: d.bookId ?? undefined };
     }).filter((h: PublicHighlight) => h.quote.length > 0);
   } catch {
-    // CollectionGroup query may fail if index not yet built; degrade gracefully.
     return [];
   }
 }
 
 async function fetchStats(db: FirestoreDB, uid: string, books: PublicBook[]): Promise<PublicStats> {
-  const wsId: string = (window as any).MARGINALIA_FIREBASE?.workspaceId ?? 'default';
+  const wsId: string = ENV.WORKSPACE_ID || 'default';
   try {
     const snap = await db
-      .collection(`workspaces/${wsId}/users/${uid}/books`)
+      .collection('workspaces').doc(wsId)
+      .collection('users').doc(uid)
+      .collection('books')
       .get();
     const allBooks = snap.docs.map((d: any) => d.data());
     const totalBooks   = snap.size;
@@ -254,11 +366,13 @@ async function fetchStats(db: FirestoreDB, uid: string, books: PublicBook[]): Pr
 }
 
 async function fetchSessions(db: FirestoreDB, uid: string): Promise<SessionDay[]> {
-  const wsId: string = (window as any).MARGINALIA_FIREBASE?.workspaceId ?? 'default';
+  const wsId: string = ENV.WORKSPACE_ID || 'default';
   const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000; // 52 weeks back
   try {
     const snap = await db
-      .collection(`workspaces/${wsId}/users/${uid}/sessions`)
+      .collection('workspaces').doc(wsId)
+      .collection('users').doc(uid)
+      .collection('sessions')
       .where('startedAt', '>=', cutoff)
       .orderBy('startedAt', 'asc')
       .limit(2000)
@@ -333,6 +447,7 @@ function profileHTML(
   highlights: PublicHighlight[],
   stats: PublicStats,
   sessionDays: SessionDay[],
+  preview = false,
 ): string {
   const initials = (profile.displayName || '?').slice(0, 2).toUpperCase();
   const avatarEl = profile.avatarUrl
@@ -350,44 +465,51 @@ function profileHTML(
       ${stats.languages > 0 ? `<span class="prof-stat"><span class="prof-stat__num">${stats.languages}</span><span class="prof-stat__label">languages</span></span>` : ''}
     </div>`;
 
+  // Owner gets a Settings button in the header
+  const settingsBtn = preview
+    ? `<button class="prof-settings-btn" id="profSettingsBtn" type="button" aria-label="Profile settings">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M8 1v1.5M8 13.5V15M15 8h-1.5M2.5 8H1M12.95 3.05l-1.06 1.06M4.11 11.89l-1.06 1.06M12.95 12.95l-1.06-1.06M4.11 4.11l-1.06-1.06" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Settings
+      </button>`
+    : '';
+
   // ── Section: Reading Journey Map ──────────────────────────────────────────
-  const mapSection = profile.showMap && books.some(b => b.geo?.authorOrigin || b.geo?.contentLocation)
+  const hasMapData = books.some(b => b.geo?.authorOrigin || b.geo?.contentLocation);
+  const mapSection = profile.showMap
     ? `<section class="prof-section" id="profMapSection" aria-label="Reading journey">
         <div class="prof-section__head">
           <h2 class="prof-section__title">The Reading Journey</h2>
-          <div class="prof-map-pills" id="profMapPills">
+          ${hasMapData ? `<div class="prof-map-pills" id="profMapPills">
             <button class="prof-pill is-active" data-dim="authorOrigin" type="button">Author origin</button>
             <button class="prof-pill" data-dim="contentLocation" type="button">Story location</button>
             <button class="prof-pill" data-dim="readerLocation" type="button">Where I read it</button>
-          </div>
+          </div>` : ''}
         </div>
-        <div class="prof-map-wrap">
-          <div class="prof-map" id="profMap"></div>
-          <div class="prof-map-caption" id="profMapCaption" hidden></div>
-        </div>
+        ${hasMapData
+          ? `<div class="prof-map-wrap"><div class="prof-map" id="profMap"></div><div class="prof-map-caption" id="profMapCaption" hidden></div></div>`
+          : `<p class="prof-empty">No location data yet — add author origin to your books to see the map.</p>`}
       </section>`
     : '';
 
   // ── Section: The Shelf ────────────────────────────────────────────────────
-  const readBooks  = books.filter(b => b.status === 'read');
-  const thisYear   = new Date().getFullYear();
-  const yearBooks  = readBooks.filter(b => b.finishedAt && new Date(b.finishedAt).getFullYear() === thisYear);
+  const thisYear = new Date().getFullYear();
 
-  const shelfSection = books.length
-    ? `<section class="prof-section" id="profShelfSection" aria-label="Bookshelf">
-        <div class="prof-section__head">
-          <h2 class="prof-section__title">The Shelf</h2>
-          <div class="prof-shelf-tabs" id="profShelfTabs">
-            <button class="prof-tab is-active" data-tab="recent" type="button">Recently finished</button>
-            <button class="prof-tab" data-tab="year" type="button">${thisYear}</button>
-            <button class="prof-tab" data-tab="all" type="button">All</button>
-          </div>
-        </div>
-        <div class="prof-shelf-wrap">
-          <div class="prof-shelf" id="profShelf" data-books="${escapeHtml(JSON.stringify(books.map(b => ({ id: b.id, title: b.title, author: b.author, spine: b.spine, text: b.text, status: b.status, finishedAt: b.finishedAt }))))}" ></div>
-        </div>
-      </section>`
-    : '';
+  const shelfSection = `<section class="prof-section" id="profShelfSection" aria-label="Bookshelf">
+      <div class="prof-section__head">
+        <h2 class="prof-section__title">The Shelf</h2>
+        ${books.length ? `<div class="prof-shelf-tabs" id="profShelfTabs">
+          <button class="prof-tab is-active" data-tab="recent" type="button">Recently finished</button>
+          <button class="prof-tab" data-tab="year" type="button">${thisYear}</button>
+          <button class="prof-tab" data-tab="all" type="button">All</button>
+        </div>` : ''}
+      </div>
+      ${books.length
+        ? `<div class="prof-shelf-wrap"><div class="prof-shelf" id="profShelf" data-books="${escapeHtml(JSON.stringify(books.map(b => ({ id: b.id, title: b.title, author: b.author, spine: b.spine, text: b.text, status: b.status, finishedAt: b.finishedAt }))))}"></div></div>`
+        : `<p class="prof-empty">No books on the shelf yet.</p>`}
+    </section>`;
 
   // ── Section: Reader Portrait ──────────────────────────────────────────────
   const portraitSection = profile.showPortrait
@@ -401,20 +523,19 @@ function profileHTML(
     : '';
 
   // ── Section: Reading Rhythm ───────────────────────────────────────────────
-  const rhythmSection = profile.showRhythm && sessionDays.length > 0
+  const rhythmSection = profile.showRhythm
     ? `<section class="prof-section" id="profRhythmSection" aria-label="Reading rhythm">
         <div class="prof-section__head">
           <h2 class="prof-section__title">Reading Rhythm</h2>
-          <div class="prof-heatmap-tabs" id="profHeatmapTabs">
+          ${sessionDays.length ? `<div class="prof-heatmap-tabs" id="profHeatmapTabs">
             <button class="prof-tab is-active" data-dim="sessions" type="button">Sessions</button>
             <button class="prof-tab" data-dim="minutes" type="button">Minutes</button>
             <button class="prof-tab" data-dim="highlights" type="button">Highlights</button>
-          </div>
+          </div>` : ''}
         </div>
-        <div class="prof-heatmap-wrap">
-          <div class="prof-heatmap" id="profHeatmap"
-               data-days="${escapeHtml(JSON.stringify(sessionDays))}"></div>
-        </div>
+        ${sessionDays.length
+          ? `<div class="prof-heatmap-wrap"><div class="prof-heatmap" id="profHeatmap" data-days="${escapeHtml(JSON.stringify(sessionDays))}"></div></div>`
+          : `<p class="prof-empty">No reading sessions recorded yet.</p>`}
       </section>`
     : '';
 
@@ -460,10 +581,11 @@ function profileHTML(
           ${avatarEl}
           <div class="prof-header__meta">
             <h1 class="prof-name">${escapeHtml(profile.displayName)}</h1>
-            <p class="prof-slug">marginalia.app/${escapeHtml(profile.slug)}</p>
+            ${profile.slug ? `<p class="prof-slug">marginalia.app/${escapeHtml(profile.slug)}</p>` : ''}
             ${bioEl}
             ${statsEl}
           </div>
+          ${settingsBtn}
         </header>
 
         ${mapSection}
@@ -591,6 +713,12 @@ function spineCardHTML(book: PublicBook): string {
   `;
 }
 
+function bindPreviewBar(container: HTMLElement): void {
+  container.querySelector('#profSettingsBtn')?.addEventListener('click', () => {
+    enterProfile({ _settingsOnly: true });
+  });
+}
+
 // ── Section mounting ─────────────────────────────────────────────────────────
 
 function mountSections(
@@ -610,7 +738,7 @@ function mountSections(
     }
   }
 
-  // Heatmap
+  // Heatmap (only mount if there's data — empty state is rendered in HTML)
   if (profile.showRhythm && sessionDays.length > 0) {
     const heatmapEl = container.querySelector<HTMLElement>('#profHeatmap');
     if (heatmapEl) {
@@ -645,7 +773,7 @@ function renderPortrait(container: HTMLElement, books: PublicBook[], highlights:
     return;
   }
 
-  const wsId: string = (window as any).MARGINALIA_FIREBASE?.workspaceId ?? 'default';
+  const wsId: string = ENV.WORKSPACE_ID || 'default';
   db.doc(`workspaces/${wsId}/users/${uid}/ai_results/reader-portrait`)
     .get()
     .then((snap: any) => {

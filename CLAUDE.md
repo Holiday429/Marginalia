@@ -16,11 +16,10 @@ Marginalia
 ├── Library     — 3D room (shelf wall, sticky-note wall, desk); degrades to Library 2D on mobile / low-GPU
 ├── Library 2D  — Permanent fallback: flat draggable shelf, shared component with Library 3D
 ├── Map         — Reading geography by author origin / setting
+├── Graph       — D3 concept/book network graph (src/web/web.js); fully implemented, menu entry active
 ├── Booklist    — Yearly reviews, exports, shareable digests
 └── Book        — Single-book detail (notes, AI features, actions)
 ```
-
-Graph view exists as a stub only — no menu entry until it has a real implementation.
 
 ---
 

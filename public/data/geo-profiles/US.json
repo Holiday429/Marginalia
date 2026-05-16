@@ -2,6 +2,8 @@
   "countryId": "US",
   "countryName": "United States",
   "countryNameZh": "美国",
+  "region": "North America",
+  "literaryLanguages": ["English"],
   "version": 1,
   "updatedAt": "2025-05-16",
 
@@ -40,6 +42,8 @@
         "year": 1987,
         "note": "从被奴役者的视角重新进入美国历史。莫里森把奴隶制的创伤写成一个会回来的幽灵——不是比喻，而是字面意义上的存在。这本书的感知密度极高，读完之后会对美国精神的另一面有不可回避的认识。",
         "type": "Fiction",
+        "originalLanguage": "en",
+        "isbn": "9781400033416",
         "coverPath": ""
       },
       {
@@ -48,6 +52,8 @@
         "year": 1939,
         "note": "大萧条时代一个俄克拉荷马农民家庭向加州迁移的故事。它处理的是美国梦失效时会发生什么：当那套关于努力就有回报的叙事遭遇结构性的贫困和剥削。斯坦贝克的语言有一种朴素的重量感，不煽情，但积累起来很有力。",
         "type": "Fiction",
+        "originalLanguage": "en",
+        "isbn": "9780143039433",
         "coverPath": ""
       },
       {
@@ -56,8 +62,19 @@
         "year": 1963,
         "note": "两篇文章，但几乎是理解种族与美国身份问题的最短路径。鲍德温以在场者和局外人的双重视角（他常住巴黎）拆解了白人美国的自我欺骗和黑人美国的内部张力。读这本书会让你对谁在说话这个问题的敏感度永久提升。",
         "type": "Essay",
+        "originalLanguage": "en",
+        "isbn": "9780679744726",
         "coverPath": ""
       }
+    ],
+
+    "notableAuthors": [
+      { "name": "Toni Morrison", "nameEn": "Toni Morrison", "period": "1930s–2019" },
+      { "name": "Herman Melville", "nameEn": "Herman Melville", "period": "1819–1891" },
+      { "name": "William Faulkner", "nameEn": "William Faulkner", "period": "1897–1962" },
+      { "name": "James Baldwin", "nameEn": "James Baldwin", "period": "1924–1987" },
+      { "name": "John Steinbeck", "nameEn": "John Steinbeck", "period": "1902–1968" },
+      { "name": "Flannery O'Connor", "nameEn": "Flannery O'Connor", "period": "1925–1964" }
     ]
   }
 }
