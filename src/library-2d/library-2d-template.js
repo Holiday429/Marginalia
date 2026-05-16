@@ -107,9 +107,11 @@ export function renderLibraryShell() {
       <div class="library-overlay-shell" id="libraryOverlayShell">
         <button type="button" class="library-overlay-close" id="libraryOverlayClose" aria-label="Close book inspector">x</button>
         <div class="library-overlay-stage" id="libraryOverlayStage">
-          <div class="library-overlay-book" id="libraryOverlayBook">
-            <div class="library-overlay-book-face library-overlay-book-spine" id="libraryOverlaySpine"></div>
-            <div class="library-overlay-book-face library-overlay-book-cover" id="libraryOverlayCover"></div>
+          <div class="library-overlay-book-scene" id="libraryOverlayBookScene">
+            <div class="library-overlay-book" id="libraryOverlayBook">
+              <div class="library-overlay-book-face library-overlay-book-spine" id="libraryOverlaySpine"></div>
+              <div class="library-overlay-book-face library-overlay-book-cover" id="libraryOverlayCover"></div>
+            </div>
           </div>
           <article class="library-overlay-info" id="libraryOverlayInfo">
             <div class="library-overlay-info-copy">

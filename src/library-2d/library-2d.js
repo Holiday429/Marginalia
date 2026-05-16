@@ -1214,6 +1214,7 @@ function setOverlayPhase(overlay, phase) {
 
 function playBookInteraction(sourceEl, record, sourceShelfId) {
   const overlay = document.getElementById('libraryBookOverlay');
+  const bookScene = document.getElementById('libraryOverlayBookScene');
   const book = document.getElementById('libraryOverlayBook');
   const spineFace = document.getElementById('libraryOverlaySpine');
   const coverFace = document.getElementById('libraryOverlayCover');
@@ -1226,7 +1227,7 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
   const tags = document.getElementById('libraryOverlayTags');
   const actions = document.getElementById('libraryOverlayActions');
 
-  if (!overlay || !book || !spineFace || !coverFace || !info || !sourceEl || !record || !actions) return;
+  if (!overlay || !bookScene || !book || !spineFace || !coverFace || !info || !sourceEl || !record || !actions) return;
 
   if (LIBRARY_STATE.overlay.key && LIBRARY_STATE.overlay.key !== record.key) {
     closeBookInspector({ immediate: true });
@@ -1250,9 +1251,9 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
     368,
   );
   const coverWidth = clampInt(Math.max(spineSize.width * 5.1, expandedHeight * 0.62), 220, 280, 248);
-  const infoWidth = clampInt(Math.round(coverWidth * 0.86), 198, 244, 220);
-  const gap = clampInt(coverWidth * 0.02, 4, 8, 6);
-  const expandedWidth = spineSize.width + gap + infoWidth;
+  const infoWidth = coverWidth;
+  const gap = clampInt(coverWidth * 0.06, 16, 32, 24);
+  const expandedWidth = coverWidth + gap + infoWidth;
   const viewportInset = 18;
   const minLeft = Math.max(viewportInset, sceneRect.left + 24);
   const maxLeft = Math.min(window.innerWidth - expandedWidth - viewportInset, sceneRect.right - expandedWidth - 24);
@@ -1290,7 +1291,7 @@ function playBookInteraction(sourceEl, record, sourceShelfId) {
   overlay.style.setProperty('--overlay-origin-height', `${rect.height}px`);
   overlay.style.setProperty('--overlay-origin-x', `${originX}px`);
   overlay.style.setProperty('--overlay-origin-y', `${originY}px`);
-  overlay.style.setProperty('--overlay-origin-scale-x', `${(rect.width / Math.max(1, spineSize.width)).toFixed(4)}`);
+  overlay.style.setProperty('--overlay-origin-scale-x', `${(rect.width / Math.max(1, coverWidth)).toFixed(4)}`);
   overlay.style.setProperty('--overlay-origin-scale-y', `${(rect.height / Math.max(1, expandedHeight)).toFixed(4)}`);
   overlay.style.setProperty('--overlay-spine-width', `${spineSize.width}px`);
   overlay.style.setProperty('--overlay-open-width', `${expandedWidth}px`);
@@ -1388,7 +1389,7 @@ function closeBookInspector({ immediate = false } = {}) {
 
   setOverlayPhase(overlay, 'closing');
   LIBRARY_STATE.overlay.playing = true;
-  LIBRARY_STATE.overlay.timers.push(window.setTimeout(finalize, 360));
+  LIBRARY_STATE.overlay.timers.push(window.setTimeout(finalize, 580));
 }
 
 function clearOverlayTimers() {
