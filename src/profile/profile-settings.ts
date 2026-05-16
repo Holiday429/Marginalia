@@ -104,7 +104,26 @@ async function saveShareInProfile(bookId: string, value: boolean): Promise<void>
     .set({ shareInProfile: value }, { merge: true });
 }
 
-async function loadUserSettings(): Promise<{ slug?: string; profilePublic?: boolean; language?: string }> {
+async function saveProfileSections(sections: Record<string, boolean>): Promise<void> {
+  const db = getDb();
+  const uid = getUserId();
+  if (!db || !uid) return;
+  await db.doc(`users/${uid}`).set({ settings: { profileSections: sections } }, { merge: true });
+}
+
+interface UserSettings {
+  slug?: string;
+  profilePublic?: boolean;
+  language?: string;
+  profileSections?: {
+    map?: boolean;
+    portrait?: boolean;
+    rhythm?: boolean;
+    desk?: boolean;
+  };
+}
+
+async function loadUserSettings(): Promise<UserSettings> {
   const db = getDb();
   const uid = getUserId();
   if (!db || !uid) return {};
@@ -115,6 +134,7 @@ async function loadUserSettings(): Promise<{ slug?: string; profilePublic?: bool
       slug: settings.slug ?? '',
       profilePublic: settings.profilePublic ?? false,
       language: settings.language ?? 'en',
+      profileSections: settings.profileSections ?? {},
     };
   } catch (err) {
     logError(err instanceof Error ? err : new Error(String(err)), { context: 'loadUserSettings' });
@@ -136,7 +156,7 @@ export async function renderProfileSettings(container: HTMLElement): Promise<voi
   ]);
 
   const lang = settings.language ?? 'en';
-  container.innerHTML = settingsHTML(settings.slug ?? '', settings.profilePublic ?? false, books, lang);
+  container.innerHTML = settingsHTML(settings.slug ?? '', settings.profilePublic ?? false, books, lang, settings.profileSections ?? {});
   bindSettingsEvents(container, settings.slug ?? '');
 }
 
@@ -153,6 +173,7 @@ function settingsHTML(
   profilePublic: boolean,
   books: ReturnType<typeof BooksStore.getAll>,
   lang: string,
+  sections: Record<string, boolean>,
 ): string {
   const bookRows = books
     .slice()
@@ -219,6 +240,17 @@ function settingsHTML(
           </span>
         </label>
         <p class="prof-settings__hint">${t('profile-settings.hint.public')}</p>
+      </section>
+
+      <section class="prof-settings__section">
+        <h3 class="prof-settings__subheading">Visible sections</h3>
+        <p class="prof-settings__hint">Choose what visitors see on your public profile.</p>
+        <div class="prof-section-toggles">
+          ${sectionToggleHTML('map',      'Reading journey map',  sections.map     !== false)}
+          ${sectionToggleHTML('rhythm',   'Reading rhythm',       sections.rhythm  !== false)}
+          ${sectionToggleHTML('desk',     'On the desk',          sections.desk    !== false)}
+          ${sectionToggleHTML('portrait', 'Reader portrait (AI)', sections.portrait === true, 'Off by default — AI-generated summary of your reading character')}
+        </div>
       </section>
 
       <section class="prof-settings__section">
@@ -337,6 +369,36 @@ function bindSettingsEvents(container: HTMLElement, initialSlug: string): void {
       target.checked = !target.checked; // revert
     }
   });
+
+  // Section visibility toggles
+  container.querySelector('.prof-section-toggles')?.addEventListener('change', async (e) => {
+    const target = e.target as HTMLInputElement;
+    if (!target.classList.contains('prof-section-toggle-input')) return;
+    const sectionKey = target.dataset.section;
+    if (!sectionKey) return;
+    try {
+      await saveProfileSections({ [sectionKey]: target.checked });
+    } catch (err) {
+      logError(err instanceof Error ? err : new Error(String(err)), { context: 'saveProfileSections' });
+      target.checked = !target.checked; // revert
+    }
+  });
+}
+
+function sectionToggleHTML(key: string, label: string, checked: boolean, hint?: string): string {
+  return `
+    <label class="prof-settings__label prof-toggle-label">
+      <span class="prof-section-toggle-label">
+        ${escapeHtml(label)}
+        ${hint ? `<span class="prof-settings__hint">${escapeHtml(hint)}</span>` : ''}
+      </span>
+      <span class="prof-toggle-wrap">
+        <input type="checkbox" class="prof-toggle-input prof-section-toggle-input"
+               data-section="${escapeHtml(key)}" ${checked ? 'checked' : ''}>
+        <span class="prof-toggle-track" aria-hidden="true"></span>
+      </span>
+    </label>
+  `;
 }
 
 function escapeHtml(str: string): string {
