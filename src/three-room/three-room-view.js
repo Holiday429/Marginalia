@@ -29,6 +29,7 @@ const HOVER_META_BY_ACTION = {
   organize: { icon: 'library', title: 'Library', description: 'Organize Your Shelves' },
   sapiens: { icon: 'reading-now', title: 'Keep Reading', description: 'Continue Current Book' },
   heroBook: { icon: 'library', title: 'Open Library', description: 'Organize Your Library' },
+  profile: { icon: 'list', title: 'My Profile', description: 'View Your Public Reading Page' },
 };
 
 const ROOM_VIEW_STATE = {
@@ -496,6 +497,7 @@ function mountRoomScene() {
       onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),
       onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),
+      onPhotoFrameSelect: () => openPanel('profile'),
       onInteractiveHover: (action, pointer) => {
         ROOM_VIEW_STATE.hoverAction = action || null;
         if (pointer) ROOM_VIEW_STATE.hoverPoint = pointer;

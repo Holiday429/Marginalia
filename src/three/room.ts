@@ -19,6 +19,7 @@ interface RoomSceneOptions {
   onOrganizeSelect?: () => void;
   onSapiensSelect?: () => void;
   onHeroBookSelect?: () => void;
+  onPhotoFrameSelect?: () => void;
   onInteractiveHover?: (action: InteractiveAction | null, pointer?: { x: number; y: number }) => void;
 }
 
@@ -42,7 +43,7 @@ interface SlotMount {
   component: SlotComponent;
 }
 
-type InteractiveAction = 'map' | 'shelf' | 'organize' | 'sapiens' | 'heroBook';
+type InteractiveAction = 'map' | 'shelf' | 'organize' | 'sapiens' | 'heroBook' | 'profile';
 
 interface DecorAssetSpec {
   id?: string;
@@ -143,6 +144,17 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     photoMaterialNameIncludes: '*',
     interactiveAction: 'sapiens',
   },
+  {
+    id: 'picture-frame',
+    url: '/3d/wooden_picture_frame.glb',
+    position: [1.34, ROOM.DESK_SURFACE_Y + 0.06, -1.96],
+    liftY: 0.17,
+    rotationY: -0.42,
+    targetHeight: 0.4,
+    photoTextureUrl: '/3d/me.jpg',
+    photoMaterialNameIncludes: 'Image',
+    interactiveAction: 'profile',
+  },
 ];
 
 // Furniture — large structural pieces, not interactive.
@@ -166,16 +178,6 @@ const FURNITURE_ASSETS: DecorAssetSpec[] = [
 
 // Decorative props — ambient detail, not interactive.
 const PROP_ASSETS: DecorAssetSpec[] = [
-  {
-    id: 'picture-frame',
-    url: '/3d/wooden_picture_frame.glb',
-    position: [1.34, ROOM.DESK_SURFACE_Y + 0.06, -1.96],
-    liftY: 0.17, // pivot compensation: frame origin sits below visual base
-    rotationY: -0.42,
-    targetHeight: 0.4,
-    photoTextureUrl: '/3d/me.jpg',
-    photoMaterialNameIncludes: 'Image',
-  },
   {
     id: 'floor-lamp',
     url: '/3d/floor_lamp.glb',
@@ -311,6 +313,7 @@ export class RoomScene {
   private onOrganizeSelect: (() => void) | null = null;
   private onSapiensSelect: (() => void) | null = null;
   private onHeroBookSelect: (() => void) | null = null;
+  private onPhotoFrameSelect: (() => void) | null = null;
   private onInteractiveHover: ((action: InteractiveAction | null, pointer?: { x: number; y: number }) => void) | null = null;
   private envRenderTarget: THREE.WebGLRenderTarget | null = null;
   private hasWallSurfaceTexture = false;
@@ -354,6 +357,7 @@ export class RoomScene {
     this.onOrganizeSelect = typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : null;
     this.onSapiensSelect = typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : null;
     this.onHeroBookSelect = typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : null;
+    this.onPhotoFrameSelect = typeof options.onPhotoFrameSelect === 'function' ? options.onPhotoFrameSelect : null;
     this.onInteractiveHover = typeof options.onInteractiveHover === 'function' ? options.onInteractiveHover : null;
 
     this.scene = new THREE.Scene();
@@ -1156,6 +1160,8 @@ export class RoomScene {
       this.registerInteractiveTarget(model, () => this.onSapiensSelect?.(), asset.interactiveAction);
     } else if (asset.interactiveAction === 'heroBook') {
       this.registerInteractiveTarget(model, () => this.onHeroBookSelect?.(), asset.interactiveAction);
+    } else if (asset.interactiveAction === 'profile') {
+      this.registerInteractiveTarget(model, () => this.onPhotoFrameSelect?.(), asset.interactiveAction);
     }
 
     model.traverse((child) => {
