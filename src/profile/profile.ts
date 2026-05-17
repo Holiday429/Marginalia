@@ -33,6 +33,7 @@ interface PublicBook {
   status?: string;
   finishedAt?: number;
   coverSrc?: string;
+  userNote?: string;
   geo?: {
     authorOrigin?: { country: string; province?: string; city?: string };
     contentLocation?: { country: string; province?: string; city?: string };
@@ -371,6 +372,7 @@ async function fetchPublicBooks(db: FirestoreDB, uid: string, ownerPreview = fal
         status: normalizeProfileStatus(data.status ?? user.status),
         finishedAt: toTimestamp(data.finishedAt ?? user.finishedAt ?? meta.finishedAt),
         coverSrc: cover.image ?? data.coverSrc ?? undefined,
+        userNote: data.userNote ?? undefined,
         genre: meta.genre ?? data.genre ?? undefined,
         language: meta.language ?? data.language ?? undefined,
         year: meta.year ?? data.year ?? undefined,
@@ -501,20 +503,30 @@ function profileHTML(
         <div>
           <h2 class="prof-section__title">Reading Journey</h2>
         </div>
-        <div class="prof-map-pills" id="profMapPills">
-          <button class="prof-pill is-active" data-dim="journey" type="button">Journey</button>
-          <button class="prof-pill" data-dim="contentLocation" type="button">Story</button>
-          <button class="prof-pill" data-dim="authorOrigin" type="button">Author</button>
-          <button class="prof-pill" data-dim="readerLocation" type="button">Reader</button>
+        <div class="prof-map-head-right">
+          <button class="prof-map-play-btn" id="profMapPlayBtn" type="button" aria-label="Play journey" disabled>
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>
+          </button>
+          <div class="prof-map-pills" id="profMapPills">
+            <button class="prof-pill is-active" data-dim="journey" type="button">Journey</button>
+            <button class="prof-pill" data-dim="contentLocation" type="button">Story</button>
+            <button class="prof-pill" data-dim="authorOrigin" type="button">Author</button>
+            <button class="prof-pill" data-dim="readerLocation" type="button">Reader</button>
+          </div>
         </div>
       </div>
       <div class="prof-map-wrap">
         <div class="prof-map" id="profMap"></div>
         <div class="prof-map-caption" id="profMapCaption"></div>
+        <div class="prof-map-zoom" id="profMapZoom">
+          <button class="prof-map-zoom__btn" id="profMapZoomIn"  type="button" aria-label="Zoom in">+</button>
+          <button class="prof-map-zoom__btn" id="profMapZoomOut" type="button" aria-label="Zoom out">−</button>
+          <div class="prof-map-zoom__sep"></div>
+          <button class="prof-map-zoom__btn prof-map-zoom__fit" id="profMapZoomFit" type="button" aria-label="Fit map">Fit</button>
+        </div>
       </div>
-      <div class="prof-map-rail">
+      <div class="prof-map-rail" hidden>
         <div class="prof-map-rail__items" id="profMapRail"></div>
-        <button class="prof-map-rail__play" id="profMapPlayBtn" type="button">Play journey</button>
       </div>
     </section>
   ` : '';
@@ -821,6 +833,7 @@ function mapStoreBookToPublicBook(record: any): PublicBook | null {
     status: normalizeProfileStatus(record.status ?? user.status),
     finishedAt: toTimestamp(record.finishedAt ?? user.finishedAt ?? meta.finishedAt),
     coverSrc: cover.image ?? record.coverSrc ?? undefined,
+    userNote: record.userNote ?? undefined,
     genre: meta.genre ?? record.genre ?? undefined,
     language: meta.language ?? record.language ?? undefined,
     year: meta.year ?? record.year ?? undefined,

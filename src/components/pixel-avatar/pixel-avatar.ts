@@ -13,123 +13,127 @@ interface AvatarOptions {
 }
 
 // Each frame is a 16×16 flat array of palette indices (0 = transparent).
-// Palette: 0=transparent, 1=skin, 2=hair, 3=clothing(accent), 4=book, 5=shadow, 6=dark
+// Palette: 0=transparent, 1=skin, 2=hair, 3=clothing(accent), 4=book, 5=shadow, 6=outline
 const _ = 0, S = 1, H = 2, C = 3, B = 4, D = 5, K = 6;
+// T = luggage body (reuses shadow slot for warm tan), W = wheel (dark)
+const T = 5, W = 6;
 
-// ── Idle frames (holding book, slight bob) ────────────────────────────────
+// ── Idle frames (standing, holding book upright, slight bob) ─────────────
 const IDLE_0: number[] = [
-  _,_,_,_,_,_,H,H,H,H,_,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,C,C,C,C,C,C,C,C,C,C,_,_,_,
-  _,_,_,S,B,B,B,B,B,B,B,B,S,_,_,_,
-  _,_,_,S,B,B,B,B,B,B,B,B,S,_,_,_,
-  _,_,_,S,S,_,_,_,_,_,_,S,S,_,_,_,
-  _,_,C,C,_,_,_,_,_,_,_,_,C,C,_,_,
-  _,_,C,C,_,_,_,_,_,_,_,_,C,C,_,_,
-  _,_,S,S,_,_,_,_,_,_,_,_,S,S,_,_,
+  _,_,_,_,_,K,K,K,K,K,K,_,_,_,_,_,
+  _,_,_,_,K,H,H,H,H,H,H,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,K,K,H,H,H,H,H,H,K,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,K,C,C,C,C,C,C,C,C,C,C,K,_,_,
+  _,_,K,S,B,B,B,B,B,B,B,B,S,K,_,_,
+  _,_,K,S,B,B,B,B,B,B,B,B,S,K,_,_,
+  _,_,_,K,S,K,_,_,_,_,K,S,K,_,_,_,
+  _,_,K,C,C,K,_,_,_,_,K,C,C,K,_,_,
+  _,_,K,C,C,K,_,_,_,_,K,C,C,K,_,_,
+  _,_,K,S,S,K,_,_,_,_,K,S,S,K,_,_,
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
 ];
 
 // Idle frame 1 — slight downward shift (bob)
 const IDLE_1: number[] = [
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,C,C,C,C,C,C,C,C,C,C,_,_,_,
-  _,_,_,S,B,B,B,B,B,B,B,B,S,_,_,_,
-  _,_,_,S,B,B,B,B,B,B,B,B,S,_,_,_,
-  _,_,_,S,S,_,_,_,_,_,_,S,S,_,_,_,
-  _,_,C,C,_,_,_,_,_,_,_,_,C,C,_,_,
-  _,_,C,C,_,_,_,_,_,_,_,_,C,C,_,_,
-  _,_,S,S,_,_,_,_,_,_,_,_,S,S,_,_,
+  _,_,_,_,_,K,K,K,K,K,K,_,_,_,_,_,
+  _,_,_,_,K,H,H,H,H,H,H,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,K,K,H,H,H,H,H,H,K,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,K,C,C,C,C,C,C,C,C,C,C,K,_,_,
+  _,_,K,S,B,B,B,B,B,B,B,B,S,K,_,_,
+  _,_,K,S,B,B,B,B,B,B,B,B,S,K,_,_,
+  _,_,_,K,S,K,_,_,_,_,K,S,K,_,_,_,
+  _,_,K,C,C,K,_,_,_,_,K,C,C,K,_,_,
+  _,_,K,C,C,K,_,_,_,_,K,C,C,K,_,_,
+  _,_,K,S,S,K,_,_,_,_,K,S,S,K,_,_,
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
 ];
 
-// ── Walk frames ───────────────────────────────────────────────────────────
+// ── Travel frames (standing + rolling suitcase) ───────────────────────────
+// Figure leans slightly; suitcase trails on the right with handle + wheels
 const WALK_0: number[] = [
-  _,_,_,_,_,_,H,H,H,H,_,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,C,S,S,_,_,_,_,S,S,C,_,_,_,
-  _,_,C,S,_,_,_,_,_,_,_,_,S,C,_,_,
-  _,_,C,S,_,_,_,_,_,_,_,_,S,C,_,_,
-  _,_,_,C,C,_,_,_,_,_,C,C,_,_,_,_,
-  _,_,_,S,S,_,_,_,_,_,S,S,_,_,_,_,
-  _,_,_,S,_,_,_,_,_,_,_,S,_,_,_,_,
+  _,_,_,_,_,K,K,K,K,K,K,_,_,_,_,_,
+  _,_,_,_,K,H,H,H,H,H,H,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,K,K,H,H,H,H,H,H,K,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,K,T,_,_,  // arm extends to bag handle
+  _,_,_,K,C,C,C,C,C,C,C,K,K,T,T,T,_,  // suitcase top row
+  _,_,_,K,C,C,C,C,C,C,K,T,T,T,T,T,_,  // suitcase body row 1
+  _,_,_,K,S,S,K,_,_,K,T,T,T,T,T,T,_,  // suitcase body row 2
+  _,_,_,K,S,S,K,_,_,K,T,T,T,T,T,T,_,  // suitcase body row 3
+  _,_,_,K,S,S,K,_,_,K,K,K,K,K,K,K,_,  // suitcase bottom edge
+  _,_,K,C,C,K,_,_,_,_,_,_,_,_,_,_,
+  _,_,K,C,C,K,_,_,_,_,W,_,_,_,W,_,  // wheels
+  _,_,K,S,S,K,_,_,_,_,_,_,_,_,_,_,
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
 ];
 
+// Frame 1 — slight weight shift (figure same, suitcase wheels roll)
 const WALK_1: number[] = [
-  _,_,_,_,_,_,H,H,H,H,_,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,C,S,S,_,_,_,_,S,S,C,_,_,_,
-  _,C,S,_,_,_,_,_,_,_,_,_,_,S,C,_,
-  _,C,S,_,_,_,_,_,_,_,_,_,_,S,C,_,
-  _,_,C,C,_,_,_,_,_,_,_,_,C,C,_,_,
-  _,_,_,S,S,_,_,_,_,_,S,S,_,_,_,_,
-  _,_,_,_,S,_,_,_,_,_,S,_,_,_,_,_,
+  _,_,_,_,_,K,K,K,K,K,K,_,_,_,_,_,
+  _,_,_,_,K,H,H,H,H,H,H,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,K,K,H,H,H,H,H,H,K,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,K,T,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,K,K,T,T,T,_,
+  _,_,_,K,C,C,C,C,C,C,K,T,T,T,T,T,_,
+  _,_,_,K,S,S,K,_,_,K,T,T,T,T,T,T,_,
+  _,_,_,K,S,S,K,_,_,K,T,T,T,T,T,T,_,
+  _,_,_,K,S,S,K,_,_,K,K,K,K,K,K,K,_,
+  _,_,K,C,C,K,_,_,_,_,_,_,_,_,_,_,
+  _,_,K,C,C,K,_,_,_,_,_,W,_,W,_,_,  // wheels offset
+  _,_,K,S,S,K,_,_,_,_,_,_,_,_,_,_,
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
 ];
 
 // ── Read (seated) frames ──────────────────────────────────────────────────
 const READ_0: number[] = [
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
-  _,_,_,_,_,_,H,H,H,H,_,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,S,B,B,B,B,B,B,B,B,S,_,_,_,
-  _,_,_,S,B,B,B,B,B,B,B,B,S,_,_,_,
-  _,_,_,S,B,B,B,B,B,B,B,B,S,_,_,_,
-  _,_,_,C,C,C,C,C,C,C,C,C,C,_,_,_,
-  _,_,_,C,C,_,_,C,C,_,_,C,C,_,_,_,
-  _,_,_,S,S,_,_,S,S,_,_,S,S,_,_,_,
-  _,_,_,S,S,_,_,S,S,_,_,S,S,_,_,_,
+  _,_,_,_,K,K,K,K,K,K,K,_,_,_,_,_,
+  _,_,_,_,K,H,H,H,H,H,H,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,K,K,H,H,H,H,H,H,K,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,K,S,B,B,B,B,B,B,B,B,S,K,_,_,
+  _,_,K,S,B,B,B,B,B,B,B,B,S,K,_,_,
+  _,_,K,S,B,B,B,B,B,B,B,B,S,K,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,_,K,C,K,_,K,C,K,_,K,C,K,_,_,
+  _,_,_,K,S,K,_,K,S,K,_,K,S,K,_,_,
+  _,_,_,K,S,K,_,K,S,K,_,K,S,K,_,_,
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
 ];
 
 const READ_1: number[] = [
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
-  _,_,_,_,_,_,H,H,H,H,_,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,S,S,S,S,S,S,_,_,_,_,_,
-  _,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_,
-  _,_,_,_,C,C,C,C,C,C,C,C,_,_,_,_,
-  _,_,_,S,B,B,B,B,B,B,B,B,S,_,_,_,
-  _,_,_,S,B,B,B,B,B,B,B,B,S,_,_,_,
-  _,_,S,S,B,B,B,B,B,B,B,B,S,S,_,_,  // wider open book
-  _,_,_,C,C,C,C,C,C,C,C,C,C,_,_,_,
-  _,_,_,C,C,_,_,C,C,_,_,C,C,_,_,_,
-  _,_,_,S,S,_,_,S,S,_,_,S,S,_,_,_,
-  _,_,_,S,S,_,_,S,S,_,_,S,S,_,_,_,
+  _,_,_,_,K,K,K,K,K,K,K,_,_,_,_,_,
+  _,_,_,_,K,H,H,H,H,H,H,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,_,K,S,S,S,S,S,S,K,_,_,_,_,
+  _,_,_,K,K,H,H,H,H,H,H,K,K,_,_,_,
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,K,S,B,B,B,B,B,B,B,B,S,K,_,_,
+  _,_,K,S,B,B,B,B,B,B,B,B,S,K,_,_,
+  _,K,S,S,B,B,B,B,B,B,B,B,S,S,K,_,  // wider open book
+  _,_,_,K,C,C,C,C,C,C,C,C,K,_,_,_,
+  _,_,_,K,C,K,_,K,C,K,_,K,C,K,_,_,
+  _,_,_,K,S,K,_,K,S,K,_,K,S,K,_,_,
+  _,_,_,K,S,K,_,K,S,K,_,K,S,K,_,_,
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
   _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
 ];
@@ -173,11 +177,11 @@ function buildPalette(accentColor: string): Record<number, [number,number,number
   const [ar,ag,ab] = cssColorToRgb(accentColor);
   return {
     1: [210,175,140,255],  // skin
-    2: [40, 28, 18, 255],  // hair / dark
-    3: [ar, ag, ab, 255],  // clothing = accent
+    2: [40,  28,  18,255], // hair
+    3: [ar,  ag,  ab,255], // clothing = accent
     4: [232,223,200,255],  // book pages
-    5: [60, 45, 30, 200],  // shadow
-    6: [30, 22, 14, 255],  // very dark
+    5: [140,110, 75,255],  // luggage body (warm tan)
+    6: [22,  15,   8,255], // outline / wheels (near-black)
   };
 }
 

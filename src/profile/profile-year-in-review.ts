@@ -144,7 +144,9 @@ export class ProfileAnnualShelf {
               ` : ''}
               <span id="profAnnualCounter" class="prof-rhythm__meta"></span>
               ${top10.length >= 2 ? `
-                <button class="booklist-play-btn" id="profAnnualPlayBtn" type="button">Play</button>
+                <button class="booklist-play-btn booklist-play-btn--icon" id="profAnnualPlayBtn" type="button" aria-label="Play annual shelf">
+                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>
+                </button>
               ` : ''}
             </div>
           </div>
@@ -330,7 +332,7 @@ export class ProfileAnnualShelf {
 
     this.state.isAnimating = true;
     playBtn.disabled = true;
-    playBtn.textContent = 'Playing...';
+    playBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>';
 
     // Reset racks + source shelf
     this.renderRacks(top10);
@@ -396,7 +398,7 @@ export class ProfileAnnualShelf {
 
     if (stage) stage.classList.add('is-idle');
     playBtn.disabled = false;
-    playBtn.textContent = 'Replay';
+    playBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>';
     this.state.isAnimating = false;
 
     // Keep No.1 book on stage

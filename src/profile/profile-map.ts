@@ -16,6 +16,8 @@ interface ProfileBook {
   spine: string;
   status?: string;
   finishedAt?: number;
+  userNote?: string;
+  coverSrc?: string;
   geo?: {
     authorOrigin?: { country: string; city?: string };
     contentLocation?: { country: string; city?: string };
@@ -197,6 +199,7 @@ export class ProfileMap {
   private pointSeries: any = null;
   private avatar: PixelAvatar | null = null;
   private avatarWrap: HTMLElement | null = null;
+  private bubbleEl: HTMLElement | null = null;
   private events: JourneyEvent[] = [];
   private activeIdx = 0;
   private playing = false;
@@ -239,11 +242,12 @@ export class ProfileMap {
 
       this.chart = this.root.container.children.push(am5map.MapChart.new(this.root, {
         projection: am5map.geoNaturalEarth1(),
-        panX: 'none',
-        panY: 'none',
-        wheelY: 'none',
+        panX: 'translateX',
+        panY: 'translateY',
+        wheelY: 'zoom',
+        pinchZoom: true,
         minZoomLevel: 1,
-        maxZoomLevel: 1,
+        maxZoomLevel: 32,
         background: am5.Rectangle.new(this.root, {
           fill: am5.color(WATER_FILL),
           fillOpacity: 1,
@@ -339,6 +343,14 @@ export class ProfileMap {
       this.renderStatic();
       this.syncPlayButton();
     });
+
+    // Zoom buttons (siblings of mapEl inside .prof-map-wrap)
+    const wrap = this.mapEl.parentElement;
+    wrap?.querySelector('#profMapZoomIn')?.addEventListener('click', () => this.chart?.zoomIn());
+    wrap?.querySelector('#profMapZoomOut')?.addEventListener('click', () => this.chart?.zoomOut());
+    wrap?.querySelector('#profMapZoomFit')?.addEventListener('click', () => {
+      this.chart?.goHome();
+    });
   }
 
   private ensureId(): string {
@@ -347,12 +359,70 @@ export class ProfileMap {
   }
 
   private buildAvatar(): void {
+    this.mapEl.style.position = 'relative';
+
+    // bubble lives directly in mapEl so it's never clipped by avatarWrap
+    this.bubbleEl = document.createElement('div');
+    this.bubbleEl.className = 'prof-map-bubble';
+    this.bubbleEl.setAttribute('aria-hidden', 'true');
+    this.bubbleEl.innerHTML = `
+      <span class="prof-map-bubble__place"></span>
+      <span class="prof-map-bubble__note"></span>
+    `;
+    this.mapEl.appendChild(this.bubbleEl);
+
     this.avatarWrap = document.createElement('div');
     this.avatarWrap.className = 'prof-map-avatar';
-    this.mapEl.style.position = 'relative';
     this.mapEl.appendChild(this.avatarWrap);
+
     this.avatar = new PixelAvatar({ state: 'read', scale: 3 });
     this.avatar.mount(this.avatarWrap);
+  }
+
+  private updateBubble(event: JourneyEvent | null, traveling: boolean): void {
+    if (!this.bubbleEl) return;
+
+    if (traveling || !event) {
+      this.bubbleEl.classList.remove('is-visible');
+      return;
+    }
+
+    const placeEl = this.bubbleEl.querySelector<HTMLElement>('.prof-map-bubble__place');
+    const noteEl  = this.bubbleEl.querySelector<HTMLElement>('.prof-map-bubble__note');
+
+    if (placeEl) placeEl.textContent = countryName(event.country);
+    if (noteEl) {
+      noteEl.textContent = event.book.userNote || '';
+      noteEl.style.display = event.book.userNote ? '' : 'none';
+    }
+
+    this.bubbleEl.classList.add('is-visible');
+    this.positionBubble();
+  }
+
+  private positionBubble(): void {
+    if (!this.bubbleEl || !this.avatarWrap) return;
+    const mapRect = this.mapEl.getBoundingClientRect();
+    const avatarRect = this.avatarWrap.getBoundingClientRect();
+    const bubbleW = 140;
+    const bubbleH = this.bubbleEl.offsetHeight || 52;
+    const gap = 6;
+    const avatarCx = avatarRect.left - mapRect.left + avatarRect.width / 2;
+    const avatarTop = avatarRect.top - mapRect.top;
+
+    // horizontal: clamp so bubble stays inside map
+    let left = avatarCx - bubbleW / 2;
+    left = Math.max(8, Math.min(left, mapRect.width - bubbleW - 8));
+
+    // vertical: prefer above avatar; flip below if clipped at top
+    let top = avatarTop - bubbleH - gap;
+    if (top < 8) top = avatarTop + avatarRect.height + gap;
+
+    this.bubbleEl.style.left = `${left}px`;
+    this.bubbleEl.style.top  = `${top}px`;
+
+    // tail direction hint
+    this.bubbleEl.classList.toggle('is-below', top > avatarTop);
   }
 
   private renderRail(): void {
@@ -378,6 +448,7 @@ export class ProfileMap {
     this.activeLineSeries?.data.clear();
 
     if (!this.events.length) {
+      this.updateBubble(null, false);
       this.updateCaption(null, false, null);
       return;
     }
@@ -403,6 +474,7 @@ export class ProfileMap {
     this.avatar?.setState('read');
     this.avatar?.setAccentColor(active.book.spine);
     this.lightCountries(this.activeIdx, active.country);
+    this.updateBubble(active, false);
     this.updateCaption(active, false, previous);
     this.renderRail();
   }
@@ -460,12 +532,12 @@ export class ProfileMap {
 
     if (!sameCountry && elapsed < this.TRAVEL_MS) {
       const progress = this.easeInOut(elapsed / this.TRAVEL_MS);
-      const lat = from.lat + (to.lat - from.lat) * progress;
-      const lng = from.lng + (to.lng - from.lng) * progress;
+      const [lat, lng] = this.geodesicInterp(from.lat, from.lng, to.lat, to.lng, progress);
       this.avatar?.setState('walk');
       this.avatar?.setAccentColor(to.book.spine);
       this.placeAvatar(lat, lng);
       this.lightCountries(this.segFrom, to.country);
+      this.updateBubble(to, true);
       this.updateCaption(to, true, from);
       this.rafId = requestAnimationFrame(this.tick);
       return;
@@ -475,6 +547,7 @@ export class ProfileMap {
     this.avatar?.setAccentColor(to.book.spine);
     this.placeAvatar(to.lat, to.lng);
     this.lightCountries(this.segTo, to.country);
+    this.updateBubble(to, false);
     this.updateCaption(to, false, from);
 
     if (elapsed < totalMs) {
@@ -500,6 +573,45 @@ export class ProfileMap {
 
   private easeInOut(t: number): number {
     return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+  }
+
+  // Spherical linear interpolation between two lat/lng points (great-circle arc).
+  // Matches amCharts MapLineSeries geodesic path so the avatar tracks the dashed line.
+  private geodesicInterp(
+    fromLat: number, fromLng: number,
+    toLat: number,   toLng: number,
+    t: number,
+  ): [number, number] {
+    const toRad = (d: number) => d * Math.PI / 180;
+    const toDeg = (r: number) => r * 180 / Math.PI;
+    const φ1 = toRad(fromLat), λ1 = toRad(fromLng);
+    const φ2 = toRad(toLat),   λ2 = toRad(toLng);
+
+    // Convert to unit-sphere Cartesian
+    const x1 = Math.cos(φ1) * Math.cos(λ1), y1 = Math.cos(φ1) * Math.sin(λ1), z1 = Math.sin(φ1);
+    const x2 = Math.cos(φ2) * Math.cos(λ2), y2 = Math.cos(φ2) * Math.sin(λ2), z2 = Math.sin(φ2);
+
+    const dot = Math.min(1, x1*x2 + y1*y2 + z1*z2);
+    const omega = Math.acos(dot);
+
+    let x: number, y: number, z: number;
+    if (Math.abs(omega) < 1e-10) {
+      // points are (nearly) identical — lerp
+      x = x1 + (x2 - x1) * t;
+      y = y1 + (y2 - y1) * t;
+      z = z1 + (z2 - z1) * t;
+    } else {
+      const s = Math.sin(omega);
+      const a = Math.sin((1 - t) * omega) / s;
+      const b = Math.sin(t * omega) / s;
+      x = a * x1 + b * x2;
+      y = a * y1 + b * y2;
+      z = a * z1 + b * z2;
+    }
+
+    const lat = toDeg(Math.asin(Math.max(-1, Math.min(1, z))));
+    const lng = toDeg(Math.atan2(y, x));
+    return [lat, lng];
   }
 
   private placeAvatar(lat: number, lng: number): void {
@@ -540,39 +652,35 @@ export class ProfileMap {
     });
   }
 
-  private updateCaption(event: JourneyEvent | null, traveling: boolean, from: JourneyEvent | null): void {
+  private updateCaption(event: JourneyEvent | null, traveling: boolean, _from: JourneyEvent | null): void {
     if (!this.captionEl) return;
     if (!event) {
       this.captionEl.innerHTML = '<p class="prof-map-caption__empty">No mapped arrivals yet.</p>';
       return;
     }
 
-    const eventIndex = this.events.indexOf(event);
-    const visitCount = this.events
-      .slice(0, eventIndex >= 0 ? eventIndex + 1 : this.activeIdx + 1)
-      .filter((item) => item.country === event.country)
-      .length;
-    const routeLabel = !from
-      ? 'First mapped arrival'
-      : from.country === event.country
-        ? `Stayed in ${countryName(event.country)}`
-        : `${countryName(from.country)} → ${countryName(event.country)}`;
-    const visitLabel = visitCount > 1 ? `Return visit ${visitCount}` : 'First visit';
+    const coverStyle = event.book.coverSrc
+      ? `background-image:url('${esc(event.book.coverSrc)}');background-size:cover;background-position:center;`
+      : `background:${esc(event.book.spine)};`;
 
     this.captionEl.innerHTML = `
-      <span class="prof-map-caption__eyebrow">${traveling ? 'Traveling' : 'Arrived'} · ${esc(event.reason)}</span>
-      <strong class="prof-map-caption__title">${esc(event.book.title)}</strong>
-      <span class="prof-map-caption__author">${esc(event.book.author)}</span>
-      <span class="prof-map-caption__route">${esc(routeLabel)} · ${esc(visitLabel)}</span>
-      <span class="prof-map-caption__place">${event.city ? `${esc(event.city)}, ` : ''}${esc(countryName(event.country))}</span>
-      <span class="prof-map-caption__stamp">${esc(event.stamp)}</span>
+      <div class="prof-map-caption__cover" style="${coverStyle}"></div>
+      <div class="prof-map-caption__info">
+        <strong class="prof-map-caption__title">${esc(event.book.title)}</strong>
+        <span class="prof-map-caption__author">${esc(event.book.author)}</span>
+        <span class="prof-map-caption__stamp">${esc(event.stamp)}</span>
+      </div>
     `;
   }
 
   private syncPlayButton(): void {
     if (!this.playBtn) return;
-    this.playBtn.textContent = this.playing ? 'Pause journey' : 'Play journey';
     this.playBtn.disabled = this.events.length <= 1;
+    this.playBtn.setAttribute('aria-label', this.playing ? 'Pause journey' : 'Play journey');
+    // swap ▶ / ⏸ SVG inner content
+    this.playBtn.innerHTML = this.playing
+      ? `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>`
+      : `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>`;
   }
 }
 

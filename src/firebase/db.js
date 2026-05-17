@@ -27,6 +27,7 @@ export const MarginaliaBooksCloud = (() => {
     return {
       enabled: false,
       async setBookCover() { throw new Error('Firebase auth is not enabled.'); },
+      async setUserNote()  { throw new Error('Firebase auth is not enabled.'); },
     };
   }
 
@@ -67,6 +68,15 @@ export const MarginaliaBooksCloud = (() => {
     window.dispatchEvent(new CustomEvent('marginalia:books-overrides-changed'));
   }
 
+  async function setUserNote({ bookId, userNote }) {
+    if (!state.uid)  throw new Error('User is not signed in.');
+    if (!bookId)     throw new Error('bookId is required.');
+    const docRef = booksCollectionRef().doc(bookId);
+    const raw = { userNote: String(userNote ?? '').slice(0, 280) };
+    const payload = withMeta(validateWrite(BookSchema, raw));
+    await docRef.set(payload, { merge: true });
+  }
+
   function applyBookOverride(bookId, data) {
     const detail = SEED_BOOK_BY_ID[bookId];
     if (!detail) return;
@@ -89,7 +99,7 @@ export const MarginaliaBooksCloud = (() => {
     if (typeof state.unsubscribe === 'function') { state.unsubscribe(); state.unsubscribe = null; }
   }
 
-  return { get enabled() { return state.enabled; }, setBookCover };
+  return { get enabled() { return state.enabled; }, setBookCover, setUserNote };
 })();
 
 

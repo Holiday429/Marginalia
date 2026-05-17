@@ -268,6 +268,26 @@ async function enterBook(params = {}) {
     });
   });
 
+  // Save userNote on blur (debounced)
+  const userNoteInput = root.querySelector('[data-user-note-input]');
+  const userNoteStatus = root.querySelector('[data-user-note-status]');
+  if (userNoteInput && MarginaliaBooksCloud?.enabled) {
+    let noteTimer = null;
+    userNoteInput.addEventListener('input', () => {
+      if (userNoteStatus) userNoteStatus.textContent = '';
+      clearTimeout(noteTimer);
+      noteTimer = setTimeout(async () => {
+        try {
+          await MarginaliaBooksCloud.setUserNote({ bookId: id, userNote: userNoteInput.value.trim() });
+          if (userNoteStatus) userNoteStatus.textContent = 'Saved';
+        } catch (err) {
+          logError(err, { context: 'book userNote save', bookId: id });
+          if (userNoteStatus) userNoteStatus.textContent = 'Save failed';
+        }
+      }, 800);
+    });
+  }
+
   // Delete book (user-created books only)
   const deleteBtn = root.querySelector('[data-delete-book]');
   if (deleteBtn) {
@@ -441,6 +461,18 @@ function renderOverview(b) {
                 <span class="meta-k">${r.k}</span>
                 <span class="meta-v">${r.v}</span>
               </div>`).join('')}
+          </div>
+          <div class="book-user-note-block">
+            <label class="book-user-note-label" for="book-user-note-${esc(b.id)}">My take</label>
+            <textarea
+              id="book-user-note-${esc(b.id)}"
+              class="book-user-note-input"
+              data-user-note-input
+              maxlength="280"
+              placeholder="One sentence that captures what this book meant to you…"
+              rows="2"
+            >${esc(b.userNote || '')}</textarea>
+            <span class="book-user-note-status" data-user-note-status></span>
           </div>
           ${isUserBook(b) ? `<button class="book-delete-btn" type="button" data-delete-book="${esc(b.id)}">Remove book</button>` : ''}
         </div>

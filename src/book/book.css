@@ -312,6 +312,47 @@
 }
 
 /* Delete book (user-created only) */
+.book-user-note-block {
+  margin: 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.book-user-note-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.book-user-note-input {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-1);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  padding: 6px 0;
+  resize: none;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.book-user-note-input:focus {
+  border-bottom-color: var(--color-accent-gold);
+}
+.book-user-note-input::placeholder {
+  color: var(--text-3);
+  font-style: italic;
+}
+.book-user-note-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  min-height: 14px;
+}
+
 .book-delete-btn {
   margin-top: 20px;
   font-family: var(--font-mono);
