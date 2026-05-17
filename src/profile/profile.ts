@@ -4,6 +4,8 @@ import { renderProfileSettings } from './profile-settings.ts';
 import { ProfileMap } from './profile-map.ts';
 import { ProfileAnnualShelf } from './profile-year-in-review.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
+import { MarginaliaAI } from '../services/ai-gateway.ts';
+import { AIFeatureRegistry } from '../ai/features/registry.js';
 import { ENV } from '../core/env.ts';
 import { BooksStore } from '../store/books-store.ts';
 import './profile.css';
@@ -261,13 +263,32 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
     const uid: string | null = auth.user?.uid ?? null;
     const db = auth.db;
     if (db && uid) return enterProfile({ _uid: uid, _preview: true });
+    // Unauthenticated: render demo immediately, no loading screen
     const demo = buildDemoPayload();
     renderResolvedProfile(container, demo.profile, demo.books, demo.highlights, demo.sessionDays, false, true);
     logEvent('profile_viewed', { slug: 'demo-preview' });
     return;
   }
 
-  container.innerHTML = loadingShellHTML(showSettingsAction);
+  // Owner preview (_uid set): render demo shell immediately so there's no black flash,
+  // then swap in real data once the Firestore fetch completes.
+  if (params._uid) {
+    const demo = buildDemoPayload();
+    const auth = MarginaliaAuth as any;
+    const tentativeProfile: PublicProfileData = {
+      uid: params._uid,
+      slug: auth.user?.settings?.slug ?? '',
+      profilePublic: false,
+      displayName: capitalizeWords(String(auth.user?.displayName || auth.user?.email || 'Reader').split('@')[0]),
+      avatarUrl: undefined,
+      bio: undefined,
+      showMap: true,
+      showPortrait: false,
+      showRhythm: true,
+      showDesk: true,
+    };
+    renderResolvedProfile(container, tentativeProfile, demo.books, demo.highlights, demo.sessionDays, true, true);
+  }
 
   const db = getDb();
   if (!db) {
@@ -308,7 +329,10 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logError(error instanceof Error ? error : new Error(message), { context: 'enterProfile' });
-    container.innerHTML = stateShellHTML('Something went wrong', message, showSettingsAction);
+    // If we already painted a shell, don't replace with an error — just log
+    if (!params._uid) {
+      container.innerHTML = stateShellHTML('Something went wrong', message, showSettingsAction);
+    }
   }
 }
 
@@ -481,6 +505,10 @@ function settingsShellHTML(): string {
   `);
 }
 
+function capitalizeWords(name: string): string {
+  return name.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function profileHTML(
   profile: PublicProfileData,
   books: PublicBook[],
@@ -489,11 +517,24 @@ function profileHTML(
   isOwner: boolean,
   showSettingsAction: boolean,
 ): string {
-  const avatar = profile.avatarUrl
-    ? `<img class="prof-avatar" src="${escapeHtml(profile.avatarUrl)}" alt="${escapeHtml(profile.displayName)}" loading="lazy">`
-    : `<div class="prof-avatar prof-avatar--initials" aria-hidden="true">${escapeHtml((profile.displayName || '?').slice(0, 2).toUpperCase())}</div>`;
+  const auth = MarginaliaAuth as any;
+  const authPhotoURL: string = auth.user?.photoURL ?? '';
+  const avatarSrc = profile.avatarUrl || authPhotoURL;
+  const displayName = capitalizeWords(profile.displayName);
 
-  const identityLine = buildIdentityLine(books);
+  let avatarEl: string;
+  if (avatarSrc) {
+    const imgTag = `<img class="prof-avatar" src="${escapeHtml(avatarSrc)}" alt="${escapeHtml(displayName)}" loading="lazy">`;
+    avatarEl = isOwner
+      ? `<label class="prof-avatar-upload" title="Change photo" aria-label="Change profile photo">${imgTag}<input type="file" class="prof-avatar-file-input" accept="image/*" aria-hidden="true"></label>`
+      : imgTag;
+  } else {
+    const initials = escapeHtml((displayName || '?').slice(0, 2).toUpperCase());
+    const initialsDiv = `<div class="prof-avatar prof-avatar--initials" aria-hidden="true">${initials}</div>`;
+    avatarEl = isOwner
+      ? `<label class="prof-avatar-upload" title="Change photo" aria-label="Change profile photo">${initialsDiv}<input type="file" class="prof-avatar-file-input" accept="image/*" aria-hidden="true"></label>`
+      : initialsDiv;
+  }
 
   const header = profileHeaderHTML(showSettingsAction);
 
@@ -557,15 +598,17 @@ function profileHTML(
     <div class="prof-shell">
       <div class="prof-shell__inner">
         <header class="prof-identity">
-          <div class="prof-identity__media">${avatar}</div>
-          <div class="prof-identity__copy">
-            ${isOwner ? '<span class="prof-kicker">Reading identity</span>' : ''}
-            <h1 class="prof-name">${escapeHtml(profile.displayName)}</h1>
-            ${profile.slug ? `<p class="prof-slug">marginalia.app/#/p/${escapeHtml(profile.slug)}</p>` : ''}
-            ${profile.bio ? `<p class="prof-bio">${escapeHtml(profile.bio)}</p>` : ''}
-            <p class="prof-identity__line">${escapeHtml(identityLine)}</p>
+          <div class="prof-identity__card">
+            <div class="prof-identity__media">${avatarEl}</div>
+            <div class="prof-identity__copy">
+              <h1 class="prof-name">${escapeHtml(displayName)}</h1>
+              ${profile.slug ? `<p class="prof-slug">marginalia.app/#/p/${escapeHtml(profile.slug)}</p>` : ''}
+              ${profile.bio ? `<p class="prof-bio">${escapeHtml(profile.bio)}</p>` : ''}
+            </div>
           </div>
         </header>
+
+        <div id="profIdentityMount"></div>
 
         ${mapSection}
         ${annualSection}
@@ -591,6 +634,47 @@ function bindProfileEvents(
   _books: PublicBook[],
 ): void {
   bindMapPills(container);
+  bindAvatarUpload(container);
+}
+
+function bindAvatarUpload(container: HTMLElement): void {
+  const fileInput = container.querySelector<HTMLInputElement>('.prof-avatar-file-input');
+  if (!fileInput) return;
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (!dataUrl) return;
+      const img = container.querySelector<HTMLImageElement>('.prof-avatar-upload .prof-avatar');
+      if (img) {
+        img.src = dataUrl;
+      } else {
+        const wrap = container.querySelector<HTMLElement>('.prof-avatar-upload');
+        if (wrap) {
+          const existingDiv = wrap.querySelector<HTMLElement>('.prof-avatar--initials');
+          if (existingDiv) {
+            const newImg = document.createElement('img');
+            newImg.className = 'prof-avatar';
+            newImg.alt = '';
+            newImg.src = dataUrl;
+            wrap.replaceChild(newImg, existingDiv);
+          }
+        }
+      }
+      try {
+        const auth = MarginaliaAuth as any;
+        const db = auth.db;
+        const uid = auth.user?.uid;
+        if (db && uid) {
+          db.doc(`users/${uid}`).set({ avatarUrl: dataUrl }, { merge: true }).catch(() => {});
+        }
+      } catch { /* best-effort */ }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function bindMapPills(container: HTMLElement): void {
@@ -643,6 +727,9 @@ function mountSections(
     const portraitEl = container.querySelector<HTMLElement>('#profPortraitMount');
     if (portraitEl) renderPortrait(portraitEl, books, highlights);
   }
+
+  const identityEl = container.querySelector<HTMLElement>('#profIdentityMount');
+  if (identityEl) mountReadingIdentity(identityEl, books, highlights, sessionDays, profile, isOwner);
 }
 
 function renderPortrait(container: HTMLElement, _books: PublicBook[], _highlights: PublicHighlight[]): void {
@@ -887,6 +974,290 @@ function toTimestamp(value: unknown): number {
     if (Number.isFinite(parsed)) return parsed;
   }
   return 0;
+}
+
+// ─── Reading Identity section ────────────────────────────────────────────────
+
+interface IdentityResult {
+  readerType: string;
+  portrait: string;
+  traits: Array<{ label: string; description: string }>;
+  promptVersion: string;
+  generatedAt: number;
+}
+
+const IDENTITY_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function mountReadingIdentity(
+  host: HTMLElement,
+  books: PublicBook[],
+  highlights: PublicHighlight[],
+  sessionDays: SessionDay[],
+  profile: PublicProfileData,
+  isOwner: boolean,
+): void {
+  const db = getDb();
+
+  if (!db || !profile.uid) {
+    host.innerHTML = '';
+    return;
+  }
+
+  const wsId: string = ENV.WORKSPACE_ID || 'default';
+  const docRef = db.doc(`workspaces/${wsId}/users/${profile.uid}/ai_results/reader-identity`);
+
+  host.innerHTML = identityLoadingHTML();
+
+  docRef.get().then((snap: any) => {
+    if (snap.exists) {
+      const data = snap.data() as Record<string, any>;
+      const result: IdentityResult = (data.userEdited ?? data.original) as IdentityResult;
+      const isStale = !result?.generatedAt || (Date.now() - result.generatedAt) > IDENTITY_STALE_MS;
+
+      if (result?.readerType && result?.portrait) {
+        host.innerHTML = identityHTML(result, isOwner && isStale);
+        if (isOwner && isStale) bindIdentityRegenerate(host, books, highlights, sessionDays, docRef, isOwner);
+        return;
+      }
+    }
+
+    if (isOwner) {
+      host.innerHTML = identityEmptyHTML();
+      bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
+    } else {
+      host.innerHTML = '';
+    }
+  }).catch(() => {
+    host.innerHTML = '';
+  });
+}
+
+function buildIdentityLibraryPayload(
+  books: PublicBook[],
+  highlights: PublicHighlight[],
+  sessionDays: SessionDay[],
+): Record<string, unknown> {
+  const finishedBooks = books.filter((b) => isFinishedStatus(b.status));
+  // Fall back to demo books so generation always has material to work with
+  const effectiveBooks = finishedBooks.length >= 3
+    ? finishedBooks
+    : [...finishedBooks, ...DEMO_BOOKS.filter((d) => !finishedBooks.find((b) => b.id === d.id))].slice(0, 30);
+
+  const totalMinutes = sessionDays.reduce((sum, d) => sum + d.minutes, 0);
+  const activeDays = sessionDays.filter((d) => d.minutes > 0).length;
+  const peakMonth = (() => {
+    const byMonth = new Map<string, number>();
+    sessionDays.forEach((d) => {
+      const m = d.date.slice(0, 7);
+      byMonth.set(m, (byMonth.get(m) ?? 0) + d.minutes);
+    });
+    let best = ''; let bestVal = 0;
+    byMonth.forEach((v, k) => { if (v > bestVal) { best = k; bestVal = v; } });
+    return best;
+  })();
+
+  const rhythmNote = [
+    finishedBooks.length ? `${finishedBooks.length} books finished` : '',
+    totalMinutes ? `${Math.round(totalMinutes / 60)} hours of reading logged` : '',
+    activeDays ? `active on ${activeDays} days` : '',
+    peakMonth ? `most active in ${peakMonth}` : '',
+  ].filter(Boolean).join(', ');
+
+  return {
+    books: effectiveBooks.slice(0, 60).map((b) => ({
+      title: b.title,
+      author: b.author,
+      genre: b.genre,
+      language: b.language,
+      year: b.year,
+    })),
+    highlightSample: highlights.slice(0, 20).map((h) => ({ quote: h.quote, bookTitle: h.bookTitle })),
+    rhythmNote,
+  };
+}
+
+function triggerIdentityGeneration(
+  host: HTMLElement,
+  books: PublicBook[],
+  highlights: PublicHighlight[],
+  sessionDays: SessionDay[],
+  docRef: any,
+  isOwner: boolean,
+): void {
+  host.innerHTML = identityGeneratingHTML();
+
+  const featureId = 'reader-identity';
+  const library = buildIdentityLibraryPayload(books, highlights, sessionDays);
+  const prompt = AIFeatureRegistry.buildPrompt(featureId, library);
+  if (!prompt) {
+    host.innerHTML = identityErrorHTML('Prompt not loaded yet — try again in a moment.');
+    return;
+  }
+
+  let errored = false;
+  (MarginaliaAI as any).generateJSON({
+    featureId,
+    prompt,
+    onError(err: Error) {
+      errored = true;
+      const msg = err.message || 'Generation failed — please try again.';
+      host.innerHTML = identityErrorHTML(msg);
+      bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
+    },
+  }).then((result: unknown) => {
+    if (errored) return;
+    if (!result || typeof result !== 'object') {
+      host.innerHTML = identityErrorHTML('Could not generate identity — please try again.');
+      bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
+      return;
+    }
+    const typed = result as IdentityResult;
+    typed.generatedAt = Date.now();
+    docRef.set({ original: typed }, { merge: true }).catch(() => {});
+    logEvent('ai_generated', { featureId });
+    host.innerHTML = identityHTML(typed, false);
+  });
+}
+
+function bindIdentityGenerate(
+  host: HTMLElement,
+  books: PublicBook[],
+  highlights: PublicHighlight[],
+  sessionDays: SessionDay[],
+  docRef: any,
+  isOwner: boolean,
+): void {
+  host.querySelector<HTMLButtonElement>('#profIdentityGenerateBtn')?.addEventListener('click', () => {
+    triggerIdentityGeneration(host, books, highlights, sessionDays, docRef, isOwner);
+  });
+}
+
+function bindIdentityRegenerate(
+  host: HTMLElement,
+  books: PublicBook[],
+  highlights: PublicHighlight[],
+  sessionDays: SessionDay[],
+  docRef: any,
+  isOwner: boolean,
+): void {
+  host.querySelector<HTMLButtonElement>('#profIdentityRegenBtn')?.addEventListener('click', () => {
+    triggerIdentityGeneration(host, books, highlights, sessionDays, docRef, isOwner);
+  });
+}
+
+function identityLoadingHTML(): string {
+  return `
+    <section class="prof-identity-section" aria-label="Reading Identity">
+      <div class="prof-identity-section__loading">
+        <span class="prof-loading__dot"></span>
+      </div>
+    </section>
+  `;
+}
+
+function identityEmptyHTML(): string {
+  return `
+    <section class="prof-identity-section" aria-label="Reading Identity">
+      <div class="prof-section__head">
+        <h2 class="prof-section__title">Reading Identity</h2>
+      </div>
+      <div class="prof-identity-section__empty">
+        <p class="prof-identity-section__empty-label">Your reading identity, as seen by an outside eye</p>
+        <p class="prof-identity-section__empty-hint">Based on your library and margin notes, a short portrait of how you read — what draws you, what you avoid, what the pattern reveals.</p>
+        <button class="prof-identity-section__generate-btn" id="profIdentityGenerateBtn" type="button">
+          Generate my reading identity
+        </button>
+      </div>
+    </section>
+  `;
+}
+
+function identityGeneratingHTML(): string {
+  return `
+    <section class="prof-identity-section" aria-label="Reading Identity">
+      <div class="prof-section__head">
+        <h2 class="prof-section__title">Reading Identity</h2>
+      </div>
+      <div class="prof-identity-section__empty prof-identity-section__empty--generating">
+        <div class="prof-identity-section__book-anim" aria-hidden="true">
+          <div class="prof-identity-section__book">
+            <div class="prof-identity-section__page prof-identity-section__page--1"></div>
+            <div class="prof-identity-section__page prof-identity-section__page--2"></div>
+            <div class="prof-identity-section__page prof-identity-section__page--3"></div>
+          </div>
+        </div>
+        <span class="prof-identity-section__generating-text">Reading your library…</span>
+      </div>
+    </section>
+  `;
+}
+
+function identityErrorHTML(message: string): string {
+  return `
+    <section class="prof-identity-section" aria-label="Reading Identity">
+      <div class="prof-section__head">
+        <h2 class="prof-section__title">Reading Identity</h2>
+      </div>
+      <div class="prof-identity-section__empty">
+        <p class="prof-identity-section__empty-label">Something went wrong</p>
+        <p class="prof-identity-section__empty-hint">${escapeHtml(message)}</p>
+        <button class="prof-identity-section__generate-btn" id="profIdentityGenerateBtn" type="button">
+          Try again
+        </button>
+      </div>
+    </section>
+  `;
+}
+
+function identityHTML(result: IdentityResult, showRegen: boolean): string {
+  const traits = (result.traits ?? []).slice(0, 3);
+
+  const traitsHTML = traits.length ? `
+    <div class="prof-identity-section__traits">
+      ${traits.map((t) => `
+        <div class="prof-identity-section__trait">
+          <span class="prof-identity-section__trait-label">${escapeHtml(t.label)}</span>
+          <p class="prof-identity-section__trait-desc">${escapeHtml(t.description)}</p>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const regenBtn = showRegen ? `
+    <button class="prof-identity-section__regen-btn" id="profIdentityRegenBtn" type="button" aria-label="Refresh reading identity">
+      Refresh
+    </button>
+  ` : '';
+
+  const generatedDate = result.generatedAt
+    ? new Date(result.generatedAt).toLocaleDateString('en', { month: 'long', year: 'numeric' })
+    : '';
+
+  return `
+    <section class="prof-identity-section" aria-label="Reading Identity">
+      <div class="prof-section__head">
+        <h2 class="prof-section__title">Reading Identity</h2>
+      </div>
+      <div class="prof-identity-section__inner">
+
+        <div class="prof-identity-section__type-row">
+          <p class="prof-identity-section__type">${escapeHtml(result.readerType)}</p>
+          <div class="prof-identity-section__meta-row">
+            <span class="prof-identity-section__ai-badge">
+              <span class="prof-identity-section__ai-dot" aria-hidden="true"></span>
+              AI portrait${generatedDate ? ` · ${generatedDate}` : ''}
+            </span>
+            ${regenBtn}
+          </div>
+        </div>
+
+        <p class="prof-identity-section__portrait">${escapeHtml(result.portrait)}</p>
+
+        ${traitsHTML}
+
+      </div>
+    </section>
+  `;
 }
 
 function renderProfileHeader(activeView: string, options: { actionLabel?: string; actionId?: string; rightHTML?: string } = {}): string {

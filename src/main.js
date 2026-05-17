@@ -56,6 +56,8 @@ import './ai/features/prompts/concept-cards.js';
 import './ai/features/prompts/argument-breakdown.js';
 import './ai/features/prompts/timeline-gen.js';
 import './ai/features/prompts/action-suggest.js';
+import './ai/features/prompts/reader-portrait.js';
+import './ai/features/prompts/reader-identity.js';
 
 // 6b. Panel scripts
 import './book/panels/notes.js';

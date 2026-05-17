@@ -86,7 +86,14 @@ export const AIFeatureRegistry = (() => {
       panel: 'reader-portrait',
       outputType: 'json',
       promptId: 'reader-portrait',
-      // Not gated by book type — applies to the full library, not a single book.
+      profileFeature: true,
+    },
+
+    'reader-identity': {
+      label: 'Generate reading identity',
+      panel: 'reader-identity',
+      outputType: 'json',
+      promptId: 'reader-identity',
       profileFeature: true,
     },
 

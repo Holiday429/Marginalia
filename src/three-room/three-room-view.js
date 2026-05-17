@@ -652,8 +652,9 @@ function syncRoomTitle() {
   }
 
   const parsedName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
-  const safeName = parsedName || 'Room';
-  const possessive = safeName.toLowerCase().endsWith('s') ? `${safeName}' Room` : `${safeName}'s Room`;
+  const firstName = parsedName.split(/\s+/)[0] || 'Room';
+  const capitalFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+  const possessive = capitalFirst.toLowerCase().endsWith('s') ? `${capitalFirst}' Room` : `${capitalFirst}'s Room`;
   title.textContent = possessive;
 }
 
