@@ -1,37 +1,38 @@
 /* Marginalia · Profile Map
-   Read-only amCharts 5 map for the public profile page.
-   Shows the user's reading journey by geographic dimension.
-   Reuses the same amCharts root already loaded in index.html.
-   No hover detail panel — just dot markers + animated pixel avatar traveler.
+   Event-driven reading journey for the profile page.
+   One completed book = one arrival event.
 */
 
 import { PixelAvatar } from '../components/pixel-avatar/pixel-avatar.js';
 import { logError } from '../services/analytics.ts';
 
-type GeoDim = 'authorOrigin' | 'contentLocation' | 'readerLocation';
+type GeoDim = 'journey' | 'authorOrigin' | 'contentLocation' | 'readerLocation';
+type LensDim = Exclude<GeoDim, 'journey'>;
 
 interface ProfileBook {
   id: string;
   title: string;
   author: string;
   spine: string;
-  geo?: {
-    authorOrigin?:    { country: string; city?: string };
-    contentLocation?: { country: string; city?: string };
-    readerLocation?:  { country: string; city?: string };
-  };
+  status?: string;
   finishedAt?: number;
+  geo?: {
+    authorOrigin?: { country: string; city?: string };
+    contentLocation?: { country: string; city?: string };
+    readerLocation?: { country: string; city?: string };
+  };
 }
 
-interface MapStop {
+interface JourneyEvent {
   book: ProfileBook;
   country: string;
   city?: string;
   lat: number;
   lng: number;
+  lens: LensDim;
+  reason: string;
+  stamp: string;
 }
-
-// ── Colour palette — mirrors map.js exactly ──────────────────────────────────
 
 const COUNTRY_COLOR: Record<string, string> = {
   US:'#4a5c3d', CA:'#3d4f5c', MX:'#5c4a3d',
@@ -88,27 +89,21 @@ const PALETTE = [
   '#5c3d3d','#3d5c4a','#5c503d','#4a3d5c','#3d5c5c',
 ];
 
-const WATER_FILL   = '#1a1714';
-const UNLIT_FILL   = '#3a2e22';   // default — all countries before avatar arrives
-const DIMMED_FILL  = '#2a2318';   // non-visited once journey starts
+const LENS_LABEL: Record<LensDim, string> = {
+  authorOrigin: 'Author came from',
+  contentLocation: 'Story world',
+  readerLocation: 'Read in',
+};
+const REGION_NAMES = typeof Intl !== 'undefined' && Intl.DisplayNames
+  ? new Intl.DisplayNames(['en'], { type: 'region' })
+  : null;
 
-function _hashStr(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return h;
-}
+const WATER_FILL = '#15120f';
+const UNLIT_FILL = '#32261d';
+const DIMMED_FILL = '#241d16';
+const HISTORICAL_LINE = '#8c6f4d';
+const ACTIVE_LINE = '#d8af68';
 
-function _baseColor(id: string): string {
-  return COUNTRY_COLOR[id] || PALETTE[Math.abs(_hashStr(id)) % PALETTE.length];
-}
-
-function _brighten(hex: string, amount: number): string {
-  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-  const clamp = (v: number) => Math.min(255, Math.max(0, v));
-  return '#' + [clamp(r+amount),clamp(g+amount),clamp(b+amount)].map(v=>v.toString(16).padStart(2,'0')).join('');
-}
-
-// Approximate country centroids (covers the most common author origins)
 const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   CN: [35.86, 104.19], US: [37.09, -95.71], GB: [55.37, -3.43],
   FR: [46.23,   2.21], DE: [51.16,  10.45], JP: [36.20, 138.25],
@@ -129,74 +124,119 @@ const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   GH: [7.95,  -1.02], ET: [9.14,  40.49], SN: [14.49, -14.45],
 };
 
+function hashStr(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index++) hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  return hash;
+}
+
+function baseColor(country: string): string {
+  return COUNTRY_COLOR[country] || PALETTE[Math.abs(hashStr(country)) % PALETTE.length];
+}
+
+function brighten(hex: string, amount: number): string {
+  const rgb = [hex.slice(1, 3), hex.slice(3, 5), hex.slice(5, 7)].map((part) => parseInt(part, 16));
+  const next = rgb.map((value) => Math.max(0, Math.min(255, value + amount)));
+  return `#${next.map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+}
+
 function getCoords(country: string): [number, number] | null {
   return COUNTRY_CENTROIDS[country] ?? null;
 }
 
-function buildStops(books: ProfileBook[], dim: GeoDim): MapStop[] {
-  const stops: MapStop[] = [];
-  const seen = new Set<string>();
-
-  const sorted = [...books].sort((a, b) => (a.finishedAt ?? 0) - (b.finishedAt ?? 0));
-  for (const book of sorted) {
-    const geoEntry = book.geo?.[dim];
-    if (!geoEntry?.country) continue;
-    const coords = getCoords(geoEntry.country);
-    if (!coords) continue;
-    const key = `${geoEntry.country}:${book.id}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    stops.push({ book, country: geoEntry.country, city: geoEntry.city, lat: coords[0], lng: coords[1] });
+function resolveLens(book: ProfileBook, dim: GeoDim): { geo: { country: string; city?: string }; lens: LensDim; reason: string } | null {
+  if (dim !== 'journey') {
+    const geo = book.geo?.[dim];
+    if (!geo?.country) return null;
+    return { geo, lens: dim, reason: LENS_LABEL[dim] };
   }
-  return stops;
+
+  const priority: LensDim[] = ['contentLocation', 'authorOrigin', 'readerLocation'];
+  for (const lens of priority) {
+    const geo = book.geo?.[lens];
+    if (geo?.country) return { geo, lens, reason: LENS_LABEL[lens] };
+  }
+  return null;
+}
+
+function buildEvents(books: ProfileBook[], dim: GeoDim): JourneyEvent[] {
+  return [...books]
+    .filter((book) => isFinishedStatus(book.status) && (book.finishedAt ?? 0) > 0)
+    .sort((a, b) => (a.finishedAt ?? 0) - (b.finishedAt ?? 0))
+    .map((book) => {
+      const lens = resolveLens(book, dim);
+      if (!lens) return null;
+      const coords = getCoords(lens.geo.country);
+      if (!coords) return null;
+      return {
+        book,
+        country: lens.geo.country,
+        city: lens.geo.city,
+        lat: coords[0],
+        lng: coords[1],
+        lens: lens.lens,
+        reason: lens.reason,
+        stamp: new Date(book.finishedAt ?? Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      } as JourneyEvent;
+    })
+    .filter((event): event is JourneyEvent => Boolean(event));
 }
 
 export class ProfileMap {
   private mapEl: HTMLElement;
   private captionEl: HTMLElement | null;
+  private railEl: HTMLElement | null;
+  private playBtn: HTMLButtonElement | null;
   private books: ProfileBook[];
-  private dim: GeoDim = 'authorOrigin';
+  private dim: GeoDim = 'journey';
   private root: any = null;
   private chart: any = null;
   private polygonSeries: any = null;
-  private travelerSeries: any = null;
-  private pointSeries: any = null;
   private lineSeries: any = null;
-  private stops: MapStop[] = [];
+  private activeLineSeries: any = null;
+  private pointSeries: any = null;
   private avatar: PixelAvatar | null = null;
   private avatarWrap: HTMLElement | null = null;
+  private events: JourneyEvent[] = [];
+  private activeIdx = 0;
+  private playing = false;
   private rafId = 0;
-  private stopIdx = 0;
-  private animT0 = 0;
-  private playing = true;
-  private activeCountry = '';
-  private visitedCountries = new Set<string>();
-  private readonly SEG_MS = 2600;
-  private readonly DWELL_MS = 2000;
+  private segFrom = 0;
+  private segTo = 0;
+  private segT0 = 0;
+  private readonly TRAVEL_MS = 2200;
+  private readonly DWELL_MS = 1500;
 
-  constructor(mapEl: HTMLElement, captionEl: HTMLElement | null, books: ProfileBook[]) {
-    this.mapEl     = mapEl;
+  constructor(
+    mapEl: HTMLElement,
+    captionEl: HTMLElement | null,
+    railEl: HTMLElement | null,
+    playBtn: HTMLButtonElement | null,
+    books: ProfileBook[],
+  ) {
+    this.mapEl = mapEl;
     this.captionEl = captionEl;
-    this.books     = books;
+    this.railEl = railEl;
+    this.playBtn = playBtn;
+    this.books = books;
   }
 
   mount(): void {
     const am5 = (window as any).am5;
     const am5map = (window as any).am5map;
-    const am5themes_Animated = (window as any).am5themes_Animated;
-    const am5geodata_worldLow = (window as any).am5geodata_worldLow;
+    const am5themesAnimated = (window as any).am5themes_Animated;
+    const world = (window as any).am5geodata_worldLow;
 
-    if (!am5 || !am5map || !am5geodata_worldLow) {
+    if (!am5 || !am5map || !world) {
       this.mapEl.classList.add('prof-map--unavailable');
       return;
     }
 
     try {
-      this.root = am5.Root.new(this.mapEl.id || this._ensureId());
+      this.root = am5.Root.new(this.mapEl.id || this.ensureId());
       this.root._logo?.set('forceHidden', true);
-      this.root.setThemes([am5themes_Animated.new(this.root)]);
+      this.root.setThemes([am5themesAnimated.new(this.root)]);
 
-      // Water background
       this.chart = this.root.container.children.push(am5map.MapChart.new(this.root, {
         projection: am5map.geoNaturalEarth1(),
         panX: 'none',
@@ -210,243 +250,343 @@ export class ProfileMap {
         }),
       }));
 
-      // World polygons — coloured per country, mirrors main map palette
       this.polygonSeries = this.chart.series.push(am5map.MapPolygonSeries.new(this.root, {
-        geoJSON: am5geodata_worldLow,
+        geoJSON: world,
         exclude: ['AQ'],
       }));
       this.polygonSeries.mapPolygons.template.setAll({
-        stroke: am5.color(0x16191f),
-        strokeWidth: 0.4,
+        stroke: am5.color(0x17120f),
+        strokeWidth: 0.45,
         fillOpacity: 1,
         interactive: false,
       });
-      // All countries start unlit — avatar journey reveals colour progressively
       this.polygonSeries.events.on('datavalidated', () => {
-        this.polygonSeries.mapPolygons.each((poly: any) => {
-          poly.set('fill', am5.color(UNLIT_FILL));
-        });
+        this.polygonSeries.mapPolygons.each((poly: any) => poly.set('fill', am5.color(UNLIT_FILL)));
       });
 
-      // Lines
       this.lineSeries = this.chart.series.push(am5map.MapLineSeries.new(this.root, {}));
       this.lineSeries.mapLines.template.setAll({
-        stroke: am5.color(0xc49a52),
+        stroke: am5.color(HISTORICAL_LINE),
         strokeWidth: 1,
         strokeOpacity: 0.3,
         strokeDasharray: [3, 5],
       });
 
-      // Stop dots
+      this.activeLineSeries = this.chart.series.push(am5map.MapLineSeries.new(this.root, {}));
+      this.activeLineSeries.mapLines.template.setAll({
+        stroke: am5.color(ACTIVE_LINE),
+        strokeWidth: 1.5,
+        strokeOpacity: 0.82,
+        strokeDasharray: [4, 2],
+      });
+
       this.pointSeries = this.chart.series.push(am5map.MapPointSeries.new(this.root, {}));
       this.pointSeries.bullets.push(() => {
         const dot = am5.Circle.new(this.root, {
-          radius: 3,
-          fill: am5.color(0xc49a52),
+          radius: 3.2,
+          fill: am5.color(0xcaa15f),
           stroke: am5.color(0x15120f),
           strokeWidth: 1,
         });
         return am5.Bullet.new(this.root, { sprite: dot });
       });
 
-      // Traveler series (invisible — we use a DOM avatar overlay instead)
-      this.travelerSeries = this.chart.series.push(am5map.MapPointSeries.new(this.root, {}));
-      this.travelerSeries.bullets.push(() => {
-        const dot = am5.Circle.new(this.root, { radius: 0 });
-        return am5.Bullet.new(this.root, { sprite: dot });
-      });
-
-      // Build avatar overlay
-      this._buildAvatarOverlay();
-
-      // Listen for dimension change from pills
-      this.mapEl.addEventListener('prof:dim-change', (e: Event) => {
-        const dim = (e as CustomEvent).detail?.dim as GeoDim;
-        if (dim) this.setDim(dim);
-      });
-
-      this._render();
-    } catch (err) {
-      logError(err instanceof Error ? err : new Error(String(err)), { context: 'ProfileMap.mount' });
+      this.buildAvatar();
+      this.bind();
+      this.setDim('journey');
+    } catch (error) {
+      logError(error instanceof Error ? error : new Error(String(error)), { context: 'ProfileMap.mount' });
     }
   }
 
-  setDim(dim: GeoDim): void {
-    this.dim = dim;
-    cancelAnimationFrame(this.rafId);
-    this.stopIdx = 0;
-    this.animT0 = 0;
-    this._resetCountryColors();
-    this._render();
-  }
-
   destroy(): void {
+    this.stopPlayback();
     cancelAnimationFrame(this.rafId);
     this.avatar?.unmount();
     this.root?.dispose();
   }
 
-  private _ensureId(): string {
+  setDim(dim: GeoDim): void {
+    this.stopPlayback();
+    this.dim = dim;
+    this.events = buildEvents(this.books, dim);
+    this.activeIdx = Math.max(0, this.events.length - 1);
+    this.renderRail();
+    this.renderStatic();
+    this.syncPlayButton();
+  }
+
+  private bind(): void {
+    this.mapEl.addEventListener('prof:dim-change', (event: Event) => {
+      const dim = (event as CustomEvent).detail?.dim as GeoDim;
+      if (dim) this.setDim(dim);
+    });
+
+    this.playBtn?.addEventListener('click', () => {
+      if (this.playing) this.stopPlayback();
+      else this.startPlayback();
+      this.syncPlayButton();
+    });
+
+    this.railEl?.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-journey-idx]');
+      if (!button) return;
+      const idx = Number(button.dataset.journeyIdx);
+      if (!Number.isFinite(idx)) return;
+      this.stopPlayback();
+      this.activeIdx = idx;
+      this.renderRail();
+      this.renderStatic();
+      this.syncPlayButton();
+    });
+  }
+
+  private ensureId(): string {
     if (!this.mapEl.id) this.mapEl.id = `profMap_${Math.random().toString(36).slice(2)}`;
     return this.mapEl.id;
   }
 
-  private _buildAvatarOverlay(): void {
+  private buildAvatar(): void {
     this.avatarWrap = document.createElement('div');
     this.avatarWrap.className = 'prof-map-avatar';
     this.mapEl.style.position = 'relative';
     this.mapEl.appendChild(this.avatarWrap);
-
-    this.avatar = new PixelAvatar({ state: 'walk', scale: 3 });
+    this.avatar = new PixelAvatar({ state: 'read', scale: 3 });
     this.avatar.mount(this.avatarWrap);
   }
 
-  private _render(): void {
-    this.stops = buildStops(this.books, this.dim);
-
-    // Clear previous series data
-    this.pointSeries?.data.clear();
-    this.lineSeries?.data.clear();
-    this.travelerSeries?.data.clear();
-
-    if (!this.stops.length) return;
-
-    // Add stop dots
-    this.stops.forEach(s => {
-      this.pointSeries.data.push({
-        geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
-      });
-    });
-
-    // Add lines between consecutive stops
-    for (let i = 1; i < this.stops.length; i++) {
-      const a = this.stops[i-1], b = this.stops[i];
-      this.lineSeries.data.push({
-        geometry: { type: 'LineString', coordinates: [[a.lng, a.lat], [b.lng, b.lat]] },
-      });
-    }
-
-    // Place traveler at first stop
-    this.travelerSeries.data.push({
-      geometry: { type: 'Point', coordinates: [this.stops[0].lng, this.stops[0].lat] },
-    });
-
-    this._updateCaption(0);
-    this._startAnimation();
-  }
-
-  private _easeInOut(t: number): number {
-    return t < 0.5 ? 2 * t * t : -1 + (4 - 2*t) * t;
-  }
-
-  private _startAnimation(): void {
-    cancelAnimationFrame(this.rafId);
-    if (this.stops.length < 2) {
-      this.avatar?.setState('read');
+  private renderRail(): void {
+    if (!this.railEl) return;
+    if (!this.events.length) {
+      this.railEl.innerHTML = '<p class="prof-map-rail__empty">Finish a book with location data to create your first arrival event.</p>';
       return;
     }
-    this.animT0 = 0;
-    this.rafId = requestAnimationFrame(this._animTick);
+    this.railEl.innerHTML = this.events.map((event, idx) => `
+      <button class="prof-map-rail__item${idx === this.activeIdx ? ' is-active' : ''}" type="button" data-journey-idx="${idx}">
+        <span class="prof-map-rail__idx">${String(idx + 1).padStart(2, '0')}</span>
+        <span class="prof-map-rail__text">
+          <strong>${esc(event.book.title)}</strong>
+          <span>${esc(event.reason)} · ${esc(countryName(event.country))}</span>
+        </span>
+      </button>
+    `).join('');
   }
 
-  private _animTick = (ts: number): void => {
-    if (!this.animT0) this.animT0 = ts;
-    const elapsed = ts - this.animT0;
-    const total = this.SEG_MS + this.DWELL_MS;
-    const cycle = elapsed % (total * this.stops.length);
-    const segGlobal = Math.floor(cycle / total);
-    const segElapsed = cycle % total;
+  private renderStatic(): void {
+    this.pointSeries?.data.clear();
+    this.lineSeries?.data.clear();
+    this.activeLineSeries?.data.clear();
 
-    const fromIdx = segGlobal % this.stops.length;
-    const toIdx   = (fromIdx + 1) % this.stops.length;
-
-    if (fromIdx !== this.stopIdx) {
-      this.stopIdx = fromIdx;
-      this._updateCaption(fromIdx);
+    if (!this.events.length) {
+      this.updateCaption(null, false, null);
+      return;
     }
 
-    if (segElapsed < this.SEG_MS) {
-      // Traveling
+    this.events.forEach((event) => {
+      this.pointSeries.data.push({
+        geometry: { type: 'Point', coordinates: [event.lng, event.lat] },
+      });
+    });
+
+    for (let idx = 1; idx <= this.activeIdx; idx++) {
+      const from = this.events[idx - 1];
+      const to = this.events[idx];
+      if (from.country === to.country) continue;
+      this.lineSeries.data.push({
+        geometry: { type: 'LineString', coordinates: [[from.lng, from.lat], [to.lng, to.lat]] },
+      });
+    }
+
+    const active = this.events[this.activeIdx];
+    const previous = this.activeIdx > 0 ? this.events[this.activeIdx - 1] : null;
+    this.placeAvatar(active.lat, active.lng);
+    this.avatar?.setState('read');
+    this.avatar?.setAccentColor(active.book.spine);
+    this.lightCountries(this.activeIdx, active.country);
+    this.updateCaption(active, false, previous);
+    this.renderRail();
+  }
+
+  private startPlayback(): void {
+    if (this.events.length <= 1) return;
+    if (this.activeIdx >= this.events.length - 1) this.activeIdx = 0;
+    this.playing = true;
+    this.renderRail();
+    this.segFrom = this.activeIdx;
+    this.segTo = Math.min(this.events.length - 1, this.activeIdx + 1);
+    this.segT0 = 0;
+    this.rafId = requestAnimationFrame(this.tick);
+  }
+
+  private stopPlayback(): void {
+    this.playing = false;
+    cancelAnimationFrame(this.rafId);
+    this.rafId = 0;
+    this.segT0 = 0;
+  }
+
+  private tick = (timestamp: number): void => {
+    if (!this.playing) return;
+    if (!this.events.length || this.segFrom >= this.events.length - 1) {
+      this.stopPlayback();
+      this.syncPlayButton();
+      return;
+    }
+
+    const from = this.events[this.segFrom];
+    const to = this.events[this.segTo];
+    if (!this.segT0) this.segT0 = timestamp;
+
+    const sameCountry = from.country === to.country;
+    const segmentMs = sameCountry ? 0 : this.TRAVEL_MS;
+    const totalMs = segmentMs + this.DWELL_MS;
+    const elapsed = timestamp - this.segT0;
+
+    this.lineSeries?.data.clear();
+    for (let idx = 1; idx <= this.segFrom; idx++) {
+      const prev = this.events[idx - 1];
+      const next = this.events[idx];
+      if (prev.country === next.country) continue;
+      this.lineSeries.data.push({
+        geometry: { type: 'LineString', coordinates: [[prev.lng, prev.lat], [next.lng, next.lat]] },
+      });
+    }
+    this.activeLineSeries?.data.clear();
+    if (!sameCountry) {
+      this.activeLineSeries.data.push({
+        geometry: { type: 'LineString', coordinates: [[from.lng, from.lat], [to.lng, to.lat]] },
+      });
+    }
+
+    if (!sameCountry && elapsed < this.TRAVEL_MS) {
+      const progress = this.easeInOut(elapsed / this.TRAVEL_MS);
+      const lat = from.lat + (to.lat - from.lat) * progress;
+      const lng = from.lng + (to.lng - from.lng) * progress;
       this.avatar?.setState('walk');
-      const t = this._easeInOut(segElapsed / this.SEG_MS);
-      const from = this.stops[fromIdx], to = this.stops[toIdx];
-      const lat = from.lat + (to.lat - from.lat) * t;
-      const lng = from.lng + (to.lng - from.lng) * t;
-      this._placeAvatarAt(lat, lng);
-    } else {
-      // Dwelling
-      this.avatar?.setState('read');
-      const stop = this.stops[fromIdx];
-      this._placeAvatarAt(stop.lat, stop.lng);
+      this.avatar?.setAccentColor(to.book.spine);
+      this.placeAvatar(lat, lng);
+      this.lightCountries(this.segFrom, to.country);
+      this.updateCaption(to, true, from);
+      this.rafId = requestAnimationFrame(this.tick);
+      return;
     }
 
-    this.rafId = requestAnimationFrame(this._animTick);
+    this.avatar?.setState('read');
+    this.avatar?.setAccentColor(to.book.spine);
+    this.placeAvatar(to.lat, to.lng);
+    this.lightCountries(this.segTo, to.country);
+    this.updateCaption(to, false, from);
+
+    if (elapsed < totalMs) {
+      this.rafId = requestAnimationFrame(this.tick);
+      return;
+    }
+
+    this.activeIdx = this.segTo;
+    this.segFrom = this.activeIdx;
+    this.segTo = Math.min(this.events.length - 1, this.activeIdx + 1);
+    this.segT0 = timestamp;
+    this.renderRail();
+
+    if (this.activeIdx >= this.events.length - 1) {
+      this.stopPlayback();
+      this.renderStatic();
+      this.syncPlayButton();
+      return;
+    }
+
+    this.rafId = requestAnimationFrame(this.tick);
   };
 
-  private _placeAvatarAt(lat: number, lng: number): void {
+  private easeInOut(t: number): number {
+    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+  }
+
+  private placeAvatar(lat: number, lng: number): void {
     if (!this.avatarWrap || !this.chart) return;
     try {
       const point = this.chart.convert({ longitude: lng, latitude: lat });
       if (!point) return;
-      const wrap = this.avatarWrap;
-      wrap.style.left = `${point.x - 24}px`;
-      wrap.style.top  = `${point.y - 48}px`;
+      this.avatarWrap.style.left = `${point.x - 24}px`;
+      this.avatarWrap.style.top = `${point.y - 48}px`;
     } catch {
-      // Chart may not be ready yet
+      return;
     }
   }
 
-  private _lightCountry(id: string): void {
+  private lightCountries(activeIdx: number, activeCountry: string): void {
     if (!this.polygonSeries) return;
-    if (this.activeCountry === id) return;
-    this.activeCountry = id;
-    this.visitedCountries.add(id);
     const am5 = (window as any).am5;
+    const visitCounts = new Map<string, number>();
+    this.events.slice(0, activeIdx + 1).forEach((event) => {
+      visitCounts.set(event.country, (visitCounts.get(event.country) ?? 0) + 1);
+    });
+
     this.polygonSeries.mapPolygons.each((poly: any) => {
       const polyId = poly.dataItem?.get('id') ?? '';
-      if (polyId === id) {
-        // Currently active — boosted colour
-        const boost = COUNTRY_BOOST[polyId] || _brighten(_baseColor(polyId), 50);
-        poly.set('fill', am5.color(boost));
-      } else if (this.visitedCountries.has(polyId)) {
-        // Previously visited — base palette colour stays lit
-        poly.set('fill', am5.color(_baseColor(polyId)));
-      } else {
-        // Never visited — dark unlit tone
+      if (!visitCounts.has(polyId)) {
         poly.set('fill', am5.color(DIMMED_FILL));
+        return;
       }
+
+      if (polyId === activeCountry) {
+        const boost = COUNTRY_BOOST[polyId] || brighten(baseColor(polyId), 42);
+        poly.set('fill', am5.color(boost));
+        return;
+      }
+
+      const visits = visitCounts.get(polyId) ?? 1;
+      poly.set('fill', am5.color(visits > 1 ? brighten(baseColor(polyId), 16) : baseColor(polyId)));
     });
   }
 
-  private _resetCountryColors(): void {
-    if (!this.polygonSeries) return;
-    const am5 = (window as any).am5;
-    this.activeCountry = '';
-    this.visitedCountries.clear();
-    // Reset to unlit — next journey will reveal colours again
-    this.polygonSeries.mapPolygons.each((poly: any) => {
-      poly.set('fill', am5.color(UNLIT_FILL));
-    });
-  }
-
-  private _updateCaption(idx: number): void {
+  private updateCaption(event: JourneyEvent | null, traveling: boolean, from: JourneyEvent | null): void {
     if (!this.captionEl) return;
-    const stop = this.stops[idx];
-    if (!stop) return;
-    this.captionEl.removeAttribute('hidden');
+    if (!event) {
+      this.captionEl.innerHTML = '<p class="prof-map-caption__empty">No mapped arrivals yet.</p>';
+      return;
+    }
+
+    const eventIndex = this.events.indexOf(event);
+    const visitCount = this.events
+      .slice(0, eventIndex >= 0 ? eventIndex + 1 : this.activeIdx + 1)
+      .filter((item) => item.country === event.country)
+      .length;
+    const routeLabel = !from
+      ? 'First mapped arrival'
+      : from.country === event.country
+        ? `Stayed in ${countryName(event.country)}`
+        : `${countryName(from.country)} → ${countryName(event.country)}`;
+    const visitLabel = visitCount > 1 ? `Return visit ${visitCount}` : 'First visit';
+
     this.captionEl.innerHTML = `
-      <span class="prof-map-caption__step">${idx + 1} / ${this.stops.length}</span>
-      <em class="prof-map-caption__title">${_esc(stop.book.title)}</em>
-      <span class="prof-map-caption__author">${_esc(stop.book.author)}</span>
-      <span class="prof-map-caption__place">${stop.city ? _esc(stop.city) + ', ' : ''}${_esc(stop.country)}</span>
+      <span class="prof-map-caption__eyebrow">${traveling ? 'Traveling' : 'Arrived'} · ${esc(event.reason)}</span>
+      <strong class="prof-map-caption__title">${esc(event.book.title)}</strong>
+      <span class="prof-map-caption__author">${esc(event.book.author)}</span>
+      <span class="prof-map-caption__route">${esc(routeLabel)} · ${esc(visitLabel)}</span>
+      <span class="prof-map-caption__place">${event.city ? `${esc(event.city)}, ` : ''}${esc(countryName(event.country))}</span>
+      <span class="prof-map-caption__stamp">${esc(event.stamp)}</span>
     `;
-    // Sync avatar color to book spine
-    if (this.avatar && stop.book.spine) this.avatar.setAccentColor(stop.book.spine);
-    // Light up the active country, dim all others
-    this._lightCountry(stop.country);
+  }
+
+  private syncPlayButton(): void {
+    if (!this.playBtn) return;
+    this.playBtn.textContent = this.playing ? 'Pause journey' : 'Play journey';
+    this.playBtn.disabled = this.events.length <= 1;
   }
 }
 
-function _esc(s: string): string {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function esc(value: string): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function countryName(code: string): string {
+  return REGION_NAMES?.of(code) || code;
+}
+
+function isFinishedStatus(status: unknown): boolean {
+  return status === 'read' || status === 'finished';
 }

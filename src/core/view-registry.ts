@@ -10,7 +10,6 @@
 import { initSearch, enterSearch, enterPanel_search } from '../search/search.js';
 import { initLibrary, enterLibrary, enterPanel_library } from '../library-2d/library-2d.js';
 import { initRoom, enterRoom } from '../three-room/three-room-view.js';
-import { initBooklist, enterBooklist, enterPanel_booklist } from '../booklist/booklist.js';
 import { initBook, enterBook, enterPanel_book } from '../book/book.js';
 import { initMap, enterMap, enterPanel_map } from '../map/map.js';
 import { initWeb, enterWeb, enterPanel_web } from '../web/web.js';
@@ -29,7 +28,7 @@ export const VIEW_REGISTRY: Record<string, ViewEntry> = {
   search:   { init: initSearch,   enter: enterSearch,   enterPanel: enterPanel_search },
   library:  { init: initLibrary,  enter: enterLibrary,  enterPanel: enterPanel_library },
   room:     { init: initRoom,     enter: enterRoom },
-  booklist: { init: initBooklist, enter: enterBooklist, enterPanel: enterPanel_booklist },
+  booklist: { init: initProfile,  enter: enterProfile,  enterPanel: enterPanel_profile },
   book:     { init: initBook,     enter: enterBook,     enterPanel: enterPanel_book },
   map:      { init: initMap,      enter: enterMap,      enterPanel: enterPanel_map },
   web:      { init: initWeb,      enter: enterWeb,      enterPanel: enterPanel_web },

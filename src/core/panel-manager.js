@@ -2,20 +2,21 @@
    Marginalia · Panel Manager
    --------------------------------------------------------------------------
    Manages overlay panels that appear above the 3D room shell.
-   Panels: 'search' | 'library' | 'map' | 'book' | 'todo' | 'profile' | 'web' | 'booklist'
+   Panels: 'search' | 'library' | 'map' | 'book' | 'todo' | 'profile' | 'web'
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
 import { VIEW_REGISTRY } from './view-registry.ts';
 
-const PANEL_IDS = ['search', 'library', 'map', 'book', 'todo', 'profile', 'web', 'booklist'];
+const PANEL_IDS = ['search', 'library', 'map', 'book', 'todo', 'profile', 'web'];
 const PANEL_ALIASES = {
   graph: 'web',
   studio: 'library',
   shelf: 'search',
+  booklist: 'profile',
 };
 
-const FULL_COVER_PANELS = new Set(['search', 'library', 'map', 'book', 'web', 'booklist', 'todo', 'profile']);
+const FULL_COVER_PANELS = new Set(['search', 'library', 'map', 'book', 'web', 'todo', 'profile']);
 
 // Panels whose DOM element has a non-standard ID (not panel-{id})
 const PANEL_ELEMENT_ID = {
@@ -29,7 +30,6 @@ const PANEL_DATA_VIEW = {
   map:      'map',
   book:     'book',
   web:      'web',
-  booklist: 'booklist',
   todo:     'todo',
   profile:  'profile',
 };
@@ -39,7 +39,6 @@ const PANEL_ORIGIN_BY_ID = {
   library: 'left',
   map: 'desk-left',
   web: 'wall',
-  booklist: 'desk',
   book: 'desk',
   profile: 'desk-right',
   todo: 'right',
