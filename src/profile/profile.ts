@@ -2,7 +2,7 @@ import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
 import { logError, logEvent } from '../services/analytics.ts';
 import { renderProfileSettings } from './profile-settings.ts';
 import { ProfileMap } from './profile-map.ts';
-import { ProfileYearInReview } from './profile-year-in-review.ts';
+import { ProfileAnnualShelf } from './profile-year-in-review.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { ENV } from '../core/env.ts';
 import { BooksStore } from '../store/books-store.ts';
@@ -69,43 +69,160 @@ const REGION_NAMES = typeof Intl !== 'undefined' && Intl.DisplayNames
 
 const DEMO_BOOKS: PublicBook[] = [
   {
-    id: '__demo_cn',
+    id: '__demo_huoshan',
+    title: '活山',
+    author: '娜恩·谢泼德 Nan Shepherd',
+    spine: '#4a5e48',
+    text: '#e8f0d8',
+    status: 'read',
+    finishedAt: new Date('2025-01-28').getTime(),
+    coverSrc: 'assets/covers/活山.jpg',
+    genre: 'Nonfiction',
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'GB' }, contentLocation: { country: 'GB' } },
+  },
+  {
+    id: '__demo_liusudi',
+    title: '流俗地',
+    author: '黎紫书 Zishu Li',
+    spine: '#5c3a2a',
+    text: '#f5e6c8',
+    status: 'read',
+    finishedAt: new Date('2025-03-10').getTime(),
+    coverSrc: 'assets/covers/流俗地.jpg',
+    genre: 'Fiction',
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'MY' }, contentLocation: { country: 'MY' } },
+  },
+  {
+    id: '__demo_dongwuzhuangyuan',
+    title: '动物庄园',
+    author: '乔治·奥威尔 George Orwell',
+    spine: '#2e3b2a',
+    text: '#d6e8c0',
+    status: 'read',
+    finishedAt: new Date('2025-04-22').getTime(),
+    coverSrc: 'assets/covers/动物庄园.jpg',
+    genre: 'Fiction',
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'GB' }, contentLocation: { country: 'GB' } },
+  },
+  {
+    id: '__demo_shaozhi',
+    title: '烧纸',
+    author: '李沧东 Chang-dong Lee',
+    spine: '#3b2020',
+    text: '#f0c8a0',
+    status: 'read',
+    finishedAt: new Date('2025-05-15').getTime(),
+    coverSrc: 'assets/covers/烧纸.jpg',
+    genre: 'Fiction',
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'KR' }, contentLocation: { country: 'KR' } },
+  },
+  {
+    id: '__demo_jiangshuxi',
+    title: '将熟悉变为陌生',
+    author: '齐格蒙·鲍曼 Zygmunt Bauman',
+    spine: '#1e2a3a',
+    text: '#c8d8f0',
+    status: 'read',
+    finishedAt: new Date('2025-06-30').getTime(),
+    coverSrc: 'assets/covers/将熟悉变为陌生.jpg',
+    genre: 'Social science',
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'PL' }, contentLocation: { country: 'PL' } },
+  },
+  {
+    id: '__demo_yunyou',
+    title: '云游',
+    author: '奥尔加·托卡尔丘克 Olga Tokarczuk',
+    spine: '#2a3548',
+    text: '#d8e4f8',
+    status: 'read',
+    finishedAt: new Date('2025-07-20').getTime(),
+    coverSrc: 'assets/covers/云游.jpg',
+    genre: 'Fiction',
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'PL' }, contentLocation: { country: 'PL' } },
+  },
+  {
+    id: '__demo_meiyjuhua',
+    title: '每一句话语都坐着别的眼睛',
+    author: '赫塔·米勒 Herta Müller',
+    spine: '#3a2835',
+    text: '#f0d8e8',
+    status: 'read',
+    finishedAt: new Date('2025-08-18').getTime(),
+    coverSrc: 'assets/covers/每一句话语都坐着别的眼睛.jpg',
+    genre: 'Fiction',
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'RO' }, contentLocation: { country: 'RO' } },
+  },
+  {
+    id: '__demo_daofeng',
+    title: '刀锋',
+    author: '毛姆 W. Somerset Maugham',
+    spine: '#2a2215',
+    text: '#f5e8c0',
+    status: 'read',
+    finishedAt: new Date('2025-10-14').getTime(),
+    coverSrc: 'assets/covers/刀锋.jpg',
+    genre: 'Fiction',
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'GB' }, contentLocation: { country: 'GB' } },
+  },
+  {
+    id: '__demo_pingmianguo',
+    title: '平面国',
+    author: '埃德温·A.艾勃特',
+    spine: '#1a2238',
+    text: '#c8d4f5',
+    status: 'read',
+    finishedAt: new Date('2026-01-18').getTime(),
+    coverSrc: 'assets/covers/平面国.jpg',
+    genre: 'Fiction',
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'GB' }, contentLocation: { country: 'GB' } },
+  },
+  {
+    id: '__demo_huozhe',
     title: '活着',
     author: '余华',
     spine: '#3d2b1f',
     text: '#e8c97a',
     status: 'read',
-    finishedAt: Date.now() - 30 * 86400000,
+    finishedAt: new Date('2026-02-28').getTime(),
+    coverSrc: 'assets/covers/活着.jpg',
     genre: 'Fiction',
     language: 'Chinese',
-    year: 1993,
     geo: { authorOrigin: { country: 'CN', city: 'Hangzhou' }, contentLocation: { country: 'CN' } },
   },
   {
-    id: '__demo_fr',
-    title: 'The Little Prince',
-    author: 'Antoine de Saint-Exupéry',
-    spine: '#4a6741',
-    text: '#f2e6c2',
+    id: '__demo_biancheng',
+    title: '边城',
+    author: '沈从文',
+    spine: '#3b4a2e',
+    text: '#e0f0c8',
     status: 'read',
-    finishedAt: Date.now() - 60 * 86400000,
+    finishedAt: new Date('2026-03-22').getTime(),
+    coverSrc: 'assets/covers/边城.jpg',
     genre: 'Fiction',
-    language: 'French',
-    year: 1943,
-    geo: { authorOrigin: { country: 'FR', city: 'Lyon' }, contentLocation: { country: 'FR' } },
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'CN' }, contentLocation: { country: 'CN' } },
   },
   {
-    id: '__demo_us',
-    title: 'The Great Gatsby',
-    author: 'F. Scott Fitzgerald',
-    spine: '#1c3a5e',
-    text: '#f0dfa0',
-    status: 'reading',
-    finishedAt: 0,
+    id: '__demo_hongloumeng',
+    title: '红楼梦',
+    author: '曹雪芹',
+    spine: '#6b1a1a',
+    text: '#f5d0b0',
+    status: 'read',
+    finishedAt: new Date('2026-04-10').getTime(),
+    coverSrc: 'assets/covers/红楼梦.jpg',
     genre: 'Fiction',
-    language: 'English',
-    year: 1925,
-    geo: { authorOrigin: { country: 'US', city: 'St. Paul' }, contentLocation: { country: 'US' } },
+    language: 'Chinese',
+    geo: { authorOrigin: { country: 'CN' }, contentLocation: { country: 'CN' } },
   },
 ];
 
@@ -375,16 +492,14 @@ function profileHTML(
     : `<div class="prof-avatar prof-avatar--initials" aria-hidden="true">${escapeHtml((profile.displayName || '?').slice(0, 2).toUpperCase())}</div>`;
 
   const identityLine = buildIdentityLine(books);
-  const currentBook = books.find((book) => isReadingStatus(book.status));
 
   const header = profileHeaderHTML(showSettingsAction);
 
   const mapSection = profile.showMap ? `
-    <section class="prof-section prof-section--hero" aria-label="Reading journey">
+    <section class="prof-section" aria-label="Reading journey">
       <div class="prof-section__head prof-section__head--stacked">
         <div>
-          <span class="prof-kicker">Reading journey</span>
-          <h2 class="prof-section__title prof-section__title--hero">Read across places, arrive one book at a time.</h2>
+          <h2 class="prof-section__title">Reading Journey</h2>
         </div>
         <div class="prof-map-pills" id="profMapPills">
           <button class="prof-pill is-active" data-dim="journey" type="button">Journey</button>
@@ -404,66 +519,13 @@ function profileHTML(
     </section>
   ` : '';
 
-  const yearSection = profile.showRhythm ? `
-    <section class="prof-section" aria-label="This year">
-      <div class="prof-section__head prof-section__head--stacked">
-        <div>
-          <span class="prof-kicker">This year</span>
-          <h2 class="prof-section__title">Reading rhythm and annual shelf</h2>
-        </div>
-      </div>
-      <div id="profYearReview"></div>
-    </section>
+  const finishedBooks = books.filter((book) => isFinishedStatus(book.status));
+  const annualSection = (profile.showRhythm || finishedBooks.length) ? `
+    <div id="profAnnualMount"></div>
   ` : '';
 
-  const shelfBooks = books.filter((book) => isFinishedStatus(book.status)).slice(0, 18);
-  const shelfSection = shelfBooks.length ? `
-    <section class="prof-section" aria-label="Shared shelf">
-      <div class="prof-section__head">
-        <div>
-          <span class="prof-kicker">Shared shelf</span>
-          <h2 class="prof-section__title">Recently finished</h2>
-        </div>
-      </div>
-      <div class="prof-shelf-wrap">
-        <div class="prof-shelf" id="profShelf">${shelfBooks.map(spineCardHTML).join('')}</div>
-      </div>
-    </section>
-  ` : '';
-
-  const deskHighlights = currentBook ? highlights.filter((highlight) => highlight.bookId === currentBook.id) : [];
-  const deskSection = profile.showDesk && currentBook ? `
-    <section class="prof-section" aria-label="On the desk">
-      <div class="prof-section__head">
-        <div>
-          <span class="prof-kicker">On the desk</span>
-          <h2 class="prof-section__title">Currently reading</h2>
-        </div>
-      </div>
-      <div class="prof-desk" id="profDesk">
-        <div class="prof-desk__cover" style="background:${escapeHtml(currentBook.spine)};color:${escapeHtml(currentBook.text)}">
-          <span class="prof-desk__cover-title">${escapeHtml(currentBook.title)}</span>
-          <span class="prof-desk__cover-author">${escapeHtml(currentBook.author)}</span>
-        </div>
-        <div class="prof-desk__body">
-          <div class="prof-desk__meta">${[currentBook.genre, currentBook.language].filter(Boolean).map((value) => escapeHtml(String(value))).join(' · ')}</div>
-          <h3 class="prof-desk__title">${escapeHtml(currentBook.title)}</h3>
-          <p class="prof-desk__author">by ${escapeHtml(currentBook.author)}</p>
-          ${deskHighlights.length ? `
-            <blockquote class="prof-desk__quote">
-              <p class="prof-desk__quote-text" id="profDeskQuoteText">${escapeHtml(deskHighlights[0].quote)}</p>
-            </blockquote>
-            ${deskHighlights.length > 1 ? `
-              <div class="prof-desk__quote-nav">
-                <button class="prof-desk__quote-btn" id="profDeskPrev" type="button" aria-label="Previous quote">&#8249;</button>
-                <button class="prof-desk__quote-btn" id="profDeskNext" type="button" aria-label="Next quote">&#8250;</button>
-              </div>
-            ` : ''}
-          ` : '<p class="prof-empty">No shared highlights from the current book yet.</p>'}
-        </div>
-      </div>
-    </section>
-  ` : '';
+  const deskSection = '';
+  const deskHighlights: PublicHighlight[] = [];
 
   const portraitSection = profile.showPortrait ? `
     <section class="prof-section" id="profPortraitSection" data-uid="${escapeHtml(profile.uid)}" aria-label="Reader portrait">
@@ -485,7 +547,7 @@ function profileHTML(
         <header class="prof-identity">
           <div class="prof-identity__media">${avatar}</div>
           <div class="prof-identity__copy">
-            <span class="prof-kicker">${isOwner ? 'Reading identity' : 'Shared reading page'}</span>
+            ${isOwner ? '<span class="prof-kicker">Reading identity</span>' : ''}
             <h1 class="prof-name">${escapeHtml(profile.displayName)}</h1>
             ${profile.slug ? `<p class="prof-slug">marginalia.app/#/p/${escapeHtml(profile.slug)}</p>` : ''}
             ${profile.bio ? `<p class="prof-bio">${escapeHtml(profile.bio)}</p>` : ''}
@@ -494,8 +556,7 @@ function profileHTML(
         </header>
 
         ${mapSection}
-        ${yearSection}
-        ${shelfSection}
+        ${annualSection}
         ${deskSection}
         ${portraitSection}
       </div>
@@ -514,11 +575,10 @@ function bindProfileChrome(container: HTMLElement, settingsOnly: boolean): void 
 
 function bindProfileEvents(
   container: HTMLElement,
-  highlights: PublicHighlight[],
-  books: PublicBook[],
+  _highlights: PublicHighlight[],
+  _books: PublicBook[],
 ): void {
   bindMapPills(container);
-  bindDeskQuoteNav(container, highlights, books);
 }
 
 function bindMapPills(container: HTMLElement): void {
@@ -535,35 +595,6 @@ function bindMapPills(container: HTMLElement): void {
   });
 }
 
-function bindDeskQuoteNav(container: HTMLElement, highlights: PublicHighlight[], books: PublicBook[]): void {
-  const currentBook = books.find((book) => book.status === 'reading');
-  if (!currentBook) return;
-  const deskHighlights = highlights.filter((highlight) => highlight.bookId === currentBook.id);
-  if (deskHighlights.length <= 1) return;
-
-  let index = 0;
-  const textEl = container.querySelector<HTMLElement>('#profDeskQuoteText');
-  const prevBtn = container.querySelector<HTMLElement>('#profDeskPrev');
-  const nextBtn = container.querySelector<HTMLElement>('#profDeskNext');
-
-  const show = (nextIndex: number) => {
-    if (!textEl) return;
-    textEl.classList.add('prof-fade');
-    window.setTimeout(() => {
-      textEl.textContent = deskHighlights[nextIndex].quote;
-      textEl.classList.remove('prof-fade');
-    }, 170);
-  };
-
-  prevBtn?.addEventListener('click', () => {
-    index = (index - 1 + deskHighlights.length) % deskHighlights.length;
-    show(index);
-  });
-  nextBtn?.addEventListener('click', () => {
-    index = (index + 1) % deskHighlights.length;
-    show(index);
-  });
-}
 
 function mountSections(
   container: HTMLElement,
@@ -584,17 +615,16 @@ function mountSections(
     }
   }
 
-  if (profile.showRhythm) {
-    const yearEl = container.querySelector<HTMLElement>('#profYearReview');
-    if (yearEl) {
-      const review = new ProfileYearInReview({
-        host: yearEl,
-        books,
-        sessionDays,
-        allowOpenDetails: isOwner,
-      });
-      review.mount();
-    }
+  const annualEl = container.querySelector<HTMLElement>('#profAnnualMount');
+  if (annualEl) {
+    const annual = new ProfileAnnualShelf({
+      host: annualEl,
+      books,
+      sessionDays,
+      allowOpenDetails: isOwner,
+      showRhythm: profile.showRhythm ?? true,
+    });
+    annual.mount();
   }
 
   if (profile.showPortrait) {
@@ -710,14 +740,6 @@ function countryName(code: string): string {
   return REGION_NAMES?.of(code) || code;
 }
 
-function spineCardHTML(book: PublicBook): string {
-  return `
-    <div class="prof-spine" style="background:${escapeHtml(book.spine)};color:${escapeHtml(book.text)}" title="${escapeHtml(book.title)} — ${escapeHtml(book.author)}">
-      <span class="prof-spine__title">${escapeHtml(book.title)}</span>
-      <span class="prof-spine__author">${escapeHtml(book.author)}</span>
-    </div>
-  `;
-}
 
 function renderResolvedProfile(
   container: HTMLElement,
@@ -763,14 +785,14 @@ function buildDemoPayload(): DemoPayload {
       bookId: 'sapiens',
     },
     {
-      quote: 'And now that you do not have to be perfect, you can be good.',
-      bookTitle: 'The Little Prince',
-      bookId: '__demo_fr',
+      quote: '一切存在皆短暂，但也因此而珍贵。',
+      bookTitle: '活山',
+      bookId: '__demo_huoshan',
     },
     {
-      quote: 'So we beat on, boats against the current, borne back ceaselessly into the past.',
-      bookTitle: 'The Great Gatsby',
-      bookId: '__demo_us',
+      quote: '人是可以被消灭的，但不能被打败。',
+      bookTitle: '刀锋',
+      bookId: '__demo_daofeng',
     },
   ];
 
@@ -828,10 +850,6 @@ function buildDemoSessionDays(books: PublicBook[]): SessionDay[] {
     });
   });
 
-  books.filter((book) => isReadingStatus(book.status)).forEach((book, index) => {
-    const anchor = Math.max(Date.now() - index * 2 * 86400000, Date.now() - 8 * 86400000);
-    [0, -1, -3, -5].forEach((offset) => addDay(anchor + offset * 86400000, 1, 18 + index * 7, offset === 0 ? 1 : 0));
-  });
 
   return [...dayMap.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
@@ -848,9 +866,6 @@ function isFinishedStatus(status: unknown): boolean {
   return normalizeProfileStatus(status) === 'read';
 }
 
-function isReadingStatus(status: unknown): boolean {
-  return normalizeProfileStatus(status) === 'reading';
-}
 
 function toTimestamp(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
