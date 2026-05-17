@@ -365,18 +365,29 @@ function createSpineButton(record) {
     authorClass:  `shelf-spine-author${containsCJK(record.author) ? ' is-cjk' : ''}`,
     dataAttrs:    { key: record.key, status: record.status },
     onClick(btn) {
-      const sourceSnapshot = captureSpineSnapshot(btn);
-      const wasExpanded = SHELF_STATE.isExpanded;
-      SHELF_STATE.isExpanded = true;
-      SHELF_STATE.selectedKey = record.key;
-      renderShelfSectionInternal();
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        const previewFrame = document.getElementById('shelfPreviewCoverFrame');
-        if (previewFrame) animateSpinePullout(sourceSnapshot, previewFrame, !wasExpanded);
-      }));
+      const isSelected = SHELF_STATE.selectedKey === record.key;
+      if (isSelected && record.preview?.canOpen) {
+        PanelManager.open('book', { id: record.detailId });
+        return;
+      }
+      selectShelfRecord(record, btn);
     },
   });
   return btn;
+}
+
+function selectShelfRecord(record, sourceEl = null) {
+  if (!record) return;
+  const sourceSnapshot = sourceEl ? captureSpineSnapshot(sourceEl) : null;
+  const wasExpanded = SHELF_STATE.isExpanded;
+  SHELF_STATE.isExpanded = true;
+  SHELF_STATE.selectedKey = record.key;
+  renderShelfSectionInternal();
+  if (!sourceSnapshot) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const previewFrame = document.getElementById('shelfPreviewCoverFrame');
+    if (previewFrame) animateSpinePullout(sourceSnapshot, previewFrame, !wasExpanded);
+  }));
 }
 
 function applyShelfLayoutState() {
