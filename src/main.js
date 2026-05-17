@@ -70,7 +70,6 @@ registerPreloader(enterPreloader);
 import { initSearch, enterSearch, enterPanel_search, renderSearchSection } from './search/search.js';
 import { initLibrary, enterLibrary, enterPanel_library } from './library-2d/library-2d.js';
 import { initRoom, enterRoom, renderRoomTopTabs } from './three-room/three-room-view.js';
-import { initBooklist, enterBooklist, enterPanel_booklist } from './booklist/booklist.js';
 import { initBook, enterBook, enterPanel_book } from './book/book.js';
 import { initMap, enterMap, enterPanel_map } from './map/map.js';
 import { initWeb, enterWeb, enterPanel_web } from './web/web.js';

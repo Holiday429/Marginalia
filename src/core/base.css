@@ -220,8 +220,8 @@ body[data-view="book"] {
   --accent: var(--accent-gold);
 }
 
-/* Booklist */
-body[data-view="booklist"] {
+/* Profile */
+body[data-view="profile"] {
   --bg: var(--bg-tool);
   --bg-soft: var(--bg-tool-soft);
   --ink: var(--text-primary);

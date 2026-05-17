@@ -12,7 +12,7 @@ export const LIBRARY_TAB_ITEMS = [
   { id: 'library', label: 'Library' },
   { id: 'map', label: 'Map' },
   { id: 'web', label: 'Graph' },
-  { id: 'booklist', label: 'Booklist' },
+  { id: 'profile', label: 'Profile' },
   { id: 'todo', label: 'To Do' },
 ];
 

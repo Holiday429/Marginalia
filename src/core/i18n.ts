@@ -12,7 +12,7 @@ const locales: Record<string, Record<string, string>> = {
     'nav.library':   'Library',
     'nav.map':       'Map',
     'nav.graph':     'Graph',
-    'nav.booklist':  'Booklist',
+    'nav.booklist':  'Profile',
     'nav.book':      'Book',
 
     // Status labels
@@ -179,7 +179,7 @@ const locales: Record<string, Record<string, string>> = {
     'nav.library':   '书房',
     'nav.map':       '阅读地图',
     'nav.graph':     '概念图',
-    'nav.booklist':  '书单',
+    'nav.booklist':  '主页',
     'nav.book':      '书目',
 
     // Status labels

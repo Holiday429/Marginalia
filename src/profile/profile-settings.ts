@@ -16,6 +16,8 @@ import { EntitlementsStore } from '../store/entitlements-store.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { logError, logEvent } from '../services/analytics.ts';
 import { t, setLanguage, getSupportedLocales, getLocaleKeys } from '../core/i18n.ts';
+import { exportJSON, exportMarkdown, triggerDownload } from '../api/export.ts';
+import { openCheckout } from '../services/billing.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FirestoreDB = any;
@@ -260,6 +262,16 @@ function settingsHTML(
           ${books.length ? bookRows : `<p class="prof-empty">${t('profile-settings.empty.books')}</p>`}
         </div>
       </section>
+
+      <section class="prof-settings__section">
+        <h3 class="prof-settings__subheading">Library export</h3>
+        <p class="prof-settings__hint">Download your full library and notes from the settings menu instead of the old booklist page.</p>
+        <div class="prof-export-row">
+          <button class="prof-export-btn" id="profExportJsonBtn" type="button">Download JSON</button>
+          <button class="prof-export-btn" id="profExportMdBtn" type="button">Download Markdown</button>
+        </div>
+        <p class="prof-export-note" id="profExportNote" hidden></p>
+      </section>
     </div>
   `;
 }
@@ -273,6 +285,7 @@ function bindSettingsEvents(container: HTMLElement, initialSlug: string): void {
   const slugStatus = container.querySelector<HTMLElement>('#profSlugStatus');
   const pubToggle  = container.querySelector<HTMLInputElement>('#profPublicToggle');
   const bookList   = container.querySelector<HTMLElement>('#profBookList');
+  const exportNote = container.querySelector<HTMLElement>('#profExportNote');
 
   langSelect?.addEventListener('change', async () => {
     const lang = langSelect.value;
@@ -286,6 +299,14 @@ function bindSettingsEvents(container: HTMLElement, initialSlug: string): void {
       setLanguage(prev);
       langSelect.value = prev; // revert
     }
+  });
+
+  container.querySelector('#profExportJsonBtn')?.addEventListener('click', () => {
+    handleExport('json', exportNote);
+  });
+
+  container.querySelector('#profExportMdBtn')?.addEventListener('click', () => {
+    handleExport('markdown', exportNote);
   });
 
   slugInput?.addEventListener('input', () => {
@@ -399,6 +420,33 @@ function sectionToggleHTML(key: string, label: string, checked: boolean, hint?: 
       </span>
     </label>
   `;
+}
+
+function showExportNote(noteEl: HTMLElement | null, message: string): void {
+  if (!noteEl) return;
+  noteEl.textContent = message;
+  noteEl.hidden = !message;
+}
+
+function handleExport(format: 'json' | 'markdown', noteEl: HTMLElement | null): void {
+  if (!BooksStore?.getUid()) {
+    showExportNote(noteEl, 'Sign in to export your library.');
+    return;
+  }
+
+  if (!EntitlementsStore.hasEntitlement('export.json')) {
+    showExportNote(noteEl, 'Export is available on the Pro plan.');
+    openCheckout('pro_monthly', (err) => showExportNote(noteEl, err || ''));
+    return;
+  }
+
+  showExportNote(noteEl, '');
+  const filename = `marginalia-export-${new Date().toISOString().slice(0, 10)}`;
+  if (format === 'json') {
+    triggerDownload(exportJSON(), `${filename}.json`);
+    return;
+  }
+  triggerDownload(exportMarkdown(), `${filename}.md`);
 }
 
 function escapeHtml(str: string): string {

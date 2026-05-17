@@ -11,7 +11,7 @@ const SPACE_ITEMS = [
   { id: 'library', label: 'Library', icon: 'library' },
   { id: 'map', label: 'Map', icon: 'map' },
   { id: 'web', label: 'Graph', icon: 'graph' },
-  { id: 'booklist', label: 'Booklist', icon: 'list' },
+  { id: 'profile', label: 'Profile', icon: 'profile' },
 ];
 
 const QUICK_ACTION_ITEMS = [
@@ -58,7 +58,6 @@ const PANEL_POSES = {
   todo: 'notes',
   profile: 'front',
   web: 'notes',
-  booklist: 'front',
 };
 
 const PANEL_TRANSITION_MS = {
@@ -70,10 +69,9 @@ const PANEL_TRANSITION_MS = {
   todo: 430,
   profile: 320,
   web: 460,
-  booklist: 360,
 };
 
-const HASH_ROUTED_PANELS = new Set(['search', 'map', 'web', 'booklist']);
+const HASH_ROUTED_PANELS = new Set(['search', 'map', 'web', 'profile']);
 const ROOM_TRANSITION_ORIGIN_MAP = {
   search: 'left',
   library: 'left',
@@ -82,7 +80,6 @@ const ROOM_TRANSITION_ORIGIN_MAP = {
   web: 'wall',
   graph: 'wall',
   book: 'desk',
-  booklist: 'desk',
   profile: 'desk-right',
   todo: 'right',
 };

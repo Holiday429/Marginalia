@@ -35,13 +35,13 @@ const App = (() => {
     { view: 'library',  label: 'Library',  icon: 'library', href: '#library' },
     { view: 'map',      label: 'Map',      icon: 'map',     href: '#map' },
     { view: 'graph',    label: 'Graph',    icon: 'graph',   href: '#graph' },
-    { view: 'booklist', label: 'Booklist', icon: 'list',    href: '#booklist' },
+    { view: 'profile',  label: 'Profile',  icon: 'profile', href: '#profile' },
   ];
   const HEADER_ACTION_BY_VIEW = {
     search:   { label: 'Add Book',     id: 'searchNewEntryBtn' },
     map:      { label: '↩ Back',       id: 'mapWorldBtn' },
     web:      { label: '◈ New Concept', id: 'webNewConceptBtn' },
-    booklist: { label: '↗ Share',      id: 'booklistShareBtn' },
+    profile:  { label: 'Settings',     id: 'profileHeaderSettingsBtn' },
   };
 
   const views = {
@@ -57,6 +57,7 @@ const App = (() => {
     if (name === 'studio') return 'library';
     if (name === 'graph') return 'web';
     if (name === 'shelf') return 'search';
+    if (name === 'booklist') return 'profile';
     return name;
   }
 
@@ -111,7 +112,7 @@ const App = (() => {
       return;
     }
 
-    if (['search', 'library', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
+    if (['search', 'library', 'map', 'web', 'profile'].includes(requestedView)) {
       const params = routeParamsByView.get(requestedView) || {};
       routeParamsByView.delete(requestedView);
       if (PanelManager) PanelManager.open(requestedView, params);
@@ -257,8 +258,8 @@ const App = (() => {
       navigateTo('room');
       return;
     }
-    // search / library / map / web / booklist / profile → open via PanelManager
-    if (['search', 'library', 'map', 'web', 'booklist', 'profile'].includes(requestedView)) {
+    // search / library / map / web / profile → open via PanelManager
+    if (['search', 'library', 'map', 'web', 'profile'].includes(requestedView)) {
       navigateTo(requestedView);
       return;
     }
@@ -284,6 +285,16 @@ const App = (() => {
     };
 
     function renderNavIcon(iconKey) {
+      if (iconKey === 'profile') {
+        return `
+          <span class="nav-icon" aria-hidden="true">
+            <svg class="nav-icon-svg" viewBox="0 0 18 18" focusable="false">
+              <circle cx="9" cy="6.5" r="2.8" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+              <path d="M3 15.5c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+          </span>
+        `;
+      }
       const symbolId = NAV_ICON_SYMBOLS[iconKey];
       if (!symbolId) return '';
       return `<span class="nav-icon" aria-hidden="true"><svg class="nav-icon-svg" viewBox="0 0 16 16" focusable="false"><use href="#${symbolId}"></use></svg></span>`;
