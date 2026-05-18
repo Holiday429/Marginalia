@@ -1,14 +1,14 @@
 /* Prompt: reader-identity
    Target: Profile page — Reading Identity section
    Input: user's full library (titles, authors, genres, languages, geo, highlights, reading rhythm)
-   Output: JSON with archetype, hook, readerType, portrait, traits (with intensity), dispatches
+   Output: JSON with archetype, axes, behaviorProfile, poeticProjection, provenance
 
-   version: 2
+   version: 3
 */
 import { AIFeatureRegistry } from '../registry.js';
 
 AIFeatureRegistry.setPrompt('reader-identity', {
-  version: '2',
+  version: '3',
 
   build(library) {
     const bookList = (library.books || [])
@@ -43,39 +43,78 @@ ${rhythmNote || '(none)'}
 Return ONLY a valid JSON object in this exact shape — no markdown fences, no explanation:
 
 {
-  "archetype": "one of exactly these 7 values: Border Crosser | Interior Cartographer | Slow Burn | Theme Hunter | Era Swimmer | Prize Chaser | Contrarian — choose the single best fit. Border Crosser = reads across ≥4 countries. Interior Cartographer = ≥80% fiction, few countries. Slow Burn = long sessions per book. Theme Hunter = narrow genres, many authors. Era Swimmer = ≥60% same decade. Prize Chaser = varied, trusted-curator shelf. Contrarian = reading against the mainstream.",
-  "hook": "1–2 sentences that directly speak to what this archetype means for this reader. Warm and specific, not generic.",
-  "readerType": "string — a short evocative phrase (5–10 words) that captures this reader's essential character. Not a genre label.",
-  "portrait": "string — 3–4 sentences in second person. Describe what draws them to books, how they read, what the pattern reveals. Reference actual books or authors. Pure prose.",
-  "traits": [
+  "yearScope": "string — current year",
+  "generatedAt": "YYYY.MM.DD",
+  "version": "3",
+  "archetype": {
+    "title": "string — a distinctive archetype title, 2–5 words",
+    "titleZh": "string — optional Chinese rendering when natural",
+    "summary": "string — 1–2 sentences that define the reader's core reading identity",
+    "summaryZh": "string — optional Chinese rendering of the summary"
+  },
+  "axes": [
     {
-      "label": "string — 1–2 word trait name",
-      "description": "string — one sentence tied to evidence from the library",
-      "intensity": 0
+      "key": "string",
+      "label": "string — one side of a reading tension, 1–2 words",
+      "opposite": "string — the opposing reading tendency, 1–3 words",
+      "score": 0,
+      "evidence": ["string", "string"]
     },
     {
+      "key": "string",
       "label": "string",
-      "description": "string",
-      "intensity": 0
+      "opposite": "string",
+      "score": 0,
+      "evidence": ["string", "string"]
     },
     {
+      "key": "string",
       "label": "string",
-      "description": "string",
-      "intensity": 0
+      "opposite": "string",
+      "score": 0,
+      "evidence": ["string", "string"]
+    },
+    {
+      "key": "string",
+      "label": "string",
+      "opposite": "string",
+      "score": 0,
+      "evidence": ["string", "string"]
     }
   ],
-  "dispatches": ["string", "string", "string"],
-  "promptVersion": "2",
-  "generatedAt": ${Date.now()}
+  "behaviorProfile": [
+    {
+      "key": "string",
+      "label": "string — e.g. Pace / Hour / Mood / Voice",
+      "value": "string — short named reading tendency",
+      "rationale": "string — one sentence grounded in observed reading behavior",
+      "signal": "string — short factual evidence line",
+      "confidence": 0
+    }
+  ],
+  "poeticProjection": {
+    "ifYouWereABook": "string — one vivid literary-object projection",
+    "shelfSmell": "string — one short sensory line",
+    "readingWeather": "string — one short atmospheric line"
+  },
+  "provenance": {
+    "bookCount": 0,
+    "highlightCount": 0,
+    "sourceWindow": "string",
+    "promptVersion": "3",
+    "model": "string"
+  }
 }
 
 Rules:
-- archetype must be exactly one of the 7 listed values — no invented values
-- hook must be specific to this reader's data, not the generic archetype description
-- traits[].intensity is 0–100 integer — how strongly this trait manifests (derive from the evidence: a reader with 40+ highlights gets high Slow Heat; 8+ countries gets high World Builder; etc.)
-- dispatches: 3–5 one-line reading facts (e.g. "12 books finished", "Read across 9 countries", "Primarily reading in Chinese"). Plain facts, no adjectives.
-- portrait must reference at least 2 specific books or authors from the list
-- tone: a thoughtful friend who has read your bookshelf, not an algorithm
+- archetype.summary must be specific to this reader's data, not a generic archetype description
+- axes must describe interpretable reading tensions, not genres
+- axes[].score is an integer 0–100
+- behaviorProfile should be 4–6 entries and must stay evidence-driven, not poetic
+- poeticProjection is where you may be most lyrical; behaviorProfile is not
+- use evidence from actual books, highlights, languages, countries, rhythm, and annotation patterns when available
+- provenance.bookCount and provenance.highlightCount must be numeric counts derived from input
+- tone: a thoughtful literary editor who has studied the shelf, not an algorithm
 - Return ONLY the JSON object`;
   }
 });

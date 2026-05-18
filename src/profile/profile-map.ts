@@ -3,7 +3,7 @@
    One completed book = one arrival event.
 */
 
-import { PixelAvatar } from '../components/pixel-avatar/pixel-avatar.js';
+import { PixelReader } from '../components/pixel-avatar/pixel-avatar.js';
 import { logError } from '../services/analytics.ts';
 
 type GeoDim = 'journey' | 'authorOrigin' | 'contentLocation' | 'readerLocation';
@@ -197,8 +197,9 @@ export class ProfileMap {
   private lineSeries: any = null;
   private activeLineSeries: any = null;
   private pointSeries: any = null;
-  private avatar: PixelAvatar | null = null;
+  private avatar: PixelReader | null = null;
   private avatarWrap: HTMLElement | null = null;
+  private lastAvatarX: number | null = null;
   private bubbleEl: HTMLElement | null = null;
   private events: JourneyEvent[] = [];
   private activeIdx = 0;
@@ -376,7 +377,7 @@ export class ProfileMap {
     this.avatarWrap.className = 'prof-map-avatar';
     this.mapEl.appendChild(this.avatarWrap);
 
-    this.avatar = new PixelAvatar({ state: 'read', scale: 3 });
+    this.avatar = new PixelReader({ state: 'reading', size: 'md' });
     this.avatar.mount(this.avatarWrap);
   }
 
@@ -472,7 +473,7 @@ export class ProfileMap {
     const active = this.events[this.activeIdx];
     const previous = this.activeIdx > 0 ? this.events[this.activeIdx - 1] : null;
     this.placeAvatar(active.lat, active.lng);
-    this.avatar?.setState('read');
+    this.avatar?.setState('reading');
     this.avatar?.setAccentColor(active.book.spine);
     this.lightCountries(this.activeIdx, active.country);
     this.updateBubble(active, false);
@@ -544,7 +545,7 @@ export class ProfileMap {
     if (!sameCountry && elapsed < this.TRAVEL_MS) {
       const progress = this.easeInOut(elapsed / this.TRAVEL_MS);
       const [lat, lng] = this.geodesicInterp(from.lat, from.lng, to.lat, to.lng, progress);
-      this.avatar?.setState('walk');
+      this.avatar?.setState('traveling');
       this.avatar?.setAccentColor(to.book.spine);
       this.placeAvatar(lat, lng);
       this.lightCountries(this.segFrom, to.country);
@@ -554,7 +555,7 @@ export class ProfileMap {
       return;
     }
 
-    this.avatar?.setState('read');
+    this.avatar?.setState('reading');
     this.avatar?.setAccentColor(to.book.spine);
     this.placeAvatar(to.lat, to.lng);
     this.lightCountries(this.segTo, to.country);
@@ -630,8 +631,14 @@ export class ProfileMap {
     try {
       const point = this.chart.convert({ longitude: lng, latitude: lat });
       if (!point) return;
-      this.avatarWrap.style.left = `${point.x - 24}px`;
-      this.avatarWrap.style.top = `${point.y - 48}px`;
+      if (this.lastAvatarX !== null) {
+        this.avatar?.setDirection(point.x >= this.lastAvatarX ? 'right' : 'left');
+      }
+      this.lastAvatarX = point.x;
+      const width = this.avatarWrap.offsetWidth || 64;
+      const height = this.avatarWrap.offsetHeight || 64;
+      this.avatarWrap.style.left = `${point.x - width / 2}px`;
+      this.avatarWrap.style.top = `${point.y - height * 0.82}px`;
     } catch {
       return;
     }

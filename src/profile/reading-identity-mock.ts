@@ -1,135 +1,150 @@
 /**
- * Mock fixture for the Reading Identity sections.
- * Step-1 data source — UI runs against this until AI generation is rewired.
+ * Mock fixture for the Reading Identity section.
+ * UI should render against the same schema that the long-term AI result will use.
  */
 
-export interface IdentityAffinity {
-  label: string;
-  value: number;
-  pair: string;
-}
+import type { ReadingIdentityResult, ReadingIdentityVariant } from './reading-identity-types.ts';
 
-export interface IdentityTrait {
-  key: string;
-  name: string;
-  value: string;
-  note: string;
-}
-
-export interface IdentityFortune {
-  title: string;
-  body: string;
-}
-
-export interface IdentityShelfBook {
-  title: string;
-  author: string;
-  spine: string;
-  cover: string;
-}
-
-export interface ReadingIdentityData {
-  yearScope: string;
-  edition: number;
-  generatedAt: string;
-  archetype: string;
-  archetypeCn: string;
-  tagline: string;
-  taglineCn: string;
-  affinity: IdentityAffinity[];
-  traits: IdentityTrait[];
-  fortunes: IdentityFortune[];
-  shelf: IdentityShelfBook[];
-}
-
-/** Alternate archetypes cycled by the "Re-divine" interaction. */
-export const IDENTITY_VARIATIONS: Array<Pick<ReadingIdentityData,
-  'archetype' | 'archetypeCn' | 'tagline' | 'taglineCn'>> = [
+export const READING_IDENTITY_VARIANTS: ReadingIdentityVariant[] = [
   {
-    archetype: 'The Lantern Reader',
-    archetypeCn: '夜灯派',
-    tagline: 'Reads slowly, at the edges of the day — looking for the one sentence that re-orders the room.',
-    taglineCn: '在白日的边缘慢读，寻找一句能重排房间的话。',
+    archetype: {
+      title: 'The Lantern Reader',
+      titleZh: '夜灯派',
+      summary: 'Reads slowly, at the edges of the day, looking for the one sentence that re-orders the room.',
+      summaryZh: '在白日的边缘慢读，寻找一句能重排房间的话。',
+    },
+    poeticProjection: {
+      ifYouWereABook: 'A slim hardcover, deckle-edged, with a coffee ring on page 14 that you decided to keep.',
+      shelfSmell: 'Old paper, a little cedar, the ghost of black tea.',
+      readingWeather: 'Overcast afternoon, a window cracked open, one lamp on in a room of three.',
+    },
   },
   {
-    archetype: 'The Border Crosser',
-    archetypeCn: '越境者',
-    tagline: 'Reads as if home is wherever the story is set — each shelf a passport stamped in nine countries.',
-    taglineCn: '把书读成护照，每一格书架都盖着一枚异国的印章。',
+    archetype: {
+      title: 'The Border Crosser',
+      titleZh: '越境者',
+      summary: 'Reads as if home is wherever the story is set; each shelf becomes a passport stamped in several countries.',
+      summaryZh: '把书读成护照，每一格书架都盖着一枚异国的印章。',
+    },
+    poeticProjection: {
+      ifYouWereABook: 'A travel-worn clothbound volume, corners softened by transit, full of pencilled place names in the margins.',
+      shelfSmell: 'Train wool, dust, hotel soap, and paperbacks opened in unfamiliar light.',
+      readingWeather: 'Late arrivals, station glass, a city map folded into the back cover.',
+    },
   },
   {
-    archetype: 'The Slow Tide',
-    archetypeCn: '潮汐读者',
-    tagline: 'Returns to a book three times before calling it finished — once for plot, once for prose, once for the question.',
-    taglineCn: '一本书要读三遍才算读完：一遍为情节，一遍为文字，一遍为它向你提出的问题。',
+    archetype: {
+      title: 'The Slow Tide',
+      titleZh: '潮汐读者',
+      summary: 'Returns to a book in waves, not to repeat it, but to let it disclose a different room each time.',
+      summaryZh: '一本书要反复回去，不是重读原文，而是等它每次露出不同的房间。',
+    },
+    poeticProjection: {
+      ifYouWereABook: 'A linen-bound novel with tide marks of rereading, each return leaving a quieter annotation than the last.',
+      shelfSmell: 'Salt, lamp heat, and paper that has been reopened more than once.',
+      readingWeather: 'Blue hour by the window, the page revisited before the day is over.',
+    },
   },
   {
-    archetype: 'The Margin Keeper',
-    archetypeCn: '边注收藏者',
-    tagline: 'Does not underline — copies the moving passage by hand into the margin, slightly slanted.',
-    taglineCn: '从不划线，只把动人的句子斜斜地抄进书页的空白处。',
+    archetype: {
+      title: 'The Margin Keeper',
+      titleZh: '边注收藏者',
+      summary: 'Does not mark books to conquer them, but to keep a second conversation alive beside the printed one.',
+      summaryZh: '批注不是为了占有，而是为了让书页旁边一直留着第二场对话。',
+    },
+    poeticProjection: {
+      ifYouWereABook: 'A heavily lived-in edition, full of small slanted notes that become half the reason to return.',
+      shelfSmell: 'Graphite, tea steam, and pages warmed by the heel of your hand.',
+      readingWeather: 'Midnight desk light, the sentence paused just long enough for a note.',
+    },
   },
 ];
 
-export const READING_IDENTITY_MOCK: ReadingIdentityData = {
-  yearScope: '2025',
-  edition: 3,
-  generatedAt: '2025.11.18',
-  ...IDENTITY_VARIATIONS[0],
-  affinity: [
-    { label: 'Slow burn', value: 84, pair: 'Page-turner' },
-    { label: 'Marginalia', value: 72, pair: 'Clean page' },
-    { label: 'Re-reader', value: 61, pair: 'Always new' },
-    { label: 'Wanderer', value: 78, pair: 'Series loyalist' },
-  ],
-  traits: [
-    { key: 'pace', name: 'Pace', value: 'Andante', note: '23 pages an evening, steady' },
-    { key: 'hour', name: 'Hour', value: 'Nocturne', note: '63% of sessions after 22:00' },
-    { key: 'mood', name: 'Mood', value: 'Melancholy-curious', note: 'Loves grief that makes room' },
-    { key: 'voice', name: 'Voice', value: 'First person, quiet', note: 'Finishes 2× more memoir than fiction' },
-    { key: 'length', name: 'Length', value: 'Long form', note: 'Median: 384 pages' },
-    { key: 'company', name: 'Company', value: 'Solo reader', note: 'Annotates but rarely highlights' },
-  ],
-  fortunes: [
+export const READING_IDENTITY_MOCK: ReadingIdentityResult = {
+  yearScope: '2026',
+  generatedAt: '2026.05.18',
+  version: '3',
+  archetype: READING_IDENTITY_VARIANTS[0].archetype,
+  axes: [
     {
-      title: 'If you were a book',
-      body: 'A slim hardcover, deckle-edged, with a coffee ring on page 14 that you decided to keep.',
+      key: 'pace',
+      label: 'Slow burn',
+      opposite: 'Page-turner',
+      score: 84,
+      evidence: ['Longer dwell time per completed book', 'Higher completion on reflective titles'],
     },
     {
-      title: 'Your shelf smell',
-      body: 'Old paper, a little cedar, the ghost of black tea.',
+      key: 'margin',
+      label: 'Marginalia',
+      opposite: 'Clean page',
+      score: 72,
+      evidence: ['Frequent note-taking', 'Highlights skew toward reflective passages'],
     },
     {
-      title: 'Your reading weather',
-      body: 'Overcast afternoon, a window cracked open, one lamp on in a room of three.',
+      key: 'return',
+      label: 'Re-reader',
+      opposite: 'Always new',
+      score: 61,
+      evidence: ['Repeat opens across finished titles', 'Annotations deepen over time'],
+    },
+    {
+      key: 'range',
+      label: 'Wanderer',
+      opposite: 'Series loyalist',
+      score: 78,
+      evidence: ['Wide geographic spread', 'Shelf crosses genre and region'],
     },
   ],
-  shelf: [
-    { title: '活山', author: 'Nan Shepherd', spine: '#4a5e48', cover: '#e8f0d8' },
-    { title: '流俗地', author: 'Zishu Li', spine: '#5c3a2a', cover: '#f5e6c8' },
-    { title: '云游', author: 'Olga Tokarczuk', spine: '#2a3548', cover: '#d8e4f8' },
-    { title: '刀锋', author: 'W. S. Maugham', spine: '#2a2215', cover: '#f5e8c0' },
-    { title: '边城', author: '沈从文', spine: '#3b4a2e', cover: '#e0f0c8' },
-    { title: '红楼梦', author: '曹雪芹', spine: '#6b1a1a', cover: '#f5d0b0' },
-    { title: '活着', author: '余华', spine: '#3d2b1f', cover: '#e8c97a' },
+  behaviorProfile: [
+    {
+      key: 'pace',
+      label: 'Pace',
+      value: 'Andante',
+      rationale: '23 pages an evening, steady.',
+      signal: 'Median session length stays consistent across the month.',
+    },
+    {
+      key: 'hour',
+      label: 'Hour',
+      value: 'Nocturne',
+      rationale: '63% of sessions happen after 22:00.',
+      signal: 'Reading clusters after the day has thinned out.',
+    },
+    {
+      key: 'mood',
+      label: 'Mood',
+      value: 'Melancholy-curious',
+      rationale: 'You keep following books that hold grief open instead of resolving it too quickly.',
+      signal: 'Highlights cluster around reflective, inward passages.',
+    },
+    {
+      key: 'voice',
+      label: 'Voice',
+      value: 'First person, quiet',
+      rationale: 'Memoir and interior fiction consistently outrun plot-driven work.',
+      signal: 'Finishes 2x more memoir than outward-facing fiction.',
+    },
+    {
+      key: 'length',
+      label: 'Length',
+      value: 'Long form',
+      rationale: 'You settle in once a book has room to unfold.',
+      signal: 'Median finished length: 384 pages.',
+    },
+    {
+      key: 'company',
+      label: 'Company',
+      value: 'Solo reader',
+      rationale: 'You annotate for yourself more than for display.',
+      signal: 'Dense private notes, sparse share-style highlights.',
+    },
   ],
+  poeticProjection: READING_IDENTITY_VARIANTS[0].poeticProjection,
+  provenance: {
+    bookCount: 27,
+    highlightCount: 48,
+    sourceWindow: 'Last 12 months',
+    promptVersion: '3',
+    model: 'mock',
+  },
 };
-
-/** 52-week page counts for the Rhythm bar chart (alternate streak view). */
-export const RHYTHM_MOCK: number[] = Array.from({ length: 52 }, (_, i) => {
-  const base = 8 + Math.sin(i / 3.2) * 6 + Math.sin(i / 1.7 + 1) * 4;
-  const noise = (Math.sin(i * 7.3) + 1) * 5;
-  return Math.max(0, Math.round(base + noise));
-});
-
-/** Per-card rotation seeds (deg) so sticky notes sit slightly askew. */
-export const TRAIT_ROTATIONS = [-2.4, 1.6, -1.1, 2.2, -1.8, 1.2];
-export const FORTUNE_ROTATIONS = [-2.6, 1.8, -1.4];
-
-/** Perturb affinity values ±10 (clamped 35–94) for the Re-divine interaction. */
-export function perturbAffinity(affinity: IdentityAffinity[]): IdentityAffinity[] {
-  return affinity.map((a) => {
-    const delta = Math.round((Math.random() - 0.5) * 20);
-    return { ...a, value: Math.max(35, Math.min(94, a.value + delta)) };
-  });
-}

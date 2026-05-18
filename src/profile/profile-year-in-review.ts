@@ -45,7 +45,6 @@ interface AnnualShelfState {
   playMode: 'play' | 'organize' | 'replay';
   curateMode: boolean;
   curatedOrder: string[];
-  rhythmView: 'heatmap' | 'rhythm';
 }
 
 interface YearShelfData {
@@ -82,7 +81,7 @@ export class ProfileAnnualShelf {
     this.uid = uid;
     this.savedOrder = savedOrder;
     this.years = buildYears(books);
-    this.state = { yearIndex: this.years.length - 1, isAnimating: false, previewBookId: '', playMode: 'play', curateMode: false, curatedOrder: [], rhythmView: 'heatmap' };
+    this.state = { yearIndex: this.years.length - 1, isAnimating: false, previewBookId: '', playMode: 'play', curateMode: false, curatedOrder: [] };
   }
 
   mount(): void {
@@ -109,23 +108,22 @@ export class ProfileAnnualShelf {
     const canPrev = this.state.yearIndex > 0;
     const canNext = this.state.yearIndex < this.years.length - 1;
 
-    const heatmap = this.showRhythm ? buildHeatmap(year, this.sessionDays) : [];
+    const streak = buildStreakSnapshot(year, this.sessionDays);
+    const heatmap = this.showRhythm ? streak.heatmap : [];
     const maxLevel = heatmap.length ? Math.max(1, ...heatmap.map((d) => d.level)) : 1;
     const meta = describeYearActivity(year, shelfData.yearBooks, shelfData.sourceBooks, this.sessionDays);
-    const rhythmInsight = describeRhythmInsight(year, this.sessionDays);
 
     this.host.innerHTML = `
       <div class="prof-annual">
 
         ${this.showRhythm ? `
-          <section class="prof-annual__block" aria-label="Reading Rhythm">
+          <section class="prof-annual__block" aria-label="Reading Streak">
             <div class="prof-section__head">
-              <h2 class="prof-section__title">Reading Rhythm</h2>
+              <div>
+                <h2 class="prof-section__title">Reading Streak</h2>
+                <p class="prof-section__subcopy">A warm trace of how steadily the reading fire kept going.</p>
+              </div>
               <div class="prof-annual__shelf-controls">
-                <div class="prof-rhythm__view-toggle" role="group" aria-label="Rhythm view">
-                  <button class="prof-rhythm__view-btn${this.state.rhythmView === 'heatmap' ? ' is-active' : ''}" data-rhythm-view="heatmap" type="button">Heatmap</button>
-                  <button class="prof-rhythm__view-btn${this.state.rhythmView === 'rhythm' ? ' is-active' : ''}" data-rhythm-view="rhythm" type="button">Rhythm</button>
-                </div>
                 <div class="prof-rhythm__year-nav">
                   <button class="prof-rhythm__arrow" id="profAnnualPrev" type="button" aria-label="Previous year" ${canPrev ? '' : 'disabled'}>&#8249;</button>
                   <span class="prof-rhythm__year">${year}</span>
@@ -133,15 +131,31 @@ export class ProfileAnnualShelf {
                 </div>
               </div>
             </div>
-            <div class="prof-annual__card">
-              <div class="prof-rhythm__meta-row">
-                <span class="prof-rhythm__meta">${escHtml(meta)}</span>
+            <div class="prof-streak-card">
+              <div class="prof-streak-card__summary">
+                <span class="prof-streak-card__eyebrow">${escHtml(streak.eyebrow)}</span>
+                <span class="prof-streak-card__flame" aria-hidden="true"><span></span></span>
+                <div class="prof-streak-card__days">${streak.displayDays}</div>
+                <div class="prof-streak-card__label">${escHtml(streak.dayLabel)}</div>
+                <p class="prof-streak-card__note">${escHtml(streak.note)}</p>
+                <div class="prof-streak-card__meta">
+                  <div class="prof-streak-card__meta-item">
+                    <span>Longest ${year}</span>
+                    <strong>${streak.longestYear}</strong>
+                  </div>
+                  <div class="prof-streak-card__meta-item">
+                    <span>Reading Days</span>
+                    <strong>${streak.readingDays}</strong>
+                  </div>
+                </div>
               </div>
-              ${rhythmInsight ? `<p class="prof-rhythm__insight">${escHtml(rhythmInsight)}</p>` : ''}
+              <div class="prof-streak-card__heatmap">
+                <div class="prof-rhythm__meta-row">
+                  <span class="prof-rhythm__meta">${escHtml(meta)}</span>
+                </div>
+                ${streak.insight ? `<p class="prof-rhythm__insight">${escHtml(streak.insight)}</p>` : ''}
               ${heatmap.length
-                ? (this.state.rhythmView === 'rhythm'
-                    ? renderRhythmChart(year, this.sessionDays)
-                    : `
+                ? `
                 <div class="prof-year__heatmap">
                   <div class="prof-year__months">${renderMonthLabels(year, heatmap)}</div>
                   <div class="prof-year__grid" style="grid-template-columns:repeat(${Math.ceil((heatmap.length + firstColumnOffset(year)) / 7)}, minmax(0, 1fr));">
@@ -164,8 +178,9 @@ export class ProfileAnnualShelf {
                   </div>
                   <span>Immersed</span>
                 </div>
-              `)
+              `
                 : `<p class="prof-year__empty">No reading sessions recorded for ${year}.</p>`}
+              </div>
             </div>
           </section>
         ` : ''}
@@ -322,15 +337,16 @@ export class ProfileAnnualShelf {
     sourceBooks.forEach((book, i) => {
       const size = getSpineSize(book);
       const inCurated = this.state.curateMode && this.state.curatedOrder.includes(book.id);
+      const hideAuthor = shouldHideSpineAuthor(book.title, book.author);
       // Last two spines lean, as if they've fallen against the others.
       const tilt = !this.state.curateMode && i === sourceBooks.length - 1
-        ? -8
+        ? -3
         : !this.state.curateMode && i === sourceBooks.length - 2
-          ? -4
+          ? -1
           : 0;
       const spine = SpineCard.create({
         title: book.title,
-        author: book.author,
+        author: hideAuthor ? '' : book.author,
         spine: book.spine,
         text: book.text,
         width: size.width,
@@ -356,10 +372,6 @@ export class ProfileAnnualShelf {
       }
       if (tilt) spine.style.setProperty('--spine-tilt', `${tilt}deg`);
       spine.classList.add('booklist-spine--leanable');
-      const tip = document.createElement('div');
-      tip.className = 'booklist-source-tip';
-      tip.innerHTML = `<em>${escHtml(book.title)}</em> · ${escHtml(book.author)}`;
-      spine.appendChild(tip);
       host.appendChild(spine);
     });
   }
@@ -406,16 +418,6 @@ export class ProfileAnnualShelf {
     this.host.querySelector('#profAnnualNext')?.addEventListener('click', () => changeYear(1));
     this.host.querySelector('#profAnnualPrevShelf')?.addEventListener('click', () => changeYear(-1));
     this.host.querySelector('#profAnnualNextShelf')?.addEventListener('click', () => changeYear(1));
-
-    this.host.querySelectorAll<HTMLButtonElement>('.prof-rhythm__view-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const view = btn.dataset.rhythmView === 'rhythm' ? 'rhythm' : 'heatmap';
-        if (this.state.rhythmView === view) return;
-        this.state.rhythmView = view;
-        this.render();
-        this.bind();
-      });
-    });
 
     const playBtn = this.host.querySelector<HTMLButtonElement>('#profAnnualPlayBtn');
     playBtn?.addEventListener('click', () => {
@@ -1072,6 +1074,34 @@ function describeRhythmInsight(year: number, sessionDays: SessionDay[]): string 
   return `The rhythm was more episodic than daily, with the clearest cluster in ${peakMonth} and ${avgMinutes} minutes on active reading days.`;
 }
 
+function buildStreakSnapshot(year: number, sessionDays: SessionDay[]): {
+  displayDays: number;
+  dayLabel: string;
+  eyebrow: string;
+  note: string;
+  longestYear: number;
+  readingDays: number;
+  insight: string;
+  heatmap: Array<{ index: number; level: number; future: boolean; label: string }>;
+} {
+  const yearDays = sessionDays.filter((day) => day.date.startsWith(`${year}-`));
+  const readingDays = yearDays.filter((day) => day.sessions > 0).length;
+  const longestYear = longestReadingStreak(yearDays.filter((day) => day.sessions > 0).map((day) => day.date));
+  const currentAcrossAll = trailingReadingStreak(sessionDays.filter((day) => day.sessions > 0).map((day) => day.date));
+  const displayDays = Math.max(1, currentAcrossAll || longestYear || 0);
+  const heatmap = buildHeatmap(year, sessionDays);
+  return {
+    displayDays,
+    dayLabel: currentAcrossAll > 0 ? 'days in a row' : 'day stretch',
+    eyebrow: currentAcrossAll > 0 ? 'Current Streak' : `Best Run of ${year}`,
+    note: currentAcrossAll > 0 ? 'Keep it glowing.' : (longestYear > 0 ? 'The brightest cluster this year.' : 'The spark starts with a single page.'),
+    longestYear,
+    readingDays,
+    insight: describeRhythmInsight(year, sessionDays),
+    heatmap,
+  };
+}
+
 function buildHeatmap(year: number, sessionDays: SessionDay[]): Array<{ index: number; level: number; future: boolean; label: string }> {
   const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
   const daysInYear = isLeap(year) ? 366 : 365;
@@ -1139,6 +1169,19 @@ function longestReadingStreak(dates: string[]): number {
   return best;
 }
 
+function trailingReadingStreak(dates: string[]): number {
+  if (!dates.length) return 0;
+  const normalized = [...new Set(dates)].sort();
+  let streak = 1;
+  for (let index = normalized.length - 1; index > 0; index--) {
+    const previous = new Date(`${normalized[index - 1]}T00:00:00Z`).getTime();
+    const current = new Date(`${normalized[index]}T00:00:00Z`).getTime();
+    if (current - previous === 86400000) streak += 1;
+    else break;
+  }
+  return streak;
+}
+
 function busiestMonth(sessionDays: SessionDay[]): string {
   const monthTotals = new Array<number>(12).fill(0);
   sessionDays.forEach((day) => {
@@ -1200,6 +1243,12 @@ function getSpineSize(book: ProfileBook): { width: number; height: number } {
 
 function containsCJK(text: string): boolean {
   return /[一-鿿㐀-䶿　-〿＀-￯]/.test(text);
+}
+
+function shouldHideSpineAuthor(title: string, author: string): boolean {
+  if (!author.trim()) return true;
+  if (containsCJK(title)) return title.length >= 7;
+  return title.length >= 22;
 }
 
 function dateKey(date: Date): string {

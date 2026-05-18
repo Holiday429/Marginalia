@@ -11,20 +11,18 @@
 import { cycleReadingIdentityVariant } from './reading-identity-adapter.ts';
 import { READING_IDENTITY_MOCK } from './reading-identity-mock.ts';
 import { getReadingIdentityResult } from './reading-identity-service.ts';
+import { PixelReader } from '../components/pixel-avatar/pixel-avatar.js';
 import type {
   ReadingIdentityAxis,
-  ReadingIdentityBehaviorEntry,
   ReadingIdentityResult,
 } from './reading-identity-types.ts';
 
 const TYPE_SPEED_MS = 18;
 const REGEN_SWAP_MS = 700;
 const AXIS_STAGGER_MS = 120;
-const COVER_OPEN_MS = 620;
-const CARD_SLIDE_MS = 760;
-const GENERATE_PRELUDE_MS = 520;
-const CARD_PRINT_MS = 1100;
-const NOTE_ROTATIONS = [-2.8, 1.6, -1.2, 2.2, -0.9, 1.4];
+const GENERATE_REVEAL_MS = 760;
+const SCENE_IMAGE_URL = '/profile-room-pixel.png';
+const sceneAvatarByHost = new WeakMap<HTMLElement, PixelReader>();
 
 function escapeHtml(value: string): string {
   return String(value ?? '')
@@ -81,46 +79,58 @@ function axisRowHTML(axis: ReadingIdentityAxis, idx: number): string {
   `;
 }
 
-function postcardHTML(
+function buildTags(data: ReadingIdentityResult): string[] {
+  const tags = new Set<string>();
+  data.behaviorProfile.forEach((entry) => {
+    if (entry.value) tags.add(entry.value);
+  });
+  data.axes.forEach((axis) => {
+    if (axis.label) tags.add(axis.label);
+  });
+  return [...tags].slice(0, 5);
+}
+
+function buildIdentityQuote(data: ReadingIdentityResult): string {
+  const source = data.poeticProjection?.ifYouWereABook || data.archetype.summary;
+  const trimmed = source.replace(/\s+/g, ' ').trim();
+  if (trimmed.length <= 110) return trimmed;
+  return `${trimmed.slice(0, 107)}...`;
+}
+
+function referenceLayoutHTML(
   data: ReadingIdentityResult,
-  mode: 'result' | 'developing' = 'result',
   options: { allowRegenerate?: boolean } = {},
 ): string {
-  const modeClass = mode === 'developing' ? ' prof-rid-postcard--developing' : '';
+  const tags = buildTags(data);
+  const quote = buildIdentityQuote(data);
   return `
-    <section class="prof-rid-postcard${modeClass}" aria-label="Reading Identity artifact">
-      <span class="prof-rid-postcard__scan" aria-hidden="true"></span>
-      <div class="prof-rid-stamp" aria-hidden="true">
-        <span class="prof-rid-stamp__monogram">m</span>
-        <span class="prof-rid-stamp__word">Marginalia</span>
-        <span class="prof-rid-stamp__year">${escapeHtml(data.yearScope)}</span>
-      </div>
+    <section class="prof-rid-ref" aria-label="Reading Identity artifact">
+      <div class="prof-rid-ref__copy">
+        <span class="prof-rid-ref__kicker">Reading Identity</span>
+        <h3 class="prof-rid-ref__title">${escapeHtml(data.archetype.title)}</h3>
+        ${data.archetype.titleZh ? `<p class="prof-rid-ref__title-zh">「${escapeHtml(data.archetype.titleZh)}」</p>` : ''}
+        <p class="prof-rid-ref__summary">
+          <span class="prof-rid-ref__summary-text">${escapeHtml(data.archetype.summary)}</span>
+        </p>
+        ${data.archetype.summaryZh ? `<p class="prof-rid-ref__summary-zh">${escapeHtml(data.archetype.summaryZh)}</p>` : ''}
 
-      <div class="prof-rid-postcard__kicker">
-        <span class="prof-rid-postcard__kicker-text">Reading Identity · ${escapeHtml(data.yearScope)}</span>
-        <span class="prof-rid-postcard__kicker-rule"></span>
-      </div>
+        ${tags.length ? `
+          <div class="prof-rid-ref__tags">
+            ${tags.map((tag) => `<span class="prof-rid-ref__tag">${escapeHtml(tag)}</span>`).join('')}
+          </div>
+        ` : ''}
 
-      <div class="prof-rid-postcard__name">
-        <h1 class="prof-rid-postcard__archetype">${escapeHtml(data.archetype.title)}</h1>
-        ${data.archetype.titleZh ? `<span class="prof-rid-postcard__archetype-cn">「${escapeHtml(data.archetype.titleZh)}」</span>` : ''}
-      </div>
-
-      <p class="prof-rid-postcard__summary">
-        <span class="prof-rid-postcard__summary-text">${escapeHtml(data.archetype.summary)}</span>
-      </p>
-      ${data.archetype.summaryZh ? `<p class="prof-rid-postcard__summary-zh">${escapeHtml(data.archetype.summaryZh)}</p>` : ''}
-
-      <div class="prof-rid-postcard__axes">
-        ${data.axes.map((axis, i) => axisRowHTML(axis, i)).join('')}
-      </div>
-
-      <div class="prof-rid-postcard__footer">
-        <div class="prof-rid-postcard__meta">
-          <span>Filed ${escapeHtml(data.generatedAt)}</span>
+        <div class="prof-rid-ref__axes">
+          ${data.axes.map((axis, i) => axisRowHTML(axis, i)).join('')}
         </div>
-        ${options.allowRegenerate === false ? '' : `
-          <div class="prof-rid-postcard__actions">
+
+        <blockquote class="prof-rid-ref__quote">
+          <p>“${escapeHtml(quote)}”</p>
+        </blockquote>
+
+        <div class="prof-rid-ref__footer">
+          <span class="prof-rid-ref__meta">Filed ${escapeHtml(data.generatedAt)}</span>
+          ${options.allowRegenerate === false ? '' : `
             <button class="prof-rid-btn prof-rid-btn--ghost" id="profRidRegen" type="button">
               <svg class="prof-rid-regen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M3 12a9 9 0 0 1 15.5-6.3L21 3v6h-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -128,39 +138,14 @@ function postcardHTML(
               </svg>
               <span class="prof-rid-btn__label">Re-divine</span>
             </button>
-          </div>
-        `}
+          `}
+        </div>
       </div>
-    </section>
-  `;
-}
-
-function sectionHeaderHTML(title: string): string {
-  return `
-    <div class="prof-rid-shead">
-      <h2 class="prof-rid-shead__title">${escapeHtml(title)}</h2>
-    </div>
-  `;
-}
-
-function behaviorNoteHTML(entry: ReadingIdentityBehaviorEntry, idx: number): string {
-  return `
-    <article class="prof-rid-note prof-rid-note--trait" data-tone="${idx % 3}" style="--note-rot:${NOTE_ROTATIONS[idx % NOTE_ROTATIONS.length]}deg; --note-delay:${120 + idx * 110}ms;">
-      <span class="prof-rid-note__pin" aria-hidden="true"></span>
-      <span class="prof-rid-note__kicker">${escapeHtml(entry.label)}</span>
-      <p class="prof-rid-note__value">${escapeHtml(entry.value)}</p>
-      <p class="prof-rid-note__detail">${escapeHtml(entry.rationale)}</p>
-      ${entry.signal ? `<p class="prof-rid-note__signal">${escapeHtml(entry.signal)}</p>` : ''}
-    </article>
-  `;
-}
-
-function behaviorPanelHTML(data: ReadingIdentityResult): string {
-  return `
-    <section class="prof-rid-section" aria-label="How you read">
-      ${sectionHeaderHTML('How You Read')}
-      <div class="prof-rid-notes prof-rid-notes--traits">
-        ${data.behaviorProfile.map((entry, i) => behaviorNoteHTML(entry, i)).join('')}
+      <div class="prof-rid-ref__scene">
+        <div class="prof-rid-ref__scene-image" style="background-image:url('${SCENE_IMAGE_URL}')">
+          <div class="prof-rid-ref__scene-vignette" aria-hidden="true"></div>
+          <div class="prof-rid-ref__scene-avatar" id="profRidSceneAvatar" aria-hidden="true"></div>
+        </div>
       </div>
     </section>
   `;
@@ -226,11 +211,13 @@ function bindResult(host: HTMLElement, initialData: ReadingIdentityResult): void
     rows.forEach((row, i) => { row.dataset.value = String(currentData.axes[i]?.score ?? 0); });
     animateAxes(host, true);
 
-    const archetypeEl = host.querySelector<HTMLElement>('.prof-rid-postcard__archetype');
-    const archetypeCnEl = host.querySelector<HTMLElement>('.prof-rid-postcard__archetype-cn');
-    const summaryEl = host.querySelector<HTMLElement>('.prof-rid-postcard__summary');
-    const summaryTextEl = host.querySelector<HTMLElement>('.prof-rid-postcard__summary-text');
-    const summaryZhEl = host.querySelector<HTMLElement>('.prof-rid-postcard__summary-zh');
+    const archetypeEl = host.querySelector<HTMLElement>('.prof-rid-ref__title');
+    const archetypeCnEl = host.querySelector<HTMLElement>('.prof-rid-ref__title-zh');
+    const summaryEl = host.querySelector<HTMLElement>('.prof-rid-ref__summary');
+    const summaryTextEl = host.querySelector<HTMLElement>('.prof-rid-ref__summary-text');
+    const summaryZhEl = host.querySelector<HTMLElement>('.prof-rid-ref__summary-zh');
+    const quoteEl = host.querySelector<HTMLElement>('.prof-rid-ref__quote p');
+    const tagsEl = host.querySelector<HTMLElement>('.prof-rid-ref__tags');
     if (summaryEl) summaryEl.classList.add('is-typing');
     if (summaryTextEl) summaryTextEl.textContent = '';
 
@@ -242,6 +229,11 @@ function bindResult(host: HTMLElement, initialData: ReadingIdentityResult): void
         else archetypeCnEl.textContent = '';
       }
       if (summaryZhEl) summaryZhEl.textContent = currentData.archetype.summaryZh ?? '';
+      if (quoteEl) quoteEl.textContent = `“${buildIdentityQuote(currentData)}”`;
+      if (tagsEl) {
+        const tags = buildTags(currentData);
+        tagsEl.innerHTML = tags.map((tag) => `<span class="prof-rid-ref__tag">${escapeHtml(tag)}</span>`).join('');
+      }
       if (summaryTextEl) {
         typeTimer = typewrite(summaryTextEl, currentData.archetype.summary, () => {
           regenerating = false;
@@ -256,17 +248,20 @@ function bindResult(host: HTMLElement, initialData: ReadingIdentityResult): void
 
 function resultHTML(data: ReadingIdentityResult, options: { allowRegenerate?: boolean } = {}): string {
   return `
-    <div class="prof-rid">
-      <div class="prof-rid-layout">
-        <div class="prof-rid-layout__card">
-          ${postcardHTML(data, 'result', options)}
-        </div>
-        <div class="prof-rid-layout__behavior">
-          ${behaviorPanelHTML(data)}
-        </div>
-      </div>
+    <div class="prof-rid prof-rid--reference">
+      ${referenceLayoutHTML(data, options)}
     </div>
   `;
+}
+
+function mountSceneAvatar(host: HTMLElement): void {
+  const avatarMount = host.querySelector<HTMLElement>('#profRidSceneAvatar');
+  if (!avatarMount) return;
+  const prev = sceneAvatarByHost.get(host);
+  prev?.unmount();
+  const avatar = new PixelReader({ state: 'reading', size: 'lg', accentColor: '#c49a52' });
+  avatar.mount(avatarMount);
+  sceneAvatarByHost.set(host, avatar);
 }
 
 function renderResult(host: HTMLElement, data: ReadingIdentityResult, options: { allowRegenerate?: boolean } = {}): void {
@@ -277,6 +272,7 @@ function renderResult(host: HTMLElement, data: ReadingIdentityResult, options: {
     requestAnimationFrame(() => root.classList.add('is-entered'));
     window.setTimeout(() => root.classList.remove('is-entering'), 720);
   }
+  mountSceneAvatar(host);
   bindResult(host, data);
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -285,8 +281,8 @@ function renderResult(host: HTMLElement, data: ReadingIdentityResult, options: {
       observer.disconnect();
     });
   }, { threshold: 0.3 });
-  const postcard = host.querySelector<HTMLElement>('.prof-rid-postcard');
-  if (postcard) observer.observe(postcard);
+  const showcase = host.querySelector<HTMLElement>('.prof-rid-ref');
+  if (showcase) observer.observe(showcase);
 }
 
 function runReveal(host: HTMLElement, data: ReadingIdentityResult): void {
@@ -298,27 +294,11 @@ function runReveal(host: HTMLElement, data: ReadingIdentityResult): void {
 
   if (generateBtn) {
     generateBtn.disabled = true;
-    generateBtn.textContent = 'Generate';
+    generateBtn.textContent = 'Generating...';
   }
   stage.classList.add('is-generating');
-
-  window.setTimeout(() => {
-    host.querySelector<HTMLElement>('.prof-rid-cta')?.classList.add('is-leaving');
-    stage.classList.add('is-revealing');
-
-    const sliding = document.createElement('div');
-    sliding.className = 'prof-rid-stage__slide';
-    sliding.innerHTML = postcardHTML(data, 'developing');
-    stage.appendChild(sliding);
-
-    requestAnimationFrame(() => stage.classList.add('is-open'));
-    window.setTimeout(() => sliding.classList.add('is-out'), COVER_OPEN_MS * 0.55);
-    window.setTimeout(() => sliding.classList.add('is-printing'), COVER_OPEN_MS * 0.55 + CARD_SLIDE_MS - 80);
-
-    window.setTimeout(() => {
-      renderResult(host, data);
-    }, COVER_OPEN_MS * 0.55 + CARD_SLIDE_MS + CARD_PRINT_MS - 80);
-  }, GENERATE_PRELUDE_MS);
+  host.querySelector<HTMLElement>('.prof-rid-cta')?.classList.add('is-leaving');
+  window.setTimeout(() => renderResult(host, data), GENERATE_REVEAL_MS);
 }
 
 export function mountReadingIdentity(

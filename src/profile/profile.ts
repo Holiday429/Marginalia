@@ -266,7 +266,7 @@ async function fetchSessions(db: FirestoreDB, uid: string): Promise<SessionDay[]
 
 function loadingShellHTML(showSettingsAction: boolean): string {
   return renderProfilePageShell(`
-    ${profileHeaderHTML(showSettingsAction)}
+    ${profileHeaderHTML(showSettingsAction, DEMO_PROFILE, false)}
     <div class="prof-loading-shell">
       <div class="prof-loading" aria-label="Loading profile…"><span class="prof-loading__dot"></span></div>
     </div>
@@ -275,7 +275,7 @@ function loadingShellHTML(showSettingsAction: boolean): string {
 
 function stateShellHTML(title: string, body: string, showSettingsAction: boolean): string {
   return renderProfilePageShell(`
-    ${profileHeaderHTML(showSettingsAction)}
+    ${profileHeaderHTML(showSettingsAction, DEMO_PROFILE, false)}
     <div class="prof-shell prof-shell--state">
       <div class="prof-state">
         <p class="prof-state__title">${escapeHtml(title)}</p>
@@ -302,6 +302,34 @@ function capitalizeWords(name: string): string {
   return name.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+interface ProfileOverviewStat {
+  label: string;
+  value: string;
+}
+
+interface ProfileOverview {
+  stats: ProfileOverviewStat[];
+  journeySummary: string;
+  firstFinishedLabel: string | null;
+  streakLabel: string;
+  streakNote: string;
+  statusEyebrow: string;
+  statusTitle: string;
+  statusBody: string;
+}
+
+interface JourneyOverview {
+  cityCount: number;
+  countryCount: number;
+  continentCount: number;
+  topGenres: Array<{ label: string; pct: number; count: number }>;
+}
+
+interface ClosingQuote {
+  quote: string;
+  source: string;
+}
+
 function profileHTML(
   profile: PublicProfileData,
   books: PublicBook[],
@@ -314,6 +342,10 @@ function profileHTML(
   const authPhotoURL: string = auth.user?.photoURL ?? '';
   const avatarSrc = profile.avatarUrl || authPhotoURL;
   const displayName = capitalizeWords(profile.displayName);
+  const overview = buildProfileOverview(profile, books, highlights, sessionDays, isOwner);
+  const journey = buildJourneyOverview(books);
+  const closingQuote = buildClosingQuote(highlights, books);
+  const profileContext = buildProfileContext(books);
 
   let avatarEl: string;
   if (avatarSrc) {
@@ -329,13 +361,28 @@ function profileHTML(
       : initialsDiv;
   }
 
-  const header = profileHeaderHTML(showSettingsAction);
+  const header = profileHeaderHTML(showSettingsAction, profile, isOwner);
 
   const mapSection = profile.showMap ? `
-    <section class="prof-section" aria-label="Reading journey">
+    <section class="prof-section prof-section--journey" aria-label="Reading journey">
       <div class="prof-section__head prof-section__head--stacked">
         <div>
           <h2 class="prof-section__title">Reading Journey</h2>
+          <p class="prof-section__subcopy">Books you finished, places they lit, and the routes they left behind.</p>
+        </div>
+        <div class="prof-journey-metrics" aria-label="Journey summary">
+          <div class="prof-journey-metric">
+            <strong>${journey.cityCount}</strong>
+            <span>Cities</span>
+          </div>
+          <div class="prof-journey-metric">
+            <strong>${journey.countryCount}</strong>
+            <span>Countries</span>
+          </div>
+          <div class="prof-journey-metric">
+            <strong>${journey.continentCount}</strong>
+            <span>Continents</span>
+          </div>
         </div>
         <div class="prof-map-head-right">
           <button class="prof-map-play-btn" id="profMapPlayBtn" type="button" aria-label="Play journey" disabled>
@@ -351,6 +398,21 @@ function profileHTML(
       </div>
       <div class="prof-map-wrap">
         <div class="prof-map" id="profMap"></div>
+        <div class="prof-map-overlay prof-map-overlay--genres" aria-hidden="true">
+          <p class="prof-map-overlay__title">Top Genres</p>
+          <div class="prof-map-overlay__genres">
+            ${journey.topGenres.length
+              ? journey.topGenres.map((genre) => `
+                <div class="prof-map-genre">
+                  <span class="prof-map-genre__label">${escapeHtml(genre.label)}</span>
+                  <span class="prof-map-genre__bar"><span style="width:${genre.pct}%"></span></span>
+                  <span class="prof-map-genre__pct">${genre.pct}%</span>
+                </div>
+              `).join('')
+              : '<p class="prof-map-overlay__empty">The map will gather stronger genre signals as more books are shared.</p>'}
+          </div>
+        </div>
+        <div class="prof-map-overlay prof-map-overlay--note" aria-hidden="true">Books light the way.</div>
         <div class="prof-map-caption" id="profMapCaption"></div>
         <div class="prof-map-zoom" id="profMapZoom">
           <button class="prof-map-zoom__btn" id="profMapZoomIn"  type="button" aria-label="Zoom in">+</button>
@@ -371,7 +433,6 @@ function profileHTML(
   ` : '';
 
   const deskSection = '';
-  const deskHighlights: PublicHighlight[] = [];
 
   const portraitSection = profile.showPortrait ? `
     <section class="prof-section" id="profPortraitSection" data-uid="${escapeHtml(profile.uid)}" aria-label="Reader portrait">
@@ -390,30 +451,89 @@ function profileHTML(
     ${header}
     <div class="prof-shell">
       <div class="prof-shell__inner">
-        <header class="prof-identity">
-          <div class="prof-identity__card">
-            <div class="prof-identity__media">${avatarEl}</div>
-            <div class="prof-identity__copy">
-              <h1 class="prof-name">${escapeHtml(displayName)}</h1>
-              ${profile.slug ? `<p class="prof-slug">marginalia.app/#/p/${escapeHtml(profile.slug)}</p>` : ''}
-              ${profile.bio ? `<p class="prof-bio">${escapeHtml(profile.bio)}</p>` : ''}
+        <section class="prof-hero" aria-label="Reader profile hero">
+          <header class="prof-reader-card">
+            <div class="prof-reader-card__top">
+              <div class="prof-identity__media">${avatarEl}</div>
             </div>
-          </div>
-        </header>
+            <div class="prof-reader-card__body">
+              <div class="prof-identity__copy">
+                <p class="prof-reader-state">${escapeHtml(overview.statusTitle)}</p>
+                <h1 class="prof-name">${escapeHtml(displayName)}</h1>
+                <p class="prof-reader-tagline">Soul of a curious wanderer</p>
+                <p class="prof-bio">${escapeHtml(profile.bio || 'I read to understand the world, and myself.')}</p>
+              </div>
+              <div class="prof-reader-meta">
+                ${profileContext.location ? `
+                  <div class="prof-reader-meta__item">
+                    <span class="prof-reader-meta__label">Location</span>
+                    <span class="prof-reader-meta__value">${escapeHtml(profileContext.location)}</span>
+                  </div>
+                ` : ''}
+                ${profileContext.joinedLabel ? `
+                  <div class="prof-reader-meta__item">
+                    <span class="prof-reader-meta__label">Joined</span>
+                    <span class="prof-reader-meta__value">${escapeHtml(profileContext.joinedLabel)}</span>
+                  </div>
+                ` : ''}
+                ${overview.firstFinishedLabel ? `
+                  <div class="prof-reader-meta__item">
+                    <span class="prof-reader-meta__label">Journey Began</span>
+                    <span class="prof-reader-meta__value">${escapeHtml(overview.firstFinishedLabel)}</span>
+                  </div>
+                ` : ''}
+                <div class="prof-reader-meta__item">
+                  <span class="prof-reader-meta__label">${escapeHtml(overview.streakLabel)}</span>
+                  <span class="prof-reader-meta__value">${escapeHtml(overview.streakNote)}</span>
+                </div>
+              </div>
+              <div class="prof-reader-stats" aria-label="Reading overview">
+                ${overview.stats.map((stat) => `
+                  <div class="prof-reader-stat">
+                    <strong>${escapeHtml(stat.value)}</strong>
+                    <span>${escapeHtml(stat.label)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </header>
 
-        <section class="prof-section prof-section--identity" aria-label="Reading identity">
-          <div class="prof-section__head prof-section__head--stacked">
-            <div>
-              <h2 class="prof-section__title">Reading Identity</h2>
+          <section class="prof-identity-hero" aria-label="Reading identity">
+            <div class="prof-section__head prof-section__head--stacked">
+              <div>
+                <span class="prof-kicker">AI-powered insights</span>
+                <h2 class="prof-section__title">Reading Identity</h2>
+                <p class="prof-section__subcopy">A reading portrait shaped from books, highlights, rhythm, and recurring themes.</p>
+              </div>
             </div>
-          </div>
-          <div id="profIdentityMount"></div>
+            <div class="prof-identity-hero__panel">
+              <div id="profIdentityMount"></div>
+            </div>
+          </section>
         </section>
 
         ${mapSection}
         ${annualSection}
         ${deskSection}
         ${portraitSection}
+        ${closingQuote ? `
+          <section class="prof-closing" aria-label="Closing quote">
+            <div class="prof-closing__emblem" aria-hidden="true">
+              <div class="prof-closing__seal">
+                <span>M</span>
+              </div>
+            </div>
+            <blockquote class="prof-closing__quote">
+              <p>“${escapeHtml(closingQuote.quote)}”</p>
+              <cite>— ${escapeHtml(closingQuote.source)}</cite>
+            </blockquote>
+            <div class="prof-closing__stilllife" aria-hidden="true">
+              <span class="prof-closing__books"></span>
+              <span class="prof-closing__cup"></span>
+            </div>
+          </section>
+        ` : ''}
+        <p class="prof-built-with">Built with Marginalia</p>
       </div>
     </div>
   `;
@@ -422,6 +542,19 @@ function profileHTML(
 function bindProfileChrome(container: HTMLElement, settingsOnly: boolean): void {
   const settingsBtn = container.querySelector<HTMLElement>('#profileHeaderSettingsBtn');
   settingsBtn?.addEventListener('click', () => enterProfile({ _settingsOnly: true }));
+  container.querySelector<HTMLElement>('#profileHeaderShareBtn')?.addEventListener('click', async () => {
+    const shareTarget = container.querySelector<HTMLElement>('#profileHeaderShareBtn')?.getAttribute('data-share-url') || window.location.href;
+    const btn = container.querySelector<HTMLButtonElement>('#profileHeaderShareBtn');
+    const label = btn?.querySelector<HTMLElement>('.prof-header-action__label');
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(shareTarget);
+      else throw new Error('Clipboard unavailable');
+      if (label) label.textContent = 'Copied';
+      window.setTimeout(() => { if (label) label.textContent = 'Share'; }, 1600);
+    } catch {
+      window.open(shareTarget, '_blank', 'noopener,noreferrer');
+    }
+  });
 
   if (settingsOnly) {
     container.querySelector<HTMLElement>('#profileBackToProfileBtn')?.addEventListener('click', () => enterProfile());
@@ -663,6 +796,174 @@ function countryName(code: string): string {
   return REGION_NAMES?.of(code) || code;
 }
 
+function buildProfileOverview(
+  profile: PublicProfileData,
+  books: PublicBook[],
+  highlights: PublicHighlight[],
+  sessionDays: SessionDay[],
+  isOwner: boolean,
+): ProfileOverview {
+  const finishedBooks = books.filter((book) => isFinishedStatus(book.status));
+  const readingDays = sessionDays.filter((day) => day.sessions > 0).length;
+  const currentStreak = computeCurrentStreak(sessionDays);
+  const longestStreak = computeLongestStreak(sessionDays);
+  const firstFinishedAt = finishedBooks
+    .map((book) => book.finishedAt ?? 0)
+    .filter((stamp) => stamp > 0)
+    .sort((a, b) => a - b)[0] ?? 0;
+  const firstFinishedLabel = firstFinishedAt
+    ? new Date(firstFinishedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    : null;
+  const hasIdentity = finishedBooks.length >= 3;
+  const hasQuote = highlights.length > 0;
+  const stats: ProfileOverviewStat[] = [
+    { label: 'Books Finished', value: formatInt(finishedBooks.length) },
+    { label: 'Reading Days', value: formatInt(readingDays) },
+    { label: 'Highlights Saved', value: formatInt(highlights.length) },
+    { label: currentStreak > 0 ? 'Current Streak' : 'Longest Streak', value: formatInt(currentStreak > 0 ? currentStreak : longestStreak) },
+  ];
+  const statusEyebrow = isOwner ? 'Profile Studio' : 'Public Profile';
+  let statusTitle = 'Reading portrait in progress';
+  let statusBody = 'Keep sharing finished books to unlock a fuller reading identity.';
+  if (hasIdentity && hasQuote) {
+    statusTitle = profile.profilePublic ? 'Ready to share' : 'Ready when you are';
+    statusBody = profile.profilePublic
+      ? 'Identity, journey, and annual shelf are staged for public sharing.'
+      : 'The profile has enough shape to publish as a public reading card.';
+  } else if (hasIdentity) {
+    statusTitle = 'Identity assembled';
+    statusBody = 'A fuller public profile will feel stronger once highlights and shelf details are present.';
+  }
+
+  return {
+    stats,
+    journeySummary: buildIdentityLine(books),
+    firstFinishedLabel,
+    streakLabel: currentStreak > 0 ? 'Current Streak' : 'Longest Stretch',
+    streakNote: currentStreak > 0 ? `${currentStreak} days and still going` : `${Math.max(1, longestStreak)} days at full glow`,
+    statusEyebrow,
+    statusTitle,
+    statusBody,
+  };
+}
+
+function buildJourneyOverview(books: PublicBook[]): JourneyOverview {
+  const citySet = new Set<string>();
+  const countrySet = new Set<string>();
+  const continentSet = new Set<string>();
+  const genreCounts = new Map<string, number>();
+
+  books
+    .filter((book) => isFinishedStatus(book.status))
+    .forEach((book) => {
+      [book.geo?.authorOrigin, book.geo?.contentLocation, book.geo?.readerLocation].forEach((geo) => {
+        if (!geo?.country) return;
+        countrySet.add(geo.country);
+        const continent = countryContinent(geo.country);
+        if (continent) continentSet.add(continent);
+        if (geo.city) citySet.add(`${geo.country}:${geo.city.trim().toLowerCase()}`);
+      });
+      if (book.genre) genreCounts.set(book.genre, (genreCounts.get(book.genre) ?? 0) + 1);
+    });
+
+  const topGenres = [...genreCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const totalGenres = topGenres.reduce((sum, [, count]) => sum + count, 0) || 1;
+
+  return {
+    cityCount: citySet.size,
+    countryCount: countrySet.size,
+    continentCount: continentSet.size,
+    topGenres: topGenres.map(([label, count]) => ({
+      label,
+      count,
+      pct: Math.max(12, Math.round((count / totalGenres) * 100)),
+    })),
+  };
+}
+
+function buildClosingQuote(highlights: PublicHighlight[], books: PublicBook[]): ClosingQuote | null {
+  const bestHighlight = [...highlights]
+    .filter((item) => item.quote.trim().length > 0)
+    .sort((a, b) => b.quote.length - a.quote.length)[0];
+  if (bestHighlight) {
+    return {
+      quote: bestHighlight.quote.trim(),
+      source: bestHighlight.bookTitle || 'Shared highlight',
+    };
+  }
+
+  const featuredBook = books.filter((book) => isFinishedStatus(book.status))[0];
+  if (!featuredBook) return null;
+  return {
+    quote: buildIdentityLine(books),
+    source: featuredBook.title,
+  };
+}
+
+function buildProfileContext(books: PublicBook[]): { location: string | null; joinedLabel: string | null } {
+  const finishedBooks = books.filter((book) => isFinishedStatus(book.status));
+  const countryCounts = new Map<string, number>();
+  let earliestStamp = 0;
+  finishedBooks.forEach((book) => {
+    const country = book.geo?.readerLocation?.country || book.geo?.contentLocation?.country || book.geo?.authorOrigin?.country;
+    if (country) countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
+    const stamp = book.finishedAt ?? 0;
+    if (stamp > 0 && (earliestStamp === 0 || stamp < earliestStamp)) earliestStamp = stamp;
+  });
+  const topCountry = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const location = topCountry ? countryName(topCountry) : null;
+  const joinedLabel = earliestStamp
+    ? new Date(earliestStamp).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    : null;
+  return { location, joinedLabel };
+}
+
+function computeCurrentStreak(sessionDays: SessionDay[]): number {
+  const activeDays = [...new Set(sessionDays.filter((day) => day.sessions > 0).map((day) => day.date))].sort();
+  if (!activeDays.length) return 0;
+  let streak = 1;
+  for (let index = activeDays.length - 1; index > 0; index--) {
+    const current = new Date(`${activeDays[index]}T00:00:00Z`).getTime();
+    const previous = new Date(`${activeDays[index - 1]}T00:00:00Z`).getTime();
+    if (current - previous === 86400000) streak += 1;
+    else break;
+  }
+  return streak;
+}
+
+function computeLongestStreak(sessionDays: SessionDay[]): number {
+  const activeDays = [...new Set(sessionDays.filter((day) => day.sessions > 0).map((day) => day.date))].sort();
+  if (!activeDays.length) return 0;
+  let best = 1;
+  let current = 1;
+  for (let index = 1; index < activeDays.length; index++) {
+    const previous = new Date(`${activeDays[index - 1]}T00:00:00Z`).getTime();
+    const next = new Date(`${activeDays[index]}T00:00:00Z`).getTime();
+    if (next - previous === 86400000) current += 1;
+    else current = 1;
+    if (current > best) best = current;
+  }
+  return best;
+}
+
+function countryContinent(code: string): string | null {
+  const continentMap: Record<string, string> = {
+    US: 'North America', CA: 'North America', MX: 'North America', GT: 'North America', BZ: 'North America', HN: 'North America', SV: 'North America', NI: 'North America', CR: 'North America', PA: 'North America', CU: 'North America', JM: 'North America', HT: 'North America', DO: 'North America',
+    CO: 'South America', VE: 'South America', GY: 'South America', SR: 'South America', EC: 'South America', PE: 'South America', BR: 'South America', BO: 'South America', PY: 'South America', CL: 'South America', AR: 'South America', UY: 'South America',
+    PT: 'Europe', ES: 'Europe', FR: 'Europe', GB: 'Europe', IE: 'Europe', NL: 'Europe', BE: 'Europe', LU: 'Europe', CH: 'Europe', DE: 'Europe', AT: 'Europe', DK: 'Europe', SE: 'Europe', NO: 'Europe', FI: 'Europe', IT: 'Europe', GR: 'Europe', AL: 'Europe', RS: 'Europe', HR: 'Europe', BA: 'Europe', SI: 'Europe', ME: 'Europe', MK: 'Europe', BG: 'Europe', RO: 'Europe', PL: 'Europe', CZ: 'Europe', SK: 'Europe', HU: 'Europe', UA: 'Europe', BY: 'Europe', MD: 'Europe', LT: 'Europe', LV: 'Europe', EE: 'Europe',
+    RU: 'Asia', KZ: 'Asia', UZ: 'Asia', TM: 'Asia', KG: 'Asia', TJ: 'Asia', AF: 'Asia', TR: 'Asia', SY: 'Asia', LB: 'Asia', IL: 'Asia', JO: 'Asia', IQ: 'Asia', IR: 'Asia', SA: 'Asia', YE: 'Asia', OM: 'Asia', AE: 'Asia', QA: 'Asia', KW: 'Asia', BH: 'Asia', PK: 'Asia', IN: 'Asia', BD: 'Asia', NP: 'Asia', LK: 'Asia', MM: 'Asia', TH: 'Asia', VN: 'Asia', KH: 'Asia', LA: 'Asia', MY: 'Asia', SG: 'Asia', ID: 'Asia', PH: 'Asia', TL: 'Asia', CN: 'Asia', MN: 'Asia', KP: 'Asia', KR: 'Asia', JP: 'Asia', TW: 'Asia',
+    NG: 'Africa', GH: 'Africa', CI: 'Africa', SN: 'Africa', ML: 'Africa', BF: 'Africa', NE: 'Africa', CM: 'Africa', TD: 'Africa', SD: 'Africa', SS: 'Africa', ET: 'Africa', SO: 'Africa', KE: 'Africa', TZ: 'Africa', UG: 'Africa', RW: 'Africa', BI: 'Africa', CD: 'Africa', CG: 'Africa', GA: 'Africa', AO: 'Africa', ZM: 'Africa', ZW: 'Africa', MZ: 'Africa', MW: 'Africa', MG: 'Africa', ZA: 'Africa', NA: 'Africa', BW: 'Africa', LS: 'Africa', SZ: 'Africa', MA: 'Africa', DZ: 'Africa', TN: 'Africa', LY: 'Africa', EG: 'Africa', MR: 'Africa',
+    AU: 'Oceania', NZ: 'Oceania', PG: 'Oceania', FJ: 'Oceania',
+  };
+  return continentMap[code] ?? null;
+}
+
+function formatInt(value: number): string {
+  return new Intl.NumberFormat('en-US').format(Math.max(0, Math.round(value)));
+}
+
 
 function renderResolvedProfile(
   container: HTMLElement,
@@ -679,9 +980,31 @@ function renderResolvedProfile(
   mountSections(container, books, highlights, sessionDays, profileData, isOwner);
 }
 
-function profileHeaderHTML(showSettingsAction: boolean): string {
-  if (showSettingsAction) return renderProfileHeader('profile');
-  return renderProfileHeader('profile', { rightHTML: '<span class="panel-header-spacer" aria-hidden="true"></span>' });
+function profileHeaderHTML(showSettingsAction: boolean, profile: PublicProfileData, isOwner: boolean): string {
+  const shareUrl = buildProfileShareUrl(profile);
+  const actions: string[] = [];
+  if (showSettingsAction && isOwner) {
+    actions.push('<button class="panel-header-action" id="profileHeaderSettingsBtn">Edit Profile</button>');
+  }
+  if (shareUrl) {
+    actions.push(`
+      <button class="panel-header-action prof-header-action--icon" id="profileHeaderShareBtn" type="button" data-share-url="${escapeHtml(shareUrl)}" aria-label="Share profile">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 5V2.5H5V5"></path>
+          <path d="M8 10V2.5"></path>
+          <rect x="3" y="6" width="10" height="7" rx="1.5"></rect>
+        </svg>
+        <span class="prof-header-action__label">Share</span>
+      </button>
+    `);
+  }
+  if (!actions.length) actions.push('<span class="panel-header-spacer" aria-hidden="true"></span>');
+  return renderProfileHeader('profile', { rightHTML: `<div class="prof-header-actions">${actions.join('')}</div>` });
+}
+
+function buildProfileShareUrl(profile: PublicProfileData): string {
+  if (profile.slug) return `${window.location.origin}${window.location.pathname}#/p/${profile.slug}`;
+  return window.location.href;
 }
 
 function buildDemoPayload(): DemoPayload {
