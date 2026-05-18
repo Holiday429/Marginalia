@@ -269,7 +269,7 @@ export class ProfileMap {
       });
       this.polygonSeries.events.on('datavalidated', () => {
         this.polygonSeries.mapPolygons.each((poly: any) => poly.set('fill', am5.color(UNLIT_FILL)));
-        this.refreshScene({ autoPlay: this.playing || !this.hasMountedInitialPlayback });
+        this.refreshScene({ autoPlay: this.playing });
       });
 
       this.lineSeries = this.chart.series.push(am5map.MapLineSeries.new(this.root, {}));
@@ -319,7 +319,7 @@ export class ProfileMap {
     this.dim = dim;
     this.events = buildEvents(this.books, dim);
     this.activeIdx = Math.max(0, this.events.length - 1);
-    this.refreshScene({ autoPlay: this.events.length > 1 });
+    this.refreshScene({ autoPlay: false });
   }
 
   private bind(): void {
@@ -377,7 +377,7 @@ export class ProfileMap {
     this.avatarWrap.className = 'prof-map-avatar';
     this.mapEl.appendChild(this.avatarWrap);
 
-    this.avatar = new PixelReader({ state: 'reading', size: 'md' });
+    this.avatar = new PixelReader({ state: 'traveling', size: 'md' });
     this.avatar.mount(this.avatarWrap);
   }
 

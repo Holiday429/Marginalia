@@ -12,6 +12,8 @@ import { cycleReadingIdentityVariant } from './reading-identity-adapter.ts';
 import { READING_IDENTITY_MOCK } from './reading-identity-mock.ts';
 import { getReadingIdentityResult } from './reading-identity-service.ts';
 import { PixelReader } from '../components/pixel-avatar/pixel-avatar.js';
+import { HeroBook } from '../components/hero-book/hero-book.js';
+import '../components/hero-book/hero-book.css';
 import type {
   ReadingIdentityAxis,
   ReadingIdentityResult,
@@ -20,9 +22,19 @@ import type {
 const TYPE_SPEED_MS = 18;
 const REGEN_SWAP_MS = 700;
 const AXIS_STAGGER_MS = 120;
-const GENERATE_REVEAL_MS = 760;
+const GENERATE_REVEAL_MS = 1500;
 const SCENE_IMAGE_URL = '/profile-room-pixel.png';
 const sceneAvatarByHost = new WeakMap<HTMLElement, PixelReader>();
+const heroBookByHost = new WeakMap<HTMLElement, HeroBook>();
+
+function mountGateHeroBook(host: HTMLElement): void {
+  const mount = host.querySelector<HTMLElement>('#profRidHeroBook');
+  if (!mount) return;
+  heroBookByHost.get(host)?.unmount();
+  const book = new HeroBook({ height: 240 });
+  book.mount(mount);
+  heroBookByHost.set(host, book);
+}
 
 function escapeHtml(value: string): string {
   return String(value ?? '')
@@ -32,18 +44,11 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function bookSceneHTML(data: ReadingIdentityResult): string {
+function bookSceneHTML(): string {
   return `
     <div class="prof-rid-book" aria-hidden="true">
+      <div class="prof-rid-book__mount" id="profRidHeroBook"></div>
       <div class="prof-rid-book__shadow"></div>
-      <div class="prof-rid-book__solid">
-        <span class="prof-rid-book__pages"></span>
-        <span class="prof-rid-book__cover">
-          <span class="prof-rid-book__cover-kicker">Marginalia</span>
-          <span class="prof-rid-book__cover-title">Reading\nIdentity</span>
-          <span class="prof-rid-book__cover-year">${escapeHtml(data.yearScope)}</span>
-        </span>
-      </div>
     </div>
   `;
 }
@@ -51,13 +56,18 @@ function bookSceneHTML(data: ReadingIdentityResult): string {
 function ctaStateHTML(data: ReadingIdentityResult): string {
   return `
     <section class="prof-rid-stage prof-rid-stage--cta" aria-label="Reading Identity">
-      ${bookSceneHTML(data)}
-      <div class="prof-rid-cta">
-        <p class="prof-rid-cta__title">Your reading identity, as seen by an outside eye</p>
-        <p class="prof-rid-cta__hint">Marginalia reads your library and margin notes, then writes a short portrait of how you read — what draws you, what you avoid, what the pattern reveals.</p>
-        <button class="prof-rid-btn prof-rid-btn--primary" id="profRidGenerate" type="button">
-          Generate
-        </button>
+      <div class="prof-rid-stage__room" style="background-image:url('${SCENE_IMAGE_URL}')">
+        <div class="prof-rid-stage__room-vignette" aria-hidden="true"></div>
+      </div>
+      <div class="prof-rid-stage__overlay">
+        ${bookSceneHTML()}
+        <div class="prof-rid-cta">
+          <p class="prof-rid-cta__title">Your reading identity, as seen by an outside eye</p>
+          <p class="prof-rid-cta__hint">Marginalia reads your library and margin notes, then writes a short portrait of how you read — what draws you, what you avoid, what the pattern reveals.</p>
+          <button class="prof-rid-btn prof-rid-btn--primary" id="profRidGenerate" type="button">
+            Generate
+          </button>
+        </div>
       </div>
     </section>
   `;
@@ -109,6 +119,7 @@ function referenceLayoutHTML(
         <span class="prof-rid-ref__kicker">Reading Identity</span>
         <h3 class="prof-rid-ref__title">${escapeHtml(data.archetype.title)}</h3>
         ${data.archetype.titleZh ? `<p class="prof-rid-ref__title-zh">「${escapeHtml(data.archetype.titleZh)}」</p>` : ''}
+
         <p class="prof-rid-ref__summary">
           <span class="prof-rid-ref__summary-text">${escapeHtml(data.archetype.summary)}</span>
         </p>
@@ -124,14 +135,16 @@ function referenceLayoutHTML(
           ${data.axes.map((axis, i) => axisRowHTML(axis, i)).join('')}
         </div>
 
-        <blockquote class="prof-rid-ref__quote">
-          <p>“${escapeHtml(quote)}”</p>
-        </blockquote>
-
         <div class="prof-rid-ref__footer">
           <span class="prof-rid-ref__meta">Filed ${escapeHtml(data.generatedAt)}</span>
+        </div>
+      </div>
+      <div class="prof-rid-ref__scene">
+        <div class="prof-rid-ref__scene-image" style="background-image:url('${SCENE_IMAGE_URL}')">
+          <div class="prof-rid-ref__scene-vignette" aria-hidden="true"></div>
+          <div class="prof-rid-ref__scene-avatar" id="profRidSceneAvatar" aria-hidden="true"></div>
           ${options.allowRegenerate === false ? '' : `
-            <button class="prof-rid-btn prof-rid-btn--ghost" id="profRidRegen" type="button">
+            <button class="prof-rid-btn prof-rid-btn--ghost prof-rid-btn--scene-regen" id="profRidRegen" type="button">
               <svg class="prof-rid-regen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M3 12a9 9 0 0 1 15.5-6.3L21 3v6h-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M21 12a9 9 0 0 1-15.5 6.3L3 21v-6h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -139,12 +152,6 @@ function referenceLayoutHTML(
               <span class="prof-rid-btn__label">Re-divine</span>
             </button>
           `}
-        </div>
-      </div>
-      <div class="prof-rid-ref__scene">
-        <div class="prof-rid-ref__scene-image" style="background-image:url('${SCENE_IMAGE_URL}')">
-          <div class="prof-rid-ref__scene-vignette" aria-hidden="true"></div>
-          <div class="prof-rid-ref__scene-avatar" id="profRidSceneAvatar" aria-hidden="true"></div>
         </div>
       </div>
     </section>
@@ -297,8 +304,14 @@ function runReveal(host: HTMLElement, data: ReadingIdentityResult): void {
     generateBtn.textContent = 'Generating...';
   }
   stage.classList.add('is-generating');
+  // Flip the GLB hero book open (spine → cover swing).
+  heroBookByHost.get(host)?.open();
   host.querySelector<HTMLElement>('.prof-rid-cta')?.classList.add('is-leaving');
-  window.setTimeout(() => renderResult(host, data), GENERATE_REVEAL_MS);
+  window.setTimeout(() => {
+    heroBookByHost.get(host)?.unmount();
+    heroBookByHost.delete(host);
+    renderResult(host, data);
+  }, GENERATE_REVEAL_MS);
 }
 
 export function mountReadingIdentity(
@@ -312,6 +325,7 @@ export function mountReadingIdentity(
     return;
   }
   host.innerHTML = `<div class="prof-rid prof-rid--gate">${ctaStateHTML(currentData)}</div>`;
+  mountGateHeroBook(host);
   host.querySelector<HTMLButtonElement>('#profRidGenerate')?.addEventListener('click', () => {
     runReveal(host, currentData);
   });

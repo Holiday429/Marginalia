@@ -133,21 +133,11 @@ export class ProfileAnnualShelf {
             </div>
             <div class="prof-streak-card">
               <div class="prof-streak-card__summary">
-                <span class="prof-streak-card__eyebrow">${escHtml(streak.eyebrow)}</span>
-                <span class="prof-streak-card__flame" aria-hidden="true"><span></span></span>
-                <div class="prof-streak-card__days">${streak.displayDays}</div>
-                <div class="prof-streak-card__label">${escHtml(streak.dayLabel)}</div>
-                <p class="prof-streak-card__note">${escHtml(streak.note)}</p>
-                <div class="prof-streak-card__meta">
-                  <div class="prof-streak-card__meta-item">
-                    <span>Longest ${year}</span>
-                    <strong>${streak.longestYear}</strong>
-                  </div>
-                  <div class="prof-streak-card__meta-item">
-                    <span>Reading Days</span>
-                    <strong>${streak.readingDays}</strong>
-                  </div>
+                <div class="prof-streak-card__flame-wrap" aria-hidden="true">
+                  <div class="prof-pixel-flame" id="profPixelFlame"></div>
                 </div>
+                <div class="prof-streak-card__days">${streak.displayDays}</div>
+                <div class="prof-streak-card__label">Days in a row</div>
               </div>
               <div class="prof-streak-card__heatmap">
                 <div class="prof-rhythm__meta-row">
@@ -418,6 +408,8 @@ export class ProfileAnnualShelf {
     this.host.querySelector('#profAnnualNext')?.addEventListener('click', () => changeYear(1));
     this.host.querySelector('#profAnnualPrevShelf')?.addEventListener('click', () => changeYear(-1));
     this.host.querySelector('#profAnnualNextShelf')?.addEventListener('click', () => changeYear(1));
+
+    mountPixelFlame(this.host.querySelector<HTMLElement>('#profPixelFlame'));
 
     const playBtn = this.host.querySelector<HTMLButtonElement>('#profAnnualPlayBtn');
     playBtn?.addEventListener('click', () => {
@@ -753,6 +745,131 @@ export class ProfileAnnualShelf {
     overlay.setAttribute('aria-hidden', 'true');
     await delay(450);
   }
+}
+
+// ─── Pixel flame ──────────────────────────────────────────────────────────────
+
+function mountPixelFlame(el: HTMLElement | null): void {
+  if (!el) return;
+  el.innerHTML = '';
+
+  const FW = 11;
+  const FH = 16;
+  const SCALE = 4;
+
+  // pixel art frames — '.' = transparent, warm palette chars
+  // O = bright core, Y = yellow, R = orange, r = dark orange, k = outline
+  const frames: string[][] = [
+    [
+      '...kkkk.....',
+      '..kOOYkk....',
+      '.kOOYYYk....',
+      '.kYYYRRk....',
+      'kYYRRRRk....',
+      'kYRRRRrk....',
+      'kYRRrrrkk...',
+      'kRRrrrrRk...',
+      'kRrrrrrRk...',
+      '.kRrrrRkk...',
+      '.kRrrRkk....',
+      '..kRRkk.....',
+      '..kRkk......',
+      '..kkkk......',
+      '............',
+      '............',
+    ],
+    [
+      '....kkkk....',
+      '...kOOYk....',
+      '..kOOYYYk...',
+      '.kYYYYRRk...',
+      '.kYYRRRRk...',
+      'kYYRRRrrk...',
+      'kYRRrrrRk...',
+      'kRRrrrRRk...',
+      'kRrrrrRkk...',
+      '.kRrrrkkk...',
+      '.kRrrRk.....',
+      '..kRRkk.....',
+      '..kRkk......',
+      '..kkkk......',
+      '............',
+      '............',
+    ],
+    [
+      '..kkkk......',
+      '.kOOYYk.....',
+      'kOOYYYYk....',
+      'kYYYRRRk....',
+      'kYYRRRrk....',
+      'kYRRRrrk....',
+      'kRRrrrrk....',
+      'kRrrrrrRk...',
+      '.kRrrrrRk...',
+      '.kRrrrRkk...',
+      '..kRrRkk....',
+      '..kRRkk.....',
+      '..kkkk......',
+      '............',
+      '............',
+      '............',
+    ],
+  ];
+
+  const palette: Record<string, string> = {
+    k: 'rgba(20,10,4,0.9)',
+    O: 'rgba(255,252,220,1)',
+    Y: 'rgba(255,220,80,1)',
+    R: 'rgba(240,130,30,1)',
+    r: 'rgba(200,72,14,1)',
+  };
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${FW} ${FH}`);
+  svg.setAttribute('width', String(FW * SCALE));
+  svg.setAttribute('height', String(FH * SCALE));
+  svg.setAttribute('aria-hidden', 'true');
+  svg.style.display = 'block';
+  svg.style.imageRendering = 'pixelated';
+  el.appendChild(svg);
+
+  let frameIdx = 0;
+
+  function drawFrame(): void {
+    svg.innerHTML = '';
+    const frame = frames[frameIdx];
+    for (let y = 0; y < FH; y++) {
+      const rowStr = frame[y] ?? '';
+      for (let x = 0; x < FW; x++) {
+        const ch = rowStr[x] ?? '.';
+        if (ch === '.') continue;
+        const color = palette[ch];
+        if (!color) continue;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', String(x));
+        rect.setAttribute('y', String(y));
+        rect.setAttribute('width', '1');
+        rect.setAttribute('height', '1');
+        rect.setAttribute('fill', color);
+        svg.appendChild(rect);
+      }
+    }
+  }
+
+  drawFrame();
+  const id = window.setInterval(() => {
+    frameIdx = (frameIdx + 1) % frames.length;
+    drawFrame();
+  }, 180);
+
+  // clean up when removed from DOM
+  const observer = new MutationObserver(() => {
+    if (!document.contains(el)) {
+      window.clearInterval(id);
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
 }
 
 // ─── Helpers (mirrored from booklist.js) ──────────────────────────────────────
@@ -1238,7 +1355,7 @@ function getSpineSize(book: ProfileBook): { width: number; height: number } {
   const len = book.title.length;
   const width = len > 28 ? 52 : len > 18 ? 46 : 40;
   const seed = book.id.charCodeAt(0) % 5;
-  return { width, height: 140 + seed * 8 };
+  return { width, height: 210 + seed * 10 };
 }
 
 function containsCJK(text: string): boolean {

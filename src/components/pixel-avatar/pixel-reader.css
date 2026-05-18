@@ -36,6 +36,10 @@
   animation: pixel-reader-book 2.4s ease-in-out infinite;
 }
 
+.px--eye {
+  /* eye stays crisp — no animation */
+}
+
 @keyframes pixel-reader-breathe {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-1px); }

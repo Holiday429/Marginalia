@@ -9,8 +9,10 @@ import { BooksStore } from '../store/books-store.ts';
 import { DEMO_BOOKS, DEMO_PROFILE, DEMO_SEED_THRESHOLD, buildDemoHighlights, buildDemoSessionDays } from '../data/seed/profile-demo.ts';
 import { loadAnnualShelf } from './annual-shelf-store.ts';
 import { mountReadingIdentity } from './reading-identity.ts';
+import { HeroBook } from '../components/hero-book/hero-book.js';
 import type { PublicProfileData, PublicBook, PublicHighlight, SessionDay, DemoPayload } from './profile-types.ts';
 import './profile.css';
+import '../components/hero-book/hero-book.css';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FirestoreDB = any;
@@ -368,7 +370,7 @@ function profileHTML(
       <div class="prof-section__head prof-section__head--stacked">
         <div>
           <h2 class="prof-section__title">Reading Journey</h2>
-          <p class="prof-section__subcopy">Books you finished, places they lit, and the routes they left behind.</p>
+          <p class="prof-section__subcopy">Books light your way.</p>
         </div>
         <div class="prof-journey-metrics" aria-label="Journey summary">
           <div class="prof-journey-metric">
@@ -396,23 +398,8 @@ function profileHTML(
           </div>
         </div>
       </div>
-      <div class="prof-map-wrap">
+      <div class="prof-map-wrap${journey.topGenres.length ? ' prof-map-wrap--has-legend' : ''}">
         <div class="prof-map" id="profMap"></div>
-        <div class="prof-map-overlay prof-map-overlay--genres" aria-hidden="true">
-          <p class="prof-map-overlay__title">Top Genres</p>
-          <div class="prof-map-overlay__genres">
-            ${journey.topGenres.length
-              ? journey.topGenres.map((genre) => `
-                <div class="prof-map-genre">
-                  <span class="prof-map-genre__label">${escapeHtml(genre.label)}</span>
-                  <span class="prof-map-genre__bar"><span style="width:${genre.pct}%"></span></span>
-                  <span class="prof-map-genre__pct">${genre.pct}%</span>
-                </div>
-              `).join('')
-              : '<p class="prof-map-overlay__empty">The map will gather stronger genre signals as more books are shared.</p>'}
-          </div>
-        </div>
-        <div class="prof-map-overlay prof-map-overlay--note" aria-hidden="true">Books light the way.</div>
         <div class="prof-map-caption" id="profMapCaption"></div>
         <div class="prof-map-zoom" id="profMapZoom">
           <button class="prof-map-zoom__btn" id="profMapZoomIn"  type="button" aria-label="Zoom in">+</button>
@@ -420,6 +407,18 @@ function profileHTML(
           <div class="prof-map-zoom__sep"></div>
           <button class="prof-map-zoom__btn prof-map-zoom__fit" id="profMapZoomFit" type="button" aria-label="Fit map">Fit</button>
         </div>
+        ${journey.topGenres.length ? `
+        <div class="prof-map-genre-legend" aria-label="Top genres">
+          <span class="prof-map-genre-legend__title">Top Genres</span>
+          ${journey.topGenres.map((genre) => `
+            <div class="prof-map-genre-legend__item">
+              <span class="prof-map-genre-legend__dot"></span>
+              <span class="prof-map-genre-legend__label">${escapeHtml(genre.label)}</span>
+              <span class="prof-map-genre-legend__pct">${genre.pct}%</span>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
       </div>
       <div class="prof-map-rail" hidden>
         <div class="prof-map-rail__items" id="profMapRail"></div>
@@ -453,59 +452,45 @@ function profileHTML(
       <div class="prof-shell__inner">
         <section class="prof-hero" aria-label="Reader profile hero">
           <header class="prof-reader-card">
-            <div class="prof-reader-card__top">
+            <div class="prof-reader-card__hero">
               <div class="prof-identity__media">${avatarEl}</div>
-            </div>
-            <div class="prof-reader-card__body">
               <div class="prof-identity__copy">
-                <p class="prof-reader-state">${escapeHtml(overview.statusTitle)}</p>
                 <h1 class="prof-name">${escapeHtml(displayName)}</h1>
                 <p class="prof-reader-tagline">Soul of a curious wanderer</p>
-                <p class="prof-bio">${escapeHtml(profile.bio || 'I read to understand the world, and myself.')}</p>
               </div>
+              <p class="prof-bio">${escapeHtml(profile.bio || 'I read to understand the world, and myself.')}</p>
               <div class="prof-reader-meta">
                 ${profileContext.location ? `
                   <div class="prof-reader-meta__item">
-                    <span class="prof-reader-meta__label">Location</span>
+                    <svg class="prof-reader-meta__icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M8 1.5A4.5 4.5 0 0 1 12.5 6c0 3-4.5 8.5-4.5 8.5S3.5 9 3.5 6A4.5 4.5 0 0 1 8 1.5Z" stroke="currentColor" stroke-width="1.2"/>
+                      <circle cx="8" cy="6" r="1.5" stroke="currentColor" stroke-width="1.2"/>
+                    </svg>
                     <span class="prof-reader-meta__value">${escapeHtml(profileContext.location)}</span>
                   </div>
                 ` : ''}
                 ${profileContext.joinedLabel ? `
                   <div class="prof-reader-meta__item">
-                    <span class="prof-reader-meta__label">Joined</span>
+                    <svg class="prof-reader-meta__icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <rect x="2" y="3.5" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+                      <path d="M5 2v3M11 2v3M2 7h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                    </svg>
                     <span class="prof-reader-meta__value">${escapeHtml(profileContext.joinedLabel)}</span>
                   </div>
                 ` : ''}
-                ${overview.firstFinishedLabel ? `
-                  <div class="prof-reader-meta__item">
-                    <span class="prof-reader-meta__label">Journey Began</span>
-                    <span class="prof-reader-meta__value">${escapeHtml(overview.firstFinishedLabel)}</span>
-                  </div>
-                ` : ''}
-                <div class="prof-reader-meta__item">
-                  <span class="prof-reader-meta__label">${escapeHtml(overview.streakLabel)}</span>
-                  <span class="prof-reader-meta__value">${escapeHtml(overview.streakNote)}</span>
+              </div>
+            </div>
+            <div class="prof-reader-stats" aria-label="Reading overview">
+              ${overview.stats.map((stat) => `
+                <div class="prof-reader-stat">
+                  <strong>${escapeHtml(stat.value)}</strong>
+                  <span>${escapeHtml(stat.label)}</span>
                 </div>
-              </div>
-              <div class="prof-reader-stats" aria-label="Reading overview">
-                ${overview.stats.map((stat) => `
-                  <div class="prof-reader-stat">
-                    <strong>${escapeHtml(stat.value)}</strong>
-                    <span>${escapeHtml(stat.label)}</span>
-                  </div>
-                `).join('')}
-              </div>
+              `).join('')}
             </div>
           </header>
 
           <section class="prof-identity-hero" aria-label="Reading identity">
-            <div class="prof-section__head prof-section__head--stacked">
-              <div>
-                <span class="prof-kicker">AI-powered insights</span>
-                <h2 class="prof-section__title">Reading Identity</h2>
-                <p class="prof-section__subcopy">A reading portrait shaped from books, highlights, rhythm, and recurring themes.</p>
-              </div>
-            </div>
             <div class="prof-identity-hero__panel">
               <div id="profIdentityMount"></div>
             </div>
@@ -516,23 +501,14 @@ function profileHTML(
         ${annualSection}
         ${deskSection}
         ${portraitSection}
-        ${closingQuote ? `
-          <section class="prof-closing" aria-label="Closing quote">
-            <div class="prof-closing__emblem" aria-hidden="true">
-              <div class="prof-closing__seal">
-                <span>M</span>
-              </div>
+        <section class="prof-share-cta" aria-label="Share your profile">
+          <div class="prof-share-cta__stage">
+            <div class="prof-share-cta__book book cta" id="profShareBook" role="button" tabindex="0" aria-label="Generate share link">
+              <div class="prof-share-cta__book-mount" id="profShareBookMount"></div>
+              <div class="cta-label" id="profShareCtaLabel">Generate share link</div>
             </div>
-            <blockquote class="prof-closing__quote">
-              <p>“${escapeHtml(closingQuote.quote)}”</p>
-              <cite>— ${escapeHtml(closingQuote.source)}</cite>
-            </blockquote>
-            <div class="prof-closing__stilllife" aria-hidden="true">
-              <span class="prof-closing__books"></span>
-              <span class="prof-closing__cup"></span>
-            </div>
-          </section>
-        ` : ''}
+          </div>
+        </section>
         <p class="prof-built-with">Built with Marginalia</p>
       </div>
     </div>
@@ -558,6 +534,44 @@ function bindProfileChrome(container: HTMLElement, settingsOnly: boolean): void 
 
   if (settingsOnly) {
     container.querySelector<HTMLElement>('#profileBackToProfileBtn')?.addEventListener('click', () => enterProfile());
+  }
+
+  // Bottom share section — GLB hero book + preloader "Enter Library"-style CTA.
+  const shareBook = container.querySelector<HTMLElement>('#profShareBook');
+  const shareMount = container.querySelector<HTMLElement>('#profShareBookMount');
+  const shareLabel = container.querySelector<HTMLElement>('#profShareCtaLabel');
+  if (shareBook && shareMount) {
+    const heroBook = new HeroBook({ height: 240 });
+    heroBook.mount(shareMount);
+    // Dock the book and reveal the label, mirroring the preloader CTA state.
+    window.setTimeout(() => shareBook.classList.add('docked'), 16);
+
+    let sharing = false;
+    const doShare = async () => {
+      if (sharing) return;
+      sharing = true;
+      const shareTarget = container.querySelector<HTMLElement>('#profileHeaderShareBtn')?.getAttribute('data-share-url') || window.location.href;
+      // Open the book — preloader's final cover flip.
+      heroBook.open();
+      try {
+        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(shareTarget);
+        else throw new Error('Clipboard unavailable');
+        if (shareLabel) shareLabel.textContent = 'Link copied';
+      } catch {
+        window.open(shareTarget, '_blank', 'noopener,noreferrer');
+        if (shareLabel) shareLabel.textContent = 'Opening…';
+      }
+      window.setTimeout(() => {
+        heroBook.close();
+        if (shareLabel) shareLabel.textContent = 'Generate share link';
+        sharing = false;
+      }, 1800);
+    };
+
+    shareBook.addEventListener('click', doShare);
+    shareBook.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doShare(); }
+    });
   }
 }
 
