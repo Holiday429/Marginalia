@@ -14,6 +14,9 @@ interface ProfileBook {
   coverSrc?: string;
   language?: string;
   genre?: string;
+  sourceIndex?: number;
+  rank?: number;
+  isFeatured?: boolean;
 }
 
 interface SessionDay {
@@ -35,7 +38,18 @@ interface AnnualShelfState {
   yearIndex: number;
   isAnimating: boolean;
   previewBookId: string;
+  playMode: 'play' | 'organize' | 'replay';
 }
+
+interface YearShelfData {
+  sourceBooks: ProfileBook[];
+  selectedBooks: ProfileBook[];
+  yearBooks: ProfileBook[];
+}
+
+const ANNUAL_TARGET_COUNT = 10;
+const SOURCE_SHELF_MIN_COUNT = 12;
+const SOURCE_SHELF_MAX_COUNT = 16;
 
 export class ProfileAnnualShelf {
   private host: HTMLElement;
@@ -53,7 +67,7 @@ export class ProfileAnnualShelf {
     this.allowOpenDetails = allowOpenDetails;
     this.showRhythm = showRhythm;
     this.years = buildYears(books);
-    this.state = { yearIndex: this.years.length - 1, isAnimating: false, previewBookId: '' };
+    this.state = { yearIndex: this.years.length - 1, isAnimating: false, previewBookId: '', playMode: 'play' };
   }
 
   mount(): void {
@@ -69,22 +83,20 @@ export class ProfileAnnualShelf {
     return this.years[this.state.yearIndex];
   }
 
-  private top10ForYear(year: number): ProfileBook[] {
-    return this.books
-      .filter((b) => isFinishedStatus(b.status) && bookYear(b) === year)
-      .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))
-      .slice(0, 10);
+  private shelfDataForYear(year: number): YearShelfData {
+    return buildYearShelfData(this.books, year);
   }
 
   private render(): void {
     const year = this.year;
-    const top10 = this.top10ForYear(year);
+    const shelfData = this.shelfDataForYear(year);
+    const selectedBooks = shelfData.selectedBooks;
     const canPrev = this.state.yearIndex > 0;
     const canNext = this.state.yearIndex < this.years.length - 1;
 
     const heatmap = this.showRhythm ? buildHeatmap(year, this.sessionDays) : [];
     const maxLevel = heatmap.length ? Math.max(1, ...heatmap.map((d) => d.level)) : 1;
-    const meta = describeYearActivity(year, top10, this.sessionDays);
+    const meta = describeYearActivity(year, shelfData.yearBooks, shelfData.sourceBooks, this.sessionDays);
 
     this.host.innerHTML = `
       <div class="prof-annual">
@@ -143,15 +155,15 @@ export class ProfileAnnualShelf {
                 </div>
               ` : ''}
               <span id="profAnnualCounter" class="prof-rhythm__meta"></span>
-              ${top10.length >= 2 ? `
-                <button class="booklist-play-btn booklist-play-btn--icon" id="profAnnualPlayBtn" type="button" aria-label="Play annual shelf">
+              ${selectedBooks.length >= 2 ? `
+                <button class="booklist-play-btn booklist-play-btn--icon" id="profAnnualPlayBtn" type="button" data-mode="${this.state.playMode}" aria-label="Play annual shelf">
                   <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>
                 </button>
               ` : ''}
             </div>
           </div>
           <div class="prof-annual__card">
-            ${top10.length ? `
+            ${selectedBooks.length ? `
               <div class="booklist-top" id="profAnnualTop">
                 <section class="booklist-annual">
                   <div class="booklist-racks" id="profAnnualRacks"></div>
@@ -182,19 +194,19 @@ export class ProfileAnnualShelf {
                 </div>
                 <div class="booklist-source-track" id="profAnnualSourceShelf"></div>
               </section>
-            ` : `<p class="prof-year__empty">No finished books recorded for ${year}.</p>`}
+            ` : `<p class="prof-year__empty">No shelf books available for ${year}.</p>`}
           </div>
         </section>
 
       </div>
     `;
 
-    if (top10.length) {
-      this.renderRacks(top10);
-      this.renderSourceShelf(top10);
-      updateCounter(this.host, 0, top10.length);
+    if (selectedBooks.length) {
+      this.renderRacks(selectedBooks);
+      this.renderSourceShelf(shelfData.sourceBooks, selectedBooks);
+      updateCounter(this.host, 0, selectedBooks.length);
       // Show first book as static preview
-      this.showStaticPreview(top10[0], top10);
+      this.showStaticPreview(selectedBooks[0], selectedBooks);
     }
   }
 
@@ -242,11 +254,12 @@ export class ProfileAnnualShelf {
     });
   }
 
-  private renderSourceShelf(books: ProfileBook[]): void {
+  private renderSourceShelf(sourceBooks: ProfileBook[], selectedBooks: ProfileBook[]): void {
     const host = this.host.querySelector<HTMLElement>('#profAnnualSourceShelf');
     if (!host) return;
     host.innerHTML = '';
-    books.forEach((book) => {
+    const selectedIds = new Set(selectedBooks.map((book) => book.id));
+    sourceBooks.forEach((book) => {
       const size = getSpineSize(book);
       const spine = SpineCard.create({
         title: book.title,
@@ -256,7 +269,7 @@ export class ProfileAnnualShelf {
         width: size.width,
         height: size.height,
         className: 'booklist-spine',
-        extraClasses: [],
+        extraClasses: selectedIds.has(book.id) ? ['is-picked'] : [],
         dataAttrs: { sourceId: book.id },
         ariaLabel: `${book.title} by ${book.author}`,
         titleClass: `booklist-spine-title${containsCJK(book.title) ? ' is-cjk' : ''}`,
@@ -297,6 +310,7 @@ export class ProfileAnnualShelf {
       this.state.yearIndex = next;
       this.state.isAnimating = false;
       this.state.previewBookId = '';
+      this.state.playMode = 'play';
       this.render();
       this.bind();
     };
@@ -307,37 +321,43 @@ export class ProfileAnnualShelf {
     this.host.querySelector('#profAnnualNextShelf')?.addEventListener('click', () => changeYear(1));
 
     const playBtn = this.host.querySelector<HTMLButtonElement>('#profAnnualPlayBtn');
-    playBtn?.addEventListener('click', () => { this.startAnimation(playBtn); });
+    playBtn?.addEventListener('click', () => {
+      const mode = playBtn.dataset.mode || 'play';
+      if (mode === 'organize') this.runOrganize(playBtn);
+      else this.startAnimation(playBtn);
+    });
 
     // Click slot → preview that book
     this.host.querySelector('#profAnnualRacks')?.addEventListener('click', (e) => {
       const slot = (e.target as HTMLElement).closest<HTMLElement>('.booklist-slot');
       if (!slot || this.state.isAnimating) return;
-      const book = this.top10ForYear(this.year).find((b) => b.id === slot.dataset.slotId);
-      if (book) this.showStaticPreview(book, this.top10ForYear(this.year));
+      const selectedBooks = this.shelfDataForYear(this.year).selectedBooks;
+      const book = selectedBooks.find((b) => b.id === slot.dataset.slotId);
+      if (book) this.showStaticPreview(book, selectedBooks);
     });
 
     // Click stage → open book detail (owner only)
     this.host.querySelector('#profAnnualStage')?.addEventListener('click', () => {
       if (!this.allowOpenDetails || this.state.isAnimating) return;
-      const book = this.top10ForYear(this.year).find((b) => b.id === this.state.previewBookId);
+      const book = this.shelfDataForYear(this.year).selectedBooks.find((b) => b.id === this.state.previewBookId);
       if (book?.id && BooksStore.getById(book.id)) App.show('book', { id: book.id });
     });
   }
 
   private async startAnimation(playBtn: HTMLButtonElement): Promise<void> {
     if (this.state.isAnimating) return;
-    const top10 = this.top10ForYear(this.year);
-    if (top10.length < 2) return;
+    const shelfData = this.shelfDataForYear(this.year);
+    const selectedBooks = shelfData.selectedBooks;
+    if (selectedBooks.length < 2) return;
 
     this.state.isAnimating = true;
     playBtn.disabled = true;
     playBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>';
 
     // Reset racks + source shelf
-    this.renderRacks(top10);
-    this.renderSourceShelf(top10);
-    updateCounter(this.host, 0, top10.length);
+    this.renderRacks(selectedBooks);
+    this.renderSourceShelf(shelfData.sourceBooks, selectedBooks);
+    updateCounter(this.host, 0, selectedBooks.length);
     resetStageOverlays(this.host);
 
     const stage = this.host.querySelector<HTMLElement>('#profAnnualStage');
@@ -346,7 +366,7 @@ export class ProfileAnnualShelf {
     const authorEl = this.host.querySelector<HTMLElement>('#profAnnualStageAuthor');
 
     // Play 10 → 1
-    const placement = [...top10].reverse(); // highest rank (10) first, No.1 last
+    const placement = [...selectedBooks].reverse(); // highest rank (10) first, No.1 last
     const total = placement.length;
 
     for (let i = 0; i < total; i++) {
@@ -397,13 +417,73 @@ export class ProfileAnnualShelf {
     }
 
     if (stage) stage.classList.add('is-idle');
-    playBtn.disabled = false;
-    playBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>';
+
     this.state.isAnimating = false;
+    this.state.playMode = 'organize';
+    playBtn.disabled = false;
+    playBtn.dataset.mode = 'organize';
+    playBtn.innerHTML = 'Organize';
+    playBtn.classList.remove('booklist-play-btn--icon');
+    playBtn.style.width = '';
 
     // Keep No.1 book on stage
-    const favourite = top10[0];
-    if (favourite) this.showStaticPreview(favourite, top10);
+    const favourite = selectedBooks[0];
+    if (favourite) this.showStaticPreview(favourite, selectedBooks);
+  }
+
+  private async runOrganize(playBtn: HTMLButtonElement): Promise<void> {
+    if (this.state.isAnimating) return;
+    this.state.isAnimating = true;
+    playBtn.disabled = true;
+    playBtn.innerHTML = 'Organizing…';
+
+    await this.compactSourceShelf();
+
+    const selectedBooks = this.shelfDataForYear(this.year).selectedBooks;
+    const favourite = selectedBooks[0];
+    if (favourite) this.showStaticPreview(favourite, selectedBooks);
+
+    this.state.isAnimating = false;
+    this.state.playMode = 'replay';
+    playBtn.disabled = false;
+    playBtn.dataset.mode = 'replay';
+    playBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>';
+    playBtn.classList.add('booklist-play-btn--icon');
+  }
+
+  private async compactSourceShelf(): Promise<void> {
+    const track = this.host.querySelector<HTMLElement>('#profAnnualSourceShelf');
+    if (!track) return;
+
+    const moving = [...track.querySelectorAll<HTMLElement>('.booklist-spine:not(.is-gone)')];
+    const before = new Map(moving.map((el) => [el.dataset.sourceId ?? '', el.getBoundingClientRect()]));
+
+    track.querySelectorAll('.booklist-spine.is-gone').forEach((el) => el.remove());
+    moving.forEach((el) => el.classList.remove('is-lifting', 'is-gone', 'is-dimmed'));
+
+    void track.offsetWidth;
+
+    moving.forEach((el) => {
+      const id = el.dataset.sourceId ?? '';
+      const prev = before.get(id);
+      if (!prev) return;
+      const next = el.getBoundingClientRect();
+      const dx = prev.left - next.left;
+      const dy = prev.top - next.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      el.style.transition = 'none';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 460ms cubic-bezier(.2,.8,.2,1)';
+        el.style.transform = '';
+      });
+    });
+
+    await delay(500);
+    moving.forEach((el) => {
+      el.style.transition = '';
+      el.style.transform = '';
+    });
   }
 }
 
@@ -547,6 +627,125 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function buildYearShelfData(books: ProfileBook[], year: number): YearShelfData {
+  const uniqueBooks = dedupeBooks(books)
+    .filter((book) => book.title && book.author)
+    .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0) || a.title.localeCompare(b.title));
+
+  const yearBooks = uniqueBooks.filter((book) => isFinishedStatus(book.status) && bookYear(book) === year);
+  const chosen = new Set(yearBooks.map((book) => book.id));
+
+  const sourceBooks = [...yearBooks];
+  const backfill = uniqueBooks
+    .filter((book) => !chosen.has(book.id))
+    .sort((a, b) => annualYearAffinity(b, year) - annualYearAffinity(a, year) || annualScore(b, year) - annualScore(a, year));
+
+  const sourceTarget = Math.min(
+    SOURCE_SHELF_MAX_COUNT,
+    Math.max(SOURCE_SHELF_MIN_COUNT, Math.min(uniqueBooks.length, ANNUAL_TARGET_COUNT + 2)),
+  );
+
+  for (const book of backfill) {
+    if (sourceBooks.length >= sourceTarget) break;
+    sourceBooks.push(book);
+  }
+
+  const sourceWithIndex = sourceBooks.map((book, index) => ({ ...book, sourceIndex: index }));
+  const selectedBooks = selectAnnualBooks(sourceWithIndex, Math.min(ANNUAL_TARGET_COUNT, sourceWithIndex.length), year);
+  return { sourceBooks: sourceWithIndex, selectedBooks, yearBooks };
+}
+
+function dedupeBooks(books: ProfileBook[]): ProfileBook[] {
+  const seen = new Set<string>();
+  return books.filter((book) => {
+    const key = String(book.id || `${book.title}::${book.author}`);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function normalizeAnnualStatus(status: unknown): 'finished' | 'reading' | 'want' {
+  if (status === 'read' || status === 'finished') return 'finished';
+  if (status === 'reading') return 'reading';
+  return 'want';
+}
+
+function annualYearAffinity(book: ProfileBook, year: number): number {
+  const bookFinishedYear = bookYear(book);
+  if (bookFinishedYear === year) return 2000;
+  if (bookFinishedYear === null) return normalizeAnnualStatus(book.status) === 'reading' ? 420 : 160;
+  return Math.max(0, 240 - Math.abs(bookFinishedYear - year) * 80);
+}
+
+function selectAnnualBooks(sourceBooks: ProfileBook[], count: number, year: number): ProfileBook[] {
+  const seen = new Set<string>();
+  const ranked: ProfileBook[] = [];
+
+  (['finished', 'reading', 'want'] as const).forEach((status) => {
+    sourceBooks
+      .filter((book) => normalizeAnnualStatus(book.status) === status)
+      .sort((a, b) => annualScore(b, year) - annualScore(a, year))
+      .forEach((book) => {
+        if (seen.has(book.id)) return;
+        seen.add(book.id);
+        ranked.push(book);
+      });
+  });
+
+  const spread: ProfileBook[] = [];
+  const used = new Set<string>();
+  while (spread.length < count && spread.length < ranked.length) {
+    let best: ProfileBook | null = null;
+    let bestScore = -Infinity;
+
+    ranked.forEach((candidate) => {
+      if (used.has(candidate.id)) return;
+      let score = annualScore(candidate, year);
+      if (spread.length) {
+        const nearest = Math.min(...spread.map((pick) => Math.abs((pick.sourceIndex ?? 0) - (candidate.sourceIndex ?? 0))));
+        if (nearest <= 1) score -= 520;
+        else if (nearest === 2) score -= 170;
+      }
+      score += seededNoiseYB(((candidate.sourceIndex ?? 0) + 1) * 173 + (spread.length + 1) * 37) * 36;
+      if (score > bestScore) {
+        bestScore = score;
+        best = candidate;
+      }
+    });
+
+    if (!best) break;
+    const chosenBook: ProfileBook = best as ProfileBook;
+    used.add(chosenBook.id);
+    spread.push(chosenBook);
+  }
+
+  return spread.map((book, index) => ({
+    ...book,
+    rank: index,
+    isFeatured: index === 0,
+  }));
+}
+
+function annualScore(book: ProfileBook, year: number): number {
+  let score = annualYearAffinity(book, year);
+  const status = normalizeAnnualStatus(book.status);
+  if (status === 'finished') score += 820;
+  else if (status === 'reading') score += 420;
+  else score += 80;
+
+  if (book.coverSrc) score += 24;
+  if (book.genre) score += 12;
+  if (book.language) score += 8;
+  score += (book.finishedAt ?? 0) / 100000000000;
+  return score;
+}
+
+function seededNoiseYB(n: number): number {
+  const x = Math.sin(n * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 function buildYears(books: ProfileBook[]): number[] {
   const finishedYears = books
     .filter((b) => isFinishedStatus(b.status))
@@ -569,8 +768,9 @@ function isFinishedStatus(status: unknown): boolean {
   return status === 'read' || status === 'finished';
 }
 
-function describeYearActivity(year: number, finishedBooks: ProfileBook[], sessionDays: SessionDay[]): string {
+function describeYearActivity(year: number, finishedBooks: ProfileBook[], sourceBooks: ProfileBook[], sessionDays: SessionDay[]): string {
   const sessionCount = sessionDays.filter((d) => d.date.startsWith(`${year}-`)).reduce((sum, d) => sum + d.sessions, 0);
+  if (!sessionCount && !finishedBooks.length && sourceBooks.length) return `Previewing ${sourceBooks.length} shelf books`;
   if (!sessionCount && !finishedBooks.length) return `No reading data for ${year}`;
   if (!sessionCount) return `${finishedBooks.length} finished ${finishedBooks.length === 1 ? 'book' : 'books'}`;
   return `${sessionCount} sessions · ${finishedBooks.length} ${finishedBooks.length === 1 ? 'book' : 'books'}`;

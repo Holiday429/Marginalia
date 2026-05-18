@@ -317,11 +317,16 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
       return;
     }
 
-    const [books, highlights, sessionDays] = await Promise.all([
+    let [books, highlights, sessionDays] = await Promise.all([
       fetchPublicBooks(db, profileData.uid, ownerPreview),
       fetchPublicHighlights(db, profileData.uid, ownerPreview),
       fetchSessions(db, profileData.uid),
     ]);
+
+    if (ownerPreview) {
+      if (!highlights.length) highlights = buildDemoHighlights();
+      if (!sessionDays.length) sessionDays = buildDemoSessionDays(books);
+    }
 
     const isOwner = ownerPreview;
     renderResolvedProfile(container, profileData, books, highlights, sessionDays, isOwner, showSettingsAction);
@@ -421,12 +426,13 @@ async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview 
   try {
     if (ownerPreview) {
       const snap = await db.collection('workspaces').doc(wsId).collection('users').doc(uid).collection('highlights').limit(24).get();
-      return snap.docs
+      const highlights = snap.docs
         .map((doc: any) => {
           const data = doc.data() as Record<string, any>;
           return { quote: data.quote ?? '', bookTitle: data.bookTitle ?? '', bookId: data.bookId ?? undefined };
         })
         .filter((highlight: PublicHighlight) => highlight.quote.length > 0);
+      return highlights.length ? highlights : buildDemoHighlights();
     }
 
     const snap = await db.collectionGroup('highlights').where('uid', '==', uid).where('public', '==', true).limit(24).get();
@@ -867,6 +873,15 @@ function buildDemoPayload(): DemoPayload {
     .map((book) => ({ ...book, status: normalizeProfileStatus(book.status) }))
     .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
 
+  return {
+    profile: DEMO_PROFILE,
+    books,
+    highlights: buildDemoHighlights(),
+    sessionDays: buildDemoSessionDays(books),
+  };
+}
+
+function buildDemoHighlights(): PublicHighlight[] {
   const seedHighlights = BooksStore.getAll().flatMap((record: any) => {
     const rawHighlights = Array.isArray(record?.highlights) ? record.highlights : [];
     const title = record?.title ?? record?.meta?.title ?? record?.meta?.titleZh ?? 'Untitled';
@@ -877,7 +892,8 @@ function buildDemoPayload(): DemoPayload {
     }));
   }).filter((item) => item.quote.length > 0);
 
-  const highlights = seedHighlights.length ? seedHighlights : [
+  if (seedHighlights.length) return seedHighlights;
+  return [
     {
       quote: 'Money is the most universal and most efficient system of mutual trust ever devised.',
       bookTitle: 'Sapiens: A Brief History of Humankind',
@@ -894,13 +910,6 @@ function buildDemoPayload(): DemoPayload {
       bookId: '__demo_daofeng',
     },
   ];
-
-  return {
-    profile: DEMO_PROFILE,
-    books,
-    highlights,
-    sessionDays: buildDemoSessionDays(books),
-  };
 }
 
 function mapStoreBookToPublicBook(record: any): PublicBook | null {
@@ -973,6 +982,12 @@ function toTimestamp(value: unknown): number {
     const parsed = Date.parse(value);
     if (Number.isFinite(parsed)) return parsed;
   }
+  // Firestore Timestamp object
+  if (value !== null && typeof value === 'object') {
+    const ts = value as Record<string, unknown>;
+    if (typeof ts['toMillis'] === 'function') return (ts['toMillis'] as () => number)();
+    if (typeof ts['seconds'] === 'number') return ts['seconds'] * 1000;
+  }
   return 0;
 }
 
@@ -987,6 +1002,81 @@ interface IdentityResult {
 }
 
 const IDENTITY_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function isDemoBook(book: PublicBook): boolean {
+  return String(book.id || '').startsWith('__demo_');
+}
+
+function buildLocalIdentityResult(
+  books: PublicBook[],
+  highlights: PublicHighlight[],
+  sessionDays: SessionDay[],
+): IdentityResult {
+  const finishedBooks = books
+    .filter((book) => isFinishedStatus(book.status))
+    .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
+  const effectiveBooks = finishedBooks.length ? finishedBooks : DEMO_BOOKS;
+  const featured = effectiveBooks.slice(0, 4);
+  const featuredTitles = featured.map((book) => book.title);
+  const featuredAuthors = featured.map((book) => book.author.split(' ')[0]).filter(Boolean);
+
+  const genreCounts = new Map<string, number>();
+  const languageCounts = new Map<string, number>();
+  const countryCounts = new Map<string, number>();
+  effectiveBooks.forEach((book) => {
+    if (book.genre) genreCounts.set(book.genre, (genreCounts.get(book.genre) ?? 0) + 1);
+    if (book.language) languageCounts.set(book.language, (languageCounts.get(book.language) ?? 0) + 1);
+    const country = book.geo?.contentLocation?.country || book.geo?.authorOrigin?.country || book.geo?.readerLocation?.country;
+    if (country) countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
+  });
+
+  const topGenre = [...genreCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'literary';
+  const topLanguage = [...languageCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'multilingual';
+  const topPlaces = [...countryCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([country]) => countryName(country));
+  const totalHours = Math.round(sessionDays.reduce((sum, day) => sum + day.minutes, 0) / 60);
+  const highlightCount = highlights.length;
+
+  const readerType = topPlaces.length >= 3
+    ? 'A reader crossing borders by instinct'
+    : topGenre.toLowerCase().includes('fiction')
+      ? 'A reader building interior worlds'
+      : 'A reader tracing life through books';
+
+  const [firstTitle = 'these books', secondTitle = featuredTitles[1] ?? featuredTitles[0] ?? 'the next shelf'] = featuredTitles;
+  const [firstAuthor = featuredAuthors[0] ?? 'one writer', secondAuthor = featuredAuthors[1] ?? featuredAuthors[0] ?? 'another'] = featuredAuthors;
+  const placeLine = topPlaces.length ? `Your shelf keeps returning to ${topPlaces.join(', ')}, as though place is part of the argument.` : 'You read as if each book is another room in the same long conversation.';
+  const rhythmLine = totalHours
+    ? `Even in this preview state, the pattern suggests someone willing to stay with a book for ${totalHours} logged hours rather than skim the surface.`
+    : 'Even in this preview state, the pattern suggests someone who reads for resonance rather than speed.';
+
+  return {
+    readerType,
+    portrait: `You read like someone testing how much of a life can be understood from a shelf. ${firstTitle} and ${secondTitle} sit together less by category than by pressure: both ask for inward attention, and you reward writers like ${firstAuthor} and ${secondAuthor} when they make feeling thinkable. ${placeLine} ${rhythmLine}`,
+    traits: [
+      {
+        label: 'Pattern Reader',
+        description: `You do not chase isolated titles; you build clusters around ${topGenre.toLowerCase()} questions and let one book revise the meaning of the next.`,
+      },
+      {
+        label: 'Slow Heat',
+        description: highlightCount
+          ? `With ${highlightCount} saved highlights, your reading tends to linger where language turns sharp enough to keep.`
+          : 'You seem drawn to books that unfold gradually and repay being lived with, not just finished.',
+      },
+      {
+        label: 'World Builder',
+        description: topPlaces.length
+          ? `From ${topPlaces.join(', ')} and across a mostly ${topLanguage.toLowerCase()} shelf, you use books to widen the map without losing intimacy.`
+          : `Across a mostly ${topLanguage.toLowerCase()} shelf, you read to widen the frame without flattening the feeling.`,
+      },
+    ],
+    promptVersion: 'local-fallback-1',
+    generatedAt: Date.now(),
+  };
+}
 
 function mountReadingIdentity(
   host: HTMLElement,
@@ -1006,7 +1096,12 @@ function mountReadingIdentity(
   const wsId: string = ENV.WORKSPACE_ID || 'default';
   const docRef = db.doc(`workspaces/${wsId}/users/${profile.uid}/ai_results/reader-identity`);
 
-  host.innerHTML = identityLoadingHTML();
+  if (isOwner) {
+    host.innerHTML = identityEmptyHTML();
+    bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
+  } else {
+    host.innerHTML = identityLoadingHTML();
+  }
 
   docRef.get().then((snap: any) => {
     if (snap.exists) {
@@ -1028,7 +1123,12 @@ function mountReadingIdentity(
       host.innerHTML = '';
     }
   }).catch(() => {
-    host.innerHTML = '';
+    if (isOwner) {
+      host.innerHTML = identityEmptyHTML();
+      bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
+    } else {
+      host.innerHTML = '';
+    }
   });
 }
 
@@ -1076,6 +1176,40 @@ function buildIdentityLibraryPayload(
   };
 }
 
+async function callDeepSeekDirect(prompt: string): Promise<unknown> {
+  const apiKey = ENV.DEEPSEEK_API_KEY;
+  if (!apiKey) throw new Error('No DeepSeek API key configured (VITE_DEEPSEEK_API_KEY).');
+
+  const res = await fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: 'Return only valid JSON. No markdown fences, no explanation.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.4,
+      max_tokens: 4096,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    let message = `DeepSeek error ${res.status}`;
+    try { message = (JSON.parse(body) as { error?: { message?: string } }).error?.message || message; } catch { /* raw text */ }
+    throw new Error(message);
+  }
+
+  const json = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const text = json.choices?.[0]?.message?.content ?? '';
+  const clean = text.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
+  return JSON.parse(clean);
+}
+
 function triggerIdentityGeneration(
   host: HTMLElement,
   books: PublicBook[],
@@ -1085,6 +1219,15 @@ function triggerIdentityGeneration(
   isOwner: boolean,
 ): void {
   host.innerHTML = identityGeneratingHTML();
+  const hasRealFinishedBooks = books.some((book) => isFinishedStatus(book.status) && !isDemoBook(book));
+  const localFallback = buildLocalIdentityResult(books, highlights, sessionDays);
+
+  if (!hasRealFinishedBooks) {
+    const typed = { ...localFallback, generatedAt: Date.now() };
+    docRef.set({ original: typed }, { merge: true }).catch(() => {});
+    host.innerHTML = identityHTML(typed, false);
+    return;
+  }
 
   const featureId = 'reader-identity';
   const library = buildIdentityLibraryPayload(books, highlights, sessionDays);
@@ -1094,18 +1237,7 @@ function triggerIdentityGeneration(
     return;
   }
 
-  let errored = false;
-  (MarginaliaAI as any).generateJSON({
-    featureId,
-    prompt,
-    onError(err: Error) {
-      errored = true;
-      const msg = err.message || 'Generation failed — please try again.';
-      host.innerHTML = identityErrorHTML(msg);
-      bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
-    },
-  }).then((result: unknown) => {
-    if (errored) return;
+  function onSuccess(result: unknown): void {
     if (!result || typeof result !== 'object') {
       host.innerHTML = identityErrorHTML('Could not generate identity — please try again.');
       bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
@@ -1116,6 +1248,40 @@ function triggerIdentityGeneration(
     docRef.set({ original: typed }, { merge: true }).catch(() => {});
     logEvent('ai_generated', { featureId });
     host.innerHTML = identityHTML(typed, false);
+  }
+
+  function onFailure(err: Error): void {
+    const isFetchError = err.message === 'Failed to fetch' || err.message.startsWith('NetworkError') || err.message.includes('fetch');
+    if (isFetchError && ENV.DEEPSEEK_API_KEY) {
+      callDeepSeekDirect(prompt!).then(onSuccess).catch((directErr: Error) => {
+        const fallback = { ...localFallback, generatedAt: Date.now() };
+        docRef.set({ original: fallback }, { merge: true }).catch(() => {});
+        if (directErr.message) console.warn('[profile] reading identity fell back to local preview:', directErr.message);
+        host.innerHTML = identityHTML(fallback, false);
+      });
+      return;
+    }
+    if (isFetchError) {
+      const fallback = { ...localFallback, generatedAt: Date.now() };
+      docRef.set({ original: fallback }, { merge: true }).catch(() => {});
+      host.innerHTML = identityHTML(fallback, false);
+      return;
+    }
+    host.innerHTML = identityErrorHTML(err.message || 'Generation failed — please try again.');
+    bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
+  }
+
+  let errored = false;
+  (MarginaliaAI as any).generateJSON({
+    featureId,
+    prompt,
+    onError(err: Error) {
+      errored = true;
+      onFailure(err);
+    },
+  }).then((result: unknown) => {
+    if (errored) return;
+    onSuccess(result);
   });
 }
 
@@ -1211,6 +1377,7 @@ function identityErrorHTML(message: string): string {
 
 function identityHTML(result: IdentityResult, showRegen: boolean): string {
   const traits = (result.traits ?? []).slice(0, 3);
+  const badgeLabel = String(result.promptVersion || '').startsWith('local-') ? 'Shelf portrait' : 'AI portrait';
 
   const traitsHTML = traits.length ? `
     <div class="prof-identity-section__traits">
@@ -1245,7 +1412,7 @@ function identityHTML(result: IdentityResult, showRegen: boolean): string {
           <div class="prof-identity-section__meta-row">
             <span class="prof-identity-section__ai-badge">
               <span class="prof-identity-section__ai-dot" aria-hidden="true"></span>
-              AI portrait${generatedDate ? ` · ${generatedDate}` : ''}
+              ${badgeLabel}${generatedDate ? ` · ${generatedDate}` : ''}
             </span>
             ${regenBtn}
           </div>

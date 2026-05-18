@@ -209,6 +209,7 @@ export class ProfileMap {
   private segT0 = 0;
   private readonly TRAVEL_MS = 2200;
   private readonly DWELL_MS = 1500;
+  private hasMountedInitialPlayback = false;
 
   constructor(
     mapEl: HTMLElement,
@@ -266,6 +267,7 @@ export class ProfileMap {
       });
       this.polygonSeries.events.on('datavalidated', () => {
         this.polygonSeries.mapPolygons.each((poly: any) => poly.set('fill', am5.color(UNLIT_FILL)));
+        this.refreshScene({ autoPlay: this.playing || !this.hasMountedInitialPlayback });
       });
 
       this.lineSeries = this.chart.series.push(am5map.MapLineSeries.new(this.root, {}));
@@ -315,9 +317,7 @@ export class ProfileMap {
     this.dim = dim;
     this.events = buildEvents(this.books, dim);
     this.activeIdx = Math.max(0, this.events.length - 1);
-    this.renderRail();
-    this.renderStatic();
-    this.syncPlayButton();
+    this.refreshScene({ autoPlay: this.events.length > 1 });
   }
 
   private bind(): void {
@@ -477,6 +477,16 @@ export class ProfileMap {
     this.updateBubble(active, false);
     this.updateCaption(active, false, previous);
     this.renderRail();
+  }
+
+  private refreshScene({ autoPlay = false }: { autoPlay?: boolean } = {}): void {
+    this.renderRail();
+    this.renderStatic();
+    if (autoPlay && this.events.length > 1) {
+      this.hasMountedInitialPlayback = true;
+      this.startPlayback();
+    }
+    this.syncPlayButton();
   }
 
   private startPlayback(): void {
