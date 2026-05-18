@@ -208,6 +208,7 @@ const PanelManager = (() => {
       _initialized.add(canonicalPanelId);
     }
     VIEW_REGISTRY[canonicalPanelId]?.enterPanel?.(params);
+    window.scrollTo({ top: 0 });
 
     if (isRoomOrigin) {
       window.setTimeout(() => {

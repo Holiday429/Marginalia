@@ -100,11 +100,11 @@ const REGION_NAMES = typeof Intl !== 'undefined' && Intl.DisplayNames
   ? new Intl.DisplayNames(['en'], { type: 'region' })
   : null;
 
-const WATER_FILL = '#15120f';
-const UNLIT_FILL = '#32261d';
-const DIMMED_FILL = '#241d16';
-const HISTORICAL_LINE = '#8c6f4d';
-const ACTIVE_LINE = '#d8af68';
+const WATER_FILL = '#171311';
+const UNLIT_FILL = '#3d3026';
+const DIMMED_FILL = '#2b221c';
+const HISTORICAL_LINE = '#9f845b';
+const ACTIVE_LINE = '#e3bc75';
 
 const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   CN: [35.86, 104.19], US: [37.09, -95.71], GB: [55.37, -3.43],
@@ -260,8 +260,9 @@ export class ProfileMap {
         exclude: ['AQ'],
       }));
       this.polygonSeries.mapPolygons.template.setAll({
-        stroke: am5.color(0x17120f),
-        strokeWidth: 0.45,
+        stroke: am5.color(0x5a4636),
+        strokeWidth: 0.8,
+        strokeOpacity: 0.72,
         fillOpacity: 1,
         interactive: false,
       });
@@ -273,25 +274,25 @@ export class ProfileMap {
       this.lineSeries = this.chart.series.push(am5map.MapLineSeries.new(this.root, {}));
       this.lineSeries.mapLines.template.setAll({
         stroke: am5.color(HISTORICAL_LINE),
-        strokeWidth: 1,
-        strokeOpacity: 0.3,
+        strokeWidth: 1.1,
+        strokeOpacity: 0.38,
         strokeDasharray: [3, 5],
       });
 
       this.activeLineSeries = this.chart.series.push(am5map.MapLineSeries.new(this.root, {}));
       this.activeLineSeries.mapLines.template.setAll({
         stroke: am5.color(ACTIVE_LINE),
-        strokeWidth: 1.5,
-        strokeOpacity: 0.82,
+        strokeWidth: 1.7,
+        strokeOpacity: 0.9,
         strokeDasharray: [4, 2],
       });
 
       this.pointSeries = this.chart.series.push(am5map.MapPointSeries.new(this.root, {}));
       this.pointSeries.bullets.push(() => {
         const dot = am5.Circle.new(this.root, {
-          radius: 3.2,
-          fill: am5.color(0xcaa15f),
-          stroke: am5.color(0x15120f),
+          radius: 3.6,
+          fill: am5.color(0xd6af69),
+          stroke: am5.color(0x120e0b),
           strokeWidth: 1,
         });
         return am5.Bullet.new(this.root, { sprite: dot });

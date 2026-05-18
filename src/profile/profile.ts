@@ -8,7 +8,6 @@ import { ENV } from '../core/env.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { DEMO_BOOKS, DEMO_PROFILE, DEMO_SEED_THRESHOLD, buildDemoHighlights, buildDemoSessionDays } from '../data/seed/profile-demo.ts';
 import { loadAnnualShelf } from './annual-shelf-store.ts';
-import { renderWaitlistCTA } from './profile-waitlist.ts';
 import { mountReadingIdentity } from './reading-identity.ts';
 import type { PublicProfileData, PublicBook, PublicHighlight, SessionDay, DemoPayload } from './profile-types.ts';
 import './profile.css';
@@ -402,13 +401,19 @@ function profileHTML(
           </div>
         </header>
 
-        <div id="profIdentityMount"></div>
+        <section class="prof-section prof-section--identity" aria-label="Reading identity">
+          <div class="prof-section__head prof-section__head--stacked">
+            <div>
+              <h2 class="prof-section__title">Reading Identity</h2>
+            </div>
+          </div>
+          <div id="profIdentityMount"></div>
+        </section>
 
         ${mapSection}
         ${annualSection}
         ${deskSection}
         ${portraitSection}
-        <div id="profWaitlistMount"></div>
       </div>
     </div>
   `;
@@ -546,10 +551,9 @@ function mountSections(
   }
 
   const identityEl = container.querySelector<HTMLElement>('#profIdentityMount');
-  if (identityEl) mountReadingIdentity(identityEl);
-
-  const waitlistEl = container.querySelector<HTMLElement>('#profWaitlistMount');
-  if (waitlistEl) renderWaitlistCTA(waitlistEl);
+  if (identityEl) mountReadingIdentity(identityEl, undefined, {
+    revealImmediately: !isOwner && Boolean(profile.slug),
+  });
 }
 
 function renderPortrait(container: HTMLElement, _books: PublicBook[], _highlights: PublicHighlight[]): void {

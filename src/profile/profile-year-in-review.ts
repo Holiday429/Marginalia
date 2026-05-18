@@ -112,6 +112,7 @@ export class ProfileAnnualShelf {
     const heatmap = this.showRhythm ? buildHeatmap(year, this.sessionDays) : [];
     const maxLevel = heatmap.length ? Math.max(1, ...heatmap.map((d) => d.level)) : 1;
     const meta = describeYearActivity(year, shelfData.yearBooks, shelfData.sourceBooks, this.sessionDays);
+    const rhythmInsight = describeRhythmInsight(year, this.sessionDays);
 
     this.host.innerHTML = `
       <div class="prof-annual">
@@ -136,6 +137,7 @@ export class ProfileAnnualShelf {
               <div class="prof-rhythm__meta-row">
                 <span class="prof-rhythm__meta">${escHtml(meta)}</span>
               </div>
+              ${rhythmInsight ? `<p class="prof-rhythm__insight">${escHtml(rhythmInsight)}</p>` : ''}
               ${heatmap.length
                 ? (this.state.rhythmView === 'rhythm'
                     ? renderRhythmChart(year, this.sessionDays)
@@ -168,9 +170,12 @@ export class ProfileAnnualShelf {
           </section>
         ` : ''}
 
-        <section class="prof-annual__block" aria-label="Annual Shelf">
+        <section class="prof-annual__block" aria-label="Reading Shelf">
           <div class="prof-section__head">
-            <h2 class="prof-section__title">Annual Shelf</h2>
+            <div>
+              <h2 class="prof-section__title">Reading Shelf</h2>
+              <p class="prof-section__subcopy">Top 10 books that shaped this year</p>
+            </div>
             <div class="prof-annual__shelf-controls">
               ${!this.showRhythm ? `
                 <div class="prof-rhythm__year-nav">
@@ -231,7 +236,7 @@ export class ProfileAnnualShelf {
               </div>
               <section class="booklist-source">
                 <div class="booklist-section-head booklist-section-head--source">
-                  <h3 class="booklist-subheading">Year-In-Reading Shelf</h3>
+                  <h3 class="booklist-subheading">Shelf spread</h3>
                 </div>
                 <div class="booklist-source-track" id="profAnnualSourceShelf"></div>
               </section>
@@ -1048,6 +1053,25 @@ function describeYearActivity(year: number, finishedBooks: ProfileBook[], source
   return `${sessionCount} sessions · ${finishedBooks.length} ${finishedBooks.length === 1 ? 'book' : 'books'}`;
 }
 
+function describeRhythmInsight(year: number, sessionDays: SessionDay[]): string {
+  const yearDays = sessionDays.filter((day) => day.date.startsWith(`${year}-`));
+  if (!yearDays.length) return '';
+
+  const totalMinutes = yearDays.reduce((sum, day) => sum + day.minutes, 0);
+  const activeDays = yearDays.filter((day) => day.sessions > 0);
+  const avgMinutes = activeDays.length ? Math.round(totalMinutes / activeDays.length) : 0;
+  const longestStreak = longestReadingStreak(activeDays.map((day) => day.date));
+  const peakMonth = busiestMonth(yearDays);
+
+  if (longestStreak >= 10) {
+    return `${peakMonth} carried the strongest stretch, with a ${longestStreak}-day reading streak and ${avgMinutes} minutes on active days.`;
+  }
+  if (activeDays.length >= 18) {
+    return `${peakMonth} was the busiest month; the rhythm stayed steady at about ${avgMinutes} minutes each time you showed up to read.`;
+  }
+  return `The rhythm was more episodic than daily, with the clearest cluster in ${peakMonth} and ${avgMinutes} minutes on active reading days.`;
+}
+
 function buildHeatmap(year: number, sessionDays: SessionDay[]): Array<{ index: number; level: number; future: boolean; label: string }> {
   const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
   const daysInYear = isLeap(year) ? 366 : 365;
@@ -1098,6 +1122,32 @@ function buildWeeklyMinutes(year: number, sessionDays: SessionDay[]): number[] {
     weeks[week] += day.minutes;
   });
   return weeks;
+}
+
+function longestReadingStreak(dates: string[]): number {
+  if (!dates.length) return 0;
+  const normalized = [...new Set(dates)].sort();
+  let best = 1;
+  let current = 1;
+  for (let index = 1; index < normalized.length; index++) {
+    const prev = new Date(`${normalized[index - 1]}T00:00:00Z`).getTime();
+    const next = new Date(`${normalized[index]}T00:00:00Z`).getTime();
+    if (next - prev === 86400000) current += 1;
+    else current = 1;
+    if (current > best) best = current;
+  }
+  return best;
+}
+
+function busiestMonth(sessionDays: SessionDay[]): string {
+  const monthTotals = new Array<number>(12).fill(0);
+  sessionDays.forEach((day) => {
+    const date = new Date(day.date);
+    if (Number.isNaN(date.getTime())) return;
+    monthTotals[date.getMonth()] += day.minutes + day.sessions * 12 + day.highlights * 6;
+  });
+  const peakMonth = monthTotals.indexOf(Math.max(...monthTotals));
+  return new Date(2000, Math.max(0, peakMonth), 1).toLocaleDateString('en-US', { month: 'long' });
 }
 
 /** 52-week bar chart — alternate view of the streak heatmap. */

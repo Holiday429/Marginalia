@@ -2,26 +2,29 @@
  * Reading Identity — AI-generated reader portrait.
  *
  * Flow: a closed book sits on the desk surface → clicking "Generate" opens the
- * cover (page fades) and the postcard slides out → the result is a freely-placed
- * postcard plus sticky-note sections (How you read · If you were a book).
+ * cover → a postcard slides out → the section resolves into the identity card
+ * and behavior notes.
  *
- * Renders against mock data; the AI gateway is wired separately in profile.ts.
+ * The UI renders against mock data for now, but uses the same schema that the
+ * long-term AI result will return.
  */
-import {
-  READING_IDENTITY_MOCK,
-  IDENTITY_VARIATIONS,
-  TRAIT_ROTATIONS,
-  FORTUNE_ROTATIONS,
-  perturbAffinity,
-  type ReadingIdentityData,
-  type IdentityAffinity,
-} from './reading-identity-mock.ts';
+import { cycleReadingIdentityVariant } from './reading-identity-adapter.ts';
+import { READING_IDENTITY_MOCK } from './reading-identity-mock.ts';
+import { getReadingIdentityResult } from './reading-identity-service.ts';
+import type {
+  ReadingIdentityAxis,
+  ReadingIdentityBehaviorEntry,
+  ReadingIdentityResult,
+} from './reading-identity-types.ts';
 
 const TYPE_SPEED_MS = 18;
 const REGEN_SWAP_MS = 700;
-const AFFINITY_STAGGER_MS = 120;
+const AXIS_STAGGER_MS = 120;
 const COVER_OPEN_MS = 620;
 const CARD_SLIDE_MS = 760;
+const GENERATE_PRELUDE_MS = 520;
+const CARD_PRINT_MS = 1100;
+const NOTE_ROTATIONS = [-2.8, 1.6, -1.2, 2.2, -0.9, 1.4];
 
 function escapeHtml(value: string): string {
   return String(value ?? '')
@@ -31,9 +34,7 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-// ─── CTA — closed book on the desk ───────────────────────────────────────────
-
-function bookSceneHTML(data: ReadingIdentityData): string {
+function bookSceneHTML(data: ReadingIdentityResult): string {
   return `
     <div class="prof-rid-book" aria-hidden="true">
       <div class="prof-rid-book__shadow"></div>
@@ -49,45 +50,46 @@ function bookSceneHTML(data: ReadingIdentityData): string {
   `;
 }
 
-function ctaStateHTML(data: ReadingIdentityData): string {
+function ctaStateHTML(data: ReadingIdentityResult): string {
   return `
     <section class="prof-rid-stage prof-rid-stage--cta" aria-label="Reading Identity">
       ${bookSceneHTML(data)}
       <div class="prof-rid-cta">
-        <span class="prof-rid-cta__kicker">Reading Identity</span>
         <p class="prof-rid-cta__title">Your reading identity, as seen by an outside eye</p>
         <p class="prof-rid-cta__hint">Marginalia reads your library and margin notes, then writes a short portrait of how you read — what draws you, what you avoid, what the pattern reveals.</p>
         <button class="prof-rid-btn prof-rid-btn--primary" id="profRidGenerate" type="button">
-          Generate my reading identity
+          Generate
         </button>
       </div>
     </section>
   `;
 }
 
-// ─── Hero postcard ───────────────────────────────────────────────────────────
-
-function affinityRowHTML(a: IdentityAffinity, idx: number): string {
+function axisRowHTML(axis: ReadingIdentityAxis, idx: number): string {
   return `
-    <div class="prof-rid-affinity" data-idx="${idx}" data-value="${a.value}">
-      <div class="prof-rid-affinity__head">
-        <span class="prof-rid-affinity__label">${escapeHtml(a.label)}</span>
-        <span class="prof-rid-affinity__pct">0%</span>
-        <span class="prof-rid-affinity__pair">↔ ${escapeHtml(a.pair)}</span>
+    <div class="prof-rid-axis" data-idx="${idx}" data-value="${axis.score}">
+      <div class="prof-rid-axis__head">
+        <span class="prof-rid-axis__label">${escapeHtml(axis.label)}</span>
+        <span class="prof-rid-axis__pct">0%</span>
+        <span class="prof-rid-axis__pair">↔ ${escapeHtml(axis.opposite)}</span>
       </div>
-      <div class="prof-rid-affinity__track">
-        <div class="prof-rid-affinity__fill"></div>
-        <div class="prof-rid-affinity__tick"></div>
+      <div class="prof-rid-axis__track">
+        <div class="prof-rid-axis__fill"></div>
+        <div class="prof-rid-axis__tick"></div>
       </div>
     </div>
   `;
 }
 
-function postcardHTML(data: ReadingIdentityData): string {
+function postcardHTML(
+  data: ReadingIdentityResult,
+  mode: 'result' | 'developing' = 'result',
+  options: { allowRegenerate?: boolean } = {},
+): string {
+  const modeClass = mode === 'developing' ? ' prof-rid-postcard--developing' : '';
   return `
-    <section class="prof-rid-postcard" aria-label="Reading Identity">
-      <span class="prof-rid-postcard__deckle" aria-hidden="true"></span>
-
+    <section class="prof-rid-postcard${modeClass}" aria-label="Reading Identity artifact">
+      <span class="prof-rid-postcard__scan" aria-hidden="true"></span>
       <div class="prof-rid-stamp" aria-hidden="true">
         <span class="prof-rid-stamp__monogram">m</span>
         <span class="prof-rid-stamp__word">Marginalia</span>
@@ -100,111 +102,77 @@ function postcardHTML(data: ReadingIdentityData): string {
       </div>
 
       <div class="prof-rid-postcard__name">
-        <h1 class="prof-rid-postcard__archetype">${escapeHtml(data.archetype)}</h1>
-        <span class="prof-rid-postcard__archetype-cn">「${escapeHtml(data.archetypeCn)}」</span>
+        <h1 class="prof-rid-postcard__archetype">${escapeHtml(data.archetype.title)}</h1>
+        ${data.archetype.titleZh ? `<span class="prof-rid-postcard__archetype-cn">「${escapeHtml(data.archetype.titleZh)}」</span>` : ''}
       </div>
 
-      <p class="prof-rid-postcard__tagline"><span class="prof-rid-postcard__tagline-text">${escapeHtml(data.tagline)}</span></p>
-      <p class="prof-rid-postcard__tagline-cn">${escapeHtml(data.taglineCn)}</p>
+      <p class="prof-rid-postcard__summary">
+        <span class="prof-rid-postcard__summary-text">${escapeHtml(data.archetype.summary)}</span>
+      </p>
+      ${data.archetype.summaryZh ? `<p class="prof-rid-postcard__summary-zh">${escapeHtml(data.archetype.summaryZh)}</p>` : ''}
 
-      <div class="prof-rid-postcard__affinity">
-        ${data.affinity.map((a, i) => affinityRowHTML(a, i)).join('')}
+      <div class="prof-rid-postcard__axes">
+        ${data.axes.map((axis, i) => axisRowHTML(axis, i)).join('')}
       </div>
 
       <div class="prof-rid-postcard__footer">
         <div class="prof-rid-postcard__meta">
-          <span class="prof-rid-postcard__ai-tag">
-            <span class="prof-rid-postcard__ai-dot" aria-hidden="true"></span>
-            Generated by Marginalia AI
-          </span>
-          <span>·</span>
-          <span>Edition ${String(data.edition).padStart(2, '0')}</span>
-          <span>·</span>
-          <span>${escapeHtml(data.generatedAt)}</span>
+          <span>Filed ${escapeHtml(data.generatedAt)}</span>
         </div>
-        <div class="prof-rid-postcard__actions">
-          <button class="prof-rid-btn prof-rid-btn--ghost" id="profRidRegen" type="button">
-            <svg class="prof-rid-regen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M3 12a9 9 0 0 1 15.5-6.3L21 3v6h-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 12a9 9 0 0 1-15.5 6.3L3 21v-6h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="prof-rid-btn__label">Re-divine</span>
-          </button>
-          <button class="prof-rid-btn prof-rid-btn--primary" id="profRidShare" type="button">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 3v13M12 3l-4 4M12 3l4 4M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Share
-          </button>
-        </div>
+        ${options.allowRegenerate === false ? '' : `
+          <div class="prof-rid-postcard__actions">
+            <button class="prof-rid-btn prof-rid-btn--ghost" id="profRidRegen" type="button">
+              <svg class="prof-rid-regen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3 12a9 9 0 0 1 15.5-6.3L21 3v6h-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12a9 9 0 0 1-15.5 6.3L3 21v-6h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="prof-rid-btn__label">Re-divine</span>
+            </button>
+          </div>
+        `}
       </div>
     </section>
   `;
 }
 
-// ─── Section header ──────────────────────────────────────────────────────────
-
-function sectionHeaderHTML(no: string, kicker: string, title: string, sub?: string): string {
+function sectionHeaderHTML(title: string): string {
   return `
     <div class="prof-rid-shead">
-      <div class="prof-rid-shead__no">§ ${no} — ${escapeHtml(kicker)}</div>
-      <div class="prof-rid-shead__body">
-        <h2 class="prof-rid-shead__title">${escapeHtml(title)}</h2>
-        ${sub ? `<p class="prof-rid-shead__sub">${escapeHtml(sub)}</p>` : ''}
-      </div>
+      <h2 class="prof-rid-shead__title">${escapeHtml(title)}</h2>
     </div>
   `;
 }
 
-// ─── How you read — sticky notes ─────────────────────────────────────────────
+function behaviorNoteHTML(entry: ReadingIdentityBehaviorEntry, idx: number): string {
+  return `
+    <article class="prof-rid-note prof-rid-note--trait" data-tone="${idx % 3}" style="--note-rot:${NOTE_ROTATIONS[idx % NOTE_ROTATIONS.length]}deg; --note-delay:${120 + idx * 110}ms;">
+      <span class="prof-rid-note__pin" aria-hidden="true"></span>
+      <span class="prof-rid-note__kicker">${escapeHtml(entry.label)}</span>
+      <p class="prof-rid-note__value">${escapeHtml(entry.value)}</p>
+      <p class="prof-rid-note__detail">${escapeHtml(entry.rationale)}</p>
+      ${entry.signal ? `<p class="prof-rid-note__signal">${escapeHtml(entry.signal)}</p>` : ''}
+    </article>
+  `;
+}
 
-function traitGridHTML(data: ReadingIdentityData): string {
+function behaviorPanelHTML(data: ReadingIdentityResult): string {
   return `
     <section class="prof-rid-section" aria-label="How you read">
-      ${sectionHeaderHTML('01', 'Reading Personality', 'How You Read', 'Six notes on the shape of your attention.')}
+      ${sectionHeaderHTML('How You Read')}
       <div class="prof-rid-notes prof-rid-notes--traits">
-        ${data.traits.map((t, i) => `
-          <article class="prof-rid-note prof-rid-note--trait" data-tone="${i % 3}" style="--note-rot:${TRAIT_ROTATIONS[i % TRAIT_ROTATIONS.length]}deg;">
-            <span class="prof-rid-note__pin" aria-hidden="true"></span>
-            <span class="prof-rid-note__kicker">${escapeHtml(t.name)}</span>
-            <p class="prof-rid-note__value">${escapeHtml(t.value)}</p>
-            <p class="prof-rid-note__detail">${escapeHtml(t.note)}</p>
-          </article>
-        `).join('')}
+        ${data.behaviorProfile.map((entry, i) => behaviorNoteHTML(entry, i)).join('')}
       </div>
     </section>
   `;
 }
 
-// ─── If you were a book — sticky notes ───────────────────────────────────────
-
-function fortunesHTML(data: ReadingIdentityData): string {
-  return `
-    <section class="prof-rid-section" aria-label="If you were a book">
-      ${sectionHeaderHTML('02', 'Oracle', 'If You Were a Book…', 'Three small fortunes the AI drew from your shelf.')}
-      <div class="prof-rid-notes prof-rid-notes--fortunes">
-        ${data.fortunes.map((f, i) => `
-          <article class="prof-rid-note prof-rid-note--fortune" data-tone="${i % 3}" style="--note-rot:${FORTUNE_ROTATIONS[i % FORTUNE_ROTATIONS.length]}deg;">
-            <span class="prof-rid-note__pin" aria-hidden="true"></span>
-            <span class="prof-rid-note__kicker">※ Oracle ${String(i + 1).padStart(2, '0')}</span>
-            <h3 class="prof-rid-note__title">${escapeHtml(f.title)}</h3>
-            <p class="prof-rid-note__body">${escapeHtml(f.body)}</p>
-          </article>
-        `).join('')}
-      </div>
-    </section>
-  `;
-}
-
-// ─── Interactions ────────────────────────────────────────────────────────────
-
-function animateAffinity(host: HTMLElement, fromZero: boolean): void {
-  const rows = host.querySelectorAll<HTMLElement>('.prof-rid-affinity');
+function animateAxes(host: HTMLElement, fromZero: boolean): void {
+  const rows = host.querySelectorAll<HTMLElement>('.prof-rid-axis');
   rows.forEach((row, i) => {
     const value = Number(row.dataset.value || 0);
-    const fill = row.querySelector<HTMLElement>('.prof-rid-affinity__fill');
-    const tick = row.querySelector<HTMLElement>('.prof-rid-affinity__tick');
-    const pct = row.querySelector<HTMLElement>('.prof-rid-affinity__pct');
+    const fill = row.querySelector<HTMLElement>('.prof-rid-axis__fill');
+    const tick = row.querySelector<HTMLElement>('.prof-rid-axis__tick');
+    const pct = row.querySelector<HTMLElement>('.prof-rid-axis__pct');
     const apply = () => {
       if (fill) fill.style.width = `${value}%`;
       if (tick) tick.style.left = `${value}%`;
@@ -213,9 +181,9 @@ function animateAffinity(host: HTMLElement, fromZero: boolean): void {
     if (fromZero) {
       if (fill) fill.style.width = '0%';
       if (tick) tick.style.left = '0%';
-      window.setTimeout(apply, 200 + i * AFFINITY_STAGGER_MS);
+      window.setTimeout(apply, 200 + i * AXIS_STAGGER_MS);
     } else {
-      window.setTimeout(apply, i * AFFINITY_STAGGER_MS);
+      window.setTimeout(apply, i * AXIS_STAGGER_MS);
     }
   });
 }
@@ -234,8 +202,9 @@ function typewrite(el: HTMLElement, text: string, onDone?: () => void): number {
   return timer;
 }
 
-function bindPostcard(host: HTMLElement, data: ReadingIdentityData): void {
-  let variantIdx = 0;
+function bindResult(host: HTMLElement, initialData: ReadingIdentityResult): void {
+  let currentData = initialData;
+  let variantIndex = 0;
   let regenerating = false;
   let typeTimer = 0;
 
@@ -246,66 +215,73 @@ function bindPostcard(host: HTMLElement, data: ReadingIdentityData): void {
   regenBtn?.addEventListener('click', () => {
     if (regenerating) return;
     regenerating = true;
-    if (regenLabel) regenLabel.textContent = 'Rewriting…';
+    if (regenLabel) regenLabel.textContent = 'Re-divining…';
     regenIcon?.classList.add('is-spinning');
 
-    variantIdx = (variantIdx + 1) % IDENTITY_VARIATIONS.length;
-    const variant = IDENTITY_VARIATIONS[variantIdx];
-    const nextAffinity = perturbAffinity(data.affinity);
+    const next = cycleReadingIdentityVariant(currentData, variantIndex);
+    currentData = next.result;
+    variantIndex = next.variantIndex;
 
-    const rows = host.querySelectorAll<HTMLElement>('.prof-rid-affinity');
-    rows.forEach((row, i) => { row.dataset.value = String(nextAffinity[i].value); });
-    animateAffinity(host, true);
+    const rows = host.querySelectorAll<HTMLElement>('.prof-rid-axis');
+    rows.forEach((row, i) => { row.dataset.value = String(currentData.axes[i]?.score ?? 0); });
+    animateAxes(host, true);
 
     const archetypeEl = host.querySelector<HTMLElement>('.prof-rid-postcard__archetype');
     const archetypeCnEl = host.querySelector<HTMLElement>('.prof-rid-postcard__archetype-cn');
-    const taglineCnEl = host.querySelector<HTMLElement>('.prof-rid-postcard__tagline-cn');
-    const taglineTextEl = host.querySelector<HTMLElement>('.prof-rid-postcard__tagline-text');
-    const taglineEl = host.querySelector<HTMLElement>('.prof-rid-postcard__tagline');
-
-    if (taglineEl) taglineEl.classList.add('is-typing');
-    if (taglineTextEl) taglineTextEl.textContent = '';
+    const summaryEl = host.querySelector<HTMLElement>('.prof-rid-postcard__summary');
+    const summaryTextEl = host.querySelector<HTMLElement>('.prof-rid-postcard__summary-text');
+    const summaryZhEl = host.querySelector<HTMLElement>('.prof-rid-postcard__summary-zh');
+    if (summaryEl) summaryEl.classList.add('is-typing');
+    if (summaryTextEl) summaryTextEl.textContent = '';
 
     window.clearInterval(typeTimer);
     window.setTimeout(() => {
-      if (archetypeEl) archetypeEl.textContent = variant.archetype;
-      if (archetypeCnEl) archetypeCnEl.textContent = `「${variant.archetypeCn}」`;
-      if (taglineCnEl) taglineCnEl.textContent = variant.taglineCn;
-      if (taglineTextEl) {
-        typeTimer = typewrite(taglineTextEl, variant.tagline, () => {
+      if (archetypeEl) archetypeEl.textContent = currentData.archetype.title;
+      if (archetypeCnEl) {
+        if (currentData.archetype.titleZh) archetypeCnEl.textContent = `「${currentData.archetype.titleZh}」`;
+        else archetypeCnEl.textContent = '';
+      }
+      if (summaryZhEl) summaryZhEl.textContent = currentData.archetype.summaryZh ?? '';
+      if (summaryTextEl) {
+        typeTimer = typewrite(summaryTextEl, currentData.archetype.summary, () => {
           regenerating = false;
           if (regenLabel) regenLabel.textContent = 'Re-divine';
           regenIcon?.classList.remove('is-spinning');
-          if (taglineEl) taglineEl.classList.remove('is-typing');
+          if (summaryEl) summaryEl.classList.remove('is-typing');
         });
       }
     }, REGEN_SWAP_MS);
   });
-
-  host.querySelector<HTMLButtonElement>('#profRidShare')?.addEventListener('click', () => {
-    host.dispatchEvent(new CustomEvent('prof:rid-share', { bubbles: true }));
-  });
 }
 
-// ─── Render stages ───────────────────────────────────────────────────────────
-
-function resultHTML(data: ReadingIdentityData): string {
+function resultHTML(data: ReadingIdentityResult, options: { allowRegenerate?: boolean } = {}): string {
   return `
     <div class="prof-rid">
-      ${postcardHTML(data)}
-      ${traitGridHTML(data)}
-      ${fortunesHTML(data)}
+      <div class="prof-rid-layout">
+        <div class="prof-rid-layout__card">
+          ${postcardHTML(data, 'result', options)}
+        </div>
+        <div class="prof-rid-layout__behavior">
+          ${behaviorPanelHTML(data)}
+        </div>
+      </div>
     </div>
   `;
 }
 
-function renderResult(host: HTMLElement, data: ReadingIdentityData): void {
-  host.innerHTML = resultHTML(data);
-  bindPostcard(host, data);
+function renderResult(host: HTMLElement, data: ReadingIdentityResult, options: { allowRegenerate?: boolean } = {}): void {
+  host.innerHTML = resultHTML(data, options);
+  const root = host.querySelector<HTMLElement>('.prof-rid');
+  if (root) {
+    root.classList.add('is-entering');
+    requestAnimationFrame(() => root.classList.add('is-entered'));
+    window.setTimeout(() => root.classList.remove('is-entering'), 720);
+  }
+  bindResult(host, data);
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (!entry.isIntersecting) return;
-      animateAffinity(host, true);
+      animateAxes(host, true);
       observer.disconnect();
     });
   }, { threshold: 0.3 });
@@ -313,42 +289,50 @@ function renderResult(host: HTMLElement, data: ReadingIdentityData): void {
   if (postcard) observer.observe(postcard);
 }
 
-/**
- * Reveal sequence: the book cover opens, the pages fade, then the postcard
- * slides up out of the book. Once it lands, the full result is rendered in
- * place and the affinity bars fill in.
- */
-function runReveal(host: HTMLElement, data: ReadingIdentityData): void {
+function runReveal(host: HTMLElement, data: ReadingIdentityResult): void {
   const stage = host.querySelector<HTMLElement>('.prof-rid-stage');
   if (!stage) { renderResult(host, data); return; }
 
-  // Tear down the CTA copy and switch the stage into reveal mode.
-  host.querySelector<HTMLElement>('.prof-rid-cta')?.classList.add('is-leaving');
-  stage.classList.add('is-revealing');
+  const generateBtn = host.querySelector<HTMLButtonElement>('#profRidGenerate');
+  if (generateBtn?.disabled) return;
 
-  // The postcard begins inside the book, then slides up.
-  const sliding = document.createElement('div');
-  sliding.className = 'prof-rid-stage__slide';
-  sliding.innerHTML = postcardHTML(data);
-  stage.appendChild(sliding);
-
-  // Cover opens first; the slide-up starts partway through so it reads as one move.
-  requestAnimationFrame(() => stage.classList.add('is-open'));
-  window.setTimeout(() => sliding.classList.add('is-out'), COVER_OPEN_MS * 0.55);
+  if (generateBtn) {
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generate';
+  }
+  stage.classList.add('is-generating');
 
   window.setTimeout(() => {
-    renderResult(host, data);
-  }, COVER_OPEN_MS * 0.55 + CARD_SLIDE_MS);
-}
+    host.querySelector<HTMLElement>('.prof-rid-cta')?.classList.add('is-leaving');
+    stage.classList.add('is-revealing');
 
-// ─── Public mount ────────────────────────────────────────────────────────────
+    const sliding = document.createElement('div');
+    sliding.className = 'prof-rid-stage__slide';
+    sliding.innerHTML = postcardHTML(data, 'developing');
+    stage.appendChild(sliding);
+
+    requestAnimationFrame(() => stage.classList.add('is-open'));
+    window.setTimeout(() => sliding.classList.add('is-out'), COVER_OPEN_MS * 0.55);
+    window.setTimeout(() => sliding.classList.add('is-printing'), COVER_OPEN_MS * 0.55 + CARD_SLIDE_MS - 80);
+
+    window.setTimeout(() => {
+      renderResult(host, data);
+    }, COVER_OPEN_MS * 0.55 + CARD_SLIDE_MS + CARD_PRINT_MS - 80);
+  }, GENERATE_PRELUDE_MS);
+}
 
 export function mountReadingIdentity(
   host: HTMLElement,
-  data: ReadingIdentityData = READING_IDENTITY_MOCK,
+  data: ReadingIdentityResult = READING_IDENTITY_MOCK,
+  options: { revealImmediately?: boolean } = {},
 ): void {
-  host.innerHTML = `<div class="prof-rid prof-rid--gate">${ctaStateHTML(data)}</div>`;
+  const currentData = getReadingIdentityResult(data);
+  if (options.revealImmediately) {
+    renderResult(host, currentData, { allowRegenerate: false });
+    return;
+  }
+  host.innerHTML = `<div class="prof-rid prof-rid--gate">${ctaStateHTML(currentData)}</div>`;
   host.querySelector<HTMLButtonElement>('#profRidGenerate')?.addEventListener('click', () => {
-    runReveal(host, data);
+    runReveal(host, currentData);
   });
 }
