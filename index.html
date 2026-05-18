@@ -259,5 +259,14 @@
   <!-- Vite entry: all other src/ scripts loaded in dependency order via src/main.js -->
   <script type="module" src="./src/main.js"></script>
 
+  <!-- Annual No.1 reveal overlay — must exist before ProfileAnnualShelf mounts -->
+  <div class="annual-reveal-overlay" id="annualRevealOverlay" aria-hidden="true">
+    <div class="annual-reveal-inner">
+      <div class="annual-reveal-kicker">No. 1 · <span id="annualRevealYear"></span></div>
+      <h2 class="annual-reveal-title" id="annualRevealTitle"></h2>
+      <p class="annual-reveal-author" id="annualRevealAuthor"></p>
+    </div>
+  </div>
+
 </body>
 </html>

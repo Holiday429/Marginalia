@@ -207,8 +207,8 @@ export class ProfileMap {
   private segFrom = 0;
   private segTo = 0;
   private segT0 = 0;
-  private readonly TRAVEL_MS = 2200;
-  private readonly DWELL_MS = 1500;
+  private readonly TRAVEL_MS = 2800;
+  private readonly DWELL_MS = 2200;
   private hasMountedInitialPlayback = false;
 
   constructor(

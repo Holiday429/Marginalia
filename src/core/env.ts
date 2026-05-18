@@ -13,4 +13,5 @@ export const ENV = {
   SENTRY_DSN:                  import.meta.env.VITE_SENTRY_DSN                  as string | undefined,
   POSTHOG_KEY:                 import.meta.env.VITE_POSTHOG_KEY                 as string | undefined,
   POSTHOG_HOST:                import.meta.env.VITE_POSTHOG_HOST                as string | undefined,
+  DEEPSEEK_API_KEY:            import.meta.env.VITE_DEEPSEEK_API_KEY            as string | undefined,
 } as const;

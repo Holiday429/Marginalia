@@ -32,6 +32,10 @@ interface AnnualShelfOptions {
   sessionDays: SessionDay[];
   allowOpenDetails?: boolean;
   showRhythm?: boolean;
+  isOwner?: boolean;
+  db?: any;
+  uid?: string;
+  savedOrder?: string[] | null;
 }
 
 interface AnnualShelfState {
@@ -39,6 +43,9 @@ interface AnnualShelfState {
   isAnimating: boolean;
   previewBookId: string;
   playMode: 'play' | 'organize' | 'replay';
+  curateMode: boolean;
+  curatedOrder: string[];
+  rhythmView: 'heatmap' | 'rhythm';
 }
 
 interface YearShelfData {
@@ -57,17 +64,25 @@ export class ProfileAnnualShelf {
   private sessionDays: SessionDay[];
   private allowOpenDetails: boolean;
   private showRhythm: boolean;
+  private isOwner: boolean;
+  private db: any;
+  private uid: string;
+  private savedOrder: string[] | null;
   private years: number[];
   private state: AnnualShelfState;
 
-  constructor({ host, books, sessionDays, allowOpenDetails = false, showRhythm = true }: AnnualShelfOptions) {
+  constructor({ host, books, sessionDays, allowOpenDetails = false, showRhythm = true, isOwner = false, db = null, uid = '', savedOrder = null }: AnnualShelfOptions) {
     this.host = host;
     this.books = books;
     this.sessionDays = sessionDays;
     this.allowOpenDetails = allowOpenDetails;
     this.showRhythm = showRhythm;
+    this.isOwner = isOwner;
+    this.db = db;
+    this.uid = uid;
+    this.savedOrder = savedOrder;
     this.years = buildYears(books);
-    this.state = { yearIndex: this.years.length - 1, isAnimating: false, previewBookId: '', playMode: 'play' };
+    this.state = { yearIndex: this.years.length - 1, isAnimating: false, previewBookId: '', playMode: 'play', curateMode: false, curatedOrder: [], rhythmView: 'heatmap' };
   }
 
   mount(): void {
@@ -84,7 +99,7 @@ export class ProfileAnnualShelf {
   }
 
   private shelfDataForYear(year: number): YearShelfData {
-    return buildYearShelfData(this.books, year);
+    return buildYearShelfData(this.books, year, this.savedOrder);
   }
 
   private render(): void {
@@ -105,17 +120,26 @@ export class ProfileAnnualShelf {
           <section class="prof-annual__block" aria-label="Reading Rhythm">
             <div class="prof-section__head">
               <h2 class="prof-section__title">Reading Rhythm</h2>
-              <div class="prof-rhythm__year-nav">
-                <button class="prof-rhythm__arrow" id="profAnnualPrev" type="button" aria-label="Previous year" ${canPrev ? '' : 'disabled'}>&#8249;</button>
-                <span class="prof-rhythm__year">${year}</span>
-                <button class="prof-rhythm__arrow" id="profAnnualNext" type="button" aria-label="Next year" ${canNext ? '' : 'disabled'}>&#8250;</button>
+              <div class="prof-annual__shelf-controls">
+                <div class="prof-rhythm__view-toggle" role="group" aria-label="Rhythm view">
+                  <button class="prof-rhythm__view-btn${this.state.rhythmView === 'heatmap' ? ' is-active' : ''}" data-rhythm-view="heatmap" type="button">Heatmap</button>
+                  <button class="prof-rhythm__view-btn${this.state.rhythmView === 'rhythm' ? ' is-active' : ''}" data-rhythm-view="rhythm" type="button">Rhythm</button>
+                </div>
+                <div class="prof-rhythm__year-nav">
+                  <button class="prof-rhythm__arrow" id="profAnnualPrev" type="button" aria-label="Previous year" ${canPrev ? '' : 'disabled'}>&#8249;</button>
+                  <span class="prof-rhythm__year">${year}</span>
+                  <button class="prof-rhythm__arrow" id="profAnnualNext" type="button" aria-label="Next year" ${canNext ? '' : 'disabled'}>&#8250;</button>
+                </div>
               </div>
             </div>
             <div class="prof-annual__card">
               <div class="prof-rhythm__meta-row">
                 <span class="prof-rhythm__meta">${escHtml(meta)}</span>
               </div>
-              ${heatmap.length ? `
+              ${heatmap.length
+                ? (this.state.rhythmView === 'rhythm'
+                    ? renderRhythmChart(year, this.sessionDays)
+                    : `
                 <div class="prof-year__heatmap">
                   <div class="prof-year__months">${renderMonthLabels(year, heatmap)}</div>
                   <div class="prof-year__grid" style="grid-template-columns:repeat(${Math.ceil((heatmap.length + firstColumnOffset(year)) / 7)}, minmax(0, 1fr));">
@@ -138,7 +162,8 @@ export class ProfileAnnualShelf {
                   </div>
                   <span>Immersed</span>
                 </div>
-              ` : `<p class="prof-year__empty">No reading sessions recorded for ${year}.</p>`}
+              `)
+                : `<p class="prof-year__empty">No reading sessions recorded for ${year}.</p>`}
             </div>
           </section>
         ` : ''}
@@ -160,8 +185,24 @@ export class ProfileAnnualShelf {
                   <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>
                 </button>
               ` : ''}
+              ${this.isOwner ? `
+                <button class="prof-annual__curate-toggle" id="profAnnualCurateToggle" type="button">${this.state.curateMode ? 'Done' : 'Curate'}</button>
+              ` : ''}
             </div>
           </div>
+          ${this.state.curateMode ? `
+            <div class="prof-annual__curate-bar">
+              <span class="prof-annual__curate-label">Drag to rank your top ${ANNUAL_TARGET_COUNT}</span>
+              <div class="prof-annual__curate-actions">
+                <button id="profAnnualPreviewBtn" type="button" class="prof-annual__curate-btn" ${this.state.curatedOrder.length >= 2 ? '' : 'disabled'}>
+                  Preview animation
+                </button>
+                <button id="profAnnualSaveBtn" type="button" class="prof-annual__curate-btn prof-annual__curate-btn--primary" ${this.state.curatedOrder.length >= 2 ? '' : 'disabled'}>
+                  Save &amp; publish
+                </button>
+              </div>
+            </div>
+          ` : ''}
           <div class="prof-annual__card">
             ${selectedBooks.length ? `
               <div class="booklist-top" id="profAnnualTop">
@@ -225,6 +266,20 @@ export class ProfileAnnualShelf {
         const slot = document.createElement('div');
         slot.className = `booklist-slot${isFeatured ? ' is-featured' : ''}`;
         slot.dataset.slotId = book.id;
+
+        if (this.state.curateMode) {
+          const rankIdx = this.state.curatedOrder.indexOf(book.id);
+          const rankLabel = rankIdx >= 0 ? String(rankIdx + 1) : '—';
+          const rankEl = document.createElement('span');
+          rankEl.className = 'prof-annual__slot-rank';
+          rankEl.setAttribute('aria-hidden', 'true');
+          rankEl.textContent = rankLabel;
+          slot.appendChild(rankEl);
+
+          slot.setAttribute('draggable', 'true');
+          slot.dataset.dragType = 'slot';
+        }
+
         const cover = document.createElement('div');
         cover.className = 'booklist-slot-cover';
         cover.style.setProperty('--slot-cover-bg', book.spine);
@@ -259,8 +314,15 @@ export class ProfileAnnualShelf {
     if (!host) return;
     host.innerHTML = '';
     const selectedIds = new Set(selectedBooks.map((book) => book.id));
-    sourceBooks.forEach((book) => {
+    sourceBooks.forEach((book, i) => {
       const size = getSpineSize(book);
+      const inCurated = this.state.curateMode && this.state.curatedOrder.includes(book.id);
+      // Last two spines lean, as if they've fallen against the others.
+      const tilt = !this.state.curateMode && i === sourceBooks.length - 1
+        ? -8
+        : !this.state.curateMode && i === sourceBooks.length - 2
+          ? -4
+          : 0;
       const spine = SpineCard.create({
         title: book.title,
         author: book.author,
@@ -269,12 +331,30 @@ export class ProfileAnnualShelf {
         width: size.width,
         height: size.height,
         className: 'booklist-spine',
-        extraClasses: selectedIds.has(book.id) ? ['is-picked'] : [],
-        dataAttrs: { sourceId: book.id },
+        extraClasses: [
+          ...(selectedIds.has(book.id) ? ['is-picked'] : []),
+          ...(inCurated ? ['is-curated'] : []),
+        ],
+        dataAttrs: {
+          sourceId: book.id,
+          ...(this.state.curateMode ? { draggable: 'true', dragType: 'source' } : {}),
+        },
         ariaLabel: `${book.title} by ${book.author}`,
         titleClass: `booklist-spine-title${containsCJK(book.title) ? ' is-cjk' : ''}`,
         authorClass: `booklist-spine-author${containsCJK(book.author) ? ' is-cjk' : ''}`,
       });
+      if (this.state.curateMode) {
+        // Curate mode: flat draggable spines, no tilt/tooltip wrapper.
+        spine.setAttribute('draggable', 'true');
+        host.appendChild(spine);
+        return;
+      }
+      if (tilt) spine.style.setProperty('--spine-tilt', `${tilt}deg`);
+      spine.classList.add('booklist-spine--leanable');
+      const tip = document.createElement('div');
+      tip.className = 'booklist-source-tip';
+      tip.innerHTML = `<em>${escHtml(book.title)}</em> · ${escHtml(book.author)}`;
+      spine.appendChild(tip);
       host.appendChild(spine);
     });
   }
@@ -311,6 +391,8 @@ export class ProfileAnnualShelf {
       this.state.isAnimating = false;
       this.state.previewBookId = '';
       this.state.playMode = 'play';
+      this.state.curateMode = false;
+      this.state.curatedOrder = [];
       this.render();
       this.bind();
     };
@@ -320,6 +402,16 @@ export class ProfileAnnualShelf {
     this.host.querySelector('#profAnnualPrevShelf')?.addEventListener('click', () => changeYear(-1));
     this.host.querySelector('#profAnnualNextShelf')?.addEventListener('click', () => changeYear(1));
 
+    this.host.querySelectorAll<HTMLButtonElement>('.prof-rhythm__view-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.rhythmView === 'rhythm' ? 'rhythm' : 'heatmap';
+        if (this.state.rhythmView === view) return;
+        this.state.rhythmView = view;
+        this.render();
+        this.bind();
+      });
+    });
+
     const playBtn = this.host.querySelector<HTMLButtonElement>('#profAnnualPlayBtn');
     playBtn?.addEventListener('click', () => {
       const mode = playBtn.dataset.mode || 'play';
@@ -327,21 +419,164 @@ export class ProfileAnnualShelf {
       else this.startAnimation(playBtn);
     });
 
-    // Click slot → preview that book
+    // Curate toggle button
+    this.host.querySelector<HTMLButtonElement>('#profAnnualCurateToggle')?.addEventListener('click', () => {
+      this.state.curateMode = !this.state.curateMode;
+      if (!this.state.curateMode) this.state.curatedOrder = [];
+      this.render();
+      this.bind();
+    });
+
+    // Click slot → preview or curate-remove
     this.host.querySelector('#profAnnualRacks')?.addEventListener('click', (e) => {
       const slot = (e.target as HTMLElement).closest<HTMLElement>('.booklist-slot');
       if (!slot || this.state.isAnimating) return;
+      if (this.state.curateMode) {
+        const id = slot.dataset.slotId ?? '';
+        const idx = this.state.curatedOrder.indexOf(id);
+        if (idx >= 0) {
+          this.state.curatedOrder.splice(idx, 1);
+          this.refreshCurateUI();
+        }
+        return;
+      }
       const selectedBooks = this.shelfDataForYear(this.year).selectedBooks;
       const book = selectedBooks.find((b) => b.id === slot.dataset.slotId);
       if (book) this.showStaticPreview(book, selectedBooks);
     });
 
+    // Click source spine → curate-add
+    this.host.querySelector('#profAnnualSourceShelf')?.addEventListener('click', (e) => {
+      if (!this.state.curateMode) return;
+      const spine = (e.target as HTMLElement).closest<HTMLElement>('.booklist-spine');
+      if (!spine) return;
+      const id = spine.dataset.sourceId ?? '';
+      if (!id || this.state.curatedOrder.includes(id)) return;
+      if (this.state.curatedOrder.length >= ANNUAL_TARGET_COUNT) return;
+      this.state.curatedOrder.push(id);
+      this.refreshCurateUI();
+    });
+
+    // Curate mode: drag-and-drop
+    if (this.state.curateMode) this.bindCurateDrag();
+
+    // Preview button
+    this.host.querySelector<HTMLButtonElement>('#profAnnualPreviewBtn')?.addEventListener('click', async () => {
+      if (this.state.curatedOrder.length < 2) return;
+      const prevCurateMode = this.state.curateMode;
+      this.state.curateMode = false;
+      const playBtn2 = this.host.querySelector<HTMLButtonElement>('#profAnnualPlayBtn');
+      if (playBtn2) await this.startAnimation(playBtn2);
+      this.state.curateMode = prevCurateMode;
+      this.render();
+      this.bind();
+    });
+
+    // Save button
+    this.host.querySelector<HTMLButtonElement>('#profAnnualSaveBtn')?.addEventListener('click', async () => {
+      if (!this.db || !this.uid || this.state.curatedOrder.length < 2) return;
+      const btn = this.host.querySelector<HTMLButtonElement>('#profAnnualSaveBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+      try {
+        const { saveAnnualShelf } = await import('./annual-shelf-store.ts');
+        await saveAnnualShelf(this.db, this.uid, this.year, this.state.curatedOrder);
+        this.savedOrder = [...this.state.curatedOrder];
+        if (btn) { btn.textContent = 'Saved'; setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Save & publish'; } }, 2000); }
+      } catch {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save & publish'; }
+      }
+    });
+
     // Click stage → open book detail (owner only)
     this.host.querySelector('#profAnnualStage')?.addEventListener('click', () => {
-      if (!this.allowOpenDetails || this.state.isAnimating) return;
+      if (!this.allowOpenDetails || this.state.isAnimating || this.state.curateMode) return;
       const book = this.shelfDataForYear(this.year).selectedBooks.find((b) => b.id === this.state.previewBookId);
       if (book?.id && BooksStore.getById(book.id)) App.show('book', { id: book.id });
     });
+  }
+
+  private refreshCurateUI(): void {
+    // Update rank overlays on all rack slots
+    this.host.querySelectorAll<HTMLElement>('.booklist-slot').forEach((slot) => {
+      const id = slot.dataset.slotId ?? '';
+      const rankEl = slot.querySelector<HTMLElement>('.prof-annual__slot-rank');
+      if (rankEl) {
+        const idx = this.state.curatedOrder.indexOf(id);
+        rankEl.textContent = idx >= 0 ? String(idx + 1) : '—';
+      }
+    });
+    // Highlight curated spines
+    this.host.querySelectorAll<HTMLElement>('.booklist-spine').forEach((spine) => {
+      const id = spine.dataset.sourceId ?? '';
+      spine.classList.toggle('is-curated', this.state.curatedOrder.includes(id));
+    });
+    // Enable/disable buttons
+    const hasEnough = this.state.curatedOrder.length >= 2;
+    this.host.querySelector<HTMLButtonElement>('#profAnnualPreviewBtn')?.toggleAttribute('disabled', !hasEnough);
+    this.host.querySelector<HTMLButtonElement>('#profAnnualSaveBtn')?.toggleAttribute('disabled', !hasEnough);
+  }
+
+  private bindCurateDrag(): void {
+    let dragBookId = '';
+    let dragType: 'source' | 'slot' = 'source';
+
+    const onDragStart = (e: DragEvent) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>('[draggable="true"]');
+      if (!el) return;
+      dragBookId = el.dataset.sourceId ?? el.dataset.slotId ?? '';
+      dragType = (el.dataset.dragType as 'source' | 'slot') ?? 'source';
+      e.dataTransfer?.setData('text/plain', dragBookId);
+    };
+
+    const onDragOver = (e: DragEvent) => { e.preventDefault(); };
+
+    const onDropOnSlot = (e: DragEvent) => {
+      e.preventDefault();
+      const slot = (e.target as HTMLElement).closest<HTMLElement>('.booklist-slot');
+      if (!slot || !dragBookId) return;
+      const targetId = slot.dataset.slotId ?? '';
+      if (dragType === 'source') {
+        if (!this.state.curatedOrder.includes(dragBookId) && this.state.curatedOrder.length < ANNUAL_TARGET_COUNT) {
+          const targetIdx = this.state.curatedOrder.indexOf(targetId);
+          if (targetIdx >= 0) {
+            this.state.curatedOrder.splice(targetIdx, 0, dragBookId);
+          } else {
+            this.state.curatedOrder.push(dragBookId);
+          }
+          this.refreshCurateUI();
+        }
+      } else {
+        // Reorder within rack
+        const fromIdx = this.state.curatedOrder.indexOf(dragBookId);
+        const toIdx = this.state.curatedOrder.indexOf(targetId);
+        if (fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx) {
+          this.state.curatedOrder.splice(fromIdx, 1);
+          this.state.curatedOrder.splice(toIdx, 0, dragBookId);
+          this.refreshCurateUI();
+        }
+      }
+      dragBookId = '';
+    };
+
+    const onDropOnSource = (e: DragEvent) => {
+      e.preventDefault();
+      if (dragType === 'slot' && dragBookId) {
+        const idx = this.state.curatedOrder.indexOf(dragBookId);
+        if (idx >= 0) {
+          this.state.curatedOrder.splice(idx, 1);
+          this.refreshCurateUI();
+        }
+      }
+      dragBookId = '';
+    };
+
+    this.host.addEventListener('dragstart', onDragStart as EventListener);
+    const racksEl = this.host.querySelector<HTMLElement>('#profAnnualRacks');
+    racksEl?.addEventListener('dragover', onDragOver as EventListener);
+    racksEl?.addEventListener('drop', onDropOnSlot as EventListener);
+    const sourceEl = this.host.querySelector<HTMLElement>('#profAnnualSourceShelf');
+    sourceEl?.addEventListener('dragover', onDragOver as EventListener);
+    sourceEl?.addEventListener('drop', onDropOnSource as EventListener);
   }
 
   private async startAnimation(playBtn: HTMLButtonElement): Promise<void> {
@@ -406,7 +641,10 @@ export class ProfileAnnualShelf {
         bookHost.appendChild(frame);
         await waitFrame();
         frame.classList.add('is-entered');
-        if (rankNumber === 1) revealBadge(this.host);
+        if (rankNumber === 1) {
+          revealBadge(this.host);
+          await this.triggerNo1Reveal(book, this.year);
+        }
         await delay(520);
       });
 
@@ -484,6 +722,29 @@ export class ProfileAnnualShelf {
       el.style.transition = '';
       el.style.transform = '';
     });
+  }
+
+  private async triggerNo1Reveal(book: ProfileBook, year: number): Promise<void> {
+    const overlay = document.getElementById('annualRevealOverlay');
+    const titleEl = document.getElementById('annualRevealTitle');
+    const authorEl = document.getElementById('annualRevealAuthor');
+    const kickerEl = overlay?.querySelector<HTMLElement>('.annual-reveal-kicker');
+    const yearEl = document.getElementById('annualRevealYear');
+
+    if (!overlay || !titleEl || !authorEl) return;
+
+    if (yearEl) yearEl.textContent = String(year);
+    if (kickerEl && !yearEl) kickerEl.textContent = `No. 1 · ${year}`;
+    titleEl.textContent = book.title;
+    authorEl.textContent = book.author;
+
+    overlay.classList.add('is-active');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    await delay(2800);
+    overlay.classList.remove('is-active');
+    overlay.setAttribute('aria-hidden', 'true');
+    await delay(450);
   }
 }
 
@@ -627,7 +888,7 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function buildYearShelfData(books: ProfileBook[], year: number): YearShelfData {
+function buildYearShelfData(books: ProfileBook[], year: number, savedOrder: string[] | null = null): YearShelfData {
   const uniqueBooks = dedupeBooks(books)
     .filter((book) => book.title && book.author)
     .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0) || a.title.localeCompare(b.title));
@@ -651,7 +912,18 @@ function buildYearShelfData(books: ProfileBook[], year: number): YearShelfData {
   }
 
   const sourceWithIndex = sourceBooks.map((book, index) => ({ ...book, sourceIndex: index }));
-  const selectedBooks = selectAnnualBooks(sourceWithIndex, Math.min(ANNUAL_TARGET_COUNT, sourceWithIndex.length), year);
+  let selectedBooks = selectAnnualBooks(sourceWithIndex, Math.min(ANNUAL_TARGET_COUNT, sourceWithIndex.length), year);
+
+  if (savedOrder && savedOrder.length > 0) {
+    const idToBook = new Map(sourceWithIndex.map((b) => [b.id, b]));
+    const ordered: ProfileBook[] = [];
+    savedOrder.forEach((id, idx) => {
+      const b = idToBook.get(id);
+      if (b) ordered.push({ ...b, rank: idx, isFeatured: idx === 0 });
+    });
+    if (ordered.length > 0) selectedBooks = ordered;
+  }
+
   return { sourceBooks: sourceWithIndex, selectedBooks, yearBooks };
 }
 
@@ -813,6 +1085,45 @@ function buildHeatmap(year: number, sessionDays: SessionDay[]): Array<{ index: n
 
 function firstColumnOffset(year: number): number {
   return (new Date(year, 0, 1).getDay() + 6) % 7;
+}
+
+/** Bucket a year's session minutes into 52 weekly totals. */
+function buildWeeklyMinutes(year: number, sessionDays: SessionDay[]): number[] {
+  const weeks = new Array<number>(52).fill(0);
+  sessionDays.forEach((day) => {
+    const date = new Date(day.date);
+    if (Number.isNaN(date.getTime()) || date.getFullYear() !== year) return;
+    const dayOfYear = Math.floor((date.getTime() - new Date(year, 0, 1).getTime()) / 86400000);
+    const week = Math.min(51, Math.max(0, Math.floor(dayOfYear / 7)));
+    weeks[week] += day.minutes;
+  });
+  return weeks;
+}
+
+/** 52-week bar chart — alternate view of the streak heatmap. */
+function renderRhythmChart(year: number, sessionDays: SessionDay[]): string {
+  const weeks = buildWeeklyMinutes(year, sessionDays);
+  const max = Math.max(1, ...weeks);
+  const peakIdx = weeks.indexOf(Math.max(...weeks));
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const bars = weeks.map((minutes, i) => {
+    const heightPct = Math.round((minutes / max) * 100);
+    const isPeak = i === peakIdx && minutes > 0;
+    return `
+      <div class="prof-rhythm-chart__bar${isPeak ? ' is-peak' : ''}" style="height:${Math.max(2, heightPct)}%">
+        ${isPeak ? '<span class="prof-rhythm-chart__peak-note">↓ peak week</span>' : ''}
+        <span class="prof-rhythm-chart__bar-tip">wk ${i + 1} · ${minutes} min</span>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="prof-rhythm-chart">
+      <div class="prof-rhythm-chart__months">${months.map((m) => `<span>${m}</span>`).join('')}</div>
+      <div class="prof-rhythm-chart__bars">${bars}</div>
+    </div>
+  `;
 }
 
 function renderMonthLabels(year: number, heatmap: Array<{ index: number }>): string {

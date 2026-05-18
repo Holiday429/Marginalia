@@ -54,6 +54,7 @@
   --font-serif:  'Fraunces', Georgia, serif;
   --font-mono:   'IBM Plex Mono', ui-monospace, monospace;
   --font-display:'Bodoni Moda', 'Fraunces', serif;   /* covers / large display only */
+  --font-hand:   'Caveat', cursive;                  /* handwritten margin notes only */
   --font-service-ui: var(--font-mono);
 
   /* ── Fixed sizes (legacy; use sparingly) ─────────────────────────────── */

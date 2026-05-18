@@ -4,242 +4,22 @@ import { renderProfileSettings } from './profile-settings.ts';
 import { ProfileMap } from './profile-map.ts';
 import { ProfileAnnualShelf } from './profile-year-in-review.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
-import { MarginaliaAI } from '../services/ai-gateway.ts';
-import { AIFeatureRegistry } from '../ai/features/registry.js';
 import { ENV } from '../core/env.ts';
 import { BooksStore } from '../store/books-store.ts';
+import { DEMO_BOOKS, DEMO_PROFILE, DEMO_SEED_THRESHOLD, buildDemoHighlights, buildDemoSessionDays } from '../data/seed/profile-demo.ts';
+import { loadAnnualShelf } from './annual-shelf-store.ts';
+import { renderWaitlistCTA } from './profile-waitlist.ts';
+import { mountReadingIdentity } from './reading-identity.ts';
+import type { PublicProfileData, PublicBook, PublicHighlight, SessionDay, DemoPayload } from './profile-types.ts';
 import './profile.css';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FirestoreDB = any;
 
-interface PublicProfileData {
-  displayName: string;
-  uid: string;
-  slug: string;
-  profilePublic: boolean;
-  avatarUrl?: string;
-  bio?: string;
-  showMap?: boolean;
-  showPortrait?: boolean;
-  showRhythm?: boolean;
-  showDesk?: boolean;
-}
-
-interface PublicBook {
-  id: string;
-  title: string;
-  author: string;
-  spine: string;
-  text: string;
-  status?: string;
-  finishedAt?: number;
-  coverSrc?: string;
-  userNote?: string;
-  geo?: {
-    authorOrigin?: { country: string; province?: string; city?: string };
-    contentLocation?: { country: string; province?: string; city?: string };
-    readerLocation?: { country: string; province?: string; city?: string };
-  };
-  genre?: string;
-  language?: string;
-  year?: number;
-}
-
-interface PublicHighlight {
-  quote: string;
-  bookTitle: string;
-  bookId?: string;
-}
-
-interface SessionDay {
-  date: string;
-  sessions: number;
-  minutes: number;
-  highlights: number;
-}
-
-interface DemoPayload {
-  profile: PublicProfileData;
-  books: PublicBook[];
-  highlights: PublicHighlight[];
-  sessionDays: SessionDay[];
-}
-
 const REGION_NAMES = typeof Intl !== 'undefined' && Intl.DisplayNames
   ? new Intl.DisplayNames(['en'], { type: 'region' })
   : null;
 
-const DEMO_BOOKS: PublicBook[] = [
-  {
-    id: '__demo_huoshan',
-    title: '活山',
-    author: '娜恩·谢泼德 Nan Shepherd',
-    spine: '#4a5e48',
-    text: '#e8f0d8',
-    status: 'read',
-    finishedAt: new Date('2025-01-28').getTime(),
-    coverSrc: 'assets/covers/活山.jpg',
-    genre: 'Nonfiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'GB' }, contentLocation: { country: 'GB' } },
-  },
-  {
-    id: '__demo_liusudi',
-    title: '流俗地',
-    author: '黎紫书 Zishu Li',
-    spine: '#5c3a2a',
-    text: '#f5e6c8',
-    status: 'read',
-    finishedAt: new Date('2025-03-10').getTime(),
-    coverSrc: 'assets/covers/流俗地.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'MY' }, contentLocation: { country: 'MY' } },
-  },
-  {
-    id: '__demo_dongwuzhuangyuan',
-    title: '动物庄园',
-    author: '乔治·奥威尔 George Orwell',
-    spine: '#2e3b2a',
-    text: '#d6e8c0',
-    status: 'read',
-    finishedAt: new Date('2025-04-22').getTime(),
-    coverSrc: 'assets/covers/动物庄园.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'GB' }, contentLocation: { country: 'GB' } },
-  },
-  {
-    id: '__demo_shaozhi',
-    title: '烧纸',
-    author: '李沧东 Chang-dong Lee',
-    spine: '#3b2020',
-    text: '#f0c8a0',
-    status: 'read',
-    finishedAt: new Date('2025-05-15').getTime(),
-    coverSrc: 'assets/covers/烧纸.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'KR' }, contentLocation: { country: 'KR' } },
-  },
-  {
-    id: '__demo_jiangshuxi',
-    title: '将熟悉变为陌生',
-    author: '齐格蒙·鲍曼 Zygmunt Bauman',
-    spine: '#1e2a3a',
-    text: '#c8d8f0',
-    status: 'read',
-    finishedAt: new Date('2025-06-30').getTime(),
-    coverSrc: 'assets/covers/将熟悉变为陌生.jpg',
-    genre: 'Social science',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'PL' }, contentLocation: { country: 'PL' } },
-  },
-  {
-    id: '__demo_yunyou',
-    title: '云游',
-    author: '奥尔加·托卡尔丘克 Olga Tokarczuk',
-    spine: '#2a3548',
-    text: '#d8e4f8',
-    status: 'read',
-    finishedAt: new Date('2025-07-20').getTime(),
-    coverSrc: 'assets/covers/云游.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'PL' }, contentLocation: { country: 'PL' } },
-  },
-  {
-    id: '__demo_meiyjuhua',
-    title: '每一句话语都坐着别的眼睛',
-    author: '赫塔·米勒 Herta Müller',
-    spine: '#3a2835',
-    text: '#f0d8e8',
-    status: 'read',
-    finishedAt: new Date('2025-08-18').getTime(),
-    coverSrc: 'assets/covers/每一句话语都坐着别的眼睛.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'RO' }, contentLocation: { country: 'RO' } },
-  },
-  {
-    id: '__demo_daofeng',
-    title: '刀锋',
-    author: '毛姆 W. Somerset Maugham',
-    spine: '#2a2215',
-    text: '#f5e8c0',
-    status: 'read',
-    finishedAt: new Date('2025-10-14').getTime(),
-    coverSrc: 'assets/covers/刀锋.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'GB' }, contentLocation: { country: 'GB' } },
-  },
-  {
-    id: '__demo_pingmianguo',
-    title: '平面国',
-    author: '埃德温·A.艾勃特',
-    spine: '#1a2238',
-    text: '#c8d4f5',
-    status: 'read',
-    finishedAt: new Date('2026-01-18').getTime(),
-    coverSrc: 'assets/covers/平面国.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'GB' }, contentLocation: { country: 'GB' } },
-  },
-  {
-    id: '__demo_huozhe',
-    title: '活着',
-    author: '余华',
-    spine: '#3d2b1f',
-    text: '#e8c97a',
-    status: 'read',
-    finishedAt: new Date('2026-02-28').getTime(),
-    coverSrc: 'assets/covers/活着.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'CN', city: 'Hangzhou' }, contentLocation: { country: 'CN' } },
-  },
-  {
-    id: '__demo_biancheng',
-    title: '边城',
-    author: '沈从文',
-    spine: '#3b4a2e',
-    text: '#e0f0c8',
-    status: 'read',
-    finishedAt: new Date('2026-03-22').getTime(),
-    coverSrc: 'assets/covers/边城.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'CN' }, contentLocation: { country: 'CN' } },
-  },
-  {
-    id: '__demo_hongloumeng',
-    title: '红楼梦',
-    author: '曹雪芹',
-    spine: '#6b1a1a',
-    text: '#f5d0b0',
-    status: 'read',
-    finishedAt: new Date('2026-04-10').getTime(),
-    coverSrc: 'assets/covers/红楼梦.jpg',
-    genre: 'Fiction',
-    language: 'Chinese',
-    geo: { authorOrigin: { country: 'CN' }, contentLocation: { country: 'CN' } },
-  },
-];
-
-const DEMO_PROFILE: PublicProfileData = {
-  uid: '__demo_profile',
-  slug: '',
-  profilePublic: true,
-  displayName: 'Reading Identity Preview',
-  bio: 'A profile-stage preview built from the current demo shelf.',
-  showMap: true,
-  showPortrait: false,
-  showRhythm: true,
-  showDesk: true,
-};
 
 export function initProfile(): void {
   return;
@@ -317,11 +97,18 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
       return;
     }
 
-    let [books, highlights, sessionDays] = await Promise.all([
+    const [realBooks, highlights0, sessionDays0] = await Promise.all([
       fetchPublicBooks(db, profileData.uid, ownerPreview),
       fetchPublicHighlights(db, profileData.uid, ownerPreview),
       fetchSessions(db, profileData.uid),
     ]);
+
+    const books = realBooks.length >= DEMO_SEED_THRESHOLD
+      ? realBooks
+      : mergeDemoBooks(realBooks, DEMO_BOOKS);
+
+    let highlights = highlights0;
+    let sessionDays = sessionDays0;
 
     if (ownerPreview) {
       if (!highlights.length) highlights = buildDemoHighlights();
@@ -343,6 +130,11 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
 
 export function enterPanel_profile(params: { slug?: string } = {}): void {
   enterProfile(params);
+}
+
+function mergeDemoBooks(real: PublicBook[], demo: PublicBook[]): PublicBook[] {
+  const ids = new Set(real.map((b) => b.id));
+  return [...real, ...demo.filter((b) => !ids.has(b.id))];
 }
 
 function getDb(): FirestoreDB | null {
@@ -414,10 +206,6 @@ async function fetchPublicBooks(db: FirestoreDB, uid: string, ownerPreview = fal
     })
     .sort((a: PublicBook, b: PublicBook) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
 
-  if (ownerPreview) {
-    const ids = new Set(books.map((book: PublicBook) => book.id));
-    return [...books, ...DEMO_BOOKS.filter((book) => !ids.has(book.id))];
-  }
   return books;
 }
 
@@ -620,6 +408,7 @@ function profileHTML(
         ${annualSection}
         ${deskSection}
         ${portraitSection}
+        <div id="profWaitlistMount"></div>
       </div>
     </div>
   `;
@@ -719,14 +508,36 @@ function mountSections(
 
   const annualEl = container.querySelector<HTMLElement>('#profAnnualMount');
   if (annualEl) {
-    const annual = new ProfileAnnualShelf({
-      host: annualEl,
-      books,
-      sessionDays,
-      allowOpenDetails: isOwner,
-      showRhythm: profile.showRhythm ?? true,
+    const db = getDb();
+    const mountAnnual = async () => {
+      let savedOrder: string[] | null = null;
+      if (isOwner && db && profile.uid) {
+        const doc = await loadAnnualShelf(db, profile.uid, new Date().getFullYear()).catch(() => null);
+        savedOrder = doc?.bookIds ?? null;
+      }
+      const annual = new ProfileAnnualShelf({
+        host: annualEl,
+        books,
+        sessionDays,
+        allowOpenDetails: isOwner,
+        showRhythm: profile.showRhythm ?? true,
+        isOwner,
+        db: db ?? undefined,
+        uid: profile.uid,
+        savedOrder,
+      });
+      annual.mount();
+    };
+    mountAnnual().catch(() => {
+      const annual = new ProfileAnnualShelf({
+        host: annualEl,
+        books,
+        sessionDays,
+        allowOpenDetails: isOwner,
+        showRhythm: profile.showRhythm ?? true,
+      });
+      annual.mount();
     });
-    annual.mount();
   }
 
   if (profile.showPortrait) {
@@ -735,7 +546,10 @@ function mountSections(
   }
 
   const identityEl = container.querySelector<HTMLElement>('#profIdentityMount');
-  if (identityEl) mountReadingIdentity(identityEl, books, highlights, sessionDays, profile, isOwner);
+  if (identityEl) mountReadingIdentity(identityEl);
+
+  const waitlistEl = container.querySelector<HTMLElement>('#profWaitlistMount');
+  if (waitlistEl) renderWaitlistCTA(waitlistEl);
 }
 
 function renderPortrait(container: HTMLElement, _books: PublicBook[], _highlights: PublicHighlight[]): void {
@@ -881,36 +695,6 @@ function buildDemoPayload(): DemoPayload {
   };
 }
 
-function buildDemoHighlights(): PublicHighlight[] {
-  const seedHighlights = BooksStore.getAll().flatMap((record: any) => {
-    const rawHighlights = Array.isArray(record?.highlights) ? record.highlights : [];
-    const title = record?.title ?? record?.meta?.title ?? record?.meta?.titleZh ?? 'Untitled';
-    return rawHighlights.slice(0, 2).map((item: any, index: number) => ({
-      quote: String(item?.quote ?? '').trim(),
-      bookTitle: title,
-      bookId: String(record?.id ?? `seed-${index}`),
-    }));
-  }).filter((item) => item.quote.length > 0);
-
-  if (seedHighlights.length) return seedHighlights;
-  return [
-    {
-      quote: 'Money is the most universal and most efficient system of mutual trust ever devised.',
-      bookTitle: 'Sapiens: A Brief History of Humankind',
-      bookId: 'sapiens',
-    },
-    {
-      quote: '一切存在皆短暂，但也因此而珍贵。',
-      bookTitle: '活山',
-      bookId: '__demo_huoshan',
-    },
-    {
-      quote: '人是可以被消灭的，但不能被打败。',
-      bookTitle: '刀锋',
-      bookId: '__demo_daofeng',
-    },
-  ];
-}
 
 function mapStoreBookToPublicBook(record: any): PublicBook | null {
   if (!record?.id) return null;
@@ -941,27 +725,6 @@ function mapStoreBookToPublicBook(record: any): PublicBook | null {
   };
 }
 
-function buildDemoSessionDays(books: PublicBook[]): SessionDay[] {
-  const dayMap = new Map<string, SessionDay>();
-  const addDay = (value: number, sessions: number, minutes: number, highlights: number) => {
-    const date = new Date(value).toISOString().slice(0, 10);
-    const existing = dayMap.get(date) ?? { date, sessions: 0, minutes: 0, highlights: 0 };
-    existing.sessions += sessions;
-    existing.minutes += minutes;
-    existing.highlights += highlights;
-    dayMap.set(date, existing);
-  };
-
-  books.filter((book) => isFinishedStatus(book.status) && (book.finishedAt ?? 0) > 0).forEach((book, index) => {
-    const anchor = book.finishedAt ?? Date.now();
-    [-10, -7, -4, -2, 0].forEach((offset, offsetIndex) => {
-      addDay(anchor + offset * 86400000, 1, 24 + ((index + offsetIndex) % 3) * 12, offsetIndex >= 3 ? 1 : 0);
-    });
-  });
-
-
-  return [...dayMap.values()].sort((a, b) => a.date.localeCompare(b.date));
-}
 
 function normalizeProfileStatus(status: unknown): string {
   if (status === 'finished') return 'read';
@@ -989,442 +752,6 @@ function toTimestamp(value: unknown): number {
     if (typeof ts['seconds'] === 'number') return ts['seconds'] * 1000;
   }
   return 0;
-}
-
-// ─── Reading Identity section ────────────────────────────────────────────────
-
-interface IdentityResult {
-  readerType: string;
-  portrait: string;
-  traits: Array<{ label: string; description: string }>;
-  promptVersion: string;
-  generatedAt: number;
-}
-
-const IDENTITY_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-
-function isDemoBook(book: PublicBook): boolean {
-  return String(book.id || '').startsWith('__demo_');
-}
-
-function buildLocalIdentityResult(
-  books: PublicBook[],
-  highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
-): IdentityResult {
-  const finishedBooks = books
-    .filter((book) => isFinishedStatus(book.status))
-    .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
-  const effectiveBooks = finishedBooks.length ? finishedBooks : DEMO_BOOKS;
-  const featured = effectiveBooks.slice(0, 4);
-  const featuredTitles = featured.map((book) => book.title);
-  const featuredAuthors = featured.map((book) => book.author.split(' ')[0]).filter(Boolean);
-
-  const genreCounts = new Map<string, number>();
-  const languageCounts = new Map<string, number>();
-  const countryCounts = new Map<string, number>();
-  effectiveBooks.forEach((book) => {
-    if (book.genre) genreCounts.set(book.genre, (genreCounts.get(book.genre) ?? 0) + 1);
-    if (book.language) languageCounts.set(book.language, (languageCounts.get(book.language) ?? 0) + 1);
-    const country = book.geo?.contentLocation?.country || book.geo?.authorOrigin?.country || book.geo?.readerLocation?.country;
-    if (country) countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
-  });
-
-  const topGenre = [...genreCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'literary';
-  const topLanguage = [...languageCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'multilingual';
-  const topPlaces = [...countryCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([country]) => countryName(country));
-  const totalHours = Math.round(sessionDays.reduce((sum, day) => sum + day.minutes, 0) / 60);
-  const highlightCount = highlights.length;
-
-  const readerType = topPlaces.length >= 3
-    ? 'A reader crossing borders by instinct'
-    : topGenre.toLowerCase().includes('fiction')
-      ? 'A reader building interior worlds'
-      : 'A reader tracing life through books';
-
-  const [firstTitle = 'these books', secondTitle = featuredTitles[1] ?? featuredTitles[0] ?? 'the next shelf'] = featuredTitles;
-  const [firstAuthor = featuredAuthors[0] ?? 'one writer', secondAuthor = featuredAuthors[1] ?? featuredAuthors[0] ?? 'another'] = featuredAuthors;
-  const placeLine = topPlaces.length ? `Your shelf keeps returning to ${topPlaces.join(', ')}, as though place is part of the argument.` : 'You read as if each book is another room in the same long conversation.';
-  const rhythmLine = totalHours
-    ? `Even in this preview state, the pattern suggests someone willing to stay with a book for ${totalHours} logged hours rather than skim the surface.`
-    : 'Even in this preview state, the pattern suggests someone who reads for resonance rather than speed.';
-
-  return {
-    readerType,
-    portrait: `You read like someone testing how much of a life can be understood from a shelf. ${firstTitle} and ${secondTitle} sit together less by category than by pressure: both ask for inward attention, and you reward writers like ${firstAuthor} and ${secondAuthor} when they make feeling thinkable. ${placeLine} ${rhythmLine}`,
-    traits: [
-      {
-        label: 'Pattern Reader',
-        description: `You do not chase isolated titles; you build clusters around ${topGenre.toLowerCase()} questions and let one book revise the meaning of the next.`,
-      },
-      {
-        label: 'Slow Heat',
-        description: highlightCount
-          ? `With ${highlightCount} saved highlights, your reading tends to linger where language turns sharp enough to keep.`
-          : 'You seem drawn to books that unfold gradually and repay being lived with, not just finished.',
-      },
-      {
-        label: 'World Builder',
-        description: topPlaces.length
-          ? `From ${topPlaces.join(', ')} and across a mostly ${topLanguage.toLowerCase()} shelf, you use books to widen the map without losing intimacy.`
-          : `Across a mostly ${topLanguage.toLowerCase()} shelf, you read to widen the frame without flattening the feeling.`,
-      },
-    ],
-    promptVersion: 'local-fallback-1',
-    generatedAt: Date.now(),
-  };
-}
-
-function mountReadingIdentity(
-  host: HTMLElement,
-  books: PublicBook[],
-  highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
-  profile: PublicProfileData,
-  isOwner: boolean,
-): void {
-  const db = getDb();
-
-  if (!db || !profile.uid) {
-    host.innerHTML = '';
-    return;
-  }
-
-  const wsId: string = ENV.WORKSPACE_ID || 'default';
-  const docRef = db.doc(`workspaces/${wsId}/users/${profile.uid}/ai_results/reader-identity`);
-
-  if (isOwner) {
-    host.innerHTML = identityEmptyHTML();
-    bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
-  } else {
-    host.innerHTML = identityLoadingHTML();
-  }
-
-  docRef.get().then((snap: any) => {
-    if (snap.exists) {
-      const data = snap.data() as Record<string, any>;
-      const result: IdentityResult = (data.userEdited ?? data.original) as IdentityResult;
-      const isStale = !result?.generatedAt || (Date.now() - result.generatedAt) > IDENTITY_STALE_MS;
-
-      if (result?.readerType && result?.portrait) {
-        host.innerHTML = identityHTML(result, isOwner && isStale);
-        if (isOwner && isStale) bindIdentityRegenerate(host, books, highlights, sessionDays, docRef, isOwner);
-        return;
-      }
-    }
-
-    if (isOwner) {
-      host.innerHTML = identityEmptyHTML();
-      bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
-    } else {
-      host.innerHTML = '';
-    }
-  }).catch(() => {
-    if (isOwner) {
-      host.innerHTML = identityEmptyHTML();
-      bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
-    } else {
-      host.innerHTML = '';
-    }
-  });
-}
-
-function buildIdentityLibraryPayload(
-  books: PublicBook[],
-  highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
-): Record<string, unknown> {
-  const finishedBooks = books.filter((b) => isFinishedStatus(b.status));
-  // Fall back to demo books so generation always has material to work with
-  const effectiveBooks = finishedBooks.length >= 3
-    ? finishedBooks
-    : [...finishedBooks, ...DEMO_BOOKS.filter((d) => !finishedBooks.find((b) => b.id === d.id))].slice(0, 30);
-
-  const totalMinutes = sessionDays.reduce((sum, d) => sum + d.minutes, 0);
-  const activeDays = sessionDays.filter((d) => d.minutes > 0).length;
-  const peakMonth = (() => {
-    const byMonth = new Map<string, number>();
-    sessionDays.forEach((d) => {
-      const m = d.date.slice(0, 7);
-      byMonth.set(m, (byMonth.get(m) ?? 0) + d.minutes);
-    });
-    let best = ''; let bestVal = 0;
-    byMonth.forEach((v, k) => { if (v > bestVal) { best = k; bestVal = v; } });
-    return best;
-  })();
-
-  const rhythmNote = [
-    finishedBooks.length ? `${finishedBooks.length} books finished` : '',
-    totalMinutes ? `${Math.round(totalMinutes / 60)} hours of reading logged` : '',
-    activeDays ? `active on ${activeDays} days` : '',
-    peakMonth ? `most active in ${peakMonth}` : '',
-  ].filter(Boolean).join(', ');
-
-  return {
-    books: effectiveBooks.slice(0, 60).map((b) => ({
-      title: b.title,
-      author: b.author,
-      genre: b.genre,
-      language: b.language,
-      year: b.year,
-    })),
-    highlightSample: highlights.slice(0, 20).map((h) => ({ quote: h.quote, bookTitle: h.bookTitle })),
-    rhythmNote,
-  };
-}
-
-async function callDeepSeekDirect(prompt: string): Promise<unknown> {
-  const apiKey = ENV.DEEPSEEK_API_KEY;
-  if (!apiKey) throw new Error('No DeepSeek API key configured (VITE_DEEPSEEK_API_KEY).');
-
-  const res = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'deepseek-chat',
-      messages: [
-        { role: 'system', content: 'Return only valid JSON. No markdown fences, no explanation.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.4,
-      max_tokens: 4096,
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    let message = `DeepSeek error ${res.status}`;
-    try { message = (JSON.parse(body) as { error?: { message?: string } }).error?.message || message; } catch { /* raw text */ }
-    throw new Error(message);
-  }
-
-  const json = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-  const text = json.choices?.[0]?.message?.content ?? '';
-  const clean = text.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
-  return JSON.parse(clean);
-}
-
-function triggerIdentityGeneration(
-  host: HTMLElement,
-  books: PublicBook[],
-  highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
-  docRef: any,
-  isOwner: boolean,
-): void {
-  host.innerHTML = identityGeneratingHTML();
-  const hasRealFinishedBooks = books.some((book) => isFinishedStatus(book.status) && !isDemoBook(book));
-  const localFallback = buildLocalIdentityResult(books, highlights, sessionDays);
-
-  if (!hasRealFinishedBooks) {
-    const typed = { ...localFallback, generatedAt: Date.now() };
-    docRef.set({ original: typed }, { merge: true }).catch(() => {});
-    host.innerHTML = identityHTML(typed, false);
-    return;
-  }
-
-  const featureId = 'reader-identity';
-  const library = buildIdentityLibraryPayload(books, highlights, sessionDays);
-  const prompt = AIFeatureRegistry.buildPrompt(featureId, library);
-  if (!prompt) {
-    host.innerHTML = identityErrorHTML('Prompt not loaded yet — try again in a moment.');
-    return;
-  }
-
-  function onSuccess(result: unknown): void {
-    if (!result || typeof result !== 'object') {
-      host.innerHTML = identityErrorHTML('Could not generate identity — please try again.');
-      bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
-      return;
-    }
-    const typed = result as IdentityResult;
-    typed.generatedAt = Date.now();
-    docRef.set({ original: typed }, { merge: true }).catch(() => {});
-    logEvent('ai_generated', { featureId });
-    host.innerHTML = identityHTML(typed, false);
-  }
-
-  function onFailure(err: Error): void {
-    const isFetchError = err.message === 'Failed to fetch' || err.message.startsWith('NetworkError') || err.message.includes('fetch');
-    if (isFetchError && ENV.DEEPSEEK_API_KEY) {
-      callDeepSeekDirect(prompt!).then(onSuccess).catch((directErr: Error) => {
-        const fallback = { ...localFallback, generatedAt: Date.now() };
-        docRef.set({ original: fallback }, { merge: true }).catch(() => {});
-        if (directErr.message) console.warn('[profile] reading identity fell back to local preview:', directErr.message);
-        host.innerHTML = identityHTML(fallback, false);
-      });
-      return;
-    }
-    if (isFetchError) {
-      const fallback = { ...localFallback, generatedAt: Date.now() };
-      docRef.set({ original: fallback }, { merge: true }).catch(() => {});
-      host.innerHTML = identityHTML(fallback, false);
-      return;
-    }
-    host.innerHTML = identityErrorHTML(err.message || 'Generation failed — please try again.');
-    bindIdentityGenerate(host, books, highlights, sessionDays, docRef, isOwner);
-  }
-
-  let errored = false;
-  (MarginaliaAI as any).generateJSON({
-    featureId,
-    prompt,
-    onError(err: Error) {
-      errored = true;
-      onFailure(err);
-    },
-  }).then((result: unknown) => {
-    if (errored) return;
-    onSuccess(result);
-  });
-}
-
-function bindIdentityGenerate(
-  host: HTMLElement,
-  books: PublicBook[],
-  highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
-  docRef: any,
-  isOwner: boolean,
-): void {
-  host.querySelector<HTMLButtonElement>('#profIdentityGenerateBtn')?.addEventListener('click', () => {
-    triggerIdentityGeneration(host, books, highlights, sessionDays, docRef, isOwner);
-  });
-}
-
-function bindIdentityRegenerate(
-  host: HTMLElement,
-  books: PublicBook[],
-  highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
-  docRef: any,
-  isOwner: boolean,
-): void {
-  host.querySelector<HTMLButtonElement>('#profIdentityRegenBtn')?.addEventListener('click', () => {
-    triggerIdentityGeneration(host, books, highlights, sessionDays, docRef, isOwner);
-  });
-}
-
-function identityLoadingHTML(): string {
-  return `
-    <section class="prof-identity-section" aria-label="Reading Identity">
-      <div class="prof-identity-section__loading">
-        <span class="prof-loading__dot"></span>
-      </div>
-    </section>
-  `;
-}
-
-function identityEmptyHTML(): string {
-  return `
-    <section class="prof-identity-section" aria-label="Reading Identity">
-      <div class="prof-section__head">
-        <h2 class="prof-section__title">Reading Identity</h2>
-      </div>
-      <div class="prof-identity-section__empty">
-        <p class="prof-identity-section__empty-label">Your reading identity, as seen by an outside eye</p>
-        <p class="prof-identity-section__empty-hint">Based on your library and margin notes, a short portrait of how you read — what draws you, what you avoid, what the pattern reveals.</p>
-        <button class="prof-identity-section__generate-btn" id="profIdentityGenerateBtn" type="button">
-          Generate my reading identity
-        </button>
-      </div>
-    </section>
-  `;
-}
-
-function identityGeneratingHTML(): string {
-  return `
-    <section class="prof-identity-section" aria-label="Reading Identity">
-      <div class="prof-section__head">
-        <h2 class="prof-section__title">Reading Identity</h2>
-      </div>
-      <div class="prof-identity-section__empty prof-identity-section__empty--generating">
-        <div class="prof-identity-section__book-anim" aria-hidden="true">
-          <div class="prof-identity-section__book">
-            <div class="prof-identity-section__page prof-identity-section__page--1"></div>
-            <div class="prof-identity-section__page prof-identity-section__page--2"></div>
-            <div class="prof-identity-section__page prof-identity-section__page--3"></div>
-          </div>
-        </div>
-        <span class="prof-identity-section__generating-text">Reading your library…</span>
-      </div>
-    </section>
-  `;
-}
-
-function identityErrorHTML(message: string): string {
-  return `
-    <section class="prof-identity-section" aria-label="Reading Identity">
-      <div class="prof-section__head">
-        <h2 class="prof-section__title">Reading Identity</h2>
-      </div>
-      <div class="prof-identity-section__empty">
-        <p class="prof-identity-section__empty-label">Something went wrong</p>
-        <p class="prof-identity-section__empty-hint">${escapeHtml(message)}</p>
-        <button class="prof-identity-section__generate-btn" id="profIdentityGenerateBtn" type="button">
-          Try again
-        </button>
-      </div>
-    </section>
-  `;
-}
-
-function identityHTML(result: IdentityResult, showRegen: boolean): string {
-  const traits = (result.traits ?? []).slice(0, 3);
-  const badgeLabel = String(result.promptVersion || '').startsWith('local-') ? 'Shelf portrait' : 'AI portrait';
-
-  const traitsHTML = traits.length ? `
-    <div class="prof-identity-section__traits">
-      ${traits.map((t) => `
-        <div class="prof-identity-section__trait">
-          <span class="prof-identity-section__trait-label">${escapeHtml(t.label)}</span>
-          <p class="prof-identity-section__trait-desc">${escapeHtml(t.description)}</p>
-        </div>
-      `).join('')}
-    </div>
-  ` : '';
-
-  const regenBtn = showRegen ? `
-    <button class="prof-identity-section__regen-btn" id="profIdentityRegenBtn" type="button" aria-label="Refresh reading identity">
-      Refresh
-    </button>
-  ` : '';
-
-  const generatedDate = result.generatedAt
-    ? new Date(result.generatedAt).toLocaleDateString('en', { month: 'long', year: 'numeric' })
-    : '';
-
-  return `
-    <section class="prof-identity-section" aria-label="Reading Identity">
-      <div class="prof-section__head">
-        <h2 class="prof-section__title">Reading Identity</h2>
-      </div>
-      <div class="prof-identity-section__inner">
-
-        <div class="prof-identity-section__type-row">
-          <p class="prof-identity-section__type">${escapeHtml(result.readerType)}</p>
-          <div class="prof-identity-section__meta-row">
-            <span class="prof-identity-section__ai-badge">
-              <span class="prof-identity-section__ai-dot" aria-hidden="true"></span>
-              ${badgeLabel}${generatedDate ? ` · ${generatedDate}` : ''}
-            </span>
-            ${regenBtn}
-          </div>
-        </div>
-
-        <p class="prof-identity-section__portrait">${escapeHtml(result.portrait)}</p>
-
-        ${traitsHTML}
-
-      </div>
-    </section>
-  `;
 }
 
 function renderProfileHeader(activeView: string, options: { actionLabel?: string; actionId?: string; rightHTML?: string } = {}): string {

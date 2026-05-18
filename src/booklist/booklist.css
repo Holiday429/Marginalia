@@ -327,6 +327,44 @@
   opacity: 0;
 }
 
+/* Leaning spines + hover-lift tooltip — Year-In-Reading source shelf */
+.booklist-spine--leanable {
+  overflow: visible;
+  transform: rotate(var(--spine-tilt, 0deg)) translateY(0);
+  transition: transform 0.35s cubic-bezier(.2, .7, .2, 1), opacity 0.3s ease, filter 0.3s ease;
+}
+.booklist-spine--leanable:hover {
+  transform: rotate(var(--spine-tilt, 0deg)) translateY(-10px);
+  z-index: 6;
+}
+.booklist-source-tip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--ink);
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 8;
+}
+.booklist-source-tip em {
+  font-style: italic;
+  color: var(--ink);
+}
+.booklist-spine--leanable:hover .booklist-source-tip {
+  opacity: 1;
+}
+
 .booklist-shelf-plank {
   height: 14px;
   border-radius: 2px;
