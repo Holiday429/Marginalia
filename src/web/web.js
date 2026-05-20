@@ -96,7 +96,8 @@ function webShellHTML() {
       <div class="web-controls">
         <button class="web-ctrl-btn" id="webZoomIn" type="button">+</button>
         <button class="web-ctrl-btn" id="webZoomOut" type="button">−</button>
-        <button class="web-ctrl-btn" id="webReset" type="button" style="font-size:13px;letter-spacing:0.06em">fit</button>
+        <div class="web-ctrl-sep"></div>
+        <button class="web-ctrl-btn web-ctrl-fit" id="webReset" type="button">Fit</button>
       </div>
     </div>
   `;
@@ -235,6 +236,9 @@ function renderWebGraph() {
     .attr('stroke-dasharray', (link) => link.status === 'suggested' ? '6 5' : null)
     .attr('opacity', (link) => link.linkType === 'context-concept' ? 0.8 : 1);
 
+  const conceptBaseFill = (node) => node.hasSuggested ? 'rgba(213,170,100,0.28)' : 'rgba(213,170,100,0.17)';
+  const conceptHoverFill = (node) => node.hasSuggested ? 'rgba(213,170,100,0.74)' : 'rgba(213,170,100,0.62)';
+
   const conceptEls = root.append('g')
     .selectAll('g')
     .data(conceptNodes)
@@ -243,9 +247,15 @@ function renderWebGraph() {
     .attr('class', 'web-concept-node')
     .style('cursor', 'pointer')
     .call(webDrag(simulation))
-    .on('mouseenter', (event, node) => webShowConceptTip(event, node))
+    .on('mouseenter', (event, node) => {
+      d3.select(event.currentTarget).select('.web-concept-fill').attr('fill', conceptHoverFill(node));
+      webShowConceptTip(event, node);
+    })
     .on('mousemove', (event) => webMoveTip(event))
-    .on('mouseleave', webHideTip)
+    .on('mouseleave', (event, node) => {
+      d3.select(event.currentTarget).select('.web-concept-fill').attr('fill', conceptBaseFill(node));
+      webHideTip();
+    })
     .on('click', (event, node) => {
       __webFocusConceptId = node.id;
       openConceptDrawer(node.id);
@@ -258,7 +268,8 @@ function renderWebGraph() {
     .attr('stroke', (node) => node.hasSuggested ? 'rgba(213,170,100,0.45)' : 'rgba(213,170,100,0.22)');
   conceptEls.append('circle')
     .attr('r', (node) => conceptRadius(node.weight))
-    .attr('fill', (node) => node.hasSuggested ? 'rgba(213,170,100,0.28)' : 'rgba(213,170,100,0.17)')
+    .attr('class', 'web-concept-fill')
+    .attr('fill', (node) => conceptBaseFill(node))
     .attr('stroke', 'rgba(213,170,100,0.92)')
     .attr('stroke-width', 1.4);
   conceptEls.append('text')
@@ -274,9 +285,15 @@ function renderWebGraph() {
     .append('g')
     .attr('class', 'web-context-node')
     .call(webDrag(simulation))
-    .on('mouseenter', (event, node) => webShowContextTip(event, node))
+    .on('mouseenter', (event, node) => {
+      d3.select(event.currentTarget).select('.web-context-fill').attr('fill', 'rgba(123,151,198,0.48)');
+      webShowContextTip(event, node);
+    })
     .on('mousemove', (event) => webMoveTip(event))
-    .on('mouseleave', webHideTip);
+    .on('mouseleave', (event) => {
+      d3.select(event.currentTarget).select('.web-context-fill').attr('fill', 'rgba(123,151,198,0.18)');
+      webHideTip();
+    });
 
   contextEls.append('rect')
     .attr('x', (node) => -contextSize(node.weight))
@@ -285,6 +302,7 @@ function renderWebGraph() {
     .attr('ry', 6)
     .attr('width', (node) => contextSize(node.weight) * 2)
     .attr('height', (node) => contextSize(node.weight) * 1.4)
+    .attr('class', 'web-context-fill')
     .attr('fill', 'rgba(123,151,198,0.18)')
     .attr('stroke', 'rgba(123,151,198,0.55)');
   contextEls.append('text')
@@ -301,15 +319,22 @@ function renderWebGraph() {
     .attr('class', 'web-book-node')
     .style('cursor', 'pointer')
     .call(webDrag(simulation))
-    .on('mouseenter', (event, node) => webShowBookTip(event, node))
+    .on('mouseenter', (event, node) => {
+      d3.select(event.currentTarget).select('.web-book-fill').attr('fill-opacity', 1);
+      webShowBookTip(event, node);
+    })
     .on('mousemove', (event) => webMoveTip(event))
-    .on('mouseleave', webHideTip)
+    .on('mouseleave', (event) => {
+      d3.select(event.currentTarget).select('.web-book-fill').attr('fill-opacity', 0.88);
+      webHideTip();
+    })
     .on('click', (event, node) => {
       if (BooksStore.getById(node.id)) App.show('book', { id: node.id });
     });
 
   bookEls.append('circle')
     .attr('r', 8)
+    .attr('class', 'web-book-fill')
     .attr('fill', (node) => node.bg)
     .attr('fill-opacity', 0.88)
     .attr('stroke', 'rgba(232,223,200,0.42)')
@@ -321,15 +346,44 @@ function renderWebGraph() {
     .text((node) => truncateWebLabel(shortBookTitle(node.titleZh || node.title), 18));
 
   simulation.on('tick', () => {
-    linkEls
-      .attr('x1', (link) => link.source.x)
-      .attr('y1', (link) => link.source.y)
-      .attr('x2', (link) => link.target.x)
-      .attr('y2', (link) => link.target.y);
+    linkEls.each((link) => {
+      link.__trim = linkTrimmedCoords(link);
+    })
+      .attr('x1', (link) => link.__trim.x1)
+      .attr('y1', (link) => link.__trim.y1)
+      .attr('x2', (link) => link.__trim.x2)
+      .attr('y2', (link) => link.__trim.y2);
     conceptEls.attr('transform', (node) => `translate(${node.x},${node.y})`);
     contextEls.attr('transform', (node) => `translate(${node.x},${node.y})`);
     bookEls.attr('transform', (node) => `translate(${node.x},${node.y})`);
   });
+
+  function nodeVisualRadius(node) {
+    if (node?.type === 'concept') return conceptRadius(node.weight) + 6;
+    if (node?.type === 'context') return contextSize(node.weight) + 4;
+    if (node?.type === 'book') return 9;
+    return 10;
+  }
+
+  function linkTrimmedCoords(link) {
+    const sx = link.source?.x ?? 0;
+    const sy = link.source?.y ?? 0;
+    const tx = link.target?.x ?? 0;
+    const ty = link.target?.y ?? 0;
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const dist = Math.hypot(dx, dy) || 1;
+    const ux = dx / dist;
+    const uy = dy / dist;
+    const sr = nodeVisualRadius(link.source);
+    const tr = nodeVisualRadius(link.target);
+    return {
+      x1: sx + ux * sr,
+      y1: sy + uy * sr,
+      x2: tx - ux * tr,
+      y2: ty - uy * tr,
+    };
+  }
 
   setTimeout(() => applyWebFit(false), 120);
   setTimeout(() => applyWebFit(true), 420);
@@ -433,7 +487,7 @@ function getWebSafeViewport() {
   const subheader = document.querySelector('#panel-web .web-subheader')?.getBoundingClientRect();
   const controls = document.querySelector('#panel-web .web-controls')?.getBoundingClientRect();
   const left = window.innerWidth <= 980 ? 18 : 56;
-  const top = subheader ? Math.round(subheader.bottom + 24) : 190;
+  const top = subheader ? Math.round(subheader.bottom + 10) : 162;
   const right = controls ? Math.round(controls.left - 20) : window.innerWidth - 92;
   const bottom = window.innerHeight - 28;
 

@@ -1,6 +1,7 @@
 import { App } from '../core/app.js';
 import { BooksStore } from '../store/books-store.ts';
 import { SpineCard } from '../components/spine-card.js';
+import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
 import './annual-shelf.css';
 
 interface ProfileBook {
@@ -1276,13 +1277,17 @@ function renderMonthLabels(year: number, heatmap: Array<{ index: number }>): str
 
 function getSpineSize(book: ProfileBook): { width: number; height: number } {
   const len = book.title.length;
-  const width = len > 28 ? 52 : len > 18 ? 46 : 40;
-  const seed = book.id.charCodeAt(0) % 5;
-  return { width, height: 210 + seed * 10 };
-}
-
-function containsCJK(text: string): boolean {
-  return /[一-鿿㐀-䶿　-〿＀-￯]/.test(text);
+  const widthSeed = len > 28 ? 52 : len > 18 ? 46 : 40;
+  const seed = (book.id?.charCodeAt(0) ?? 0) % 5;
+  const heightRatio = 1 + seed * 0.05;
+  return getUnifiedShelfSpineSize(book as unknown as { w?: number; h?: number }, {
+    widthSeed,
+    heightSeed: heightRatio,
+    widthScaleCollapsed: 1,
+    baseHeightCollapsed: 210,
+    minWidth: 36,
+    minHeight: 170,
+  });
 }
 
 function dateKey(date: Date): string {

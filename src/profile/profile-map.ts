@@ -105,7 +105,6 @@ const REGION_NAMES = typeof Intl !== 'undefined' && Intl.DisplayNames
   ? new Intl.DisplayNames(['en'], { type: 'region' })
   : null;
 
-const WATER_FILL = '#171311';
 const UNLIT_FILL = '#3d3026';
 const DIMMED_FILL = '#2b221c';
 const HISTORICAL_LINE = '#9f845b';
@@ -217,6 +216,9 @@ export class ProfileMap {
   private readonly TRAVEL_MS = 2800;
   private readonly DWELL_MS = 2200;
   private hasMountedInitialPlayback = false;
+  private gestureArmed = false;
+  private mapPointerDownHandler: ((event: PointerEvent) => void) | null = null;
+  private docPointerDownHandler: ((event: PointerEvent) => void) | null = null;
 
   constructor(
     mapEl: HTMLElement,
@@ -252,14 +254,11 @@ export class ProfileMap {
         projection: am5map.geoNaturalEarth1(),
         panX: 'translateX',
         panY: 'translateY',
-        wheelY: 'zoom',
-        pinchZoom: true,
+        wheelY: 'none',
+        pinchZoom: false,
+        zoomStep: 1.06,
         minZoomLevel: 1,
         maxZoomLevel: 32,
-        background: am5.Rectangle.new(this.root, {
-          fill: am5.color(WATER_FILL),
-          fillOpacity: 1,
-        }),
       }));
 
       this.polygonSeries = this.chart.series.push(am5map.MapPolygonSeries.new(this.root, {
@@ -307,6 +306,7 @@ export class ProfileMap {
 
       this.buildAvatar();
       this.bind();
+      this.setGestureArmed(false);
       this.setDim('journey');
     } catch (error) {
       logError(error instanceof Error ? error : new Error(String(error)), { context: 'ProfileMap.mount' });
@@ -316,6 +316,14 @@ export class ProfileMap {
   destroy(): void {
     this.stopPlayback();
     cancelAnimationFrame(this.rafId);
+    if (this.mapPointerDownHandler) {
+      this.mapEl.removeEventListener('pointerdown', this.mapPointerDownHandler);
+      this.mapPointerDownHandler = null;
+    }
+    if (this.docPointerDownHandler) {
+      document.removeEventListener('pointerdown', this.docPointerDownHandler, true);
+      this.docPointerDownHandler = null;
+    }
     this.avatar?.unmount();
     this.root?.dispose();
   }
@@ -323,6 +331,7 @@ export class ProfileMap {
   setDim(dim: GeoDim): void {
     this.stopPlayback();
     this.dim = dim;
+    this.colorsRevealed = false;
     this.events = buildEvents(this.books, dim);
     this.activeIdx = Math.max(0, this.events.length - 1);
     this.refreshScene({ autoPlay: false });
@@ -360,6 +369,20 @@ export class ProfileMap {
     wrap?.querySelector('#profMapZoomFit')?.addEventListener('click', () => {
       this.chart?.goHome();
     });
+
+    this.mapPointerDownHandler = () => {
+      this.setGestureArmed(true);
+    };
+    this.mapEl.addEventListener('pointerdown', this.mapPointerDownHandler);
+
+    this.docPointerDownHandler = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      const wrapEl = this.mapEl.parentElement;
+      if (wrapEl?.contains(target)) return;
+      this.setGestureArmed(false);
+    };
+    document.addEventListener('pointerdown', this.docPointerDownHandler, true);
   }
 
   private ensureId(): string {
@@ -687,10 +710,23 @@ export class ProfileMap {
     });
   }
 
+  private setGestureArmed(enabled: boolean): void {
+    if (this.gestureArmed === enabled) return;
+    this.gestureArmed = enabled;
+    if (!this.chart) return;
+    this.chart.set('wheelY', enabled ? 'zoom' : 'none');
+    this.chart.set('pinchZoom', enabled);
+    this.mapEl.classList.toggle('is-zoom-armed', enabled);
+  }
+
   private updateCaption(event: JourneyEvent | null, traveling: boolean, _from: JourneyEvent | null): void {
     if (!this.captionEl) return;
     if (!event) {
       this.captionEl.innerHTML = '<p class="prof-map-caption__empty">No mapped arrivals yet.</p>';
+      return;
+    }
+    if (!this.colorsRevealed) {
+      this.captionEl.innerHTML = '';
       return;
     }
 

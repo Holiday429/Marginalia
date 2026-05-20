@@ -7,6 +7,7 @@ import { renderUnifiedPanelHeader } from '../core/app.js';
 import { PanelManager } from '../core/panel-manager.js';
 import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
+import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
 
 const SHELF_STATE = {
   filter: 'all',
@@ -18,10 +19,6 @@ const SHELF_STATE = {
 let SHELF_RECORDS = [];
 let SHELF_RESIZE_TIMER = null;
 let SHELF_BOUND = false;
-
-function containsCJK(value) {
-  return /[一-鿿぀-ヿ]/.test(String(value || ''));
-}
 
 function initSearch() {
   SHELF_STATE.selectedKey = null;
@@ -566,16 +563,10 @@ function getFilteredBooks() {
 }
 
 function getSpineSize(record) {
-  const isNarrowExpanded = SHELF_STATE.isExpanded && window.matchMedia('(max-width: 1220px)').matches;
-  const widthScale = SHELF_STATE.isExpanded
-    ? (isNarrowExpanded ? 0.86 : 0.8)
-    : 0.9;
-  const baseHeight = SHELF_STATE.isExpanded
-    ? (isNarrowExpanded ? 194 : 184)
-    : 205;
-  const width = Math.max(24, Math.round((record.w || 34) * widthScale));
-  const height = Math.max(88, Math.round(baseHeight * (record.h || 0.85)));
-  return { width, height };
+  return getUnifiedShelfSpineSize(record, {
+    expanded: SHELF_STATE.isExpanded,
+    narrowExpanded: SHELF_STATE.isExpanded && window.matchMedia('(max-width: 1220px)').matches,
+  });
 }
 
 function layoutShelfRows(records, availableWidth) {
