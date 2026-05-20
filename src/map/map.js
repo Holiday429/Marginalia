@@ -187,10 +187,10 @@ function mergedProvinceMap() {
 /* ── Country colour palette ─────────────────────────────────────────────── */
 
 const PALETTE = [
-  '#5c3d4a','#3d4f5c','#4a5c3d','#5c4a3d','#3d3d5c',
-  '#5c3d3d','#3d5c4a','#5c503d','#4a3d5c','#3d5c5c',
-  '#5c4e3d','#3d4a5c','#523d5c','#3d5c3d','#5c3d50',
-  '#455c3d','#5c453d','#3d4c5c','#4c5c3d','#5c3d45',
+  '#8e8175', '#76879a', '#8b9b83', '#a78f7d', '#7d7898',
+  '#9c7e84', '#7f9a93', '#a19682', '#8a7a92', '#76908f',
+  '#9f8c7e', '#7d8697', '#928698', '#859379', '#9b7f8e',
+  '#7e8f78', '#a18a81', '#7a8c93', '#8e977d', '#9b8681',
 ];
 
 const COUNTRY_COLOR = {
@@ -237,31 +237,30 @@ const COUNTRY_COLOR = {
 };
 
 const BOOK_COLOR_BOOST = {
-  CN:'#6a547a', GB:'#4a5a7a', FR:'#4a6a5a', RU:'#4a4a7a',
-  JP:'#7a4a6a', US:'#5a7a4a', IN:'#7a6a4a', CO:'#4a7a5a',
-  GR:'#4a6a8a', CZ:'#5a5a7a', PT:'#5a4a7a', NG:'#7a5a4a',
-  IT:'#7a4a6a', CL:'#6a4a5a',
+  CN:'#8f7fa1', GB:'#7d89a0', FR:'#839a90', RU:'#7f86a2',
+  JP:'#9b7f92', US:'#8a9c7a', IN:'#a89a7d', CO:'#7f9b90',
+  GR:'#8193a6', CZ:'#8a86a3', PT:'#97839e', NG:'#9b8979',
+  IT:'#9e8594', CL:'#8e808f',
 };
 const REGION_NAME_FORMATTER = typeof Intl !== 'undefined' && Intl.DisplayNames
   ? new Intl.DisplayNames(['en'], { type: 'region' })
   : null;
 
-const DIMMED_FILL        = '#1e2026';
-const WATER_FILL         = '#1a1714';
+const DIMMED_FILL        = '#4a3a2f';
 const HOVER_STROKE       = '#c4903a';
 const HOVER_STROKE_WIDTH = 1.5;
 const HEAT_MODE_COLORS = {
   authorOrigin: {
-    low: '#2f3f66',
-    high: '#7ba5ff',
+    low: '#6f7c93',
+    high: '#b6c3dc',
   },
   contentLocation: {
-    low: '#4d3f2d',
-    high: '#c4903a',
+    low: '#7c6f61',
+    high: '#d2b99a',
   },
   readerLocation: {
-    low: '#2f4a3b',
-    high: '#7cc9a1',
+    low: '#6f7f76',
+    high: '#b7c8bd',
   },
 };
 
@@ -269,7 +268,7 @@ function countryFill(id) {
   if (__mapGeoMode === 'all') {
     const hasBooks = activeCountryBooks(id).length > 0;
     if (hasBooks && BOOK_COLOR_BOOST[id]) return BOOK_COLOR_BOOST[id];
-    return COUNTRY_COLOR[id] || PALETTE[Math.abs(hashStr(id)) % PALETTE.length];
+    return PALETTE[Math.abs(hashStr(id)) % PALETTE.length];
   }
   const count = activeCountryBooks(id).length;
   const max = modeMaxCount('country');
@@ -279,7 +278,7 @@ function countryFill(id) {
 function provinceFill(id) {
   if (__mapGeoMode === 'all') {
     const base = PALETTE[Math.abs(hashStr(id)) % PALETTE.length];
-    return activeProvinceBooks(id).length ? brighten(base, 18) : base;
+    return activeProvinceBooks(id).length ? brighten(base, 8) : base;
   }
   const count = activeProvinceBooks(id).length;
   const max = modeMaxCount('province');
@@ -320,18 +319,15 @@ function hashStr(s) {
 }
 
 function mapTopPadding(forChina = false) {
-  const subheaderRect = document.querySelector('#panel-map .map-subheader')?.getBoundingClientRect();
   const isMobile = window.innerWidth <= 980;
-  if (forChina) return isMobile ? 18 : 12;
-  const fallback = isMobile ? 214 : 154;
-  const areaTop = subheaderRect ? Math.round(subheaderRect.bottom + (isMobile ? 12 : 14)) : fallback;
-  return areaTop;
+  if (forChina) return isMobile ? 12 : 8;
+  return isMobile ? 18 : 10;
 }
 
 function mapBottomPadding(forChina = false) {
   const isMobile = window.innerWidth <= 980;
-  if (forChina) return isMobile ? 18 : 12;
-  return isMobile ? 22 : 16;
+  if (forChina) return isMobile ? 18 : 14;
+  return isMobile ? 24 : 18;
 }
 
 function applyMapTopPadding(forChina = __mapInChina) {
@@ -455,6 +451,7 @@ function bindMapShellEvents() {
   if (worldBtn) {
     worldBtn.addEventListener('click', (event) => {
       event.preventDefault();
+      setGeoMode('all');
       if (typeof __mapGoWorldFn === 'function') {
         __mapGoWorldFn();
         return;
@@ -522,16 +519,10 @@ function bootMap() {
       projection: am5map.geoNaturalEarth1(),
       wheelY:     'zoom',
       pinchZoom:  true,
+      zoomStep:   1.06,
     })
   );
   __mapChart = chart;
-
-  /* Water background */
-  chart.chartContainer.children.unshift(am5.Rectangle.new(root, {
-    width:  am5.percent(100),
-    height: am5.percent(100),
-    fill:   am5.color(WATER_FILL),
-  }));
 
   /* ── World polygon series ── */
   const worldSeries = chart.series.push(am5map.MapPolygonSeries.new(root, {
@@ -544,8 +535,9 @@ function bootMap() {
     interactive:     true,
     cursorOverStyle: 'pointer',       // pointer for ALL countries
     fill:            am5.color('#2a2f3a'),
-    stroke:          am5.color('#16191f'),
-    strokeWidth:     0.4,
+    fillOpacity:     1,
+    stroke:          am5.color('#6a5443'),
+    strokeWidth:     0.65,
     nonScalingStroke:true,
     tooltipText:     '{name}',        // use amCharts native name lookup
   });
@@ -614,8 +606,9 @@ function bootMap() {
     interactive:     true,
     cursorOverStyle: 'pointer',
     fill:            am5.color('#3d3220'),
-    stroke:          am5.color('#2a2218'),
-    strokeWidth:     0.4,
+    fillOpacity:     1,
+    stroke:          am5.color('#6a5443'),
+    strokeWidth:     0.65,
     nonScalingStroke:true,
     tooltipText:     '{name}',
   });
@@ -666,7 +659,13 @@ function bootMap() {
 
     /* Dim all other provinces */
     chinaSeries.mapPolygons.each(p => {
-      p.set('fill', am5.color(p === ev.target ? brighten('#5a4828', 28) : DIMMED_FILL));
+      const pid = p.dataItem.get('id');
+      const base = provinceFill(pid);
+      p.set('fill', am5.color(
+        p === ev.target
+          ? brighten(base, 8)
+          : DIMMED_FILL
+      ));
     });
 
     const books = allProvinceBooks(id);
@@ -1423,12 +1422,18 @@ function renderPanelBody() {
   }
 
   if (__mapPanelState.activeTab === 'history') {
-    container.innerHTML = ctx.history.map(item => `
+    container.innerHTML = `
       <section class="map-copy-card">
         <div class="map-copy-kicker">Historical context</div>
-        <p>${escapeHTML(item)}</p>
       </section>
-    `).join('');
+      <section class="map-history-list">
+        ${ctx.history.map(item => `
+          <article class="map-history-item">
+            <p>${escapeHTML(item)}</p>
+          </article>
+        `).join('')}
+      </section>
+    `;
     return;
   }
 
