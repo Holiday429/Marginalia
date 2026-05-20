@@ -2,7 +2,7 @@ const PRIMARY_TAB_ITEMS = [
   { id: 'search', label: 'Search', icon: 'search', route: 'search', panel: 'search' },
   { id: 'library', label: 'Library', icon: 'library', route: 'library', panel: 'library' },
   { id: 'map', label: 'Map', icon: 'map', route: 'map', panel: 'map' },
-  { id: 'graph', label: 'Graph', icon: 'graph', route: 'graph', panel: 'web' },
+  { id: 'graph', label: 'Graph', icon: 'graph', route: 'graph', panel: 'web', disabled: true },
   { id: 'profile', label: 'Profile', icon: 'profile', route: 'profile', panel: 'profile' },
 ];
 
@@ -39,10 +39,11 @@ export function renderPrimaryTabsMarkup({
     <nav class="${className}" aria-label="${ariaLabel}">
       ${PRIMARY_TAB_ITEMS.map((item) => `
         <button
-          class="room-nav-item${item.id === activeId ? ' is-active' : ''}"
+          class="room-nav-item${item.id === activeId ? ' is-active' : ''}${item.disabled ? ' is-disabled' : ''}"
           type="button"
           data-${dataAttr}="${item[valueKey]}"
           aria-label="${item.label}"
+          ${item.disabled ? 'disabled title="Coming soon"' : ''}
         >
           <span class="room-nav-icon" aria-hidden="true">${renderPrimaryTabIcon(item.icon)}</span>
           <span class="room-nav-label">${item.label}</span>

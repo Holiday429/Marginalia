@@ -7,22 +7,26 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: linear-gradient(180deg, #2c2722 0%, #27221d 100%);
+  background:
+    radial-gradient(circle at top left, rgba(184, 154, 82, 0.18), transparent 0 30%),
+    radial-gradient(circle at top right, rgba(184, 154, 82, 0.1), transparent 0 22%),
+    linear-gradient(180deg, rgba(44, 39, 34, 0.98), rgba(39, 34, 29, 0.98));
 }
 
 body[data-view="map"] { overflow: hidden; }
 
 #panel-map .tool-page-shell {
   height: 100%;
-  background: linear-gradient(180deg, #2c2722 0%, #27221d 100%);
+  background: transparent;
 }
 
 #panel-map .tool-page-shell::before {
-  display: none;
+  display: block;
 }
 
 #panel-map .tool-page-inner {
   min-height: 100vh;
+  padding-top: 20px;
 }
 
 .map-page {
@@ -31,7 +35,7 @@ body[data-view="map"] { overflow: hidden; }
   flex-direction: column;
   gap: 10px;
   min-height: 100vh;
-  padding: 12px 20px 20px;
+  padding: 0 20px 20px;
   overflow: hidden;
 }
 
@@ -48,6 +52,17 @@ body[data-view="map"] { overflow: hidden; }
   z-index: 60;
   padding: 0;
 }
+
+#panel-map .shared-header-wrap--panel .panel-masthead {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+#panel-map .panel-header-right {
+  right: 20px;
+}
+
 #panel-map .shared-masthead {
   pointer-events: auto;
 }

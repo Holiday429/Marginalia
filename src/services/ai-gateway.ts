@@ -33,6 +33,7 @@ export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).Marg
     onChunk,
     onDone,
     onError,
+    signal,
   }: {
     featureId?: string;
     prompt: string;
@@ -40,6 +41,7 @@ export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).Marg
     onChunk?: (delta: string) => void;
     onDone?: (full: string) => void;
     onError?: (err: Error) => void;
+    signal?: AbortSignal;
   }): Promise<void> {
     const gatewayUrl = ENV.AI_GATEWAY_URL;
     if (!gatewayUrl) {
@@ -63,6 +65,7 @@ export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).Marg
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ featureId, prompt }),
+        signal,
       });
 
       if (!res.ok) {
@@ -107,7 +110,13 @@ export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).Marg
       logEvent('ai_generated', { featureId, provider, model });
       onDone?.(full);
     } catch (err) {
-      onError?.(err instanceof Error ? err : new Error(String(err)));
+      const error = err instanceof Error ? err : new Error(String(err));
+      // Caller-initiated abort: surface as a typed error so UI can distinguish.
+      if (error.name === 'AbortError') {
+        onError?.(Object.assign(new Error('Generation cancelled.'), { name: 'AbortError' }));
+      } else {
+        onError?.(error);
+      }
     }
   }
 

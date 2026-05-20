@@ -5,8 +5,9 @@ export const LIBRARY_ZOOM_MIN = 0.44;
 export const LIBRARY_ZOOM_MAX = 1.9;
 export const LIBRARY_FIT_ZOOM_MIN = 0.16;
 export const LIBRARY_DRAG_THRESHOLD = 8;
-export const LIBRARY_MAX_ROWS = 6;
+export const LIBRARY_MAX_ROWS = 12;
 export const LIBRARY_WHEEL_STEP = 0.018;
+export const LIBRARY_BUTTON_ZOOM_STEP = 0.06;
 
 export const LIBRARY_TAB_ITEMS = [
   { id: 'library', label: 'Library' },
@@ -32,6 +33,7 @@ export const LIBRARY_STATE = {
   shelfDrag: null,
   interaction: { type: 'idle', pointerId: null, target: null },
   view: { x: 0, y: 0, scale: 1 },
+  viewAnimation: { rafId: 0, active: false },
   camera: { yaw: 0, pitch: 0 },
   sceneMode: 'spatial',
   searchQuery: '',

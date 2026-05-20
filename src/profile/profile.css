@@ -122,7 +122,7 @@
 .prof-closing {
   position: relative;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 18px;
   border: 2px solid var(--rule-strong);
   background: transparent;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
@@ -266,7 +266,7 @@
 .prof-reader-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 0;
 }
 
 .prof-reader-stat {
@@ -275,9 +275,17 @@
   flex-direction: column;
   justify-content: center;
   gap: 3px;
-  padding: 10px 12px 9px;
-  border: 1.5px solid var(--rule-soft);
+  padding: 14px 16px;
+  border: 0;
   background: transparent;
+}
+
+.prof-reader-stat:nth-child(odd) {
+  border-right: 1px solid var(--rule-soft);
+}
+
+.prof-reader-stat:nth-child(-n+2) {
+  border-bottom: 1px solid var(--rule-soft);
 }
 
 .prof-reader-stat strong {
@@ -686,7 +694,7 @@
   position: relative;
   min-height: clamp(560px, 74vh, 900px);
   border: 2px solid var(--rule-strong);
-  border-radius: 28px;
+  border-radius: 18px;
   overflow: hidden;
   /* no background — the map's own water fill reads cleanly inside the frame */
   background: transparent;
@@ -1263,7 +1271,7 @@
   gap: 16px;
   padding: clamp(20px, 3vw, 32px);
   border: 2px solid var(--rule-strong);
-  border-radius: 28px;
+  border-radius: 18px;
   background: transparent;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
 }
@@ -1273,7 +1281,7 @@
   grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1.58fr);
   gap: 0;
   border: 2px solid var(--rule-strong);
-  border-radius: 28px;
+  border-radius: 18px;
   overflow: hidden;
   background: transparent;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
@@ -3885,12 +3893,26 @@
 }
 
 .prof-rid--reference .prof-rid-axis__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  row-gap: 4px;
+  column-gap: 8px;
   font-size: 11px;
   margin-bottom: 10px;
 }
 
 .prof-rid--reference .prof-rid-axis__label {
+  flex: 0 0 100%;
   color: rgba(239, 230, 212, 0.82);
+}
+
+.prof-rid--reference .prof-rid-axis__pct {
+  margin-left: 0;
+}
+
+.prof-rid--reference .prof-rid-axis__pair {
+  margin-left: 0;
 }
 
 .prof-rid--reference .prof-rid-axis__pair,

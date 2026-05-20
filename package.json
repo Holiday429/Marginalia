@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:prod": "vite --mode production",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "typecheck:room": "tsc --noEmit -p tsconfig.room-check.json",
     "check:entitlements": "! grep -rn \"plan === '\" src/ --exclude='entitlements-store.ts'",
     "test:rules": "vitest run tests/firestore-rules.test.ts",
-    "i18n:sync": "npx tsx scripts/i18n-sync.ts"
+    "i18n:sync": "npx tsx scripts/i18n-sync.ts",
+    "data:export": "npx tsx scripts/export-user-data.ts",
+    "data:import": "npx tsx scripts/import-user-data.ts"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",

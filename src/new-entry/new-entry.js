@@ -12,61 +12,9 @@ import { NotesStore } from '../store/notes-store.js';
 import { renderSearchSection } from '../search/search.js';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { BOOK_TYPES } from '../data/schema/book-types.js';
+import { SPINE_COLORS } from '../shared/spine-colors.js';
 
 export const NewEntry = (() => {
-
-  /* ── Spine palette ───────────────────────────────────────────────────────── */
-
-  const SPINE_COLORS = [
-    // Warm neutrals
-    { hex: '#d4c4a0', label: 'Parchment' },
-    { hex: '#c4b090', label: 'Sand' },
-    { hex: '#b8a882', label: 'Wheat' },
-    { hex: '#c89f85', label: 'Clay' },
-    { hex: '#b87868', label: 'Terracotta' },
-    // Reds
-    { hex: '#a84040', label: 'Brick' },
-    { hex: '#9a3838', label: 'Crimson' },
-    { hex: '#7a3030', label: 'Burgundy' },
-    { hex: '#c05840', label: 'Vermilion' },
-    { hex: '#c47058', label: 'Rust' },
-    // Greens
-    { hex: '#4a6e52', label: 'Forest' },
-    { hex: '#3d5a46', label: 'Bottle' },
-    { hex: '#5a7260', label: 'Sage' },
-    { hex: '#aab39a', label: 'Fern' },
-    { hex: '#7a8c6a', label: 'Olive' },
-    // Blues
-    { hex: '#2a4468', label: 'Navy' },
-    { hex: '#3a5272', label: 'Slate' },
-    { hex: '#3a6080', label: 'Teal' },
-    { hex: '#5888c0', label: 'Cobalt' },
-    { hex: '#7aabcc', label: 'Sky' },
-    // Purples
-    { hex: '#5a487a', label: 'Violet' },
-    { hex: '#6a5070', label: 'Plum' },
-    { hex: '#9890c8', label: 'Lavender' },
-    { hex: '#7a6090', label: 'Mauve' },
-    // Yellows & gold
-    { hex: '#c89836', label: 'Gold' },
-    { hex: '#c68b4a', label: 'Amber' },
-    { hex: '#ccc070', label: 'Straw' },
-    { hex: '#987830', label: 'Ochre' },
-    // Pinks & rose
-    { hex: '#d4a8b8', label: 'Rose' },
-    { hex: '#c06880', label: 'Fuchsia' },
-    { hex: '#b0807a', label: 'Blush' },
-    // Neutrals mid-range
-    { hex: '#6a6260', label: 'Graphite' },
-    { hex: '#8a8278', label: 'Stone' },
-    { hex: '#a09890', label: 'Dusk' },
-    { hex: '#c0bab2', label: 'Fog' },
-    // Lights
-    { hex: '#ede5d4', label: 'Cream' },
-    { hex: '#e8dfc8', label: 'Paper' },
-    { hex: '#cfd8e8', label: 'Frost' },
-    { hex: '#f3ede2', label: 'Linen' },
-  ];
 
   const SPINE_STYLES = [
     {
@@ -280,13 +228,13 @@ export const NewEntry = (() => {
                   style="background:${c.hex}"
                   title="${c.label}"></button>
               `).join('')}
-              <button class="ne-color-swatch ne-color-swatch--rainbow${SPINE_COLORS.some(c => c.hex === state.spineColor) ? '' : ' is-active'}"
-                type="button"
+              <label class="ne-color-swatch ne-color-swatch--rainbow${SPINE_COLORS.some(c => c.hex === state.spineColor) ? '' : ' is-active'}"
                 id="neCustomColorTrigger"
                 title="Custom Color"
-                aria-label="Custom Color"></button>
+                aria-label="Custom Color">
+                <input type="color" id="neCustomColor" value="${state.spineColor}" class="ne-color-picker">
+              </label>
             </div>
-            <input type="color" id="neCustomColor" value="${state.spineColor}" class="ne-color-picker" hidden>
           </div>
 
           <div class="ne-diy-section">
@@ -316,16 +264,14 @@ export const NewEntry = (() => {
               <button class="ne-close-btn" type="button" id="neCloseBtn" aria-label="Close">×</button>
             </div>
 
-            <div class="ne-autofill-section">
-              <div class="ne-autofill-label">Auto-fill from lookup</div>
+            <div class="ne-autofill-section ne-field">
+              <label class="ne-label" for="neIsbn">ISBN Lookup</label>
               <div class="ne-isbn-row">
                 <input class="ne-input ne-isbn-input" id="neIsbn" type="text" placeholder="ISBN — paste to auto-fill">
                 <button class="ne-isbn-btn" type="button" id="neIsbnBtn">Lookup</button>
               </div>
               <div class="ne-isbn-status" id="neIsbnStatus" hidden></div>
             </div>
-
-            <div class="ne-divider"></div>
 
             <div class="ne-field">
               <label class="ne-label" for="neTitle">Title <span class="ne-req">*</span></label>
@@ -488,7 +434,13 @@ export const NewEntry = (() => {
     dialog.querySelector('#neColorGrid')?.addEventListener('click', e => {
       const customTrigger = e.target.closest('#neCustomColorTrigger');
       if (customTrigger) {
-        dialog.querySelector('#neCustomColor')?.click();
+        if (e.target?.id !== 'neCustomColor') {
+          const picker = dialog.querySelector('#neCustomColor');
+          if (picker) {
+            if (typeof picker.showPicker === 'function') picker.showPicker();
+            else picker.click();
+          }
+        }
         return;
       }
       const swatch = e.target.closest('[data-color]');

@@ -9,6 +9,7 @@ import { MarginaliaAuth } from '../firebase/auth.js';
 import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
 import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
+import { SPINE_COLORS } from '../shared/spine-colors.js';
 import {
   LIBRARY_STORAGE_KEY,
   LIBRARY_WORLD_WIDTH,
@@ -19,6 +20,7 @@ import {
   LIBRARY_DRAG_THRESHOLD,
   LIBRARY_MAX_ROWS,
   LIBRARY_WHEEL_STEP,
+  LIBRARY_BUTTON_ZOOM_STEP,
   LIBRARY_DEFAULT_SHELVES,
   LIBRARY_STATE,
   containsCJK,
@@ -43,6 +45,7 @@ function initLibrary(params = {}) {
   if (!host) return;
 
   host.innerHTML = renderLibraryShell();
+  initializeShelfTintGrid();
 
   syncLibraryRecords();
   bindLibraryEvents();
@@ -174,12 +177,30 @@ function bindLibraryEvents() {
     }
 
     if (event.target.closest('#libraryZoomIn')) {
-      zoomAtViewportCenter(1.03);
+      zoomAtViewportCenter(1 + LIBRARY_BUTTON_ZOOM_STEP);
       return;
     }
 
     if (event.target.closest('#libraryZoomOut')) {
-      zoomAtViewportCenter(1 / 1.03);
+      zoomAtViewportCenter(1 / (1 + LIBRARY_BUTTON_ZOOM_STEP));
+      return;
+    }
+
+    const customPaletteTrigger = event.target.closest('#libraryShelfCustomColorTrigger');
+    if (customPaletteTrigger) {
+      if (event.target?.id !== 'libraryShelfColorPicker') {
+        const picker = document.getElementById('libraryShelfColorPicker');
+        if (picker instanceof HTMLInputElement) {
+          if (typeof picker.showPicker === 'function') picker.showPicker();
+          else picker.click();
+        }
+      }
+      return;
+    }
+
+    const shelfColorSwatch = event.target.closest('[data-shelf-color]');
+    if (shelfColorSwatch) {
+      applyShelfTintSelection(shelfColorSwatch.dataset.shelfColor || '#8f6f44');
       return;
     }
 
@@ -272,9 +293,16 @@ function bindLibraryEvents() {
   });
 
   root.addEventListener('input', (event) => {
-    const input = event.target.closest('#librarySearchInput');
-    if (!input) return;
-    setSearchQuery(input.value || '');
+    const searchInput = event.target.closest('#librarySearchInput');
+    if (searchInput) {
+      setSearchQuery(searchInput.value || '');
+      return;
+    }
+
+    const pickerInput = event.target.closest('#libraryShelfColorPicker');
+    if (pickerInput instanceof HTMLInputElement) {
+      applyShelfTintSelection(pickerInput.value || '#8f6f44', { fromCustom: true });
+    }
   });
 
   root.addEventListener('keydown', (event) => {
@@ -388,6 +416,7 @@ function syncLibraryRailState() {
     const mode = button.getAttribute('data-arrange') || '';
     button.classList.toggle('is-active', mode === LIBRARY_STATE.arrangeMode);
   });
+  syncShelfCreateState();
 }
 
 function matchCanonicalBookId(book) {
@@ -811,6 +840,69 @@ function toggleShelfCreatePanel(forceOpen) {
   const panel = document.getElementById('libraryShelfCreate');
   if (!panel) return;
   panel.hidden = typeof forceOpen === 'boolean' ? !forceOpen : !panel.hidden;
+  syncShelfCreateState();
+  if (!panel.hidden) {
+    const nameInput = document.getElementById('libraryShelfName');
+    if (nameInput instanceof HTMLInputElement) nameInput.focus();
+  }
+}
+
+function syncShelfCreateState() {
+  const panel = document.getElementById('libraryShelfCreate');
+  const trigger = document.querySelector('#panel-library [data-library-rail="new-shelf"]');
+  if (!(trigger instanceof HTMLElement) || !(panel instanceof HTMLElement)) return;
+  const isOpen = !panel.hidden;
+  trigger.classList.toggle('is-active', isOpen);
+  trigger.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
+}
+
+function initializeShelfTintGrid() {
+  const grid = document.getElementById('libraryShelfColorGrid');
+  if (!(grid instanceof HTMLElement)) return;
+  const colorInput = document.getElementById('libraryShelfColor');
+  const selected = (colorInput instanceof HTMLInputElement ? colorInput.value : '#8f6f44').toLowerCase();
+  grid.innerHTML = `
+    ${SPINE_COLORS.map((color) => `
+      <button
+        type="button"
+        class="library-shelf-color-swatch"
+        data-shelf-color="${escapeAttr(color.hex.toLowerCase())}"
+        style="background:${escapeAttr(color.hex)}"
+        aria-label="${escapeAttr(color.label)}"
+      ></button>
+    `).join('')}
+    <label
+      class="library-shelf-color-swatch library-shelf-color-swatch--rainbow"
+      id="libraryShelfCustomColorTrigger"
+      aria-label="Custom color"
+    >
+      <input id="libraryShelfColorPicker" type="color" class="library-shelf-color-native-input" value="${escapeAttr(selected)}" />
+    </label>
+  `;
+  applyShelfTintSelection(selected);
+}
+
+function applyShelfTintSelection(color, { fromCustom = false } = {}) {
+  const normalized = String(color || '#8f6f44').toLowerCase();
+  const colorInput = document.getElementById('libraryShelfColor');
+  const colorPicker = document.getElementById('libraryShelfColorPicker');
+  if (colorInput instanceof HTMLInputElement) colorInput.value = normalized;
+  if (colorPicker instanceof HTMLInputElement) colorPicker.value = normalized;
+
+  const presetSwatches = document.querySelectorAll('#panel-library [data-shelf-color]');
+  const customTrigger = document.getElementById('libraryShelfCustomColorTrigger');
+
+  let matchedPreset = false;
+
+  presetSwatches.forEach((node) => {
+    const isActive = (node.getAttribute('data-shelf-color') || '').toLowerCase() === normalized;
+    node.classList.toggle('is-active', isActive);
+    if (isActive) matchedPreset = true;
+  });
+
+  if (customTrigger instanceof HTMLElement) {
+    customTrigger.classList.toggle('is-active', fromCustom || !matchedPreset);
+  }
 }
 
 function beginInteraction(type, event, target) {
@@ -1062,11 +1154,86 @@ function onSceneWheel(event) {
 }
 
 function onViewportScroll() {
+  if (LIBRARY_STATE.viewAnimation?.active) return;
   syncViewFromViewport();
   window.clearTimeout(LIBRARY_STATE._scrollSaveTimer);
   LIBRARY_STATE._scrollSaveTimer = window.setTimeout(() => {
     saveLayout();
   }, 160);
+}
+
+function stopViewAnimation() {
+  const anim = LIBRARY_STATE.viewAnimation;
+  if (!anim) return;
+  if (anim.rafId) window.cancelAnimationFrame(anim.rafId);
+  anim.rafId = 0;
+  anim.active = false;
+}
+
+function animateViewTo({ scale, x, y, duration = 240, persist = false }) {
+  const viewport = document.getElementById('librarySceneViewport');
+  const world = document.getElementById('libraryShelves');
+  if (!viewport || !world) return;
+
+  stopViewAnimation();
+
+  const startScale = LIBRARY_STATE.view.scale;
+  const startX = Math.max(0, viewport.scrollLeft || LIBRARY_STATE.view.x || 0);
+  const startY = Math.max(0, viewport.scrollTop || LIBRARY_STATE.view.y || 0);
+  const targetScale = clamp(scale, LIBRARY_ZOOM_MIN, LIBRARY_ZOOM_MAX, startScale);
+  const targetX = Math.max(0, x);
+  const targetY = Math.max(0, y);
+
+  if (
+    Math.abs(targetScale - startScale) < 0.0001
+    && Math.abs(targetX - startX) < 0.5
+    && Math.abs(targetY - startY) < 0.5
+  ) {
+    LIBRARY_STATE.view.scale = targetScale;
+    LIBRARY_STATE.view.x = targetX;
+    LIBRARY_STATE.view.y = targetY;
+    applyViewTransform(false);
+    if (persist) saveLayout();
+    return;
+  }
+
+  const anim = LIBRARY_STATE.viewAnimation;
+  anim.active = true;
+  world.classList.remove('is-animated');
+  const startTime = performance.now();
+
+  const tick = (now) => {
+    const t = Math.min(1, (now - startTime) / Math.max(1, duration));
+    const eased = 1 - ((1 - t) ** 3);
+    const nextScale = startScale + ((targetScale - startScale) * eased);
+    const nextX = startX + ((targetX - startX) * eased);
+    const nextY = startY + ((targetY - startY) * eased);
+
+    LIBRARY_STATE.view.scale = nextScale;
+    LIBRARY_STATE.view.x = Math.max(0, nextX);
+    LIBRARY_STATE.view.y = Math.max(0, nextY);
+
+    world.style.transform = `scale(${nextScale})`;
+    viewport.scrollLeft = Math.max(0, nextX);
+    viewport.scrollTop = Math.max(0, nextY);
+
+    if (t < 1) {
+      anim.rafId = window.requestAnimationFrame(tick);
+      return;
+    }
+
+    anim.rafId = 0;
+    anim.active = false;
+    LIBRARY_STATE.view.scale = targetScale;
+    LIBRARY_STATE.view.x = targetX;
+    LIBRARY_STATE.view.y = targetY;
+    world.style.transform = `scale(${targetScale})`;
+    viewport.scrollLeft = targetX;
+    viewport.scrollTop = targetY;
+    if (persist) saveLayout();
+  };
+
+  anim.rafId = window.requestAnimationFrame(tick);
 }
 
 function zoomAtViewportCenter(factor) {
@@ -1090,12 +1257,13 @@ function zoomAtClientPoint(clientX, clientY, factor) {
   const worldX = (viewport.scrollLeft + pointX) / oldScale;
   const worldY = (viewport.scrollTop + pointY) / oldScale;
 
-  LIBRARY_STATE.view.scale = newScale;
-  applyViewTransform(true);
-  viewport.scrollLeft = Math.max(0, worldX * newScale - pointX);
-  viewport.scrollTop = Math.max(0, worldY * newScale - pointY);
-  syncViewFromViewport();
-  saveLayout();
+  animateViewTo({
+    scale: newScale,
+    x: worldX * newScale - pointX,
+    y: worldY * newScale - pointY,
+    duration: 210,
+    persist: true,
+  });
 }
 
 function centerViewport({ animated }) {
@@ -1106,9 +1274,21 @@ function centerViewport({ animated }) {
   const bounds = computeShelfBounds();
   if (!bounds) return;
 
-  LIBRARY_STATE.view.x = Math.max(0, ((bounds.minX + bounds.maxX) / 2) * LIBRARY_STATE.view.scale - (rect.width / 2));
-  LIBRARY_STATE.view.y = Math.max(0, ((bounds.minY + bounds.maxY) / 2) * LIBRARY_STATE.view.scale - (rect.height / 2));
-  applyViewTransform(Boolean(animated));
+  const targetX = Math.max(0, ((bounds.minX + bounds.maxX) / 2) * LIBRARY_STATE.view.scale - (rect.width / 2));
+  const targetY = Math.max(0, ((bounds.minY + bounds.maxY) / 2) * LIBRARY_STATE.view.scale - (rect.height / 2));
+  if (animated) {
+    animateViewTo({
+      scale: LIBRARY_STATE.view.scale,
+      x: targetX,
+      y: targetY,
+      duration: 260,
+      persist: false,
+    });
+  } else {
+    LIBRARY_STATE.view.x = targetX;
+    LIBRARY_STATE.view.y = targetY;
+    applyViewTransform(false);
+  }
 }
 
 function fitShelvesToViewport({ animated, padding = 28, forceFit = false }) {
@@ -1129,11 +1309,22 @@ function fitShelvesToViewport({ animated, padding = 28, forceFit = false }) {
   const fitMin = forceFit ? LIBRARY_FIT_ZOOM_MIN : LIBRARY_ZOOM_MIN;
   const nextScale = clamp(Math.min(scaleX, scaleY), fitMin, LIBRARY_ZOOM_MAX, 1);
 
+  const targetX = Math.max(0, ((bounds.minX + bounds.maxX) / 2) * nextScale - (rect.width / 2));
+  const targetY = Math.max(0, ((bounds.minY + bounds.maxY) / 2) * nextScale - (rect.height / 2));
+  if (animated) {
+    animateViewTo({
+      scale: nextScale,
+      x: targetX,
+      y: targetY,
+      duration: 280,
+      persist: false,
+    });
+    return;
+  }
   LIBRARY_STATE.view.scale = nextScale;
-  LIBRARY_STATE.view.x = Math.max(0, ((bounds.minX + bounds.maxX) / 2) * nextScale - (rect.width / 2));
-  LIBRARY_STATE.view.y = Math.max(0, ((bounds.minY + bounds.maxY) / 2) * nextScale - (rect.height / 2));
-
-  applyViewTransform(Boolean(animated));
+  LIBRARY_STATE.view.x = targetX;
+  LIBRARY_STATE.view.y = targetY;
+  applyViewTransform(false);
 }
 
 function resetFrontView({ animated }) {
@@ -1172,11 +1363,13 @@ function applyViewTransform(animated) {
   const viewport = document.getElementById('librarySceneViewport');
   const world = document.getElementById('libraryShelves');
   if (!world || !viewport) return;
+  if (!animated) stopViewAnimation();
   world.classList.toggle('is-animated', !!animated);
   world.style.transform = `scale(${LIBRARY_STATE.view.scale})`;
   viewport.scrollLeft = Math.max(0, LIBRARY_STATE.view.x);
   viewport.scrollTop = Math.max(0, LIBRARY_STATE.view.y);
-  syncViewFromViewport();
+  LIBRARY_STATE.view.x = Math.max(0, viewport.scrollLeft || LIBRARY_STATE.view.x);
+  LIBRARY_STATE.view.y = Math.max(0, viewport.scrollTop || LIBRARY_STATE.view.y);
 }
 
 function syncViewFromViewport() {
@@ -1633,6 +1826,8 @@ function createShelfFromForm() {
   });
 
   nameInput.value = '';
+  if (rowsInput instanceof HTMLInputElement) rowsInput.value = '2';
+  applyShelfTintSelection('#8f6f44');
   toggleShelfCreatePanel(false);
   renderLibrary();
   saveLayout();

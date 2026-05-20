@@ -12,6 +12,8 @@ import {
   getAiBlock, saveAiOriginal, saveAiUserEdit, clearAiUserEdit, deleteAiBlock,
 } from '../../store/ai-results-store.ts';
 import { resolveAiContent } from '../../data/schema/ai-block.ts';
+import { PanelRegistry } from '../../book/panels/registry.js';
+import { EntitlementsStore } from '../../store/entitlements-store.ts';
 
 const FALLBACK_PROMPT_VERSION = '1';
 const AI_MODEL_LABEL = 'deepseek-chat';
@@ -46,13 +48,14 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
   }
 
   function findTargetSection(root: HTMLElement, feature: any): Element | null {
+    // Map panel ids → book.js section ids (see book-detail.js LEGACY_SECTION_ALIASES).
     const panelToSectionId: Record<string, string> = {
-      'mindmap':        'knowledge',
-      'concept-cards':  'concepts',
+      'mindmap':        'visual-notes',
+      'characters':     'visual-notes',
+      'timeline':       'visual-notes',
+      'concept-cards':  'cultural-context',
+      'geo-context':    'cultural-context',
       'actions':        'actions',
-      'geo-context':    'cultural',
-      'characters':     'characters',
-      'timeline':       'knowledge',
     };
     const sectionId = panelToSectionId[feature.panel] || feature.panel;
     return root.querySelector(`.book-section#${CSS.escape(sectionId)}`);
@@ -61,12 +64,17 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
   function buildToolbar(feature: any, book: any, section: Element): HTMLElement {
     const toolbar = document.createElement('div');
     toolbar.className = 'ai-toolbar';
+    const hasUnlimited = EntitlementsStore.hasEntitlement('ai.unlimited');
+    const quotaHtml = hasUnlimited
+      ? `<span class="ai-quota ai-quota--unlimited">Unlimited</span>`
+      : '';
     toolbar.innerHTML = `
       <div class="ai-toolbar-inner">
         <span class="ai-toolbar-label">
           <span class="ai-badge-icon">✦</span> AI
         </span>
         <button class="ai-generate-btn" type="button">${feature.label}</button>
+        ${quotaHtml}
         <span class="ai-toolbar-status" hidden></span>
       </div>
     `;
@@ -78,6 +86,21 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
     return toolbar;
   }
 
+  // Tracks the active stream's preview element so we can clean it up if cancelled.
+  function ensurePreviewEl(section: Element): HTMLElement {
+    let el = section.querySelector('.ai-stream-preview') as HTMLElement | null;
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'ai-stream-preview';
+      section.appendChild(el);
+    }
+    return el;
+  }
+
+  function clearPreview(section: Element) {
+    section.querySelector('.ai-stream-preview')?.remove();
+  }
+
   async function run(
     feature: any, book: any, section: Element,
     btn: HTMLButtonElement, statusEl: HTMLElement,
@@ -85,42 +108,98 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
     const registry: any = (window as any).AIFeatureRegistry;
     const prompt = registry.buildPrompt(feature.id, book);
     if (!prompt) {
-      showStatus(statusEl, 'Prompt not loaded yet — try again.', 'error');
+      showError(statusEl, 'Prompt not loaded yet — try again.',
+        () => run(feature, book, section, btn, statusEl));
       return;
     }
 
-    btn.disabled = true;
-    btn.textContent = 'Generating…';
-    showStatus(statusEl, '', '');
+    // Wire abort: while running, the Generate button becomes a Cancel button.
+    const controller = new AbortController();
+    const originalLabel = feature.label;
+    btn.textContent = 'Cancel';
+    btn.classList.add('is-cancel');
+    showStatus(statusEl, 'Generating…', 'pending');
+    const previewEl = ensurePreviewEl(section);
+    previewEl.textContent = '';
 
-    const result = await (window as any).MarginaliaAI.generateJSON({
+    const onCancel = () => controller.abort();
+    btn.addEventListener('click', onCancel, { once: true });
+
+    let fullText = '';
+    let aborted = false;
+    let errored = false;
+
+    await (window as any).MarginaliaAI.generate({
+      featureId: feature.id,
       prompt,
+      system: 'Return only valid JSON. No markdown fences, no explanation.',
+      signal: controller.signal,
+      onChunk(delta: string) {
+        fullText += delta;
+        previewEl.textContent =
+          fullText.length > 120 ? `…${fullText.slice(-120)}` : fullText;
+      },
+      onDone() { /* parsed below */ },
       onError(err: Error) {
-        showStatus(statusEl, err.message, 'error');
-        btn.disabled = false;
-        btn.textContent = feature.label;
+        if (err.name === 'AbortError') {
+          aborted = true;
+        } else {
+          errored = true;
+          showError(statusEl, err.message,
+            () => run(feature, book, section, btn, statusEl));
+        }
       },
     });
 
+    // Reset button to its idle Generate state.
+    btn.removeEventListener('click', onCancel);
+    btn.textContent = originalLabel;
+    btn.classList.remove('is-cancel');
     btn.disabled = false;
-    btn.textContent = feature.label;
+    clearPreview(section);
 
-    if (!result) return;
+    if (aborted) {
+      showStatus(statusEl, 'Cancelled.', '');
+      return;
+    }
+    if (errored) return;
 
-    // Persist as AiBlock with promptVersion
+    // Parse JSON from the completed stream text.
+    let parsed: unknown;
+    try {
+      const clean = fullText.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
+      parsed = JSON.parse(clean);
+    } catch {
+      showError(statusEl, 'AI returned invalid JSON. Try again.',
+        () => run(feature, book, section, btn, statusEl));
+      return;
+    }
+
     const promptVersion = (window as any).AI_PROMPTS?.[feature.promptId]?.version
       ?? FALLBACK_PROMPT_VERSION;
-    await saveAiOriginal(book.id, feature.id, result, promptVersion);
+    await saveAiOriginal(book.id, feature.id, parsed, promptVersion);
 
-    injectResult(feature, book, section, result, {
+    injectResult(feature, book, section, parsed, {
       fromCache: false,
       hasUserEdit: false,
-      block: { original: result, generatedAt: Date.now(), promptVersion },
+      block: { original: parsed, generatedAt: Date.now(), promptVersion },
     });
     showStatus(statusEl, 'Generated', 'ok');
   }
 
   const CONCEPT_FEATURES = new Set(['concept-cards', 'argument-breakdown']);
+
+  // Panel-render features: AI result is rendered by the registered panel
+  // component (read via book._aiData[feature.id]) instead of the inline JSON
+  // fallback in renderResult().
+  const PANEL_RENDER_FEATURES: Record<string, string> = {
+    'mindmap-gen':     'mindmap',
+    'concept-cards':   'concept-cards',
+    'argument-breakdown': 'concept-cards',
+    'timeline-gen':    'timeline',
+    'character-map':   'characters',
+    'geo-context':     'geo-context',
+  };
 
   function injectResult(
     feature: any, book: any, section: Element, displayData: any,
@@ -130,8 +209,16 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
   ) {
     section.querySelector('.ai-generated-block')?.remove();
 
+    // Stash AI result on the book so panel render fns can read it.
+    if (!book._aiData) book._aiData = {};
+    book._aiData[feature.id] = displayData;
+
     const canAddToGraph = CONCEPT_FEATURES.has(feature.id)
       && Array.isArray(displayData) && displayData.length > 0;
+
+    const panelId = PANEL_RENDER_FEATURES[feature.id];
+    const panel = panelId ? PanelRegistry.get(panelId) : null;
+    const usePanel = Boolean(panel?.render);
 
     const block_el = document.createElement('div');
     block_el.className = 'ai-generated-block';
@@ -146,10 +233,14 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
         <button class="ai-regen-btn" type="button" title="Regenerate">↺ Regenerate</button>
         <button class="ai-generated-dismiss" type="button" title="Dismiss">×</button>
       </div>
-      <div class="ai-generated-content">
-        ${renderResult(feature, displayData)}
-      </div>
+      <div class="ai-generated-content"></div>
     `;
+    const contentEl = block_el.querySelector('.ai-generated-content') as HTMLElement;
+    if (usePanel) {
+      panel.render(book, contentEl);
+    } else {
+      contentEl.innerHTML = renderResult(feature, displayData);
+    }
 
     // Dismiss
     block_el.querySelector('.ai-generated-dismiss')!.addEventListener('click', async () => {
@@ -305,6 +396,16 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
     el.textContent = msg;
     el.hidden = !msg;
     el.className = 'ai-toolbar-status' + (type ? ` ai-status-${type}` : '');
+  }
+
+  function showError(el: HTMLElement, msg: string, retryFn: () => void) {
+    el.hidden = false;
+    el.className = 'ai-toolbar-status ai-status-error';
+    el.innerHTML = `
+      <span class="ai-status-text">${esc(msg)}</span>
+      <button class="ai-retry-btn" type="button">Retry</button>
+    `;
+    el.querySelector('.ai-retry-btn')?.addEventListener('click', retryFn, { once: true });
   }
 
   function esc(s: unknown): string {

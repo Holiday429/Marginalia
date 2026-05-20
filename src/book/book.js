@@ -9,8 +9,14 @@ import { ActionsStore } from '../store/actions-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { renderSearchSection } from '../search/search.js';
 import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.js';
-import { renderPrimaryHeader } from '../core/app.js';
+import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
 import { PanelRegistry } from './panels/registry.js';
+// Register panel render functions (side-effect imports).
+import './panels/mindmap.js';
+import './panels/concept-cards.js';
+import './panels/timeline.js';
+import './panels/characters.js';
+import './panels/geo-context.js';
 import { buildBookDetailModel, BOOK_SECTION_LABELS } from './book-detail.js';
 import { MarginaliaGraph } from '../core/graph-data.js';
 import { openConceptDrawer } from '../core/concept-ui.js';
@@ -71,6 +77,10 @@ async function enterBook(params = {}) {
   AIGenerateUI?.mount(bookView, root);
 
   // Wire up sidebar tabs
+  const outline = root.querySelector('.book-outline');
+  const shell = root.querySelector('.book-detail-shell');
+  const toggleBtn = root.querySelector('.book-outline-toggle');
+
   root.querySelectorAll('.book-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.target;
@@ -84,14 +94,14 @@ async function enterBook(params = {}) {
     });
   });
 
-  // Wire up outline toggle collapse
-  const toggleBtn = root.querySelector('.book-outline-toggle');
+  // Sidebar collapse toggle — triangle button switches between
+  // expanded (full section labels) and collapsed (triangle only).
   if (toggleBtn) {
     toggleBtn.addEventListener('click', () => {
-      const outline = root.querySelector('.book-outline');
-      const shell = root.querySelector('.book-detail-shell');
-      outline.classList.toggle('is-collapsed');
-      shell.classList.toggle('is-outline-collapsed', outline.classList.contains('is-collapsed'));
+      const willCollapse = !outline.classList.contains('is-collapsed');
+      outline.classList.toggle('is-collapsed', willCollapse);
+      shell.classList.toggle('is-outline-collapsed', willCollapse);
+      toggleBtn.setAttribute('aria-expanded', willCollapse ? 'false' : 'true');
     });
   }
 
@@ -315,14 +325,20 @@ async function enterBook(params = {}) {
 
 function renderBook(b, sections) {
   sections = sections || getBookSections(b);
-  const first = sections[0];
 
-  return `
+  const inner = `
     <div class="page">
       ${renderMasthead(b)}
       <section class="book-detail-shell">
-        <aside class="book-outline">
-          <button class="book-outline-toggle" type="button">Sections</button>
+        <aside class="book-outline" aria-label="Book sections">
+          <button
+            class="book-outline-toggle"
+            type="button"
+            aria-expanded="true"
+            aria-label="Toggle sections menu"
+          >
+            <span class="book-outline-toggle-icon" aria-hidden="true"></span>
+          </button>
           <nav class="book-outline-nav">
             ${sections.map((s, i) => `
               <button class="book-tab-btn${i === 0 ? ' is-active' : ''}" data-target="${esc(s.id)}" type="button">
@@ -342,6 +358,8 @@ function renderBook(b, sections) {
       ${renderFooter(b)}
     </div>
   `;
+
+  return renderToolPageShell('book', inner);
 }
 
 function getBookSections(b) {
@@ -389,8 +407,8 @@ function getBookSections(b) {
 /* ── Section renderers ───────────────────────────────────────────────────── */
 
 function renderMasthead(b) {
-  if (renderPrimaryHeader) {
-    return renderPrimaryHeader('search', { showNewEntry: true, actionLabel: 'New Note', actionId: 'bookNewNoteBtn' });
+  if (renderUnifiedPanelHeader) {
+    return renderUnifiedPanelHeader('search', { actionLabel: 'New Note', actionId: 'bookNewNoteBtn' });
   }
   return `
     <header class="book-masthead">

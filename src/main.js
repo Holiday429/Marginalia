@@ -9,6 +9,25 @@ import { setLanguage } from './core/i18n.ts';
 console.debug('[marginalia] version', APP_VERSION);
 initAnalytics();
 
+// Warn when localhost is connected to the prod Firebase project (`npm run dev:prod`).
+// This is intentional but easy to forget — show a persistent corner badge.
+if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || '';
+  const isProd = !projectId.includes('dev');
+  if (isProd && !document.getElementById('env-prod-badge')) {
+    const badge = document.createElement('div');
+    badge.id = 'env-prod-badge';
+    badge.textContent = `⚠ LIVE: ${projectId}`;
+    Object.assign(badge.style, {
+      position: 'fixed', bottom: '10px', left: '10px', zIndex: '99999',
+      padding: '6px 10px', background: '#c24a2a', color: '#fff',
+      fontFamily: 'monospace', fontSize: '11px', borderRadius: '3px',
+      pointerEvents: 'none', letterSpacing: '0.05em',
+    });
+    document.addEventListener('DOMContentLoaded', () => document.body.appendChild(badge), { once: true });
+  }
+}
+
 // M is the single namespace root. All migrated globals are registered on it
 // for legacy bridge code that still reads via M.*.
 
@@ -58,6 +77,8 @@ import './ai/features/prompts/timeline-gen.js';
 import './ai/features/prompts/action-suggest.js';
 import './ai/features/prompts/reader-portrait.js';
 import './ai/features/prompts/reader-identity.js';
+import './ai/features/prompts/character-map.js';
+import './ai/features/prompts/geo-context.js';
 
 // 6b. Panel scripts
 import './book/panels/notes.js';

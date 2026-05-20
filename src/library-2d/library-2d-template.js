@@ -3,7 +3,7 @@ import { renderUnifiedPanelHeader } from '../core/app.js';
 function renderLeftRail() {
   return `
     <aside class="library-rail" aria-label="Library Tools">
-      <button type="button" class="library-rail-btn is-primary" data-library-rail="new-shelf">
+      <button type="button" class="library-rail-btn" data-library-rail="new-shelf">
         <span class="library-rail-icon">+</span>
         <span>New Shelf</span>
       </button>
@@ -68,23 +68,25 @@ export function renderLibraryShell() {
 
           <div class="library-shelf-create" id="libraryShelfCreate" hidden>
             <form id="libraryShelfForm" class="library-shelf-form" autocomplete="off">
-              <label>
-                <span>Name</span>
+              <label class="library-shelf-field library-shelf-field--name">
+                <span class="library-shelf-label">Name</span>
                 <input id="libraryShelfName" type="text" placeholder="Poetry" maxlength="28" />
               </label>
-              <label>
-                <span>Rows</span>
-                <select id="libraryShelfRows">
-                  <option value="1">1</option>
-                  <option value="2" selected>2</option>
-                  <option value="3">3</option>
-                </select>
+
+              <label class="library-shelf-field library-shelf-field--rows">
+                <span class="library-shelf-label">Rows</span>
+                <input id="libraryShelfRows" type="number" min="1" max="12" step="1" value="2" inputmode="numeric" />
               </label>
-              <label>
-                <span>Tint</span>
-                <input id="libraryShelfColor" type="color" value="#8f6f44" />
-              </label>
-              <button type="submit" class="chip">Create Shelf</button>
+
+              <div class="library-shelf-field library-shelf-field--tint">
+                <span class="library-shelf-label">Tint</span>
+                <div class="library-shelf-color-grid" id="libraryShelfColorGrid"></div>
+                <input id="libraryShelfColor" type="hidden" value="#8f6f44" />
+              </div>
+
+              <div class="library-shelf-actions">
+                <button type="submit" class="chip">Create Shelf</button>
+              </div>
             </form>
           </div>
 
