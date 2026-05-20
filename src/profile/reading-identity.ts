@@ -22,7 +22,8 @@ import type {
 const TYPE_SPEED_MS = 18;
 const REGEN_SWAP_MS = 700;
 const AXIS_STAGGER_MS = 120;
-const GENERATE_REVEAL_MS = 1500;
+const BOOK_CENTERING_MS = 320;
+const GENERATE_REVEAL_MS = 1760;
 const SCENE_IMAGE_URL = '/profile-room-pixel.png';
 const sceneAvatarByHost = new WeakMap<HTMLElement, PixelReader>();
 const heroBookByHost = new WeakMap<HTMLElement, HeroBook>();
@@ -31,7 +32,7 @@ function mountGateHeroBook(host: HTMLElement): void {
   const mount = host.querySelector<HTMLElement>('#profRidHeroBook');
   if (!mount) return;
   heroBookByHost.get(host)?.unmount();
-  const book = new HeroBook({ height: 240 });
+  const book = new HeroBook({ height: 320 });
   book.mount(mount);
   heroBookByHost.set(host, book);
 }
@@ -116,23 +117,25 @@ function referenceLayoutHTML(
   return `
     <section class="prof-rid-ref" aria-label="Reading Identity artifact">
       <div class="prof-rid-ref__copy">
-        <span class="prof-rid-ref__kicker">Reading Identity</span>
-        <h3 class="prof-rid-ref__title">${escapeHtml(data.archetype.title)}</h3>
-        ${data.archetype.titleZh ? `<p class="prof-rid-ref__title-zh">「${escapeHtml(data.archetype.titleZh)}」</p>` : ''}
+        <div class="prof-rid-ref__body">
+          <span class="prof-rid-ref__kicker">Reading Identity</span>
+          <h3 class="prof-rid-ref__title">${escapeHtml(data.archetype.title)}</h3>
+          ${data.archetype.titleZh ? `<p class="prof-rid-ref__title-zh">「${escapeHtml(data.archetype.titleZh)}」</p>` : ''}
 
-        <p class="prof-rid-ref__summary">
-          <span class="prof-rid-ref__summary-text">${escapeHtml(data.archetype.summary)}</span>
-        </p>
-        ${data.archetype.summaryZh ? `<p class="prof-rid-ref__summary-zh">${escapeHtml(data.archetype.summaryZh)}</p>` : ''}
+          <p class="prof-rid-ref__summary">
+            <span class="prof-rid-ref__summary-text">${escapeHtml(data.archetype.summary)}</span>
+          </p>
+          ${data.archetype.summaryZh ? `<p class="prof-rid-ref__summary-zh">${escapeHtml(data.archetype.summaryZh)}</p>` : ''}
 
-        ${tags.length ? `
-          <div class="prof-rid-ref__tags">
-            ${tags.map((tag) => `<span class="prof-rid-ref__tag">${escapeHtml(tag)}</span>`).join('')}
+          ${tags.length ? `
+            <div class="prof-rid-ref__tags">
+              ${tags.map((tag) => `<span class="prof-rid-ref__tag">${escapeHtml(tag)}</span>`).join('')}
+            </div>
+          ` : ''}
+
+          <div class="prof-rid-ref__axes">
+            ${data.axes.map((axis, i) => axisRowHTML(axis, i)).join('')}
           </div>
-        ` : ''}
-
-        <div class="prof-rid-ref__axes">
-          ${data.axes.map((axis, i) => axisRowHTML(axis, i)).join('')}
         </div>
 
         <div class="prof-rid-ref__footer">
@@ -142,7 +145,6 @@ function referenceLayoutHTML(
       <div class="prof-rid-ref__scene">
         <div class="prof-rid-ref__scene-image" style="background-image:url('${SCENE_IMAGE_URL}')">
           <div class="prof-rid-ref__scene-vignette" aria-hidden="true"></div>
-          <div class="prof-rid-ref__scene-avatar" id="profRidSceneAvatar" aria-hidden="true"></div>
           ${options.allowRegenerate === false ? '' : `
             <button class="prof-rid-btn prof-rid-btn--ghost prof-rid-btn--scene-regen" id="profRidRegen" type="button">
               <svg class="prof-rid-regen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -303,10 +305,22 @@ function runReveal(host: HTMLElement, data: ReadingIdentityResult): void {
     generateBtn.disabled = true;
     generateBtn.textContent = 'Generating...';
   }
+
+  const bookEl = host.querySelector<HTMLElement>('.prof-rid-book');
+  if (bookEl) {
+    const stageRect = stage.getBoundingClientRect();
+    const bookRect = bookEl.getBoundingClientRect();
+    const deltaX = stageRect.left + stageRect.width / 2 - (bookRect.left + bookRect.width / 2);
+    stage.style.setProperty('--prof-rid-book-shift-x', `${Math.round(deltaX)}px`);
+  }
+
   stage.classList.add('is-generating');
-  // Flip the GLB hero book open (spine → cover swing).
-  heroBookByHost.get(host)?.open();
   host.querySelector<HTMLElement>('.prof-rid-cta')?.classList.add('is-leaving');
+
+  window.setTimeout(() => {
+    heroBookByHost.get(host)?.open();
+  }, BOOK_CENTERING_MS);
+
   window.setTimeout(() => {
     heroBookByHost.get(host)?.unmount();
     heroBookByHost.delete(host);

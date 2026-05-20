@@ -57,7 +57,6 @@ const App = (() => {
     if (name === 'studio') return 'library';
     if (name === 'graph') return 'web';
     if (name === 'shelf') return 'search';
-    if (name === 'booklist') return 'profile';
     return name;
   }
 

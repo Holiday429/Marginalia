@@ -28,7 +28,6 @@ export const VIEW_REGISTRY: Record<string, ViewEntry> = {
   search:   { init: initSearch,   enter: enterSearch,   enterPanel: enterPanel_search },
   library:  { init: initLibrary,  enter: enterLibrary,  enterPanel: enterPanel_library },
   room:     { init: initRoom,     enter: enterRoom },
-  booklist: { init: initProfile,  enter: enterProfile,  enterPanel: enterPanel_profile },
   book:     { init: initBook,     enter: enterBook,     enterPanel: enterPanel_book },
   map:      { init: initMap,      enter: enterMap,      enterPanel: enterPanel_map },
   web:      { init: initWeb,      enter: enterWeb,      enterPanel: enterPanel_web },

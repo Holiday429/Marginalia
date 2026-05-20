@@ -6,7 +6,13 @@ import { ProfileAnnualShelf } from './profile-year-in-review.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { ENV } from '../core/env.ts';
 import { BooksStore } from '../store/books-store.ts';
-import { DEMO_BOOKS, DEMO_PROFILE, DEMO_SEED_THRESHOLD, buildDemoHighlights, buildDemoSessionDays } from '../data/seed/profile-demo.ts';
+import {
+  DEMO_PROFILE,
+  buildDemoHighlights,
+  buildDemoSessionDays,
+  resolveDemoMerge,
+  buildDemoPayloadFromBooks,
+} from './profile-demo-resolver.ts';
 import { loadAnnualShelf } from './annual-shelf-store.ts';
 import { mountReadingIdentity } from './reading-identity.ts';
 import { HeroBook } from '../components/hero-book/hero-book.js';
@@ -104,9 +110,7 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
       fetchSessions(db, profileData.uid),
     ]);
 
-    const books = realBooks.length >= DEMO_SEED_THRESHOLD
-      ? realBooks
-      : mergeDemoBooks(realBooks, DEMO_BOOKS);
+    const books = resolveDemoMerge(realBooks);
 
     let highlights = highlights0;
     let sessionDays = sessionDays0;
@@ -131,11 +135,6 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
 
 export function enterPanel_profile(params: { slug?: string } = {}): void {
   enterProfile(params);
-}
-
-function mergeDemoBooks(real: PublicBook[], demo: PublicBook[]): PublicBook[] {
-  const ids = new Set(real.map((b) => b.id));
-  return [...real, ...demo.filter((b) => !ids.has(b.id))];
 }
 
 function getDb(): FirestoreDB | null {
@@ -412,9 +411,14 @@ function profileHTML(
           <span class="prof-map-genre-legend__title">Top Genres</span>
           ${journey.topGenres.map((genre) => `
             <div class="prof-map-genre-legend__item">
-              <span class="prof-map-genre-legend__dot"></span>
-              <span class="prof-map-genre-legend__label">${escapeHtml(genre.label)}</span>
-              <span class="prof-map-genre-legend__pct">${genre.pct}%</span>
+              <div class="prof-map-genre-legend__row">
+                <span class="prof-map-genre-legend__dot"></span>
+                <span class="prof-map-genre-legend__label">${escapeHtml(genre.label)}</span>
+                <span class="prof-map-genre-legend__pct">${genre.pct}%</span>
+              </div>
+              <div class="prof-map-genre-legend__bar" aria-hidden="true">
+                <span style="width:${genre.pct}%"></span>
+              </div>
             </div>
           `).join('')}
         </div>
@@ -509,7 +513,6 @@ function profileHTML(
             </div>
           </div>
         </section>
-        <p class="prof-built-with">Built with Marginalia</p>
       </div>
     </div>
   `;
@@ -1022,18 +1025,14 @@ function buildProfileShareUrl(profile: PublicProfileData): string {
 }
 
 function buildDemoPayload(): DemoPayload {
-  const sourceBooks = BooksStore.getAll().map((record) => mapStoreBookToPublicBook(record)).filter((book): book is PublicBook => Boolean(book));
-  const ids = new Set(sourceBooks.map((book) => book.id));
-  const books = [...sourceBooks, ...DEMO_BOOKS.filter((book) => !ids.has(book.id))]
+  const sourceBooks = BooksStore.getAll()
+    .map((record) => mapStoreBookToPublicBook(record))
+    .filter((book): book is PublicBook => Boolean(book));
+  const payload = buildDemoPayloadFromBooks(sourceBooks);
+  const books = payload.books
     .map((book) => ({ ...book, status: normalizeProfileStatus(book.status) }))
     .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
-
-  return {
-    profile: DEMO_PROFILE,
-    books,
-    highlights: buildDemoHighlights(),
-    sessionDays: buildDemoSessionDays(books),
-  };
+  return { ...payload, books };
 }
 
 

@@ -6,6 +6,11 @@
 import { PixelReader } from '../components/pixel-avatar/pixel-avatar.js';
 import { logError } from '../services/analytics.ts';
 
+// TODO(tech-debt): am5 / am5map / am5themes_Animated are accessed via window globals
+// because amCharts 5 is loaded as a CDN <script> tag in index.html.
+// Fix: replace with dynamic import() or inject via dependency injection.
+// Tracked: CLAUDE.md §"window.X globals are bugs to fix".
+
 type GeoDim = 'journey' | 'authorOrigin' | 'contentLocation' | 'readerLocation';
 type LensDim = Exclude<GeoDim, 'journey'>;
 
@@ -204,6 +209,7 @@ export class ProfileMap {
   private events: JourneyEvent[] = [];
   private activeIdx = 0;
   private playing = false;
+  private colorsRevealed = false;
   private rafId = 0;
   private segFrom = 0;
   private segTo = 0;
@@ -340,6 +346,7 @@ export class ProfileMap {
       const idx = Number(button.dataset.journeyIdx);
       if (!Number.isFinite(idx)) return;
       this.stopPlayback();
+      this.colorsRevealed = true;
       this.activeIdx = idx;
       this.renderRail();
       this.renderStatic();
@@ -475,7 +482,8 @@ export class ProfileMap {
     this.placeAvatar(active.lat, active.lng);
     this.avatar?.setState('reading');
     this.avatar?.setAccentColor(active.book.spine);
-    this.lightCountries(this.activeIdx, active.country);
+    if (this.colorsRevealed) this.lightCountries(this.activeIdx, active.country);
+    else this.resetCountryLighting();
     this.updateBubble(active, false);
     this.updateCaption(active, false, previous);
     this.renderRail();
@@ -494,6 +502,7 @@ export class ProfileMap {
   private startPlayback(): void {
     if (this.events.length <= 1) return;
     if (this.activeIdx >= this.events.length - 1) this.activeIdx = 0;
+    this.colorsRevealed = true;
     this.playing = true;
     this.renderRail();
     this.segFrom = this.activeIdx;
@@ -670,6 +679,14 @@ export class ProfileMap {
     });
   }
 
+  private resetCountryLighting(): void {
+    if (!this.polygonSeries) return;
+    const am5 = (window as any).am5;
+    this.polygonSeries.mapPolygons.each((poly: any) => {
+      poly.set('fill', am5.color(UNLIT_FILL));
+    });
+  }
+
   private updateCaption(event: JourneyEvent | null, traveling: boolean, _from: JourneyEvent | null): void {
     if (!this.captionEl) return;
     if (!event) {
@@ -685,7 +702,6 @@ export class ProfileMap {
       <div class="prof-map-caption__cover" style="${coverStyle}"></div>
       <div class="prof-map-caption__info">
         <strong class="prof-map-caption__title">${esc(event.book.title)}</strong>
-        <span class="prof-map-caption__author">${esc(event.book.author)}</span>
         <span class="prof-map-caption__stamp">${esc(event.stamp)}</span>
       </div>
     `;

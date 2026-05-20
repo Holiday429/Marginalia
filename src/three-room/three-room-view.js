@@ -256,7 +256,7 @@ function renderIcon(iconId) {
   if (iconId === 'shelf') return symbolIcon('icon-nav-shelf');
   if (iconId === 'map') return symbolIcon('icon-nav-map');
   if (iconId === 'graph') return symbolIcon('icon-nav-graph');
-  if (iconId === 'list' || iconId === 'booklist') return symbolIcon('icon-nav-list');
+  if (iconId === 'list') return symbolIcon('icon-nav-list');
   if (iconId === 'profile') return `
     <svg viewBox="0 0 18 18" class="room-svg-icon">
       <circle cx="9" cy="6.5" r="2.8" fill="none" stroke="currentColor" stroke-width="1.5"></circle>

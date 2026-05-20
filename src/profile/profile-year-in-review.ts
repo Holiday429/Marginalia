@@ -1,7 +1,7 @@
 import { App } from '../core/app.js';
 import { BooksStore } from '../store/books-store.ts';
 import { SpineCard } from '../components/spine-card.js';
-import '../booklist/booklist.css';
+import './annual-shelf.css';
 
 interface ProfileBook {
   id: string;
@@ -195,24 +195,8 @@ export class ProfileAnnualShelf {
                   <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>
                 </button>
               ` : ''}
-              ${this.isOwner ? `
-                <button class="prof-annual__curate-toggle" id="profAnnualCurateToggle" type="button">${this.state.curateMode ? 'Done' : 'Curate'}</button>
-              ` : ''}
             </div>
           </div>
-          ${this.state.curateMode ? `
-            <div class="prof-annual__curate-bar">
-              <span class="prof-annual__curate-label">Drag to rank your top ${ANNUAL_TARGET_COUNT}</span>
-              <div class="prof-annual__curate-actions">
-                <button id="profAnnualPreviewBtn" type="button" class="prof-annual__curate-btn" ${this.state.curatedOrder.length >= 2 ? '' : 'disabled'}>
-                  Preview animation
-                </button>
-                <button id="profAnnualSaveBtn" type="button" class="prof-annual__curate-btn prof-annual__curate-btn--primary" ${this.state.curatedOrder.length >= 2 ? '' : 'disabled'}>
-                  Save &amp; publish
-                </button>
-              </div>
-            </div>
-          ` : ''}
           <div class="prof-annual__card">
             ${selectedBooks.length ? `
               <div class="booklist-top" id="profAnnualTop">
@@ -327,7 +311,6 @@ export class ProfileAnnualShelf {
     sourceBooks.forEach((book, i) => {
       const size = getSpineSize(book);
       const inCurated = this.state.curateMode && this.state.curatedOrder.includes(book.id);
-      const hideAuthor = shouldHideSpineAuthor(book.title, book.author);
       // Last two spines lean, as if they've fallen against the others.
       const tilt = !this.state.curateMode && i === sourceBooks.length - 1
         ? -3
@@ -336,7 +319,7 @@ export class ProfileAnnualShelf {
           : 0;
       const spine = SpineCard.create({
         title: book.title,
-        author: hideAuthor ? '' : book.author,
+        author: '',
         spine: book.spine,
         text: book.text,
         width: size.width,
@@ -418,14 +401,6 @@ export class ProfileAnnualShelf {
       else this.startAnimation(playBtn);
     });
 
-    // Curate toggle button
-    this.host.querySelector<HTMLButtonElement>('#profAnnualCurateToggle')?.addEventListener('click', () => {
-      this.state.curateMode = !this.state.curateMode;
-      if (!this.state.curateMode) this.state.curatedOrder = [];
-      this.render();
-      this.bind();
-    });
-
     // Click slot → preview or curate-remove
     this.host.querySelector('#profAnnualRacks')?.addEventListener('click', (e) => {
       const slot = (e.target as HTMLElement).closest<HTMLElement>('.booklist-slot');
@@ -458,33 +433,6 @@ export class ProfileAnnualShelf {
 
     // Curate mode: drag-and-drop
     if (this.state.curateMode) this.bindCurateDrag();
-
-    // Preview button
-    this.host.querySelector<HTMLButtonElement>('#profAnnualPreviewBtn')?.addEventListener('click', async () => {
-      if (this.state.curatedOrder.length < 2) return;
-      const prevCurateMode = this.state.curateMode;
-      this.state.curateMode = false;
-      const playBtn2 = this.host.querySelector<HTMLButtonElement>('#profAnnualPlayBtn');
-      if (playBtn2) await this.startAnimation(playBtn2);
-      this.state.curateMode = prevCurateMode;
-      this.render();
-      this.bind();
-    });
-
-    // Save button
-    this.host.querySelector<HTMLButtonElement>('#profAnnualSaveBtn')?.addEventListener('click', async () => {
-      if (!this.db || !this.uid || this.state.curatedOrder.length < 2) return;
-      const btn = this.host.querySelector<HTMLButtonElement>('#profAnnualSaveBtn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
-      try {
-        const { saveAnnualShelf } = await import('./annual-shelf-store.ts');
-        await saveAnnualShelf(this.db, this.uid, this.year, this.state.curatedOrder);
-        this.savedOrder = [...this.state.curatedOrder];
-        if (btn) { btn.textContent = 'Saved'; setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Save & publish'; } }, 2000); }
-      } catch {
-        if (btn) { btn.disabled = false; btn.textContent = 'Save & publish'; }
-      }
-    });
 
     // Click stage → open book detail (owner only)
     this.host.querySelector('#profAnnualStage')?.addEventListener('click', () => {
@@ -640,10 +588,7 @@ export class ProfileAnnualShelf {
         bookHost.appendChild(frame);
         await waitFrame();
         frame.classList.add('is-entered');
-        if (rankNumber === 1) {
-          revealBadge(this.host);
-          await this.triggerNo1Reveal(book, this.year);
-        }
+        if (rankNumber === 1) revealBadge(this.host);
         await delay(520);
       });
 
@@ -723,28 +668,6 @@ export class ProfileAnnualShelf {
     });
   }
 
-  private async triggerNo1Reveal(book: ProfileBook, year: number): Promise<void> {
-    const overlay = document.getElementById('annualRevealOverlay');
-    const titleEl = document.getElementById('annualRevealTitle');
-    const authorEl = document.getElementById('annualRevealAuthor');
-    const kickerEl = overlay?.querySelector<HTMLElement>('.annual-reveal-kicker');
-    const yearEl = document.getElementById('annualRevealYear');
-
-    if (!overlay || !titleEl || !authorEl) return;
-
-    if (yearEl) yearEl.textContent = String(year);
-    if (kickerEl && !yearEl) kickerEl.textContent = `No. 1 · ${year}`;
-    titleEl.textContent = book.title;
-    authorEl.textContent = book.author;
-
-    overlay.classList.add('is-active');
-    overlay.setAttribute('aria-hidden', 'false');
-
-    await delay(2800);
-    overlay.classList.remove('is-active');
-    overlay.setAttribute('aria-hidden', 'true');
-    await delay(450);
-  }
 }
 
 // ─── Pixel flame ──────────────────────────────────────────────────────────────
@@ -1360,12 +1283,6 @@ function getSpineSize(book: ProfileBook): { width: number; height: number } {
 
 function containsCJK(text: string): boolean {
   return /[一-鿿㐀-䶿　-〿＀-￯]/.test(text);
-}
-
-function shouldHideSpineAuthor(title: string, author: string): boolean {
-  if (!author.trim()) return true;
-  if (containsCJK(title)) return title.length >= 7;
-  return title.length >= 22;
 }
 
 function dateKey(date: Date): string {

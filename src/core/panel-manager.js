@@ -13,7 +13,6 @@ const PANEL_ALIASES = {
   graph: 'web',
   studio: 'library',
   shelf: 'search',
-  booklist: 'profile',
 };
 
 const FULL_COVER_PANELS = new Set(['search', 'library', 'map', 'book', 'web', 'todo', 'profile']);
