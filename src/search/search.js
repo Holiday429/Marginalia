@@ -171,14 +171,20 @@ function buildShelfRecords() {
   const userSpines = BooksStore.getShelfBooks() || [];
   const allSpines = [...userSpines, ...buildMockSpines()];
   allSpines.forEach((b, index) => {
-    let detailId = b.id || matchBookId(b.title);
-    if (!detailId || !BooksStore.getById(detailId)) {
+    let detailId = resolveCanonicalBookId(b) || b.id || matchBookId(b.title);
+    let detail = getBookDetail(detailId);
+    if (!detailId || !detail) {
       detailId = ensureShelfDetailRecord(b, index);
+      detail = getBookDetail(detailId);
     }
+    const resolvedStatus = detailId === 'sapiens'
+      ? 'finished'
+      : (b.status || 'want');
     const key = `${slugify(b.title)}-${index}`;
-    const title = toTitleCase(b.title);
-    const detail = detailId ? BooksStore.getById(detailId) : null;
-    const statusText = statusToLabel(b.status);
+    const title = detailId === 'sapiens'
+      ? (detail?.title || 'Sapiens: A Brief History of Humankind')
+      : toTitleCase(b.title);
+    const statusText = statusToLabel(resolvedStatus);
     const translatedTags = detailId === 'sapiens'
       ? ['Anthropology', 'Macro History', 'Cognitive Revolution', 'Narrative']
       : (detail?.tags?.map(toEnglishTag) || [statusText, 'Global shelf']);
@@ -207,6 +213,7 @@ function buildShelfRecords() {
 
     records.push({
       ...b,
+      status: resolvedStatus,
       key,
       titleDisplay: title,
       detailId,
@@ -266,9 +273,26 @@ function deepClone(value) {
 }
 
 function resolveCoverSrc(book, detailId) {
-  const detail = detailId ? BooksStore.getById(detailId) : null;
+  void book;
+  const detail = getBookDetail(detailId);
   if (detail?.cover?.image) return detail.cover.image;
   return '';
+}
+
+function resolveCanonicalBookId(book) {
+  if (!book) return null;
+  const rawId = String(book.id || '').toLowerCase();
+  if (rawId === 'sapiens') return 'sapiens';
+  if (matchBookId(book.title) === 'sapiens') return 'sapiens';
+  return null;
+}
+
+function getBookDetail(detailId) {
+  if (!detailId) return null;
+  if (detailId === 'sapiens') {
+    return SEED_BOOK_BY_ID.sapiens || BooksStore.getById(detailId) || null;
+  }
+  return BooksStore.getById(detailId) || SEED_BOOK_BY_ID[detailId] || null;
 }
 
 function renderShelfSectionInternal() {

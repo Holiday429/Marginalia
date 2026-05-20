@@ -16,6 +16,7 @@ import { MarginaliaGraph } from '../core/graph-data.js';
 import { openConceptDrawer } from '../core/concept-ui.js';
 import { AIGenerateUI } from '../ai/client/generate-ui.ts';
 import { KindleImport } from '../api/kindle-import.js';
+import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
 
 let __currentBookId = null;
 
@@ -24,7 +25,11 @@ function initBook() {}
 async function enterBook(params = {}) {
   const fallbackId = BooksStore.getAll()[0]?.id || 'sapiens';
   const id = params.id || __currentBookId || fallbackId;
-  const book = BooksStore.getById(id);
+  const storeBook = BooksStore.getById(id);
+  const seedBook = SEED_BOOK_BY_ID[id];
+  const book = id === 'sapiens'
+    ? (seedBook || storeBook)
+    : (storeBook || seedBook);
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
   __currentBookId = id;
 

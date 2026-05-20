@@ -8,6 +8,7 @@ import { BooksStore } from '../store/books-store.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
+import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import {
   LIBRARY_STORAGE_KEY,
   LIBRARY_WORLD_WIDTH,
@@ -389,6 +390,23 @@ function syncLibraryRailState() {
   });
 }
 
+function matchCanonicalBookId(book) {
+  const rawId = String(book?.id || '').toLowerCase();
+  if (rawId === 'sapiens') return 'sapiens';
+  const title = String(book?.title || '');
+  const normalized = title.toLowerCase();
+  if (normalized.includes('sapien') || title.includes('人类简史')) return 'sapiens';
+  return String(book?.id || '');
+}
+
+function getLibraryDetail(detailId) {
+  if (!detailId) return null;
+  if (detailId === 'sapiens') {
+    return SEED_BOOK_BY_ID.sapiens || BooksStore.getById(detailId) || null;
+  }
+  return BooksStore.getById(detailId) || SEED_BOOK_BY_ID[detailId] || null;
+}
+
 function syncLibraryRecords() {
   const next = [];
   const map = new Map();
@@ -401,13 +419,23 @@ function syncLibraryRecords() {
     seen.set(base, count);
     const key = count === 1 ? base : `${base}-${count}`;
 
-    const detail = book.id ? BooksStore.getById(book.id) : null;
+    const detailId = matchCanonicalBookId(book);
+    const detail = getLibraryDetail(detailId);
+    const resolvedStatus = detailId === 'sapiens'
+      ? 'finished'
+      : normalizeReadingStatus(book.status || 'confirmed-later');
+    const resolvedTitle = detailId === 'sapiens'
+      ? (detail?.title || 'Sapiens: A Brief History of Humankind')
+      : toTitleCase(book.title || `Book ${index + 1}`);
+    const resolvedAuthor = detailId === 'sapiens'
+      ? (detail?.author || toTitleCase(book.author || ''))
+      : toTitleCase(book.author || '');
     const record = {
       key,
-      id: book.id || '',
-      title: toTitleCase(book.title || `Book ${index + 1}`),
-      author: toTitleCase(book.author || ''),
-      status: normalizeReadingStatus(book.status || 'confirmed-later'),
+      id: detailId || book.id || '',
+      title: resolvedTitle,
+      author: resolvedAuthor,
+      status: resolvedStatus,
       spine: book.spine || '#2b2b2b',
       text: book.text || '#e8dfc8',
       w: Number(book.w) || 34,
@@ -420,10 +448,10 @@ function syncLibraryRecords() {
       band: book.band || '',
       coverPreview: book.coverPreview || '',
       coverImage: detail?.cover?.image || '',
-      tags: Array.isArray(detail?.tags) ? detail.tags.slice(0, 4) : [statusToLabel(book.status || 'confirmed-later')],
-      summary: detail?.summary || `${toTitleCase(book.title || '')} is part of your library collection.`,
+      tags: Array.isArray(detail?.tags) ? detail.tags.slice(0, 4) : [statusToLabel(resolvedStatus)],
+      summary: detail?.summary || `${resolvedTitle} is part of your library collection.`,
       sourceIndex: index,
-      searchText: [book.title || '', book.author || '', detail?.title || '', detail?.author || '', ...(detail?.tags || [])].join(' ').toLowerCase(),
+      searchText: [resolvedTitle, resolvedAuthor, detail?.title || '', detail?.author || '', ...(detail?.tags || [])].join(' ').toLowerCase(),
     };
 
     next.push(record);

@@ -30,6 +30,58 @@ let _uid: string | null = null;
 let _hasOwnBooks = false;
 let _usingDemoData = true;
 
+function _isSapiensLike(book: BookRecord): boolean {
+  const rawId = String(book?.id || '').toLowerCase();
+  if (rawId === 'sapiens') return true;
+  const title = String((book as any)?.title || '');
+  const normalized = title.toLowerCase();
+  return normalized.includes('sapien') || title.includes('人类简史');
+}
+
+function _normalizeSapiens(book: BookRecord): BookRecord {
+  const seed = SEED_BY_ID.sapiens as BookRecord | undefined;
+  if (!seed) return { ...book, id: 'sapiens' };
+
+  const seedAny = seed as any;
+  const bookAny = book as any;
+  return {
+    ...bookAny,
+    ...seedAny,
+    id: 'sapiens',
+    status: 'finished',
+    title: seedAny.title,
+    author: seedAny.author,
+    titleZh: seedAny.titleZh,
+    authorZh: seedAny.authorZh,
+    tags: Array.isArray(seedAny.tags) ? [...seedAny.tags] : seedAny.tags,
+    cover: {
+      ...(bookAny.cover ?? {}),
+      ...(seedAny.cover ?? {}),
+    },
+    meta: {
+      ...(bookAny.meta ?? {}),
+      ...(seedAny.meta ?? {}),
+    },
+  } as BookRecord;
+}
+
+function _canonicalizeBooks(books: BookRecord[]): BookRecord[] {
+  const out: BookRecord[] = [];
+  let hasSapiens = false;
+
+  (books || []).forEach((book) => {
+    if (_isSapiensLike(book)) {
+      if (hasSapiens) return;
+      out.push(_normalizeSapiens(book));
+      hasSapiens = true;
+      return;
+    }
+    out.push(book);
+  });
+
+  return out;
+}
+
 function _toSpineRecord(b: BookRecord): Record<string, unknown> {
   // Shelf expects flat { title, author, spine, text, w, h, status, font, weight }.
   // Seed books already have these. Firestore books use the nested schema
@@ -58,7 +110,7 @@ function _emit() {
 }
 
 function _setVisibleBooks(books: BookRecord[], options: { hasOwnBooks: boolean; usingDemoData: boolean }) {
-  _books = books;
+  _books = _canonicalizeBooks(books);
   _byId = Object.fromEntries(_books.map((b) => [b.id, b]));
   _shelfBooks = _books.map(_toSpineRecord);
   _hasOwnBooks = options.hasOwnBooks;
