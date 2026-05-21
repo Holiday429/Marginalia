@@ -331,21 +331,26 @@ function renderBook(b, sections) {
       ${renderMasthead(b)}
       <section class="book-detail-shell">
         <aside class="book-outline" aria-label="Book sections">
-          <button
-            class="book-outline-toggle"
-            type="button"
-            aria-expanded="true"
-            aria-label="Toggle sections menu"
-          >
-            <span class="book-outline-toggle-icon" aria-hidden="true"></span>
-          </button>
-          <nav class="book-outline-nav">
-            ${sections.map((s, i) => `
-              <button class="book-tab-btn${i === 0 ? ' is-active' : ''}" data-target="${esc(s.id)}" type="button">
-                ${esc(s.label)}
+          <div class="book-outline-body">
+            <div class="book-outline-heading">
+              <button
+                class="book-outline-toggle"
+                type="button"
+                aria-expanded="true"
+                aria-label="Toggle sections menu"
+              >
+                <span class="book-outline-toggle-icon" aria-hidden="true"></span>
               </button>
-            `).join('')}
-          </nav>
+              <span class="book-outline-heading-text">Outline</span>
+            </div>
+            <nav class="book-outline-nav">
+              ${sections.map((s, i) => `
+                <button class="book-tab-btn${i === 0 ? ' is-active' : ''}" data-target="${esc(s.id)}" type="button">
+                  ${esc(s.label)}
+                </button>
+              `).join('')}
+            </nav>
+          </div>
         </aside>
         <div class="book-detail-main">
           ${sections.map((s, i) => `

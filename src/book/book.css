@@ -16,7 +16,7 @@
 #panel-book .page {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 28px 56px 96px;
+  padding: 20px 20px 92px;
 }
 
 #panel-book a { color: inherit; text-decoration: none; }
@@ -29,9 +29,11 @@
   margin-top: 32px;
 }
 
+/* Collapsed: outline shrinks to a slim rail that holds only the triangle,
+   vertically centered, so the main content reclaims the rest of the column. */
 .book-detail-shell.is-outline-collapsed {
-  grid-template-columns: 28px minmax(0, 1fr);
-  column-gap: 24px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  column-gap: 16px;
 }
 
 .book-outline {
@@ -53,8 +55,10 @@
   align-items: center;
   justify-content: center;
   color: var(--muted);
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  margin-left: -6px;
+  flex: 0 0 auto;
   transition: color var(--dur-fast);
 }
 
@@ -63,9 +67,9 @@
 .book-outline-toggle-icon {
   width: 0;
   height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-right: 6px solid currentColor;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid currentColor;
   transition: transform var(--dur-fast) var(--ease-out);
 }
 
@@ -74,17 +78,49 @@
   transform: rotate(180deg);
 }
 
+/* ── Collapsed state ────────────────────────────────────────────────── */
+/* Hide the heading text and section list; only the triangle remains,
+   vertically centered in the slim rail, as the single re-open affordance. */
+.book-outline.is-collapsed .book-outline-body {
+  min-height: 70vh;
+  justify-content: center;
+}
+
+.book-outline.is-collapsed .book-outline-heading {
+  margin-bottom: 0;
+}
+
+.book-outline.is-collapsed .book-outline-heading-text,
+.book-outline.is-collapsed .book-outline-nav {
+  display: none;
+}
+
+/* ── Expanded body ──────────────────────────────────────────────────── */
+.book-outline-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-20);
+  font-weight: 500;
+  letter-spacing: var(--track-tight);
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.book-outline-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 60vh;
+}
+
 /* ── Section nav ────────────────────────────────────────────────────── */
 .book-outline-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: 10px;
+  gap: 4px;
   padding-left: 0;
-}
-
-.book-outline.is-collapsed .book-outline-nav {
-  display: none;
 }
 
 /* Same visual framework as .web-filter-item in web.css */
@@ -92,20 +128,19 @@
   width: 100%;
   text-align: left;
   border: none;
-  border-left: 1px solid transparent;
+  border-left: 2px solid transparent;
   background: transparent;
-  color: var(--muted);
+  color: var(--ink-soft);
   font-family: var(--font-mono);
-  font-size: var(--fs-9);
-  letter-spacing: 0.18em;
-  padding: 9px 0 9px 12px;
+  font-size: var(--fs-13);
+  letter-spacing: 0.08em;
+  padding: 10px 0 10px 14px;
   cursor: pointer;
-  opacity: 0.94;
+  opacity: 1;
   white-space: normal;
   display: flex;
   align-items: center;
   transition:
-    opacity var(--dur-fast),
     transform var(--dur-fast),
     border-left-color var(--dur-fast),
     background var(--dur-fast),
@@ -113,15 +148,14 @@
 }
 
 .book-tab-btn:hover {
-  opacity: 1;
   color: var(--ink);
+  background: rgba(198,139,74,0.06);
 }
 
 .book-tab-btn.is-active {
-  opacity: 1 !important;
   border-left-color: var(--accent);
   color: var(--accent);
-  background: rgba(198,139,74,0.08);
+  background: rgba(198,139,74,0.10);
 }
 
 .book-detail-main {
@@ -1620,9 +1654,16 @@
     padding: 10px 0;
   }
   .book-outline-toggle { display: none; }
-  .book-outline.is-collapsed .book-outline-nav { display: flex; }
-  .book-outline-nav {
+  .book-outline-heading { display: none; }
+  .book-outline-body,
+  .book-outline.is-collapsed .book-outline-body {
+    display: block;
+    min-height: 0;
+  }
+  .book-outline-nav,
+  .book-outline.is-collapsed .book-outline-nav {
     display: flex;
+    flex-direction: row;
     gap: 8px;
     overflow-x: auto;
     padding-bottom: 4px;
