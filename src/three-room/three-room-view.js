@@ -30,6 +30,7 @@ const HOVER_META_BY_ACTION = {
   sapiens: { icon: 'reading-now', title: 'Keep Reading', description: 'Continue Current Book' },
   heroBook: { icon: 'library', title: 'Open Library', description: 'Organize Your Library' },
   profile: { icon: 'profile', title: 'Profile', description: 'Public Reading Page' },
+  graph: { icon: 'graph', title: 'Graph', description: 'Concept And Book Network' },
 };
 
 const ROOM_VIEW_STATE = {
@@ -501,6 +502,7 @@ function mountRoomScene() {
       onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),
       onPhotoFrameSelect: () => openPanel('profile'),
+      onWebSelect: () => openPanel('web'),
       onInteractiveHover: (action, pointer) => {
         ROOM_VIEW_STATE.hoverAction = action || null;
         if (pointer) ROOM_VIEW_STATE.hoverPoint = pointer;

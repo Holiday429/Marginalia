@@ -2,7 +2,7 @@ const PRIMARY_TAB_ITEMS = [
   { id: 'search', label: 'Search', icon: 'search', route: 'search', panel: 'search' },
   { id: 'library', label: 'Library', icon: 'library', route: 'library', panel: 'library' },
   { id: 'map', label: 'Map', icon: 'map', route: 'map', panel: 'map' },
-  { id: 'graph', label: 'Graph', icon: 'graph', route: 'graph', panel: 'web', disabled: true },
+  { id: 'graph', label: 'Graph', icon: 'graph', route: 'graph', panel: 'web' },
   { id: 'profile', label: 'Profile', icon: 'profile', route: 'profile', panel: 'profile' },
 ];
 

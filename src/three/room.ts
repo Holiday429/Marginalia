@@ -20,6 +20,7 @@ interface RoomSceneOptions {
   onSapiensSelect?: () => void;
   onHeroBookSelect?: () => void;
   onPhotoFrameSelect?: () => void;
+  onWebSelect?: () => void;
   onInteractiveHover?: (action: InteractiveAction | null, pointer?: { x: number; y: number }) => void;
 }
 
@@ -43,7 +44,7 @@ interface SlotMount {
   component: SlotComponent;
 }
 
-type InteractiveAction = 'map' | 'shelf' | 'organize' | 'sapiens' | 'heroBook' | 'profile';
+type InteractiveAction = 'map' | 'shelf' | 'organize' | 'sapiens' | 'heroBook' | 'profile' | 'graph';
 
 interface DecorAssetSpec {
   id?: string;
@@ -155,6 +156,16 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     photoMaterialNameIncludes: 'Image',
     interactiveAction: 'profile',
   },
+  {
+    // Messy tack board on the notes wall (right wall), near the window-side end.
+    // Acts as the physical entry point into the Graph view.
+    id: 'graph-board',
+    url: '/3d/messy_tack_board.glb',
+    position: [5.18, 2.3, -2.1],
+    rotationY: -Math.PI / 2,
+    targetHeight: 1.7,
+    interactiveAction: 'graph',
+  },
 ];
 
 // Furniture — large structural pieces, not interactive.
@@ -173,6 +184,14 @@ const FURNITURE_ASSETS: DecorAssetSpec[] = [
     rotationY: -0.42,
     targetHeight: 0.96,
     scaleMultiplier: 1.2,
+  },
+  {
+    // Iron storage cart in front of the yellow sofa, against the notes wall.
+    id: 'storage-cart',
+    url: '/3d/iron_art_storage_bookshelf.glb',
+    position: [4.78, 0, 0.4],
+    rotationY: -Math.PI / 2,
+    targetHeight: 1.18,
   },
 ];
 
@@ -314,6 +333,7 @@ export class RoomScene {
   private onSapiensSelect: (() => void) | null = null;
   private onHeroBookSelect: (() => void) | null = null;
   private onPhotoFrameSelect: (() => void) | null = null;
+  private onWebSelect: (() => void) | null = null;
   private onInteractiveHover: ((action: InteractiveAction | null, pointer?: { x: number; y: number }) => void) | null = null;
   private envRenderTarget: THREE.WebGLRenderTarget | null = null;
   private hasWallSurfaceTexture = false;
@@ -358,6 +378,7 @@ export class RoomScene {
     this.onSapiensSelect = typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : null;
     this.onHeroBookSelect = typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : null;
     this.onPhotoFrameSelect = typeof options.onPhotoFrameSelect === 'function' ? options.onPhotoFrameSelect : null;
+    this.onWebSelect = typeof options.onWebSelect === 'function' ? options.onWebSelect : null;
     this.onInteractiveHover = typeof options.onInteractiveHover === 'function' ? options.onInteractiveHover : null;
 
     this.scene = new THREE.Scene();
@@ -884,12 +905,12 @@ export class RoomScene {
 
     // Cork board — framed panel centered on the right wall, sized like a hung painting
     const notesBoard = this.createWallProjectionPanel({
-      width: 4.4,
-      height: 2.6,
+      width: 3.74,
+      height: 1.94,
       panelMaterial: this.materials.board,
       frameMaterial: this.materials.panelFrame,
     });
-    notesBoard.position.set(5.20, 2.3, 0);
+    notesBoard.position.set(5.20, 2.3, 1.6);
     notesBoard.rotation.y = -Math.PI / 2;
     notesBoard.traverse((node) => {
       const mesh = node as THREE.Mesh;
@@ -953,9 +974,11 @@ export class RoomScene {
     this.scene.add(this.decorRoot);
 
     this.registerSlot('shelfWall', [-5.22, 2.2, 0], [0, Math.PI / 2, 0], [0.0095, 0.0095, 0.0095]);
-    // notesWall: matches cork board interior. container=880×520px, scale=0.005 → 4.4×2.6 world units
+    // notesWall: matches cork board interior. container=880×520px → 3.74×1.94 world units
     // x=5.10 so the CSS3D layer sits in front of the cork board mesh (board is at x=5.20)
-    this.registerSlot('notesWall', [5.10, 2.3, 0], [0, -Math.PI / 2, 0], [0.005, 0.005, 0.005]);
+    // z=1.6 matches the cork board, shifted toward the front to clear the graph tack board near the window.
+    // Y scale is reduced independently to shorten the board's vertical height.
+    this.registerSlot('notesWall', [5.10, 2.3, 1.6], [0, -Math.PI / 2, 0], [0.00425, 0.00373, 0.00425]);
     this.registerSlot('desk', [0, ROOM.DESK_SURFACE_Y + 0.12, ROOM.DESK_CENTER_Z], [-Math.PI / 2, 0, 0], [0.0048, 0.0048, 0.0048]);
   }
 
@@ -1162,6 +1185,8 @@ export class RoomScene {
       this.registerInteractiveTarget(model, () => this.onHeroBookSelect?.(), asset.interactiveAction);
     } else if (asset.interactiveAction === 'profile') {
       this.registerInteractiveTarget(model, () => this.onPhotoFrameSelect?.(), asset.interactiveAction);
+    } else if (asset.interactiveAction === 'graph') {
+      this.registerInteractiveTarget(model, () => this.onWebSelect?.(), asset.interactiveAction);
     }
 
     model.traverse((child) => {
