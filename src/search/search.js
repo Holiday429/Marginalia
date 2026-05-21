@@ -8,9 +8,12 @@ import { PanelManager } from '../core/panel-manager.js';
 import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
+import { initSearchDecor3d } from './search-decor-3d.js';
 
 const SHELF_STATE = {
   filter: 'all',
+  sort: 'recent',
+  tag: null,
   query: '',
   selectedKey: null,
   isExpanded: false,
@@ -24,6 +27,9 @@ function initSearch() {
   SHELF_STATE.selectedKey = null;
   SHELF_STATE.isExpanded = false;
   SHELF_STATE.query = '';
+  SHELF_STATE.filter = 'all';
+  SHELF_STATE.sort = 'recent';
+  SHELF_STATE.tag = null;
 
   const headerWrap = document.getElementById('searchHeaderWrap');
   if (headerWrap) {
@@ -32,6 +38,7 @@ function initSearch() {
 
   bindShelfEvents();
   refreshShelfFromSource();
+  initSearchDecor3d();
 }
 
 function enterSearch() {
@@ -87,6 +94,7 @@ function syncShelfRecords() {
 function refreshShelfFromSource() {
   syncShelfRecords();
   renderStatsBar();
+  renderTagChips();
   renderShelfSectionInternal();
 }
 
@@ -107,14 +115,66 @@ function bindShelfEvents() {
     newEntryBtn.addEventListener('click', () => NewEntry?.mount());
   }
 
-  document.querySelectorAll('.shelf-filters .chip').forEach((chip) => {
-    chip.addEventListener('click', () => {
-      document.querySelectorAll('.shelf-filters .chip').forEach((c) => c.classList.remove('active'));
+  const statusChips = document.getElementById('shelfStatusChips');
+  if (statusChips) {
+    statusChips.addEventListener('click', (event) => {
+      const chip = event.target.closest('.chip');
+      if (!chip) return;
+      statusChips.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
       chip.classList.add('active');
-      SHELF_STATE.filter = chip.textContent.toLowerCase().trim();
+      SHELF_STATE.filter = chip.dataset.filter || 'all';
       renderShelfSectionInternal();
     });
-  });
+  }
+
+  const sortChips = document.getElementById('shelfSortChips');
+  if (sortChips) {
+    sortChips.addEventListener('click', (event) => {
+      const chip = event.target.closest('.chip');
+      if (!chip) return;
+      sortChips.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      SHELF_STATE.sort = chip.dataset.sort || 'recent';
+      renderShelfSectionInternal();
+    });
+  }
+
+  const tagChips = document.getElementById('shelfTagChips');
+  if (tagChips) {
+    tagChips.addEventListener('click', (event) => {
+      const chip = event.target.closest('.chip');
+      if (!chip) return;
+      const tag = chip.dataset.tag || null;
+      const isActive = chip.classList.contains('active');
+      tagChips.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+      if (!isActive) {
+        chip.classList.add('active');
+        SHELF_STATE.tag = tag;
+      } else {
+        SHELF_STATE.tag = null;
+      }
+      renderShelfSectionInternal();
+    });
+  }
+
+  const filtersToggle = document.getElementById('shelfFiltersToggle');
+  const filtersMenu = document.getElementById('shelfFiltersMenu');
+  if (filtersToggle && filtersMenu) {
+    filtersToggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const open = filtersMenu.hidden;
+      filtersMenu.hidden = !open;
+      filtersToggle.setAttribute('aria-expanded', String(open));
+      filtersToggle.classList.toggle('is-open', open);
+    });
+    document.addEventListener('click', (event) => {
+      if (filtersMenu.hidden) return;
+      if (event.target.closest('#shelfFiltersMenu') || event.target.closest('#shelfFiltersToggle')) return;
+      filtersMenu.hidden = true;
+      filtersToggle.setAttribute('aria-expanded', 'false');
+      filtersToggle.classList.remove('is-open');
+    });
+  }
 
   const searchInput = document.getElementById('shelfSearchInput');
   if (searchInput) {
@@ -122,6 +182,39 @@ function bindShelfEvents() {
       SHELF_STATE.query = searchInput.value.trim().toLowerCase();
       renderShelfSectionInternal();
     });
+  }
+
+  // AI "what to read next" — UI only for now. The real call (featureId
+  // 'reading-recommend') will be wired through the AI gateway later.
+  const aiRecBtn = document.getElementById('shelfAiRecBtn');
+  if (aiRecBtn) {
+    aiRecBtn.addEventListener('click', () => {
+      const card = document.getElementById('shelfAiRec');
+      const note = document.getElementById('shelfAiRecNote');
+      if (note) {
+        note.hidden = false;
+        note.textContent = 'Personalized recommendations are coming soon.';
+      }
+      if (card) card.dataset.state = 'idle';
+    });
+  }
+
+  const quickRows = document.getElementById('shelfQuickRows');
+  if (quickRows) {
+    quickRows.addEventListener('click', (event) => {
+      const card = event.target.closest('.shelf-quick-card');
+      if (!card) return;
+      const key = card.dataset.key;
+      const record = SHELF_RECORDS.find((b) => b.key === key);
+      if (record?.detailId && record.preview?.canOpen) {
+        PanelManager.open('book', { id: record.detailId });
+      }
+    });
+    // error doesn't bubble — listen in capture phase to hide broken covers.
+    quickRows.addEventListener('error', (event) => {
+      const img = event.target;
+      if (img?.classList?.contains('shelf-quick-cover-img')) img.style.display = 'none';
+    }, true);
   }
 
   const previewPanel = document.getElementById('shelfPreviewPanel');
@@ -296,6 +389,8 @@ function renderShelfSectionInternal() {
   const shelfHost = document.getElementById('shelfStack');
   if (!shelfHost) return;
 
+  renderQuickRows();
+
   const visible = getFilteredBooks();
   renderShelfSummary(visible.length);
 
@@ -412,9 +507,9 @@ function selectShelfRecord(record, sourceEl = null) {
 }
 
 function applyShelfLayoutState() {
-  const layout = document.querySelector('.shelf-layout');
-  if (!layout) return;
-  layout.classList.toggle('is-expanded', SHELF_STATE.isExpanded && Boolean(SHELF_STATE.selectedKey));
+  const grid = document.querySelector('.shelf-wall-grid');
+  if (!grid) return;
+  grid.classList.toggle('is-expanded', SHELF_STATE.isExpanded && Boolean(SHELF_STATE.selectedKey));
 }
 
 function captureSpineSnapshot(sourceEl) {
@@ -550,16 +645,129 @@ function openSelectedBook() {
   PanelManager.open('book', { id: selected.detailId });
 }
 
+function renderTagChips() {
+  const group = document.getElementById('shelfTagGroup');
+  const host = document.getElementById('shelfTagChips');
+  if (!group || !host) return;
+
+  // Collect tags from real user books only, ranked by frequency.
+  const counts = new Map();
+  SHELF_RECORDS.forEach((b) => {
+    if (b._isMock) return;
+    (b.preview?.tags || []).forEach((tag) => {
+      const clean = String(tag || '').trim();
+      if (!clean) return;
+      counts.set(clean, (counts.get(clean) || 0) + 1);
+    });
+  });
+
+  const tags = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([tag]) => tag);
+
+  if (!tags.length) {
+    group.hidden = true;
+    host.innerHTML = '';
+    SHELF_STATE.tag = null;
+    return;
+  }
+
+  // Drop an active tag that no longer exists after a data refresh.
+  if (SHELF_STATE.tag && !tags.some((t) => t.toLowerCase() === SHELF_STATE.tag.toLowerCase())) {
+    SHELF_STATE.tag = null;
+  }
+
+  group.hidden = false;
+  host.innerHTML = tags.map((tag) => {
+    const active = SHELF_STATE.tag && SHELF_STATE.tag.toLowerCase() === tag.toLowerCase();
+    return `<button class="chip${active ? ' active' : ''}" data-tag="${escapeHTML(tag)}">${escapeHTML(tag)}</button>`;
+  }).join('');
+}
+
+function renderQuickRows() {
+  const wrap = document.getElementById('shelfQuickRows');
+  if (!wrap) return;
+
+  // Quick rows are a fast path to the user's own books; hide them once the user
+  // starts narrowing the wall (search / status / tag), so results take over.
+  const narrowing = Boolean(SHELF_STATE.query) || SHELF_STATE.filter !== 'all' || Boolean(SHELF_STATE.tag);
+  const realBooks = SHELF_RECORDS.filter((b) => !b._isMock);
+
+  const reading = realBooks.filter((b) => b.status === 'reading').slice(0, 6);
+  const recent = realBooks.slice(0, 6); // source order: newest user books first
+
+  const continueRendered = renderQuickRow('shelfContinueRow', 'shelfContinueTrack', reading);
+  const recentRendered = renderQuickRow('shelfRecentRow', 'shelfRecentTrack', recent);
+
+  wrap.hidden = narrowing || (!continueRendered && !recentRendered);
+}
+
+function renderQuickRow(rowId, trackId, records) {
+  const row = document.getElementById(rowId);
+  const track = document.getElementById(trackId);
+  if (!row || !track) return false;
+  if (!records.length) {
+    row.hidden = true;
+    track.innerHTML = '';
+    return false;
+  }
+  row.hidden = false;
+  track.innerHTML = records.map(buildQuickCard).join('');
+  return true;
+}
+
+function buildQuickCard(record) {
+  const p = record.preview || {};
+  const title = escapeHTML(p.title || record.titleDisplay || '');
+  const hasCover = Boolean(p.coverSrc);
+  const tone = p.tone || record.spine || '#202020';
+  const textColor = record.text || '#f4ead6';
+  const cjkClass = containsCJK(p.title || record.titleDisplay) ? ' is-cjk' : '';
+
+  const fallback = `<span class="shelf-quick-cover-fallback${cjkClass}" style="background:linear-gradient(150deg, ${escapeHTML(tone)}, #111); color:${escapeHTML(textColor)};">${title}</span>`;
+  const coverInner = hasCover
+    // Keep the fallback in the DOM so a broken cover URL can reveal it via the delegated error handler.
+    ? `<img class="shelf-quick-cover-img" src="${escapeHTML(p.coverSrc)}" alt="" loading="lazy">${fallback}`
+    : fallback;
+
+  return `
+    <button class="shelf-quick-card" type="button" data-key="${escapeHTML(record.key)}" title="${title}">
+      <span class="shelf-quick-cover">${coverInner}</span>
+      <span class="shelf-quick-card-title${cjkClass}">${title}</span>
+    </button>
+  `;
+}
+
 function getFilteredBooks() {
-  return SHELF_RECORDS.filter((b) => {
-    if (b._isMock && SHELF_STATE.query) return false;
+  const tag = SHELF_STATE.tag ? SHELF_STATE.tag.toLowerCase() : null;
+  const filtered = SHELF_RECORDS.filter((b) => {
+    // Mock spines are decorative: drop them whenever the user narrows the wall.
+    const isNarrowing = SHELF_STATE.query || SHELF_STATE.filter !== 'all' || tag;
+    if (b._isMock && isNarrowing) return false;
     const status = b.status;
     if (SHELF_STATE.filter === 'finished' && status !== 'finished') return false;
     if (SHELF_STATE.filter === 'reading' && status !== 'reading') return false;
     if (SHELF_STATE.filter === 'to read' && status !== 'want') return false;
+    if (tag && !(b.preview?.tags || []).some((t) => t.toLowerCase() === tag)) return false;
     if (SHELF_STATE.query && !b.searchText.includes(SHELF_STATE.query)) return false;
     return true;
   });
+  return sortShelfRecords(filtered);
+}
+
+function sortShelfRecords(records) {
+  // 'recent' keeps source order (newest user books are unshifted to the front by
+  // BooksStore), so only re-sort for the explicit title/rating modes.
+  if (SHELF_STATE.sort === 'title') {
+    return [...records].sort((a, b) =>
+      String(a.titleDisplay || '').localeCompare(String(b.titleDisplay || '')));
+  }
+  if (SHELF_STATE.sort === 'rating') {
+    const rate = (r) => Number(getBookDetail(r.detailId)?.rating) || 0;
+    return [...records].sort((a, b) => rate(b) - rate(a));
+  }
+  return records;
 }
 
 function getSpineSize(record) {
