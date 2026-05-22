@@ -130,6 +130,7 @@ body[data-view="map"] { overflow: hidden; }
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-left: auto;
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -234,7 +235,7 @@ body.map-panel-open #mapChart { width: calc(100% - 540px); }
    slight tilt + settle, like a print laid on the map. */
 .map-hover-card {
   position: absolute;
-  width: 236px;
+  width: 228px;
   padding: 9px 9px 0;            /* even photo border; bottom strip via body */
   border-radius: 4px;
   background: #ece3d0;           /* warm instant-print paper */
@@ -243,6 +244,8 @@ body.map-panel-open #mapChart { width: calc(100% - 540px); }
   pointer-events: none;
   transform-origin: 50% 0;
   animation: mapHoverCardIn 300ms cubic-bezier(.22,1.1,.36,1) forwards;
+  --hover-tilt-start: -3deg;
+  --hover-tilt-end: -1.5deg;
 }
 
 /* The print window — tall enough to show the photo without heavy cropping.
@@ -323,8 +326,8 @@ body.map-panel-open #mapChart { width: calc(100% - 540px); }
 }
 
 @keyframes mapHoverCardIn {
-  from { opacity: 0; transform: translateY(10px) rotate(-3deg) scale(0.92); }
-  to   { opacity: 1; transform: translateY(0)    rotate(-1.5deg) scale(1); }
+  from { opacity: 0; transform: translateY(10px) rotate(var(--hover-tilt-start)) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0)    rotate(var(--hover-tilt-end)) scale(1); }
 }
 
 .map-hover-title {
@@ -393,13 +396,15 @@ body.map-staged-entering #panel-map .map-header-right {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(34, 29, 24, 0);
+  /* Transparent until the globe's first frame is up (room shows through, no
+     black flash); then it darkens. The globe canvas is always topmost. */
+  background: rgba(22, 18, 14, 0);
   opacity: 1;
   pointer-events: none;
-  transition: background 0.45s ease;
+  transition: background 0.4s ease;
 }
 .globe-fly-overlay.is-active {
-  background: rgba(34, 29, 24, 0.96);
+  background: rgba(22, 18, 14, 0.98);
 }
 .globe-fly-overlay canvas {
   display: block;
@@ -497,15 +502,16 @@ body.map-panel-open .map-zoom { right: 568px; }
 /* ── World-view stats sidebar ───────────────────────────────────────────── */
 .map-stats {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 248px;
-  height: 100%;
+  /* Page-level now: top aligns with the Author Origin (subheader) row. */
+  top: var(--map-subheader-top, 92px);
+  right: 20px;
+  width: 220px;
+  bottom: 20px;
   z-index: 22;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 8px 2px 24px 0;
+  padding: 0 0 24px 0;
   overflow-y: auto;
   pointer-events: auto;
   opacity: 1;
@@ -525,13 +531,13 @@ body.map-stats-hidden .map-stats {
 
 /* Reserve room on the right for the sidebar in world view. */
 body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
-  width: calc(100% - 256px);
+  width: calc(100% - 232px);
 }
 
 .map-stats-card {
   border: var(--ui-border-width) solid var(--ui-border-color);
   border-radius: 12px;
-  padding: 14px 15px;
+  padding: 13px 14px;
   background: rgba(232, 223, 200, 0.025);
 }
 
@@ -554,7 +560,7 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
 
 .map-stats-figures {
   display: flex;
-  gap: 22px;
+  gap: 16px;
 }
 .map-stats-figure {
   display: flex;
@@ -589,7 +595,7 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
   display: grid;
   grid-template-columns: 12px 1fr auto;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
   counter-increment: map-rank;
 }
 .map-stats-row::before {
@@ -682,10 +688,11 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
 /* ── Side panel ─────────────────────────────────────────────────────────── */
 .map-panel {
   position: absolute;
-  top: 0;
+  /* Page-level now: top aligns with the Author Origin (subheader) row. */
+  top: var(--map-subheader-top, 92px);
   right: 0;
   width: 540px;
-  height: 100%;
+  bottom: 0;
   background: transparent;
   border-left: 1px solid rgba(232,223,200,0.28);
   z-index: 40;
@@ -719,7 +726,7 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 40px 28px 18px;
+  padding: 36px 28px 16px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -741,22 +748,11 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
   letter-spacing: 0.05em;
   color: rgba(243,236,218,0.78);
 }
-.map-panel-hero-credit {
-  position: absolute;
-  top: 10px;
-  left: 14px;
-  font-family: var(--font-mono);
-  font-size: 8px;
-  letter-spacing: 0.04em;
-  color: rgba(243,236,218,0.6);
-  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
-}
-
 /* When a hero is present, demote the text head: hide the duplicate place
    name and let the subtitle sit just under the image. The close button
    floats over the hero (anchored to the panel, not the head). */
 .map-panel.has-hero .map-panel-head {
-  padding-top: 16px;
+  padding-top: 8px;
 }
 .map-panel.has-hero .map-panel-place {
   display: none;
@@ -766,7 +762,7 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
   position: static;
 }
 .map-panel.has-hero .map-panel-close {
-  top: 16px;
+  top: 14px;
   right: 20px;
   z-index: 3;
   background: rgba(34, 29, 24, 0.5);
@@ -824,11 +820,21 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
 .map-panel-tabs {
   display: flex;
   gap: 8px;
-  padding: 24px 28px 12px;
+  padding: 18px 28px 10px;
   overflow-x: auto;
   flex-shrink: 0;
 }
 .map-panel-tabs::-webkit-scrollbar { display: none; }
+
+/* With a hero image, pull the head + tabs up tight to the blurred image base. */
+.map-panel.has-hero .map-panel-head {
+  padding-top: 6px;
+  padding-bottom: 0;
+}
+.map-panel.has-hero .map-panel-sub { display: none; }
+.map-panel.has-hero .map-panel-tabs {
+  padding-top: 12px;
+}
 
 .map-tab-btn {
   font-family: var(--font-service-ui);
@@ -855,7 +861,7 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px 0 22px;
+  padding: 6px 0 22px;
 }
 .map-panel-body::-webkit-scrollbar { width: 3px; }
 .map-panel-body::-webkit-scrollbar-track { background: transparent; }

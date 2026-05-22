@@ -345,6 +345,16 @@ function applyMapTopPadding(forChina = __mapInChina) {
   __mapChart.set('paddingBottom', mapBottomPadding(forChina));
 }
 
+// Align the page-level right column (stats / detail panel) with the top of the
+// Author Origin row by exposing the subheader's offset within .map-page.
+function syncSubheaderTop() {
+  const page = document.querySelector('#panel-map .map-page');
+  const sub = document.querySelector('#panel-map .map-subheader');
+  if (!page || !sub) return;
+  const top = Math.round(sub.getBoundingClientRect().top - page.getBoundingClientRect().top);
+  page.style.setProperty('--map-subheader-top', `${Math.max(0, top)}px`);
+}
+
 function setMapInteractionMode(mode = 'world') {
   if (!__mapChart) return;
   if (mode === 'world') {
@@ -438,28 +448,17 @@ function waitForAmCharts(cb, attempt = 0) {
 /* ── DOM scaffold ──────────────────────────────────────────────────────── */
 
 function mapShellHTML() {
-  const located   = MAP_LIBRARY.filter(b => b.loc).length;
-  const unlocated = MAP_LIBRARY.filter(b => !b.loc).length;
-  const countries = activeCountries().size;
   const sharedHeader = renderUnifiedPanelHeader('map');
   const content = `
     ${sharedHeader}
 
     <div class="map-subheader">
       <div class="map-geo-filters" id="mapGeoFilters"></div>
-      <div class="map-header-right">
-        <div class="map-chip"><strong id="mapBooksCount">${located}</strong> books mapped</div>
-        <div class="map-chip"><strong id="mapCountriesCount">${countries}</strong> countries</div>
-        <div class="map-chip map-chip--dim" id="mapUnlocatedBadge" ${unlocated === 0 ? 'hidden' : ''}>${unlocated} book${unlocated === 1 ? '' : 's'} not yet located</div>
-      </div>
       <div class="map-breadcrumb" id="mapBreadcrumb" hidden></div>
     </div>
 
     <div class="map-stage">
       <div id="mapChart"></div>
-
-      <!-- World-view stats sidebar (hidden once a country is focused) -->
-      <aside class="map-stats" id="mapStats"></aside>
 
       <!-- Decorative globe — same model as the 3D room's Map entry object -->
       <div class="map-globe" id="mapGlobe" aria-hidden="true"></div>
@@ -480,18 +479,21 @@ function mapShellHTML() {
       </div>
 
       <div class="map-hover-stage" id="mapHoverStage"></div>
+    </div>
 
-      <!-- Side panel -->
-      <div class="map-panel" id="mapPanel">
-        <div class="map-panel-hero" id="mapPanelHero" hidden></div>
-        <div class="map-panel-head">
-          <div class="map-panel-place" id="mapPanelPlace">—</div>
-          <div class="map-panel-sub" id="mapPanelSub">—</div>
-          <div class="map-panel-close" id="mapPanelClose">×</div>
-        </div>
-        <div class="map-panel-tabs" id="mapPanelTabs"></div>
-        <div class="map-panel-body" id="mapPanelBody"></div>
+    <!-- Right column lives at page level (not inside the clipped stage) so it
+         can align its top with the Author Origin row without being cut off. -->
+    <aside class="map-stats" id="mapStats"></aside>
+
+    <div class="map-panel" id="mapPanel">
+      <div class="map-panel-hero" id="mapPanelHero" hidden></div>
+      <div class="map-panel-head">
+        <div class="map-panel-place" id="mapPanelPlace">—</div>
+        <div class="map-panel-sub" id="mapPanelSub">—</div>
+        <div class="map-panel-close" id="mapPanelClose">×</div>
       </div>
+      <div class="map-panel-tabs" id="mapPanelTabs"></div>
+      <div class="map-panel-body" id="mapPanelBody"></div>
     </div>
   `;
   return renderToolPageShell('map', `<div class="map-page">${content}</div>`);
@@ -501,6 +503,8 @@ function bindMapShellEvents() {
   document.getElementById('mapPanelClose').addEventListener('click', closePanel);
   renderGlobalGeoFilters();
   renderMapStats();
+  syncSubheaderTop();
+  window.addEventListener('resize', syncSubheaderTop);
   const worldBtn = document.getElementById('mapWorldBtn');
   if (worldBtn) {
     worldBtn.addEventListener('click', (event) => {
@@ -743,6 +747,14 @@ function bookRecency(book) {
   return Number.isFinite(book.year) ? book.year : 0;
 }
 
+function mappedBookCount(countryMap = activeCountryMap()) {
+  const ids = new Set();
+  Object.values(countryMap).forEach((books) => {
+    books.forEach((book) => ids.add(book.id));
+  });
+  return ids.size;
+}
+
 // Derive everything the sidebar needs from the active buckets — no new data.
 function buildMapStats() {
   const countryMap = activeCountryMap();
@@ -786,7 +798,7 @@ function buildMapStats() {
 
   return {
     countries: ranked.length,
-    books: MAP_LIBRARY.filter(b => b.loc).length,
+    books: mappedBookCount(countryMap),
     top,
     maxCount,
     topRegions,
@@ -810,11 +822,11 @@ function renderMapStats() {
     ? 'All locations'
     : (MAP_MODE_META[__mapGeoMode]?.label || 'All locations');
 
-  if (!stats.books) {
+  if (!stats.countries) {
     el.innerHTML = `
       <section class="map-stats-card">
         <div class="map-stats-kicker">Reading footprint</div>
-        <p class="map-stats-empty">No located books yet. Add a book with a place to start your map.</p>
+        <p class="map-stats-empty">No mapped books yet. Add a book with a place to start your map.</p>
       </section>`;
     return;
   }
@@ -892,6 +904,21 @@ function bootMap() {
     })
   );
   __mapChart = chart;
+
+  function setMapProjection(mode = 'world') {
+    if (mode === 'world') {
+      chart.set('projection', am5map.geoNaturalEarth1());
+      return;
+    }
+    // Detail mode uses a flat Mercator. The world view pans via 'rotateX', so by
+    // the time a country is clicked the globe may be spun to an arbitrary angle;
+    // that leftover rotation would tilt/stretch the flat map and can push the
+    // target (e.g. China) off-screen entirely. Zero the rotation so Mercator
+    // renders upright and centred before we zoom to the country.
+    chart.set('rotationX', 0);
+    chart.set('rotationY', 0);
+    chart.set('projection', am5map.geoMercator());
+  }
 
   /* ── World polygon series ── */
   const worldSeries = chart.series.push(am5map.MapPolygonSeries.new(root, {
@@ -1052,17 +1079,51 @@ function bootMap() {
      chart area. zoomToGeoPoint level 5 fills ~66% of the viewport well.
      A second pass at 900ms catches any remaining resize lag. */
   function fitChina() {
-    const doZoom = () => {
-      applyMapTopPadding(true);
-      chart.zoomToGeoPoint({ longitude: 104, latitude: 35.5 }, 4.5, true);
+    // Zoom to China's actual polygon bounds (same reliable path as other
+    // countries) rather than a hard-coded lng/lat+level, which mis-framed the
+    // province map in the narrowed pane and left it off-screen / blank. Then
+    // ease out a notch so neighbouring provinces/countries stay visible.
+    const cnItem = () => {
+      let found = null;
+      worldSeries.mapPolygons.each(poly => {
+        if (poly.dataItem?.get('id') === 'CN') found = poly.dataItem;
+      });
+      return found;
     };
-    setTimeout(doZoom, 500);
+    const doZoom = () => {
+      setMapProjection('detail');
+      applyMapTopPadding(true);
+      const di = cnItem();
+      if (di) {
+        worldSeries.zoomToDataItem(di);
+        setTimeout(() => {
+          // China is large and the left pane is halved by the detail panel, so
+          // step out a little further than other countries to keep the whole
+          // country comfortably inside the visible area.
+          const fitted = chart.get('zoomLevel') || 1;
+          chart.zoomToGeoPoint(centroidOf(di), fitted * 0.5, true);
+        }, 360);
+      } else {
+        chart.zoomToGeoPoint({ longitude: 104, latitude: 35.5 }, 2.0, true);
+      }
+    };
+    // Match other countries' timing (fitCountry) so the province map zooms in
+    // immediately rather than sitting tiny for ~500ms then "flying in".
+    setTimeout(doZoom, 80);
+    setTimeout(doZoom, 640);
   }
 
   function resetWorldHome() {
+    setMapProjection('world');
     applyMapTopPadding(false);
     setMapInteractionMode('world');
-    const doHome = () => chart.goHome();
+    const doHome = () => {
+      // Recentre the spin so returning from a country always lands on the
+      // default-facing globe, not wherever it was last rotated to.
+      chart.set('rotationX', 0);
+      chart.set('rotationY', 0);
+      chart.goHome();
+    };
     setTimeout(doHome, 20);
     setTimeout(doHome, 200);
     setTimeout(doHome, 520);
@@ -1071,9 +1132,34 @@ function bootMap() {
   function fitCountry(poly) {
     const di = poly?.dataItem;
     if (!di) return;
-    const doZoom = () => worldSeries.zoomToDataItem(di);
-    setTimeout(doZoom, 120);
-    setTimeout(doZoom, 620);
+    setMapProjection('detail');
+    // Fit the country, then ease the zoom back out a notch so its neighbours
+    // stay visible (the country shouldn't fill the whole pane). The exact
+    // tight-fit level varies by country size, so we scale down relative to
+    // wherever zoomToDataItem lands rather than using a fixed level.
+    const doZoom = () => {
+      worldSeries.zoomToDataItem(di);
+      setTimeout(() => {
+        const fitted = chart.get('zoomLevel') || 1;
+        chart.zoomToGeoPoint(centroidOf(di), fitted * 0.62, true);
+      }, 360);
+    };
+    setTimeout(doZoom, 80);
+    setTimeout(doZoom, 640);
+  }
+
+  // Geographic centre of a polygon data item, for re-centring after fit.
+  function centroidOf(di) {
+    const g = di?.get('geometry');
+    try {
+      const c = am5map.getGeoCentroid(g);
+      if (c && Number.isFinite(c.longitude) && Number.isFinite(c.latitude)) return c;
+    } catch {}
+    // Fallback to bounds centre.
+    const b = di?.get('geometry') && am5map.getGeoBounds
+      ? am5map.getGeoBounds(di.get('geometry')) : null;
+    if (b) return { longitude: (b.left + b.right) / 2, latitude: (b.top + b.bottom) / 2 };
+    return { longitude: 0, latitude: 0 };
   }
 
   function focusCountry(poly, id, name) {
@@ -1081,6 +1167,7 @@ function bootMap() {
     __mapFocusedCountryId = id;
     chinaSeries.hide();
     worldSeries.show();
+    setMapProjection('detail');
     setMapInteractionMode('detail');
     applyMapTopPadding(false);
     setBreadcrumb('country', name, goWorld);
@@ -1093,13 +1180,23 @@ function bootMap() {
     clearHoverPreview();
     __mapInChina = true;
     __mapFocusedCountryId = 'CN';
-    worldSeries.hide();
-    chinaSeries.show();
+    setMapProjection('detail');
     setMapInteractionMode('detail');
     setBreadcrumb('china', 'China', goWorld);
     setStatsVisible(false);
     openCountryPanel('CN', 'China');
+
+    // Smooth handoff: zoom the WORLD map's China outline in first (exactly like
+    // any other country), then once it has settled at the focused scale, swap
+    // the plain outline for the clickable province detail map. Keeping the
+    // province series hidden until then avoids it flashing at world scale.
+    chinaSeries.hide();
     fitChina();
+    setTimeout(() => {
+      if (!__mapInChina) return;          // bailed out before the swap
+      chinaSeries.show();
+      worldSeries.hide();
+    }, 760);
   }
 
   function goWorld() {
@@ -1108,6 +1205,7 @@ function bootMap() {
     clearHoverPreview();
     chinaSeries.hide();
     worldSeries.show();
+    setMapProjection('world');
     setBreadcrumb('world', 'World', null);
     dismissPanel();
     setStatsVisible(true);
@@ -1156,6 +1254,7 @@ function bootMap() {
     mapResizeTimer = setTimeout(() => {
       applyMapTopPadding();
       if (__mapInChina) fitChina();
+      if (__mapFocusedCountryId && __mapActivePoly && !__mapInChina) fitCountry(__mapActivePoly);
     }, 120);
   });
 
@@ -1267,10 +1366,12 @@ function typewriterInto(el, text, { speed = 26, startDelay = 0, onDone } = {}) {
   const step = () => {
     if (i <= text.length) {
       el.textContent = text.slice(0, i);
+      positionHoverCard();
       i += 1;
       __hoverTypeTimers.push(setTimeout(step, speed));
     } else {
       el.classList.remove('is-typing');
+      requestAnimationFrame(positionHoverCard);
       onDone?.();
     }
   };
@@ -1309,9 +1410,19 @@ function renderHoverCard(countryId, countryName) {
     </div>`;
 
   // Cached images may already be complete before onload binds — reveal them.
+  const card = document.getElementById('mapHoverCard');
+  if (card) {
+    const zone = getHoverAnchorZone(getHoverCardAnchor());
+    const tilt = hoverCardTilt(countryId, zone);
+    card.style.setProperty('--hover-tilt-start', `${tilt * 1.8}deg`);
+    card.style.setProperty('--hover-tilt-end', `${tilt}deg`);
+  }
   const img = stage.querySelector('.map-hover-card-thumb img');
   if (img && img.complete && img.naturalWidth > 0) {
     img.closest('.map-hover-card-thumb')?.classList.add('loaded');
+    requestAnimationFrame(positionHoverCard);
+  } else if (img) {
+    img.addEventListener('load', () => requestAnimationFrame(positionHoverCard), { once: true });
   }
 
   // Remember what we rendered so a later profile-arrival re-render can be
@@ -1335,50 +1446,103 @@ function renderHoverCard(countryId, countryName) {
 }
 let __hoverRendered = null;
 
-// Pin the card tight to the country's geometric centre. Default: just below
-// the centre, horizontally centred on it. If the card would be clipped at the
-// bottom (country near the page bottom) it flips above; horizontal position is
-// clamped on-screen and clear of the open detail panel. Anchoring to the
-// polygon (not the cursor) keeps the card visually attached to the land.
+// Place the card BESIDE the hovered country so it never covers the land the
+// reader is looking at. We read the country's on-screen bounding box and set
+// the card just outside it (on whichever side has room), vertically centred on
+// the country. Only when neither side fits do we fall back to above/below.
+// Anchoring to the polygon (not the cursor) keeps the card attached to the land.
 function positionHoverCard() {
   const card = document.getElementById('mapHoverCard');
   if (!card) return;
 
-  // Anchor on the cursor position captured at hover. The user is hovering ON the
-  // country, so this is a reliable in-country point — and unlike amCharts sprite
-  // coords it's always a true screen position, so the flip-above maths is sound.
-  const anchor = { x: __mapHoverAnchor.x, y: __mapHoverAnchor.y };
+  const anchor = getHoverCardAnchor();
+  const stageRect = hoverStageRect();
 
   const cw = card.offsetWidth || 236;
   const ch = card.offsetHeight || 240;
   const bounds = hoverViewportBounds();
-  const gap = 8;        // tight to the land
-  const overlap = 16;   // let the card sit slightly over the country edge
+  const gap = 16;
 
-  // Horizontal: centre on the country, then clamp on-screen.
-  let x = anchor.x - cw / 2;
-  x = Math.max(bounds.left, Math.min(x, bounds.right - cw));
+  // The country's footprint in page pixels, so the card clears the actual land
+  // rather than just its centre point. Falls back to a small radius when the
+  // polygon bounds are unavailable (keeps the old beside-the-point behaviour).
+  const poly = hoverPolyPageBox();
+  const leftEdge   = poly ? poly.left   : anchor.x - 28;
+  const rightEdge  = poly ? poly.right  : anchor.x + 28;
+  const topEdge    = poly ? poly.top    : anchor.y - 28;
+  const bottomEdge = poly ? poly.bottom : anchor.y + 28;
+  const midY = poly ? (poly.top + poly.bottom) / 2 : anchor.y;
 
-  // Vertical: prefer just below the centre. If the full card would clip the
-  // bottom, flip ABOVE the centre so it always shows complete. Whichever side
-  // has more room wins when neither fully fits.
-  const below = anchor.y + gap - overlap;
-  const above = anchor.y - ch - gap + overlap;
-  let y;
-  if (below + ch <= bounds.bottom) {
-    y = below;                       // fits below
-  } else if (above >= bounds.top) {
-    y = above;                       // flip above
+  const roomRight = bounds.right - (rightEdge + gap);
+  const roomLeft  = (leftEdge - gap) - bounds.left;
+
+  let x;
+  if (roomRight >= cw) {
+    x = rightEdge + gap;                 // sits to the country's right
+  } else if (roomLeft >= cw) {
+    x = leftEdge - gap - cw;             // sits to the country's left
   } else {
-    // Neither fully fits — pick the side with more space.
-    const roomBelow = bounds.bottom - anchor.y;
-    const roomAbove = anchor.y - bounds.top;
-    y = roomAbove > roomBelow ? above : below;
+    // No horizontal room either side — fall back to above/below, clamped on
+    // screen and clear of the country box rather than overlapping it.
+    x = Math.max(bounds.left, Math.min(anchor.x - cw / 2, bounds.right - cw));
+    const below = bottomEdge + gap;
+    const above = topEdge - gap - ch;
+    let y;
+    if (below + ch <= bounds.bottom) y = below;
+    else if (above >= bounds.top) y = above;
+    else y = (bounds.bottom - midY) > (midY - bounds.top) ? below : above;
+    y = Math.max(bounds.top, Math.min(y, bounds.bottom - ch));
+    card.style.left = `${x - stageRect.left}px`;
+    card.style.top = `${y - stageRect.top}px`;
+    return;
   }
-  y = Math.max(bounds.top, Math.min(y, bounds.bottom - ch));
 
-  card.style.left = `${x}px`;
-  card.style.top = `${y}px`;
+  // Vertically centre the card on the country, clamped within the viewport.
+  let y = Math.max(bounds.top, Math.min(midY - ch / 2, bounds.bottom - ch));
+
+  card.style.left = `${x - stageRect.left}px`;
+  card.style.top = `${y - stageRect.top}px`;
+}
+
+// The hovered polygon's bounding box in page (client) pixels, or null if it
+// can't be resolved. amCharts MapPolygon exposes a Sprite-level bounds() in its
+// own local coords; we offset it by the chart's page rect to get page pixels.
+function hoverPolyPageBox() {
+  const poly = __mapHoverPoly;
+  const chartRect = document.getElementById('mapChart')?.getBoundingClientRect();
+  if (!poly || !chartRect) return null;
+  let b = null;
+  try { b = poly.globalBounds?.() || poly.bounds?.(); } catch { b = null; }
+  if (!b || !Number.isFinite(b.left) || !Number.isFinite(b.right)) return null;
+  // globalBounds() is already relative to the root container (the chart div).
+  return {
+    left:   chartRect.left + b.left,
+    right:  chartRect.left + b.right,
+    top:    chartRect.top  + b.top,
+    bottom: chartRect.top  + b.bottom,
+  };
+}
+
+function hoverCardTilt(countryId, zone) {
+  const base = (Math.abs(hashStr(countryId)) % 7) + 1;
+  const sign = zone.horizontal === 'right' ? -1 : zone.horizontal === 'left' ? 1 : (Math.abs(hashStr(`${countryId}-tilt`)) % 2 === 0 ? 1 : -1);
+  return sign * (1.2 + base * 0.32);
+}
+
+function getHoverCardAnchor() {
+  const chartRect = document.getElementById('mapChart')?.getBoundingClientRect();
+  const spriteX = __mapHoverPoly?.get?.('x');
+  const spriteY = __mapHoverPoly?.get?.('y');
+  const fromPoly = Number.isFinite(spriteX) && Number.isFinite(spriteY) && chartRect
+    ? { x: chartRect.left + spriteX, y: chartRect.top + spriteY }
+    : null;
+  const pointer = __mapHoverAnchor || __mapPointer;
+  if (!fromPoly) return pointer;
+
+  return {
+    x: fromPoly.x + (pointer.x - fromPoly.x) * 0.3,
+    y: fromPoly.y + (pointer.y - fromPoly.y) * 0.3,
+  };
 }
 
 async function showHoverCard(countryId, countryName, activePoly) {
@@ -1414,13 +1578,27 @@ function showHoverTitleCloud(books, activePoly, options = {}) {
 }
 
 function hoverViewportBounds() {
-  const panelOffset = document.body.classList.contains('map-panel-open') ? 540 : 0;
+  const chartRect = document.getElementById('mapChart')?.getBoundingClientRect();
+  if (chartRect) {
+    return {
+      left: Math.round(chartRect.left + 14),
+      right: Math.min(window.innerWidth - 18, Math.round(chartRect.right - 14)),
+      top: Math.max(hoverSafeTop(), Math.round(chartRect.top + 10)),
+      bottom: Math.min(window.innerHeight - 22, Math.round(chartRect.bottom - 18)),
+    };
+  }
   return {
     left: 22,
-    right: window.innerWidth - panelOffset - 22,
+    right: window.innerWidth - 22,
     top: hoverSafeTop(),
     bottom: window.innerHeight - 24,
   };
+}
+
+function hoverStageRect() {
+  return document.getElementById('mapHoverStage')?.getBoundingClientRect()
+    || document.getElementById('mapChart')?.getBoundingClientRect()
+    || { left: 0, top: 0 };
 }
 
 function getHoverAnchorPoint(poly) {
@@ -1513,7 +1691,8 @@ function buildHoverTitles(anchor, books, options = {}) {
   if (!list.length) {
     if (!emptyText) return [];
     const pos = clampHoverNode(anchor.x - 86, anchor.y + 122, 190, 32);
-    return [`<div class="${className} is-empty" style="left:${pos.x}px;top:${pos.y}px">${escapeHTML(emptyText)}</div>`];
+    const local = hoverStagePoint(pos);
+    return [`<div class="${className} is-empty" style="left:${local.x}px;top:${local.y}px">${escapeHTML(emptyText)}</div>`];
   }
 
   const zone = getHoverAnchorZone(anchor);
@@ -1528,9 +1707,18 @@ function buildHoverTitles(anchor, books, options = {}) {
     const x = anchor.x + Math.cos(angle) * radius;
     const y = anchor.y + Math.sin(angle) * radius;
     const pos = clampHoverNode(x - width / 2, y - height / 2, width, height);
+    const local = hoverStagePoint(pos);
     const rot = (index % 2 === 0 ? -1 : 1) * (6 + (index % 3) * 2);
-    return `<div class="${className}" style="left:${pos.x}px;top:${pos.y}px;transform:rotate(${rot}deg)">${escapeHTML(book.title)}</div>`;
+    return `<div class="${className}" style="left:${local.x}px;top:${local.y}px;transform:rotate(${rot}deg)">${escapeHTML(book.title)}</div>`;
   });
+}
+
+function hoverStagePoint(point) {
+  const rect = hoverStageRect();
+  return {
+    x: point.x - rect.left,
+    y: point.y - rect.top,
+  };
 }
 
 function brighten(hex, amount) {
@@ -1636,9 +1824,6 @@ function renderPanelHero() {
     return;
   }
 
-  const credit = hero.credit
-    ? `<span class="map-panel-hero-credit">${escapeHTML(hero.credit)}</span>`
-    : '';
   const caption = hero.caption
     ? `<span class="map-panel-hero-caption">${escapeHTML(hero.caption)}</span>`
     : '';
@@ -1649,8 +1834,7 @@ function renderPanelHero() {
     <div class="map-panel-hero-overlay">
       <span class="map-panel-hero-name">${escapeHTML(__mapPanelState.regionLabel || __mapPanelState.placeLabel)}</span>
       ${caption}
-    </div>
-    ${credit}`;
+    </div>`;
   heroEl.hidden = false;
   panelEl.classList.add('has-hero');
 }
@@ -1709,7 +1893,6 @@ function renderPanelBody() {
   if (__mapPanelState.activeTab === 'culture') {
     container.innerHTML = `
       <section class="map-copy-card">
-        <div class="map-copy-kicker">Cultural background</div>
         <p>${escapeHTML(ctx.culture)}</p>
       </section>
     `;
@@ -1718,9 +1901,6 @@ function renderPanelBody() {
 
   if (__mapPanelState.activeTab === 'history') {
     container.innerHTML = `
-      <section class="map-copy-card">
-        <div class="map-copy-kicker">Historical context</div>
-      </section>
       <section class="map-history-list">
         ${ctx.history.map(item => `
           <article class="map-history-item">
@@ -1735,7 +1915,6 @@ function renderPanelBody() {
   if (__mapPanelState.activeTab === 'keywords') {
     container.innerHTML = `
       <section class="map-copy-card">
-        <div class="map-copy-kicker">Literary / thought keywords</div>
         <div class="map-keyword-grid">
           ${ctx.keywords.map(word => `<span class="map-keyword-chip">${escapeHTML(word)}</span>`).join('')}
         </div>
@@ -1840,12 +2019,7 @@ function inferProvinceKey(book) {
 }
 
 function buildPanelSubtitle(state) {
-  if (state.type === 'province') return '';
-  const total = state.books.length;
-  const modeLabel = state.filterMode === 'all'
-    ? 'All Locations'
-    : (MAP_MODE_META[state.filterMode]?.label || 'Current Mode');
-  return `${total} books in ${modeLabel.toLowerCase()} · culture + history + entry routes`;
+  return '';
 }
 
 function buildProvincePathLabel(provinceId, books) {

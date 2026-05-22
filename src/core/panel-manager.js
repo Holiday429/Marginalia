@@ -101,6 +101,7 @@ const PanelManager = (() => {
       originX,
       originY,
       source: input.source || 'panel',
+      suppressRoomBackdrop: !!input.suppressRoomBackdrop,
     };
   }
 
@@ -122,6 +123,7 @@ const PanelManager = (() => {
     setTransitionCssVars(meta);
 
     overlay.classList.remove('is-active', 'is-leaving');
+    overlay.classList.toggle('is-solid', !!meta?.suppressRoomBackdrop);
     overlay.hidden = false;
     if (phase === 'leave') overlay.classList.add('is-leaving');
 
@@ -191,7 +193,7 @@ const PanelManager = (() => {
     }
 
     document.body.dataset.panel = canonicalPanelId;
-    if (isRoomOrigin) document.body.classList.add('is-room-panel-entering');
+    if (isRoomOrigin && !transitionMeta.suppressRoomBackdrop) document.body.classList.add('is-room-panel-entering');
     // Sync body[data-view] so existing view CSS selectors keep working
     if (PANEL_DATA_VIEW[canonicalPanelId]) document.body.dataset.view = PANEL_DATA_VIEW[canonicalPanelId];
 
@@ -267,7 +269,7 @@ const PanelManager = (() => {
       return;
     }
 
-    document.body.classList.add('is-room-panel-leaving');
+    if (!transitionMeta.suppressRoomBackdrop) document.body.classList.add('is-room-panel-leaving');
     showTransitionOverlay(transitionMeta, 'leave');
 
     if (el) {

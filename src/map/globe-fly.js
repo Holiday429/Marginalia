@@ -21,9 +21,13 @@ const GLOBE_URL = '/3d/antique_globe.glb';
  *
  * @param {object} [opts]
  * @param {number} [opts.duration=1400] total animation time in ms
+ * @param {() => void} [opts.onLanded] fired once the globe reaches the corner,
+ *   while the scrim still covers the screen — the caller should navigate here so
+ *   the destination paints BEHIND the overlay before it fades out (no black gap).
  */
 export function playGlobeFlyIn(opts = {}) {
   const duration = opts.duration ?? 1400;
+  const onLanded = typeof opts.onLanded === 'function' ? opts.onLanded : null;
 
   return new Promise((resolve) => {
     let settled = false;
@@ -39,6 +43,9 @@ export function playGlobeFlyIn(opts = {}) {
 
     const overlay = document.createElement('div');
     overlay.className = 'globe-fly-overlay';
+    // Start transparent: the room stays visible behind it while the globe model
+    // loads — never a black flash. The scrim darkens only once the globe's first
+    // frame is on screen (below), so the globe appears and immediately spins.
     document.body.appendChild(overlay);
 
     const w = window.innerWidth;
@@ -82,7 +89,12 @@ export function playGlobeFlyIn(opts = {}) {
       overlay.remove();
     };
 
-    requestAnimationFrame(() => overlay.classList.add('is-active'));
+    // NOTE: the scrim is intentionally NOT darkened here. The globe model is a
+    // large asset and can take a moment to arrive; darkening up-front would show
+    // a solid black screen while it loads. Instead we keep the overlay clear so
+    // the room stays visible behind it, render the globe's first frame the
+    // instant the model is ready, and only THEN fade the scrim in (below). The
+    // user clicks the globe and immediately sees a spinning globe — no black gap.
 
     const loader = new GLTFLoader();
     loader.load(
@@ -98,10 +110,14 @@ export function playGlobeFlyIn(opts = {}) {
         model.position.sub(center);
         pivot.add(model);
 
+        // Globe appears at full size, centred; render its first frame, THEN
+        // darken the scrim — so the globe is already on screen, never a black gap.
+        pivot.scale.setScalar(1);
+        renderer.render(scene, camera);
+        requestAnimationFrame(() => overlay.classList.add('is-active'));
+
         const start = performance.now();
-        const easeOut = (t) => 1 - Math.pow(1 - t, 3);
         const easeInOut = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        const smooth = (t) => t * t * (3 - 2 * t);   // smoothstep
 
         // World-space target for the bottom-LEFT corner, so the globe flies to
         // roughly where the decorative globe sits and hands off seamlessly.
@@ -110,38 +126,40 @@ export function playGlobeFlyIn(opts = {}) {
         const cornerX = -halfW * 0.82;   // bottom-LEFT
         const cornerY = -halfH * 0.74;
 
-        // End rotation a bit short of whole turns so the front face — not the
-        // stand/support — is toward the viewer when it comes to rest.
-        const SPIN_TURNS = 1.6;
-        const TRAVEL_START = 0.42;   // begin drifting to the corner before fully grown
+        // First ~full turn: spin in place at the centre. After that: keep
+        // spinning while shrinking and travelling to the corner.
+        const SPIN_HOLD = 0.42;       // fraction spent spinning before shrinking
+        const TURNS = 2.4;            // total turns; eased so it slows to a stop
 
         const tick = (now) => {
           const t = Math.min(1, (now - start) / duration);
 
-          // Slow, calm spin that eases to a stop short of a whole turn.
-          pivot.rotation.y = easeOut(t) * Math.PI * 2 * SPIN_TURNS;
+          // Constant spin speed throughout — same rate from start to finish.
+          pivot.rotation.y = t * Math.PI * 2 * TURNS;
 
-          // Scale: a gentle grow at the start, then a continuous shrink toward
-          // the corner size — one smooth curve, no hard phase switch.
-          const grow = easeOut(Math.min(1, t / 0.32));        // 0→1 over first third
-          const shrink = smooth(Math.max(0, (t - TRAVEL_START) / (1 - TRAVEL_START)));
-          const scale = (0.42 + 0.58 * grow) * (1 - 0.66 * shrink);
-          pivot.scale.setScalar(scale);
-
-          // Travel: ease along a path from centre to the bottom-left corner,
-          // starting partway through so growth and travel overlap smoothly.
-          const travel = easeInOut(Math.max(0, (t - TRAVEL_START) / (1 - TRAVEL_START)));
-          pivot.position.set(cornerX * travel, cornerY * travel, -0.4 * (1 - travel));
-
-          // Scrim fades out across the travel so the map appears behind it.
-          overlay.style.opacity = String(1 - smooth(Math.max(0, (t - 0.55) / 0.45)));
+          if (t < SPIN_HOLD) {
+            // Phase 1 — full size, centred, just turning (≈ first full turn).
+            pivot.scale.setScalar(1);
+            pivot.position.set(0, 0, 0);
+          } else {
+            // Phase 2 — shrink + travel to the bottom-left corner together.
+            const e = easeInOut((t - SPIN_HOLD) / (1 - SPIN_HOLD));
+            pivot.scale.setScalar(1 - 0.66 * e);
+            pivot.position.set(cornerX * e, cornerY * e, -0.4 * e);
+          }
 
           renderer.render(scene, camera);
 
           if (t < 1) {
             raf = requestAnimationFrame(tick);
           } else {
-            finish(teardown);
+            // Globe has landed in the corner. Let the caller navigate (the map
+            // paints behind this still-opaque overlay), then fade the scrim out
+            // to reveal it — never a black gap — and finally tear down.
+            onLanded?.();
+            overlay.style.transition = 'opacity 0.5s ease';
+            requestAnimationFrame(() => { overlay.style.opacity = '0'; });
+            setTimeout(() => finish(teardown), 540);
           }
         };
         raf = requestAnimationFrame(tick);
