@@ -2,6 +2,7 @@ import { App } from '../core/app.js';
 import { BooksStore } from '../store/books-store.ts';
 import { SpineCard } from '../components/spine-card.js';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
+import { mountReadingPath } from './reading-path.ts';
 import './annual-shelf.css';
 
 interface ProfileBook {
@@ -42,6 +43,7 @@ interface AnnualShelfOptions {
 interface AnnualShelfState {
   yearIndex: number;
   isAnimating: boolean;
+  paused: boolean;
   previewBookId: string;
   playMode: 'play' | 'organize' | 'replay';
   curateMode: boolean;
@@ -82,7 +84,7 @@ export class ProfileAnnualShelf {
     this.uid = uid;
     this.savedOrder = savedOrder;
     this.years = buildYears(books);
-    this.state = { yearIndex: this.years.length - 1, isAnimating: false, previewBookId: '', playMode: 'play', curateMode: false, curatedOrder: [] };
+    this.state = { yearIndex: this.years.length - 1, isAnimating: false, paused: false, previewBookId: '', playMode: 'play', curateMode: false, curatedOrder: [] };
   }
 
   mount(): void {
@@ -118,11 +120,11 @@ export class ProfileAnnualShelf {
       <div class="prof-annual">
 
         ${this.showRhythm ? `
-          <section class="prof-annual__block" aria-label="Reading Streak">
+          <section class="prof-annual__block" aria-label="Reading Path and Streak">
             <div class="prof-section__head">
               <div>
-                <h2 class="prof-section__title">Reading Streak</h2>
-                <p class="prof-section__subcopy">A warm trace of how steadily the reading fire kept going.</p>
+                <h2 class="prof-section__title">Reading Path &amp; Streak</h2>
+                <p class="prof-section__subcopy">Your cadence across the year — books finished, days kept alight.</p>
               </div>
               <div class="prof-annual__shelf-controls">
                 <div class="prof-rhythm__year-nav">
@@ -132,13 +134,17 @@ export class ProfileAnnualShelf {
                 </div>
               </div>
             </div>
+            <div class="prof-rhythm-row">
+            <div class="prof-rhythm-row__path" id="profAnnualPathMount"></div>
             <div class="prof-streak-card">
               <div class="prof-streak-card__summary">
+                <span class="prof-streak-card__eyebrow">${escHtml(streak.eyebrow)}</span>
                 <div class="prof-streak-card__flame-wrap" aria-hidden="true">
                   <div class="prof-pixel-flame" id="profPixelFlame"></div>
                 </div>
                 <div class="prof-streak-card__days">${streak.displayDays}</div>
-                <div class="prof-streak-card__label">Days in a row</div>
+                <div class="prof-streak-card__label">${escHtml(streak.dayLabel)}</div>
+                ${streak.longestYear > 0 ? `<div class="prof-streak-card__best">Best: ${streak.longestYear} days</div>` : ''}
               </div>
               <div class="prof-streak-card__heatmap">
                 <div class="prof-rhythm__meta-row">
@@ -172,6 +178,7 @@ export class ProfileAnnualShelf {
               `
                 : `<p class="prof-year__empty">No reading sessions recorded for ${year}.</p>`}
               </div>
+            </div>
             </div>
           </section>
         ` : ''}
@@ -237,10 +244,17 @@ export class ProfileAnnualShelf {
       </div>
     `;
 
+    if (this.showRhythm) {
+      const pathMount = this.host.querySelector<HTMLElement>('#profAnnualPathMount');
+      if (pathMount) mountReadingPath(pathMount, this.books as any, { year, showNav: false });
+    }
+
     if (selectedBooks.length) {
       this.renderRacks(selectedBooks);
       this.renderSourceShelf(shelfData.sourceBooks, selectedBooks);
-      updateCounter(this.host, 0, selectedBooks.length);
+      // Static default: all 10 covers shown in their ranked slots (reference-style grid).
+      if (!this.state.curateMode) selectedBooks.forEach((book) => revealSlot(this.host, book.id));
+      updateCounter(this.host, selectedBooks.length, selectedBooks.length);
       // Show first book as static preview
       this.showStaticPreview(selectedBooks[0], selectedBooks);
     }
@@ -273,6 +287,14 @@ export class ProfileAnnualShelf {
 
           slot.setAttribute('draggable', 'true');
           slot.dataset.dragType = 'slot';
+        } else {
+          // Static ranked shelf: medal showing the book's position (1-based).
+          const rank = books.indexOf(book) + 1;
+          const medal = document.createElement('span');
+          medal.className = `prof-annual__rank-medal${rank === 1 ? ' is-top' : ''}`;
+          medal.setAttribute('aria-hidden', 'true');
+          medal.textContent = String(rank);
+          slot.appendChild(medal);
         }
 
         const cover = document.createElement('div');
@@ -397,6 +419,12 @@ export class ProfileAnnualShelf {
 
     const playBtn = this.host.querySelector<HTMLButtonElement>('#profAnnualPlayBtn');
     playBtn?.addEventListener('click', () => {
+      // While a reveal is running, the button toggles pause / resume.
+      if (this.state.isAnimating) {
+        this.state.paused = !this.state.paused;
+        this.updatePlayBtnIcon(playBtn);
+        return;
+      }
       const mode = playBtn.dataset.mode || 'play';
       if (mode === 'organize') this.runOrganize(playBtn);
       else this.startAnimation(playBtn);
@@ -527,6 +555,26 @@ export class ProfileAnnualShelf {
     sourceEl?.addEventListener('drop', onDropOnSource as EventListener);
   }
 
+  // Resolves once the reveal is unpaused (or aborted), polling the paused flag.
+  private waitWhilePaused(): Promise<void> {
+    if (!this.state.paused) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      const check = () => {
+        if (!this.state.paused || !this.state.isAnimating) resolve();
+        else window.setTimeout(check, 120);
+      };
+      check();
+    });
+  }
+
+  // Pause icon while playing, play icon while paused.
+  private updatePlayBtnIcon(playBtn: HTMLButtonElement): void {
+    const pauseIcon = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>';
+    const playIcon = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>';
+    playBtn.innerHTML = this.state.paused ? playIcon : pauseIcon;
+    playBtn.setAttribute('aria-label', this.state.paused ? 'Resume reveal' : 'Pause reveal');
+  }
+
   private async startAnimation(playBtn: HTMLButtonElement): Promise<void> {
     if (this.state.isAnimating) return;
     const shelfData = this.shelfDataForYear(this.year);
@@ -534,12 +582,15 @@ export class ProfileAnnualShelf {
     if (selectedBooks.length < 2) return;
 
     this.state.isAnimating = true;
-    playBtn.disabled = true;
-    playBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>';
+    this.state.paused = false;
+    // Button stays enabled so it can pause / resume the running reveal.
+    this.updatePlayBtnIcon(playBtn);
 
     // Reset racks + source shelf
     this.renderRacks(selectedBooks);
     this.renderSourceShelf(shelfData.sourceBooks, selectedBooks);
+    // Suppress static rank medals while the reveal plays them out one by one.
+    this.host.querySelector<HTMLElement>('#profAnnualRacks')?.classList.add('is-animating');
     updateCounter(this.host, 0, selectedBooks.length);
     resetStageOverlays(this.host);
 
@@ -554,6 +605,8 @@ export class ProfileAnnualShelf {
 
     for (let i = 0; i < total; i++) {
       if (!this.state.isAnimating) break;
+      await this.waitWhilePaused();
+      if (!this.state.isAnimating) break;
       const book = placement[i];
       const rankNumber = total - i; // 10, 9, … 1
 
@@ -563,6 +616,7 @@ export class ProfileAnnualShelf {
 
       await playRankReveal(this.host, rankNumber);
       if (!this.state.isAnimating) break;
+      await this.waitWhilePaused();
 
       const sourceEl = this.host.querySelector<HTMLElement>(`.booklist-spine[data-source-id="${cssEscape(book.id)}"]`);
       const slotCover = this.host.querySelector<HTMLElement>(`.booklist-slot[data-slot-id="${cssEscape(book.id)}"] .booklist-slot-cover`);
@@ -600,8 +654,10 @@ export class ProfileAnnualShelf {
     }
 
     if (stage) stage.classList.add('is-idle');
+    this.host.querySelector<HTMLElement>('#profAnnualRacks')?.classList.remove('is-animating');
 
     this.state.isAnimating = false;
+    this.state.paused = false;
     this.state.playMode = 'organize';
     playBtn.disabled = false;
     playBtn.dataset.mode = 'organize';

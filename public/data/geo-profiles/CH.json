@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Joshua Earle / Unsplash",
+    "caption": "阿尔卑斯与多语文化的精确"
+  },
+
   "hover": {
     "dna": ["四种语言的内部陌生感", "中立的道德代价", "局外人视角的清醒"],
     "voices": ["马克斯·弗里施", "弗里德里希·迪伦马特"],

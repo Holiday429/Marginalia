@@ -41,59 +41,63 @@ interface JourneyEvent {
   stamp: string;
 }
 
+// Light retro palette, shared with the Map view (src/map/map.js).
+// 14 chromatically distinct families so neighbouring countries never collapse
+// into the same muted hue on the dark journey map. Keep both maps in sync.
 const COUNTRY_COLOR: Record<string, string> = {
-  US:'#4a5c3d', CA:'#3d4f5c', MX:'#5c4a3d',
-  GT:'#4a3d5c', BZ:'#3d5c4a', HN:'#5c3d4a', SV:'#3d5c3d',
-  NI:'#5c503d', CR:'#3d4a5c', PA:'#5c4e3d',
-  CU:'#4a5c3d', JM:'#3d3d5c', HT:'#5c3d3d', DO:'#3d5c5c',
-  CO:'#3d5c4a', VE:'#5c3d3d', GY:'#4a3d5c', SR:'#3d5c3d',
-  EC:'#5c4a3d', PE:'#3d4f5c', BR:'#4c5c3d', BO:'#5c503d',
-  PY:'#3d4a5c', CL:'#5c3d4a', AR:'#3d5c5c', UY:'#5c4e3d',
-  PT:'#4a3d5c', ES:'#3d5c4a', FR:'#5c3d4a', GB:'#3d3d5c',
-  IE:'#5c4a3d', NL:'#3d5c3d', BE:'#5c3d3d', LU:'#4a5c3d',
-  CH:'#3d4f5c', DE:'#5c503d', AT:'#3d4a5c', DK:'#5c4e3d',
-  SE:'#4a3d5c', NO:'#3d5c4a', FI:'#5c3d4a',
-  IT:'#5c3d50', GR:'#3d4c5c', AL:'#5c453d', RS:'#4c5c3d',
-  HR:'#5c3d45', BA:'#455c3d', SI:'#5c453d', ME:'#3d4a5c',
-  MK:'#5c4e3d', BG:'#3d5c3d', RO:'#5c3d3d',
-  PL:'#3d4f5c', CZ:'#5c4a3d', SK:'#4a3d5c', HU:'#3d5c3d',
-  UA:'#5c503d', BY:'#3d3d5c', MD:'#5c3d4a',
-  LT:'#3d5c4a', LV:'#5c4e3d', EE:'#4a5c3d',
-  RU:'#3d4a5c', KZ:'#5c4a3d', UZ:'#3d5c3d', TM:'#5c3d3d',
-  KG:'#4a3d5c', TJ:'#3d5c5c', AF:'#5c503d',
-  TR:'#5c3d4a', SY:'#3d4f5c', LB:'#5c4e3d', IL:'#4a3d5c',
-  JO:'#3d5c4a', IQ:'#5c3d3d', IR:'#4c5c3d', SA:'#5c453d',
-  YE:'#3d4a5c', OM:'#5c4e3d', AE:'#4a5c3d', QA:'#3d3d5c',
-  KW:'#5c4a3d', BH:'#3d5c3d',
-  PK:'#5c3d4a', IN:'#4a5c3d', BD:'#3d4f5c', NP:'#5c4a3d',
-  LK:'#4a3d5c', MM:'#3d5c4a', TH:'#5c3d50',
-  VN:'#3d4c5c', KH:'#5c453d', LA:'#4c5c3d', MY:'#5c3d45',
-  SG:'#455c3d', ID:'#5c4a3d', PH:'#3d5c3d', TL:'#5c3d3d',
-  CN:'#4a3d5c', MN:'#3d5c4a', KP:'#5c503d', KR:'#3d3d5c',
-  JP:'#5c3d4a', TW:'#3d4a5c',
-  NG:'#5c4e3d', GH:'#4a5c3d', CI:'#3d4f5c', SN:'#5c4a3d',
-  ML:'#4a3d5c', BF:'#3d5c3d', NE:'#5c3d3d', CM:'#3d5c5c',
-  TD:'#5c503d', SD:'#3d4a5c', SS:'#5c4e3d', ET:'#4a5c3d',
-  SO:'#3d3d5c', KE:'#5c4a3d', TZ:'#4a3d5c', UG:'#3d5c4a',
-  RW:'#5c3d4a', BI:'#3d4f5c', CD:'#5c4e3d', CG:'#4c5c3d',
-  GA:'#5c453d', AO:'#3d4a5c', ZM:'#5c3d45', ZW:'#455c3d',
-  MZ:'#5c4a3d', MW:'#3d5c3d', MG:'#5c3d3d', ZA:'#3d4c5c',
-  NA:'#5c503d', BW:'#4a3d5c', LS:'#3d5c5c', SZ:'#5c4e3d',
-  MA:'#4a5c3d', DZ:'#3d4f5c', TN:'#5c3d4a', LY:'#4a3d5c',
-  EG:'#3d5c4a', MR:'#5c4e3d',
-  AU:'#3d3d5c', NZ:'#5c3d4a', PG:'#4a5c3d', FJ:'#3d5c3d',
+  US:'#eec86f', CA:'#7fae8a', MX:'#c75d68',
+  GT:'#a385b5', BZ:'#5f8a96', HN:'#d5944f', SV:'#6f7fa8',
+  NI:'#9caa4f', CR:'#d98f7a', PA:'#a385b5',
+  CU:'#d5944f', JM:'#6f7fa8', HT:'#c75d68', DO:'#5f8a96',
+  CO:'#eec86f', VE:'#a385b5', GY:'#cf7a52', SR:'#5f8a96',
+  EC:'#c75d68', PE:'#5f8a96', BR:'#d5944f', BO:'#a385b5',
+  PY:'#7fae8a', CL:'#9caa4f', AR:'#6f7fa8', UY:'#cf7a52',
+  PT:'#d5944f', ES:'#eec86f', FR:'#5f8a96', GB:'#cf7a52',
+  IE:'#9caa4f', NL:'#c75d68', BE:'#a385b5', LU:'#d2a878',
+  CH:'#6f7fa8', DE:'#eec86f', AT:'#d98f7a', DK:'#5f8a96',
+  SE:'#cf7a52', NO:'#a385b5', FI:'#d2a878',
+  IT:'#bf7185', GR:'#d5944f', AL:'#5f8a96', RS:'#eec86f',
+  HR:'#a385b5', BA:'#cf7a52', SI:'#7fae8a', ME:'#9caa4f',
+  MK:'#c75d68', BG:'#6f7fa8', RO:'#d2a878',
+  PL:'#cf7a52', CZ:'#c75d68', SK:'#5f8a96', HU:'#c75d68',
+  UA:'#7fae8a', BY:'#d5944f', MD:'#a385b5',
+  LT:'#a385b5', LV:'#9caa4f', EE:'#eec86f',
+  RU:'#b0c4a6', KZ:'#c75d68', UZ:'#eec86f', TM:'#a385b5',
+  KG:'#7fae8a', TJ:'#6f7fa8', AF:'#5f8a96',
+  TR:'#eec86f', SY:'#c75d68', LB:'#5f8a96', IL:'#d5944f',
+  JO:'#a385b5', IQ:'#7fae8a', IR:'#cf7a52', SA:'#eec86f',
+  YE:'#c75d68', OM:'#5f8a96', AE:'#a385b5', QA:'#d5944f',
+  KW:'#9caa4f', BH:'#d2a878',
+  PK:'#c75d68', IN:'#eec86f', BD:'#a385b5', NP:'#9caa4f',
+  LK:'#cf7a52', MM:'#5f8a96', TH:'#c75d68',
+  VN:'#eec86f', KH:'#d5944f', LA:'#a385b5', MY:'#6f7fa8',
+  SG:'#cf7a52', ID:'#eec86f', PH:'#5f8a96', TL:'#c75d68',
+  CN:'#d5944f', MN:'#6f7fa8', KP:'#a385b5', KR:'#c75d68',
+  JP:'#5f8a96', TW:'#9caa4f',
+  NG:'#eec86f', GH:'#c75d68', CI:'#a385b5', SN:'#d5944f',
+  ML:'#5f8a96', BF:'#cf7a52', NE:'#7fae8a', CM:'#9caa4f',
+  TD:'#c75d68', SD:'#eec86f', SS:'#a385b5', ET:'#d5944f',
+  SO:'#5f8a96', KE:'#c75d68', TZ:'#eec86f', UG:'#d2a878',
+  RW:'#cf7a52', BI:'#a385b5', CD:'#6f7fa8', CG:'#eec86f',
+  GA:'#c75d68', AO:'#d5944f', ZM:'#a385b5', ZW:'#5f8a96',
+  MZ:'#cf7a52', MW:'#eec86f', MG:'#c75d68', ZA:'#9caa4f',
+  NA:'#eec86f', BW:'#d5944f', LS:'#c75d68', SZ:'#a385b5',
+  MA:'#eec86f', DZ:'#c75d68', TN:'#a385b5', LY:'#d5944f',
+  EG:'#5f8a96', MR:'#cf7a52',
+  AU:'#eec86f', NZ:'#c75d68', PG:'#a385b5', FJ:'#5f8a96',
 };
 
 const COUNTRY_BOOST: Record<string, string> = {
-  CN:'#6a547a', GB:'#4a5a7a', FR:'#4a6a5a', RU:'#4a4a7a',
-  JP:'#7a4a6a', US:'#5a7a4a', IN:'#7a6a4a', CO:'#4a7a5a',
-  GR:'#4a6a8a', CZ:'#5a5a7a', PT:'#5a4a7a', NG:'#7a5a4a',
-  IT:'#7a4a6a', CL:'#6a4a5a',
+  CN:'#e6ab63', GB:'#dba074', FR:'#7fb89c', RU:'#c4d6ba',
+  JP:'#74a4b0', US:'#f6d98a', IN:'#f6d98a', CO:'#f6d98a',
+  GR:'#e6ab63', CZ:'#d87585', PT:'#e6ab63', NG:'#f6d98a',
+  IT:'#d18a9b', CL:'#b0bd66',
 };
 
 const PALETTE = [
-  '#5c3d4a','#3d4f5c','#4a5c3d','#5c4a3d','#3d3d5c',
-  '#5c3d3d','#3d5c4a','#5c503d','#4a3d5c','#3d5c5c',
+  '#eec86f','#d5944f','#cf7a52','#c75d68','#bf7185',
+  '#a385b5','#6f7fa8','#5f8a96','#7fae8a','#9caa4f',
+  '#d2a878','#8a9bb0','#b0c4a6','#d98f7a',
 ];
 
 const LENS_LABEL: Record<LensDim, string> = {
@@ -692,13 +696,13 @@ export class ProfileMap {
       }
 
       if (polyId === activeCountry) {
-        const boost = COUNTRY_BOOST[polyId] || brighten(baseColor(polyId), 42);
+        const boost = COUNTRY_BOOST[polyId] || brighten(baseColor(polyId), 20);
         poly.set('fill', am5.color(boost));
         return;
       }
 
       const visits = visitCounts.get(polyId) ?? 1;
-      poly.set('fill', am5.color(visits > 1 ? brighten(baseColor(polyId), 16) : baseColor(polyId)));
+      poly.set('fill', am5.color(visits > 1 ? brighten(baseColor(polyId), 10) : baseColor(polyId)));
     });
   }
 

@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1606298855672-3efb63017be8?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Sumeyye Comez / Unsplash",
+    "caption": "诗歌传统与现代性的撕扯"
+  },
+
   "hover": {
     "dna": ["诗歌即思想", "神秘主义的日常渗透", "审查下的隐语传统"],
     "voices": ["鲁米", "萨迪克·赫达亚特"],

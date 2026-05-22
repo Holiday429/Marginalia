@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1578895101408-1a36b834405b?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Mohammed Hassan / Unsplash",
+    "caption": "沙漠、宗教与口述传统"
+  },
+
   "hover": {
     "dna": ["阿拉伯语的诗歌骨架", "石油现代化的文化震荡", "禁忌下的女性书写"],
     "voices": ["阿卜杜勒拉赫曼·穆尼夫", "拉贾·阿莱姆"],

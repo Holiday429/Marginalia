@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1519197924294-4ba991a11128?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Jacek Dylag / Unsplash",
+    "caption": "夹缝中的民族记忆与道德见证"
+  },
+
   "hover": {
     "dna": ["在消失与复活之间的民族意志", "大屠杀的见证责任", "讽刺作为生存哲学"],
     "voices": ["维斯瓦娃·辛波斯卡", "斯坦尼斯拉夫·莱姆"],

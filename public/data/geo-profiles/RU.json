@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2025-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1547448415-e9f5b28e570d?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Nikolay Vorobyev / Unsplash",
+    "caption": "苦难、救赎与帝国尺度"
+  },
+
   "hover": {
     "dna": ["灵魂的极端处境", "帝国尺度", "知识分子审判"],
     "voices": ["陀思妥耶夫斯基", "托尔斯泰"],

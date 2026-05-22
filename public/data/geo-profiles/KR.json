@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Sava Bobov / Unsplash",
+    "caption": "压缩现代化与创伤记忆"
+  },
+
   "hover": {
     "dna": ["恨与火", "集体创伤", "快速现代化的代价"],
     "voices": ["韩江", "崔仁勋"],

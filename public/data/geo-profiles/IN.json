@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Jovyn Chamb / Unsplash",
+    "caption": "多语碎裂、种姓与后殖民语言政治"
+  },
+
   "hover": {
     "dna": ["多语言的碎裂与共存", "种姓的隐形结构", "后殖民的语言政治"],
     "voices": ["泰戈尔", "R.K. 纳拉扬"],

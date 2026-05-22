@@ -397,7 +397,7 @@ function profileHTML(
           </div>
         </div>
       </div>
-      <div class="prof-map-wrap${journey.topGenres.length ? ' prof-map-wrap--has-legend' : ''}">
+      <div class="prof-map-wrap">
         <div class="prof-map" id="profMap"></div>
         <div class="prof-map-caption" id="profMapCaption"></div>
         <div class="prof-map-zoom" id="profMapZoom">
@@ -406,23 +406,6 @@ function profileHTML(
           <div class="prof-map-zoom__sep"></div>
           <button class="prof-map-zoom__btn prof-map-zoom__fit" id="profMapZoomFit" type="button" aria-label="Fit map">Fit</button>
         </div>
-        ${journey.topGenres.length ? `
-        <div class="prof-map-genre-legend" aria-label="Top genres">
-          <span class="prof-map-genre-legend__title">Top Genres</span>
-          ${journey.topGenres.map((genre) => `
-            <div class="prof-map-genre-legend__item">
-              <div class="prof-map-genre-legend__row">
-                <span class="prof-map-genre-legend__dot"></span>
-                <span class="prof-map-genre-legend__label">${escapeHtml(genre.label)}</span>
-                <span class="prof-map-genre-legend__pct">${genre.pct}%</span>
-              </div>
-              <div class="prof-map-genre-legend__bar" aria-hidden="true">
-                <span style="width:${genre.pct}%"></span>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-        ` : ''}
       </div>
       <div class="prof-map-rail" hidden>
         <div class="prof-map-rail__items" id="profMapRail"></div>
@@ -431,6 +414,7 @@ function profileHTML(
   ` : '';
 
   const finishedBooks = books.filter((book) => isFinishedStatus(book.status));
+
   const annualSection = (profile.showRhythm || finishedBooks.length) ? `
     <div id="profAnnualMount"></div>
   ` : '';
@@ -454,51 +438,52 @@ function profileHTML(
     ${header}
     <div class="prof-shell">
       <div class="prof-shell__inner">
-        <section class="prof-hero" aria-label="Reader profile hero">
-          <header class="prof-reader-card">
-            <div class="prof-reader-card__hero">
-              <div class="prof-identity__media">${avatarEl}</div>
-              <div class="prof-identity__copy">
+        <section class="prof-banner" aria-label="Reader profile">
+          <div class="prof-banner__info">
+            <div class="prof-banner__head">
+              <div class="prof-banner__media">${avatarEl}</div>
+              <div class="prof-banner__id">
                 <h1 class="prof-name">${escapeHtml(displayName)}</h1>
                 <p class="prof-reader-tagline">Soul of a curious wanderer</p>
-              </div>
-              <p class="prof-bio">${escapeHtml(profile.bio || 'I read to understand the world, and myself.')}</p>
-              <div class="prof-reader-meta">
-                ${profileContext.location ? `
-                  <div class="prof-reader-meta__item">
-                    <svg class="prof-reader-meta__icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M8 1.5A4.5 4.5 0 0 1 12.5 6c0 3-4.5 8.5-4.5 8.5S3.5 9 3.5 6A4.5 4.5 0 0 1 8 1.5Z" stroke="currentColor" stroke-width="1.2"/>
-                      <circle cx="8" cy="6" r="1.5" stroke="currentColor" stroke-width="1.2"/>
-                    </svg>
-                    <span class="prof-reader-meta__value">${escapeHtml(profileContext.location)}</span>
-                  </div>
-                ` : ''}
-                ${profileContext.joinedLabel ? `
-                  <div class="prof-reader-meta__item">
-                    <svg class="prof-reader-meta__icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <rect x="2" y="3.5" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
-                      <path d="M5 2v3M11 2v3M2 7h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                    </svg>
-                    <span class="prof-reader-meta__value">${escapeHtml(profileContext.joinedLabel)}</span>
-                  </div>
-                ` : ''}
+                <div class="prof-banner__meta">
+                  ${profileContext.location ? `
+                    <div class="prof-banner__meta-item">
+                      <svg class="prof-reader-meta__icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M8 1.5A4.5 4.5 0 0 1 12.5 6c0 3-4.5 8.5-4.5 8.5S3.5 9 3.5 6A4.5 4.5 0 0 1 8 1.5Z" stroke="currentColor" stroke-width="1.2"/>
+                        <circle cx="8" cy="6" r="1.5" stroke="currentColor" stroke-width="1.2"/>
+                      </svg>
+                      <span>${escapeHtml(profileContext.location)}</span>
+                    </div>
+                  ` : ''}
+                  ${profileContext.joinedLabel ? `
+                    <div class="prof-banner__meta-item">
+                      <svg class="prof-reader-meta__icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <rect x="2" y="3.5" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+                        <path d="M5 2v3M11 2v3M2 7h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                      </svg>
+                      <span>Joined ${escapeHtml(profileContext.joinedLabel)}</span>
+                    </div>
+                  ` : ''}
+                </div>
               </div>
             </div>
-            <div class="prof-reader-stats" aria-label="Reading overview">
+            <div class="prof-banner__stats" aria-label="Reading overview">
               ${overview.stats.map((stat) => `
-                <div class="prof-reader-stat">
+                <div class="prof-banner__stat">
                   <strong>${escapeHtml(stat.value)}</strong>
                   <span>${escapeHtml(stat.label)}</span>
                 </div>
               `).join('')}
             </div>
-          </header>
+          </div>
+          <div class="prof-banner__room" aria-hidden="true">
+            <div class="prof-banner__room-img"></div>
+            <div class="prof-banner__room-fade"></div>
+          </div>
+        </section>
 
-          <section class="prof-identity-hero" aria-label="Reading identity">
-            <div class="prof-identity-hero__panel">
-              <div id="profIdentityMount"></div>
-            </div>
-          </section>
+        <section class="prof-section prof-section--identity" aria-label="Reading identity">
+          <div id="profIdentityMount"></div>
         </section>
 
         ${mapSection}
@@ -703,6 +688,7 @@ function mountSections(
   const identityEl = container.querySelector<HTMLElement>('#profIdentityMount');
   if (identityEl) mountReadingIdentity(identityEl, undefined, {
     revealImmediately: !isOwner && Boolean(profile.slug),
+    genres: buildJourneyOverview(books).topGenres,
   });
 }
 

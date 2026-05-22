@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Tianshu Liu / Unsplash",
+    "caption": "物哀、无常与现代化的双重代价"
+  },
+
   "hover": {
     "dna": ["物哀与无常", "自我消融", "现代化的双重代价"],
     "voices": ["川端康成", "夏目漱石"],

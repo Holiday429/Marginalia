@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Benjamin Davies / Unsplash",
+    "caption": "阶级、帝国良知与讽刺"
+  },
+
   "hover": {
     "dna": ["阶级无处不在", "帝国的良知与共谋", "讽刺作为生存方式"],
     "voices": ["简·奥斯汀", "乔治·奥威尔"],

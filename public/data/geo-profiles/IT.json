@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Cristina Gottardi / Unsplash",
+    "caption": "历史层积与地方主义"
+  },
+
   "hover": {
     "dna": ["地方性的绝对骄傲", "历史作为日常重压", "南方问题的永恒悬念"],
     "voices": ["但丁", "莱奥帕尔迪"],

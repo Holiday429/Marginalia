@@ -76,6 +76,7 @@ export function buildFallbackProfile(countryId, label) {
   return {
     countryId,
     countryName: label,
+    hero: null,
     hover: {
       dna: ['国家形成', '地方经验', '语言层次'],
       voices: [],

@@ -22,7 +22,9 @@
       "Bash(npm run *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/)",
       "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia add MIGRATION.md)",
-      "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia commit -m ' *)"
+      "Bash(git -C /Users/Holiday_1/Desktop/Growth/Marginalia commit -m ' *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"errs: $\\(npx tsc --noEmit 2>&1)"
     ]
   }
 }

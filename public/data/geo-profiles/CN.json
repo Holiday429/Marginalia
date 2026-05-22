@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2025-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Theodor Lundqvist / Unsplash",
+    "caption": "从家国叙事到地方经验的多尺度阅读"
+  },
+
   "hover": {
     "dna": ["家国同构", "礼法与人情", "现代化断裂"],
     "voices": ["鲁迅", "余华"],

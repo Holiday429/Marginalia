@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1561542320-9a18cd340469?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Eugene / Unsplash",
+    "caption": "边境、抵抗与土地记忆"
+  },
+
   "hover": {
     "dna": ["语言作为政治生存", "饥荒的集体记忆", "独立身份的漫长争夺"],
     "voices": ["塔拉斯·舍甫琴科", "谢尔希·扎丹"],

@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1601439678777-b2b3c56fa627?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Robert Bye / Unsplash",
+    "caption": "峡湾的孤独与存在主义"
+  },
+
   "hover": {
     "dna": ["社会规范的重压", "峡湾的孤独尺度", "女性从家庭囚笼里的出走"],
     "voices": ["亨利克·易卜生", "克努特·汉姆生"],

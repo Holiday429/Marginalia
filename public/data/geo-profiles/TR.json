@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Anna Berdnik / Unsplash",
+    "caption": "东西之间的呼愁与帝国余烬"
+  },
+
   "hover": {
     "dna": ["东西之间的永恒裂缝", "记忆与遗忘的政治", "伊斯坦布尔作为一个世界"],
     "voices": ["奥尔罕·帕慕克", "雅沙尔·凯末尔"],

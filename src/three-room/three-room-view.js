@@ -496,12 +496,12 @@ function mountRoomScene() {
 
   if (!ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage, {
-      onGlobeSelect: () => openPanel('map'),
+      onGlobeSelect: () => exitRoomViaGlobeFly(),
       onLaptopSelect: () => openPanel('search'),
       onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),
       onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),
-      onPhotoFrameSelect: () => openPanel('profile'),
+      onPhotoFrameSelect: () => exitRoomViaFrameFly(),
       onWebSelect: () => openPanel('web'),
       onInteractiveHover: (action, pointer) => {
         ROOM_VIEW_STATE.hoverAction = action || null;
@@ -945,6 +945,80 @@ function exitRoomViaHeroFlip() {
     ROOM_VIEW_STATE.transitioning = false;
     openPanel('library', { mode: 'organize' });
   });
+}
+
+// Enter the Map view with a globe fly-in: the room camera eases toward the
+// globe, then a fullscreen 3D globe animation plays and hands off to the flat
+// map. Mirrors exitRoomViaHeroFlip's structure; degrades to a plain navigate
+// if the animation module fails to load.
+function exitRoomViaGlobeFly() {
+  if (ROOM_VIEW_STATE.transitioning) return;
+  ROOM_VIEW_STATE.transitioning = true;
+  ROOM_VIEW_STATE.hoverAction = null;
+  closeRoomQuickSearch();
+  syncHoverBadge();
+
+  const roomTransition = buildRoomTransitionMeta('map');
+  const nextParams = { __roomTransition: roomTransition };
+  PanelManager.primeTransition?.(roomTransition, 'map');
+
+  // Move the room camera toward the globe while the overlay loads.
+  const pose = PANEL_POSES.map;
+  if (pose && ROOM_VIEW_STATE.handle) {
+    ROOM_VIEW_STATE.pose = pose;
+    ROOM_VIEW_STATE.handle.goToPose(pose, false);
+    syncPoseButtons();
+  }
+
+  const navigate = () => {
+    ROOM_VIEW_STATE.transitioning = false;
+    if (App?.navigateTo && HASH_ROUTED_PANELS.has('map')) {
+      App.navigateTo('map', nextParams);
+    } else {
+      PanelManager.open('map', nextParams);
+    }
+  };
+
+  import('../map/globe-fly.js')
+    .then(({ playGlobeFlyIn }) => playGlobeFlyIn({ duration: 2600 }))
+    .catch(() => {})
+    .finally(navigate);
+}
+
+// Enter the Profile view by "stepping through the picture frame": the room
+// camera eases toward the frame, then a fullscreen 3D picture-frame animation
+// plays and hands off to the flat profile. Mirrors exitRoomViaGlobeFly.
+function exitRoomViaFrameFly() {
+  if (ROOM_VIEW_STATE.transitioning) return;
+  ROOM_VIEW_STATE.transitioning = true;
+  ROOM_VIEW_STATE.hoverAction = null;
+  closeRoomQuickSearch();
+  syncHoverBadge();
+
+  const roomTransition = buildRoomTransitionMeta('profile');
+  const nextParams = { __roomTransition: roomTransition };
+  PanelManager.primeTransition?.(roomTransition, 'profile');
+
+  const pose = PANEL_POSES.profile;
+  if (pose && ROOM_VIEW_STATE.handle) {
+    ROOM_VIEW_STATE.pose = pose;
+    ROOM_VIEW_STATE.handle.goToPose(pose, false);
+    syncPoseButtons();
+  }
+
+  const navigate = () => {
+    ROOM_VIEW_STATE.transitioning = false;
+    if (App?.navigateTo && HASH_ROUTED_PANELS.has('profile')) {
+      App.navigateTo('profile', nextParams);
+    } else {
+      PanelManager.open('profile', nextParams);
+    }
+  };
+
+  import('./frame-fly.js')
+    .then(({ playFrameFlyIn }) => playFrameFlyIn({ duration: 2400 }))
+    .catch(() => {})
+    .finally(navigate);
 }
 
 export { initRoom, enterRoom, renderRoomTopTabs };

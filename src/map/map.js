@@ -186,81 +186,90 @@ function mergedProvinceMap() {
 
 /* ── Country colour palette ─────────────────────────────────────────────── */
 
+// Muted vintage palette — 14 distinct hue families kept inside one HSL
+// envelope (saturation ~28-40%, lightness ~52-64%) so neighbours stay
+// chromatically distinct without any one tone "jumping" against the dark
+// background. Hues span warm-yellow → amber → terracotta → red-rose →
+// mauve → violet → periwinkle → teal → green → olive → tan → steel-blue →
+// pale-sage → coral. Harmony comes from the shared sat/lightness, not from
+// reducing the colour count.
 const PALETTE = [
-  '#8e8175', '#76879a', '#8b9b83', '#a78f7d', '#7d7898',
-  '#9c7e84', '#7f9a93', '#a19682', '#8a7a92', '#76908f',
-  '#9f8c7e', '#7d8697', '#928698', '#859379', '#9b7f8e',
-  '#7e8f78', '#a18a81', '#7a8c93', '#8e977d', '#9b8681',
+  '#d8b878', '#c79a63', '#bf8466', '#b56e72', '#ab7383',
+  '#94809f', '#7585a0', '#6c8e93', '#7fa285', '#94a06a',
+  '#c2a079', '#8593a3', '#9fb09a', '#c08775',
 ];
 
 const COUNTRY_COLOR = {
-  US:'#4a5c3d', CA:'#3d4f5c', MX:'#5c4a3d',
-  GT:'#4a3d5c', BZ:'#3d5c4a', HN:'#5c3d4a', SV:'#3d5c3d',
-  NI:'#5c503d', CR:'#3d4a5c', PA:'#5c4e3d',
-  CU:'#4a5c3d', JM:'#3d3d5c', HT:'#5c3d3d', DO:'#3d5c5c',
-  CO:'#3d5c4a', VE:'#5c3d3d', GY:'#4a3d5c', SR:'#3d5c3d',
-  EC:'#5c4a3d', PE:'#3d4f5c', BR:'#4c5c3d', BO:'#5c503d',
-  PY:'#3d4a5c', CL:'#5c3d4a', AR:'#3d5c5c', UY:'#5c4e3d',
-  PT:'#4a3d5c', ES:'#3d5c4a', FR:'#5c3d4a', GB:'#3d3d5c',
-  IE:'#5c4a3d', NL:'#3d5c3d', BE:'#5c3d3d', LU:'#4a5c3d',
-  CH:'#3d4f5c', DE:'#5c503d', AT:'#3d4a5c', DK:'#5c4e3d',
-  SE:'#4a3d5c', NO:'#3d5c4a', FI:'#5c3d4a',
-  IT:'#5c3d50', GR:'#3d4c5c', AL:'#5c453d', RS:'#4c5c3d',
-  HR:'#5c3d45', BA:'#455c3d', SI:'#5c453d', ME:'#3d4a5c',
-  MK:'#5c4e3d', BG:'#3d5c3d', RO:'#5c3d3d',
-  PL:'#3d4f5c', CZ:'#5c4a3d', SK:'#4a3d5c', HU:'#3d5c3d',
-  UA:'#5c503d', BY:'#3d3d5c', MD:'#5c3d4a',
-  LT:'#3d5c4a', LV:'#5c4e3d', EE:'#4a5c3d',
-  RU:'#3d4a5c', KZ:'#5c4a3d', UZ:'#3d5c3d', TM:'#5c3d3d',
-  KG:'#4a3d5c', TJ:'#3d5c5c', AF:'#5c503d',
-  TR:'#5c3d4a', SY:'#3d4f5c', LB:'#5c4e3d', IL:'#4a3d5c',
-  JO:'#3d5c4a', IQ:'#5c3d3d', IR:'#4c5c3d', SA:'#5c453d',
-  YE:'#3d4a5c', OM:'#5c4e3d', AE:'#4a5c3d', QA:'#3d3d5c',
-  KW:'#5c4a3d', BH:'#3d5c3d',
-  PK:'#5c3d4a', IN:'#4a5c3d', BD:'#3d4f5c', NP:'#5c4a3d',
-  LK:'#4a3d5c', MM:'#3d5c4a', TH:'#5c3d50',
-  VN:'#3d4c5c', KH:'#5c453d', LA:'#4c5c3d', MY:'#5c3d45',
-  SG:'#455c3d', ID:'#5c4a3d', PH:'#3d5c3d', TL:'#5c3d3d',
-  CN:'#4a3d5c', MN:'#3d5c4a', KP:'#5c503d', KR:'#3d3d5c',
-  JP:'#5c3d4a', TW:'#3d4a5c',
-  NG:'#5c4e3d', GH:'#4a5c3d', CI:'#3d4f5c', SN:'#5c4a3d',
-  ML:'#4a3d5c', BF:'#3d5c3d', NE:'#5c3d3d', CM:'#3d5c5c',
-  TD:'#5c503d', SD:'#3d4a5c', SS:'#5c4e3d', ET:'#4a5c3d',
-  SO:'#3d3d5c', KE:'#5c4a3d', TZ:'#4a3d5c', UG:'#3d5c4a',
-  RW:'#5c3d4a', BI:'#3d4f5c', CD:'#5c4e3d', CG:'#4c5c3d',
-  GA:'#5c453d', AO:'#3d4a5c', ZM:'#5c3d45', ZW:'#455c3d',
-  MZ:'#5c4a3d', MW:'#3d5c3d', MG:'#5c3d3d', ZA:'#3d4c5c',
-  NA:'#5c503d', BW:'#4a3d5c', LS:'#3d5c5c', SZ:'#5c4e3d',
-  MA:'#4a5c3d', DZ:'#3d4f5c', TN:'#5c3d4a', LY:'#4a3d5c',
-  EG:'#3d5c4a', MR:'#5c4e3d',
-  AU:'#3d3d5c', NZ:'#5c3d4a', PG:'#4a5c3d', FJ:'#3d5c3d',
+  US:'#eec86f', CA:'#7fae8a', MX:'#c75d68',
+  GT:'#a385b5', BZ:'#5f8a96', HN:'#d5944f', SV:'#6f7fa8',
+  NI:'#9caa4f', CR:'#d98f7a', PA:'#a385b5',
+  CU:'#d5944f', JM:'#6f7fa8', HT:'#c75d68', DO:'#5f8a96',
+  CO:'#eec86f', VE:'#a385b5', GY:'#cf7a52', SR:'#5f8a96',
+  EC:'#c75d68', PE:'#5f8a96', BR:'#d5944f', BO:'#a385b5',
+  PY:'#7fae8a', CL:'#9caa4f', AR:'#6f7fa8', UY:'#cf7a52',
+  PT:'#d5944f', ES:'#eec86f', FR:'#5f8a96', GB:'#cf7a52',
+  IE:'#9caa4f', NL:'#c75d68', BE:'#a385b5', LU:'#d2a878',
+  CH:'#6f7fa8', DE:'#eec86f', AT:'#d98f7a', DK:'#5f8a96',
+  SE:'#cf7a52', NO:'#a385b5', FI:'#d2a878',
+  IT:'#bf7185', GR:'#d5944f', AL:'#5f8a96', RS:'#eec86f',
+  HR:'#a385b5', BA:'#cf7a52', SI:'#7fae8a', ME:'#9caa4f',
+  MK:'#c75d68', BG:'#6f7fa8', RO:'#d2a878',
+  PL:'#cf7a52', CZ:'#c75d68', SK:'#5f8a96', HU:'#c75d68',
+  UA:'#7fae8a', BY:'#d5944f', MD:'#a385b5',
+  LT:'#a385b5', LV:'#9caa4f', EE:'#eec86f',
+  RU:'#b0c4a6', KZ:'#c75d68', UZ:'#eec86f', TM:'#a385b5',
+  KG:'#7fae8a', TJ:'#6f7fa8', AF:'#5f8a96',
+  TR:'#eec86f', SY:'#c75d68', LB:'#5f8a96', IL:'#d5944f',
+  JO:'#a385b5', IQ:'#7fae8a', IR:'#cf7a52', SA:'#eec86f',
+  YE:'#c75d68', OM:'#5f8a96', AE:'#a385b5', QA:'#d5944f',
+  KW:'#9caa4f', BH:'#d2a878',
+  PK:'#c75d68', IN:'#eec86f', BD:'#a385b5', NP:'#9caa4f',
+  LK:'#cf7a52', MM:'#5f8a96', TH:'#c75d68',
+  VN:'#eec86f', KH:'#d5944f', LA:'#a385b5', MY:'#6f7fa8',
+  SG:'#cf7a52', ID:'#eec86f', PH:'#5f8a96', TL:'#c75d68',
+  CN:'#d5944f', MN:'#6f7fa8', KP:'#a385b5', KR:'#c75d68',
+  JP:'#5f8a96', TW:'#9caa4f',
+  NG:'#eec86f', GH:'#c75d68', CI:'#a385b5', SN:'#d5944f',
+  ML:'#5f8a96', BF:'#cf7a52', NE:'#7fae8a', CM:'#9caa4f',
+  TD:'#c75d68', SD:'#eec86f', SS:'#a385b5', ET:'#d5944f',
+  SO:'#5f8a96', KE:'#c75d68', TZ:'#eec86f', UG:'#d2a878',
+  RW:'#cf7a52', BI:'#a385b5', CD:'#6f7fa8', CG:'#eec86f',
+  GA:'#c75d68', AO:'#d5944f', ZM:'#a385b5', ZW:'#5f8a96',
+  MZ:'#cf7a52', MW:'#eec86f', MG:'#c75d68', ZA:'#9caa4f',
+  NA:'#eec86f', BW:'#d5944f', LS:'#c75d68', SZ:'#a385b5',
+  MA:'#eec86f', DZ:'#c75d68', TN:'#a385b5', LY:'#d5944f',
+  EG:'#5f8a96', MR:'#cf7a52',
+  AU:'#eec86f', NZ:'#c75d68', PG:'#a385b5', FJ:'#5f8a96',
 };
 
+// Book-holding countries get a lift in lightness within their own hue family
+// (not a switch to a louder colour), so they read brighter than dimmed
+// neighbours while staying inside the muted envelope above.
 const BOOK_COLOR_BOOST = {
-  CN:'#8f7fa1', GB:'#7d89a0', FR:'#839a90', RU:'#7f86a2',
-  JP:'#9b7f92', US:'#8a9c7a', IN:'#a89a7d', CO:'#7f9b90',
-  GR:'#8193a6', CZ:'#8a86a3', PT:'#97839e', NG:'#9b8979',
-  IT:'#9e8594', CL:'#8e808f',
+  CN:'#e0b478', GB:'#cf977e', FR:'#92b39a', RU:'#aebfa9',
+  JP:'#83a3a8', US:'#e6c98a', IN:'#e6c98a', CO:'#e6c98a',
+  GR:'#e0b478', NG:'#e6c98a', CZ:'#c98591', PT:'#e0b478',
+  IT:'#c79aa6', CL:'#a8b47e',
 };
 const REGION_NAME_FORMATTER = typeof Intl !== 'undefined' && Intl.DisplayNames
   ? new Intl.DisplayNames(['en'], { type: 'region' })
   : null;
 
-const DIMMED_FILL        = '#4a3a2f';
-const HOVER_STROKE       = '#c4903a';
+const DIMMED_FILL        = '#3a342c';
+const HOVER_STROKE       = '#d8b878';
 const HOVER_STROKE_WIDTH = 1.5;
 const HEAT_MODE_COLORS = {
   authorOrigin: {
-    low: '#6f7c93',
-    high: '#b6c3dc',
+    low: '#6e7c8b',
+    high: '#aabccf',
   },
   contentLocation: {
-    low: '#7c6f61',
-    high: '#d2b99a',
+    low: '#9a7456',
+    high: '#eec86f',
   },
   readerLocation: {
-    low: '#6f7f76',
-    high: '#b7c8bd',
+    low: '#6f8076',
+    high: '#aabcaf',
   },
 };
 
@@ -363,6 +372,7 @@ function initMap() {
   window.addEventListener('marginalia:books-changed', () => {
     rebuildLibrary();
     updateSubheaderCounts();
+    renderMapStats();
     if (__mapBooted) {
       repaintWorldFills();
       repaintChinaFills();
@@ -370,13 +380,49 @@ function initMap() {
   });
 }
 
-function enterMap() {
-  if (__mapBooted) return;
-  if (typeof am5 === 'undefined' || typeof am5map === 'undefined') {
-    waitForAmCharts(bootMap);
-  } else {
-    bootMap();
+// Set when the map is entered via the 3D-room globe transition, so the first
+// boot reveals continents one batch at a time instead of all at once.
+let __mapStagedEntry = false;
+
+function enterMap(params = {}) {
+  // Run the continent-by-continent reveal whenever the map is entered via the
+  // room globe transition — regardless of whether the chart was already booted
+  // on a prior visit. (The globe fly-in is the cue; the reveal replays the map.)
+  const fromGlobe = params?.__roomTransition?.source === 'room';
+
+  mountGlobeWidget();
+
+  if (!__mapBooted) {
+    __mapStagedEntry = fromGlobe;   // stage on first paint via datavalidated
+    if (typeof am5 === 'undefined' || typeof am5map === 'undefined') {
+      waitForAmCharts(bootMap);
+    } else {
+      bootMap();
+    }
+    return;
   }
+
+  // Already booted: replay the staged reveal on the live series.
+  if (fromGlobe && __mapWorldSeries) {
+    runContinentStagger(__mapWorldSeries);
+  }
+}
+
+let __mapGlobeMounted = false;
+// Lazy-load the decorative globe so Three.js never blocks the map's first
+// paint. Skipped on small screens (no room for it) and if WebGL is unusable.
+function mountGlobeWidget() {
+  if (__mapGlobeMounted) return;
+  if (window.innerWidth <= 980) return;
+  const container = document.getElementById('mapGlobe');
+  if (!container) return;
+  __mapGlobeMounted = true;
+  import('./map-globe.js')
+    .then(({ mountMapGlobe }) => mountMapGlobe(container))
+    .catch(err => {
+      __mapGlobeMounted = false;
+      logError(err instanceof Error ? err : new Error(String(err)), { context: 'map globe import' });
+    });
 }
 
 function waitForAmCharts(cb, attempt = 0) {
@@ -412,6 +458,12 @@ function mapShellHTML() {
     <div class="map-stage">
       <div id="mapChart"></div>
 
+      <!-- World-view stats sidebar (hidden once a country is focused) -->
+      <aside class="map-stats" id="mapStats"></aside>
+
+      <!-- Decorative globe — same model as the 3D room's Map entry object -->
+      <div class="map-globe" id="mapGlobe" aria-hidden="true"></div>
+
       <div class="map-zoom">
         <div class="map-zoom-btn" id="mapZoomIn">+</div>
         <div class="map-zoom-btn" id="mapZoomOut">−</div>
@@ -431,6 +483,7 @@ function mapShellHTML() {
 
       <!-- Side panel -->
       <div class="map-panel" id="mapPanel">
+        <div class="map-panel-hero" id="mapPanelHero" hidden></div>
         <div class="map-panel-head">
           <div class="map-panel-place" id="mapPanelPlace">—</div>
           <div class="map-panel-sub" id="mapPanelSub">—</div>
@@ -447,6 +500,7 @@ function mapShellHTML() {
 function bindMapShellEvents() {
   document.getElementById('mapPanelClose').addEventListener('click', closePanel);
   renderGlobalGeoFilters();
+  renderMapStats();
   const worldBtn = document.getElementById('mapWorldBtn');
   if (worldBtn) {
     worldBtn.addEventListener('click', (event) => {
@@ -502,6 +556,321 @@ function updateSubheaderCounts() {
   }
 }
 
+/* ── Continent-by-continent staged reveal (globe entry) ─────────────────── */
+
+// Reveal order: Eurasia → North America → South America → Africa → Oceania →
+// everything else. Each is one solid block that flies in from its own corner.
+const CONTINENT_ORDER = ['Eurasia', 'NorthAmerica', 'SouthAmerica', 'Africa', 'Oceania', 'Other'];
+
+// Complete ISO-3166-1 alpha-2 → reveal-block lookup. Eurasia merges Asia +
+// Europe into one mass; the Americas split into north and south so they can
+// enter from different corners. Built from per-block code lists so every
+// country lands in a real batch.
+const CONTINENT_OF = (() => {
+  const lists = {
+    Eurasia: 'AF AM AZ BH BD BT BN KH CN CY GE HK IN ID IR IQ IL JP JO KZ KW KG LA LB MO MY MV MN MM NP KP OM PK PS PH QA SA SG KR LK SY TW TJ TH TL TR TM AE UZ VN YE '
+      + 'AL AD AT BY BE BA BG HR CZ DK EE FO FI FR DE GI GR GG HU IS IE IM IT JE XK LV LI LT LU MT MD MC ME NL MK NO PL PT RO RU SM RS SK SI ES SE CH UA GB VA',
+    NorthAmerica: 'AG AW BS BB BZ CA KY CR CU DM DO SV GL GD GP GT HT HN JM MQ MX NI PA PR BL KN LC PM VC TT TC US VG VI',
+    SouthAmerica: 'AR BO BR CL CO EC GY PY PE SR UY VE',
+    Africa: 'DZ AO BJ BW BF BI CM CV CF TD KM CG CD CI DJ EG GQ ER SZ ET GA GM GH GN GW KE LS LR LY MG MW ML MR MU YT MA MZ NA NE NG RE RW ST SN SC SL SO ZA SS SD TZ TG TN UG EH ZM ZW',
+    Oceania: 'AU NZ PG FJ NC SB VU PF GU',
+    Other: 'AS CK KI MH FM NR NU MP PW PN WS TK TO TV WF',
+  };
+  const out = {};
+  for (const [block, codes] of Object.entries(lists)) {
+    for (const code of codes.split(/\s+/)) if (code) out[code] = block;
+  }
+  return out;
+})();
+
+// amCharts geodata sometimes carries a continent code in feature properties;
+// use it as a coarse fallback for any id not in the explicit lookup.
+const CONTINENT_CODE_MAP = {
+  AS: 'Eurasia', EU: 'Eurasia',
+  NA: 'NorthAmerica', SA: 'SouthAmerica',
+  AF: 'Africa', OC: 'Oceania', AN: 'Other',
+};
+
+function continentOfPolygon(poly) {
+  const id = poly?.dataItem?.get?.('id');
+  if (id && CONTINENT_OF[id]) return CONTINENT_OF[id];
+  const ctx = poly?.dataItem?.dataContext;
+  const code = ctx?.continent_code || ctx?.properties?.continent_code;
+  if (code && CONTINENT_CODE_MAP[code]) return CONTINENT_CODE_MAP[code];
+  return 'Other';
+}
+
+// Per-block slide-in direction (pixel offset the batch starts displaced by,
+// then animates to zero). Same direction + timing for every country in a block,
+// so the whole mass reads as one solid plate flying in from off-screen.
+const CONTINENT_SLIDE = {
+  Eurasia:      { dx:  420, dy: -300 },  // in from the top-right
+  NorthAmerica: { dx: -440, dy: -280 },  // in from the top-left
+  SouthAmerica: { dx: -380, dy:  300 },  // in from the bottom-left
+  Africa:       { dx:    0, dy:  420 },  // in from below
+  Oceania:      { dx:  420, dy:  280 },  // in from the bottom-right
+  Other:        { dx:  220, dy:  180 },  // in from bottom-right (fill-in)
+};
+
+// Build the ISO-code list per continent block (for temp-series `include`).
+function continentCodeLists() {
+  const byBlock = Object.fromEntries(CONTINENT_ORDER.map(c => [c, []]));
+  for (const [code, block] of Object.entries(CONTINENT_OF)) {
+    if (byBlock[block]) byBlock[block].push(code);
+  }
+  return byBlock;
+}
+
+let __mapStaggerTemp = [];   // temp overlay series, torn down after the fly-in
+
+// Reveal the map by flying each continent in as a SOLID BLOCK from its own
+// off-screen direction, settling into place. This uses throwaway per-continent
+// overlay series (animated at the series level via dx/dy) purely for the
+// entrance; the real worldSeries — with all its per-country hover/click/fill
+// logic — is hidden during the flight and shown intact at the end. So nothing
+// about normal interaction changes; only the entrance is grouped by continent.
+function runContinentStagger(worldSeries) {
+  const chart = __mapChart;
+  const root = __mapRoot;
+  if (!chart || !root || !worldSeries) return;
+
+  document.body.classList.add('map-staged-entering');
+
+  // Hide the real map; the temp blocks stand in during the entrance.
+  worldSeries.hide(0);
+
+  const codeLists = continentCodeLists();
+  const LEAD_IN = 700;       // let the globe settle in the corner first
+  const STEP_MS = 440;       // gap between blocks
+  const SLIDE_MS = 760;      // slide + fade duration per block
+
+  // Clean up any temp series from a prior run.
+  teardownStaggerTemp();
+
+  let lastEnd = LEAD_IN;
+  CONTINENT_ORDER.forEach((continent, batchIndex) => {
+    const codes = codeLists[continent];
+    if (!codes || !codes.length) return;
+    const slide = CONTINENT_SLIDE[continent] || CONTINENT_SLIDE.Other;
+
+    // Temp, non-interactive series holding just this continent's countries.
+    const temp = chart.series.push(am5map.MapPolygonSeries.new(root, {
+      geoJSON: am5geodata_worldLow,
+      include: codes,
+    }));
+    temp.set('interactive', false);
+    temp.mapPolygons.template.setAll({
+      interactive: false,
+      stroke: am5.color('#6a5443'),
+      strokeWidth: 0.65,
+      nonScalingStroke: true,
+    });
+    // Start displaced off-screen and transparent; paint to match the real map.
+    temp.setAll({ dx: slide.dx, dy: slide.dy, opacity: 0 });
+    temp.events.on('datavalidated', () => {
+      temp.mapPolygons.each(poly => {
+        poly.set('fill', am5.color(countryFill(poly.dataItem.get('id'))));
+      });
+    });
+    __mapStaggerTemp.push(temp);
+
+    const at = LEAD_IN + batchIndex * STEP_MS;
+    lastEnd = Math.max(lastEnd, at + SLIDE_MS);
+    setTimeout(() => {
+      temp.animate({ key: 'dx', to: 0, duration: SLIDE_MS, easing: am5.ease.out(am5.ease.cubic) });
+      temp.animate({ key: 'dy', to: 0, duration: SLIDE_MS, easing: am5.ease.out(am5.ease.cubic) });
+      temp.animate({ key: 'opacity', to: 1, duration: SLIDE_MS * 0.6, easing: am5.ease.out(am5.ease.cubic) });
+    }, at);
+  });
+
+  // Hand off to the real map, tear down the temp blocks, reveal the UI.
+  setTimeout(() => {
+    worldSeries.show(0);
+    teardownStaggerTemp();
+    document.body.classList.remove('map-staged-entering');
+  }, lastEnd + 120);
+}
+
+function teardownStaggerTemp() {
+  __mapStaggerTemp.forEach(s => { try { s.dispose(); } catch {} });
+  __mapStaggerTemp = [];
+}
+
+/* ── World-view stats sidebar ──────────────────────────────────────────── */
+
+// Compact region map for the Insight line. Synchronous (does not depend on
+// loaded profiles, which only cover a subset). Unmapped codes fall back to
+// the country's own name so the line never breaks.
+const COUNTRY_REGION = {
+  US:'North America', CA:'North America', MX:'North America',
+  CO:'Latin America', BR:'Latin America', AR:'Latin America', CL:'Latin America', PE:'Latin America',
+  GB:'Western Europe', FR:'Western Europe', DE:'Western Europe', NL:'Western Europe', BE:'Western Europe', AT:'Western Europe', CH:'Western Europe', IE:'Western Europe',
+  IT:'Southern Europe', ES:'Southern Europe', PT:'Southern Europe', GR:'Southern Europe',
+  SE:'Northern Europe', NO:'Northern Europe', DK:'Northern Europe', FI:'Northern Europe', IS:'Northern Europe',
+  PL:'Eastern Europe', CZ:'Eastern Europe', HU:'Eastern Europe', RO:'Eastern Europe', RU:'Eastern Europe', UA:'Eastern Europe',
+  CN:'East Asia', JP:'East Asia', KR:'East Asia', TW:'East Asia',
+  IN:'South Asia', PK:'South Asia', BD:'South Asia', LK:'South Asia',
+  TR:'Middle East', IR:'Middle East', SA:'Middle East', IL:'Middle East', IQ:'Middle East',
+  EG:'Africa', NG:'Africa', ZA:'Africa', KE:'Africa', MA:'Africa', ET:'Africa',
+  AU:'Oceania', NZ:'Oceania',
+};
+
+function regionForCountry(id) {
+  return COUNTRY_REGION[id] || countryLabelFromId(id);
+}
+
+// ISO-3166 alpha-2 → regional-indicator emoji flag. No asset needed; works
+// for any valid two-letter code. Returns '' for non-country ids (e.g. CN-11).
+function flagEmoji(id) {
+  if (!/^[A-Za-z]{2}$/.test(id)) return '';
+  const base = 0x1f1e6;
+  const cc = id.toUpperCase();
+  return String.fromCodePoint(
+    base + cc.charCodeAt(0) - 65,
+    base + cc.charCodeAt(1) - 65
+  );
+}
+
+// Best-available recency signal on a book record. Falls back through the
+// common timestamp shapes, then to year, so ordering degrades gracefully.
+function bookRecency(book) {
+  const raw = book.addedAt ?? book.createdAt ?? book.updatedAt ?? book.finishedAt
+    ?? book.meta?.addedAt ?? book.meta?.createdAt ?? null;
+  if (raw != null) {
+    const t = typeof raw === 'number' ? raw : Date.parse(raw);
+    if (Number.isFinite(t)) return t;
+  }
+  return Number.isFinite(book.year) ? book.year : 0;
+}
+
+// Derive everything the sidebar needs from the active buckets — no new data.
+function buildMapStats() {
+  const countryMap = activeCountryMap();
+  const ranked = Object.entries(countryMap)
+    .map(([id, books]) => ({ id, name: countryLabelFromId(id), count: books.length }))
+    .filter(c => c.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  const top = ranked.slice(0, 5);
+  const maxCount = top[0]?.count || 1;
+
+  // Aggregate books-per-region to derive the reading-preference insight.
+  const regionTotals = {};
+  ranked.forEach(({ id, count }) => {
+    const r = regionForCountry(id);
+    regionTotals[r] = (regionTotals[r] || 0) + count;
+  });
+  const topRegions = Object.entries(regionTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([r]) => r);
+
+  // Recent exploration: per country, keep the most-recent book's timestamp
+  // and the country's book count; order countries by that timestamp desc.
+  const recentByCountry = {};
+  Object.entries(countryMap).forEach(([id, books]) => {
+    if (!books.length) return;
+    const newest = Math.max(...books.map(bookRecency));
+    recentByCountry[id] = { id, count: books.length, recency: newest };
+  });
+  const recent = Object.values(recentByCountry)
+    .sort((a, b) => b.recency - a.recency)
+    .slice(0, 3)
+    .map(c => ({
+      id: c.id,
+      name: countryLabelFromId(c.id),
+      flag: flagEmoji(c.id),
+      count: c.count,
+      label: c.recency > 100000 ? formatRecencyDate(c.recency) : (c.recency ? String(c.recency) : ''),
+    }));
+
+  return {
+    countries: ranked.length,
+    books: MAP_LIBRARY.filter(b => b.loc).length,
+    top,
+    maxCount,
+    topRegions,
+    recent,
+  };
+}
+
+// Compact YYYY.MM label from an epoch-ms timestamp.
+function formatRecencyDate(t) {
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function renderMapStats() {
+  const el = document.getElementById('mapStats');
+  if (!el) return;
+
+  const stats = buildMapStats();
+  const modeLabel = __mapGeoMode === 'all'
+    ? 'All locations'
+    : (MAP_MODE_META[__mapGeoMode]?.label || 'All locations');
+
+  if (!stats.books) {
+    el.innerHTML = `
+      <section class="map-stats-card">
+        <div class="map-stats-kicker">Reading footprint</div>
+        <p class="map-stats-empty">No located books yet. Add a book with a place to start your map.</p>
+      </section>`;
+    return;
+  }
+
+  const topRows = stats.top.map(c => `
+    <li class="map-stats-row">
+      <span class="map-stats-row-main">
+        <span class="map-stats-row-name">${escapeHTML(c.name)}</span>
+        <span class="map-stats-bar"><span class="map-stats-bar-fill" style="width:${Math.round((c.count / stats.maxCount) * 100)}%"></span></span>
+      </span>
+      <span class="map-stats-row-count">${c.count}</span>
+    </li>`).join('');
+
+  const insight = stats.topRegions.length
+    ? `You read most from <strong>${escapeHTML(stats.topRegions.join(' & '))}</strong>.`
+    : 'Your reading map is just beginning.';
+
+  const recentCard = stats.recent.length ? `
+    <section class="map-stats-card">
+      <div class="map-stats-kicker">Recent exploration</div>
+      <ul class="map-stats-recent">
+        ${stats.recent.map(c => `
+          <li class="map-stats-recent-row">
+            <span class="map-stats-recent-flag">${c.flag || '·'}</span>
+            <span class="map-stats-recent-name">${escapeHTML(c.name)}</span>
+            <span class="map-stats-recent-meta">${c.count} book${c.count === 1 ? '' : 's'}${c.label ? ` · ${escapeHTML(c.label)}` : ''}</span>
+          </li>`).join('')}
+      </ul>
+    </section>` : '';
+
+  el.innerHTML = `
+    <section class="map-stats-card map-stats-footprint">
+      <div class="map-stats-kicker">Reading footprint</div>
+      <div class="map-stats-figures">
+        <div class="map-stats-figure"><strong>${stats.countries}</strong><span>countries</span></div>
+        <div class="map-stats-figure"><strong>${stats.books}</strong><span>books mapped</span></div>
+      </div>
+    </section>
+    <section class="map-stats-card">
+      <div class="map-stats-kicker">Top countries · ${escapeHTML(modeLabel.toLowerCase())}</div>
+      <ol class="map-stats-list">${topRows}</ol>
+    </section>
+    ${recentCard}
+    <section class="map-stats-card">
+      <div class="map-stats-kicker">Reading insight</div>
+      <p class="map-stats-insight">${insight}</p>
+    </section>`;
+}
+
+// Toggle world-view-only visibility. Hidden whenever a country/province is
+// focused (detail panel takes over), shown again on return to world.
+function setStatsVisible(visible) {
+  document.body.classList.toggle('map-stats-hidden', !visible);
+  if (visible) renderMapStats();
+}
+
 /* ── amCharts boot ─────────────────────────────────────────────────────── */
 
 function bootMap() {
@@ -551,9 +920,14 @@ function bootMap() {
     strokeWidth: HOVER_STROKE_WIDTH,
   });
 
-  /* Paint each country */
+  /* Paint each country. On a staged (globe-transition) entry, reveal the map
+     continent-by-continent instead of all at once. */
   worldSeries.events.on('datavalidated', () => {
     repaintWorldFills(worldSeries);
+    if (__mapStagedEntry) {
+      __mapStagedEntry = false;
+      runContinentStagger(worldSeries);
+    }
   });
 
   /* Tooltip — show name on any country, book count if available */
@@ -710,6 +1084,7 @@ function bootMap() {
     setMapInteractionMode('detail');
     applyMapTopPadding(false);
     setBreadcrumb('country', name, goWorld);
+    setStatsVisible(false);
     fitCountry(poly);
   }
 
@@ -722,6 +1097,7 @@ function bootMap() {
     chinaSeries.show();
     setMapInteractionMode('detail');
     setBreadcrumb('china', 'China', goWorld);
+    setStatsVisible(false);
     openCountryPanel('CN', 'China');
     fitChina();
   }
@@ -734,6 +1110,7 @@ function bootMap() {
     worldSeries.show();
     setBreadcrumb('world', 'World', null);
     dismissPanel();
+    setStatsVisible(true);
     resetWorldFills(worldSeries);
     resetWorldHome();
   }
@@ -743,6 +1120,7 @@ function bootMap() {
     __mapGeoMode = mode;
     renderGlobalGeoFilters();
     updateSubheaderCounts();
+    renderMapStats();
     repaintWorldFills(worldSeries);
     repaintChinaFills(chinaSeries);
     if (__mapFocusedCountryId && __mapActivePoly && !__mapInChina) {
@@ -837,6 +1215,8 @@ function setGeoMode(mode) {
 
 function clearHoverPreview() {
   __mapHoverCountryId = null;
+  __mapHoverPoly = null;
+  clearHoverTypewriters();
   const stage = document.getElementById('mapHoverStage');
   if (stage) stage.innerHTML = '';
   if (!__mapFocusedCountryId && !__mapInChina) resetWorldFills(__mapWorldSeries);
@@ -845,7 +1225,7 @@ function clearHoverPreview() {
 function showHoverPreview(countryId, countryName, activePoly) {
   __mapHoverCountryId = countryId;
   if (__mapGeoMode === 'all') {
-    showHoverPreviewRich(countryId, countryName, activePoly);
+    showHoverCard(countryId, countryName, activePoly);
     return;
   }
   const books = activeCountryBooks(countryId);
@@ -864,31 +1244,164 @@ function showHoverPreview(countryId, countryName, activePoly) {
   });
 }
 
-function renderHoverRich(stage, anchor, countryId, countryName) {
-  const content = buildHoverMetaContent(countryId, countryName);
-  const metaNodes = buildHoverMetaNodes(anchor, countryName, content);
-  const keepOut = { x: anchor.x - 108, y: anchor.y - 68, w: 216, h: 136 };
-  const laidOut = layoutHoverMetaNodes(metaNodes, anchor, keepOut);
-  stage.innerHTML = laidOut.map(node =>
-    `<div class="${node.wrapperClass || 'map-hover-meta'} ${node.cls || ''}" style="left:${node.x}px;top:${node.y}px;width:${node.width}px">${node.html}</div>`
-  ).join('');
+// Anchor the active polygon so the card can pin to the country itself (not the
+// cursor) and stay attached as the map redraws / the profile arrives.
+let __mapHoverPoly = null;
+let __mapHoverAnchor = { x: 0, y: 0 };
+
+// Typewriter timers, cleared whenever the card is re-rendered or torn down so
+// switching countries never leaves a half-typed string from the previous one.
+let __hoverTypeTimers = [];
+function clearHoverTypewriters() {
+  __hoverTypeTimers.forEach(t => clearTimeout(t));
+  __hoverTypeTimers = [];
 }
 
-async function showHoverPreviewRich(countryId, countryName, activePoly) {
-  dimAllExcept(__mapWorldSeries, activePoly, countryId);
+// Type `text` into `el` one character at a time. `startDelay` staggers multiple
+// fields; `onDone` chains the next field.
+function typewriterInto(el, text, { speed = 26, startDelay = 0, onDone } = {}) {
+  if (!el) return;
+  el.textContent = '';
+  el.classList.add('is-typing');
+  let i = 0;
+  const step = () => {
+    if (i <= text.length) {
+      el.textContent = text.slice(0, i);
+      i += 1;
+      __hoverTypeTimers.push(setTimeout(step, speed));
+    } else {
+      el.classList.remove('is-typing');
+      onDone?.();
+    }
+  };
+  __hoverTypeTimers.push(setTimeout(step, startDelay));
+}
 
+// Hover card pinned to the hovered country: a framed hero viewport on top, then
+// the country name and one line of literary DNA typed out like field notes.
+// A single positioned node — no multi-card collision layout. Deep context lives
+// in the click panel.
+function renderHoverCard(countryId, countryName) {
   const stage = document.getElementById('mapHoverStage');
   if (!stage) return;
+  clearHoverTypewriters();
 
-  const anchor = getHoverAnchorPoint(activePoly);
+  const teaser = buildHoverTeaser(countryId, countryName);
+  const count = activeCountryBooks(countryId).length;
+  const countText = count > 0
+    ? `${count} book${count === 1 ? '' : 's'} mapped`
+    : 'Not in your library yet';
 
-  // Render immediately with whatever is cached (fallback if not yet loaded).
-  renderHoverRich(stage, anchor, countryId, countryName);
+  const thumb = teaser.image
+    ? `<div class="map-hover-card-thumb"><img src="${escapeHTML(teaser.image)}" alt="" decoding="async"
+         onload="this.closest('.map-hover-card-thumb').classList.add('loaded')"
+         onerror="this.closest('.map-hover-card-thumb')?.remove()"></div>`
+    : '';
 
-  // Fetch profile; if still hovering the same country when it arrives, redraw.
+  stage.innerHTML = `
+    <div class="map-hover-card${thumb ? ' has-thumb' : ''}" id="mapHoverCard">
+      ${thumb}
+      <div class="map-hover-card-body">
+        <div class="map-hover-card-name" id="mapHoverName"></div>
+        <div class="map-hover-card-dna" id="mapHoverDna"></div>
+        <div class="map-hover-card-count">${escapeHTML(countText)}</div>
+      </div>
+    </div>`;
+
+  // Cached images may already be complete before onload binds — reveal them.
+  const img = stage.querySelector('.map-hover-card-thumb img');
+  if (img && img.complete && img.naturalWidth > 0) {
+    img.closest('.map-hover-card-thumb')?.classList.add('loaded');
+  }
+
+  // Remember what we rendered so a later profile-arrival re-render can be
+  // skipped when nothing actually changed (avoids resetting the loaded image).
+  __hoverRendered = { countryId, dna: teaser.dna, image: teaser.image || null };
+
+  // Type the name, then the DNA line.
+  const nameEl = document.getElementById('mapHoverName');
+  const dnaEl = document.getElementById('mapHoverDna');
+  typewriterInto(nameEl, countryName, {
+    speed: 34,
+    startDelay: 90,
+    onDone: () => typewriterInto(dnaEl, teaser.dna, { speed: 16, startDelay: 120 }),
+  });
+
+  // The photo's height is reserved up-front, so the card's full size is known
+  // here and the flip-above decision is correct immediately. One extra reposition
+  // on the next frame covers font/layout settling.
+  positionHoverCard();
+  requestAnimationFrame(positionHoverCard);
+}
+let __hoverRendered = null;
+
+// Pin the card tight to the country's geometric centre. Default: just below
+// the centre, horizontally centred on it. If the card would be clipped at the
+// bottom (country near the page bottom) it flips above; horizontal position is
+// clamped on-screen and clear of the open detail panel. Anchoring to the
+// polygon (not the cursor) keeps the card visually attached to the land.
+function positionHoverCard() {
+  const card = document.getElementById('mapHoverCard');
+  if (!card) return;
+
+  // Anchor on the cursor position captured at hover. The user is hovering ON the
+  // country, so this is a reliable in-country point — and unlike amCharts sprite
+  // coords it's always a true screen position, so the flip-above maths is sound.
+  const anchor = { x: __mapHoverAnchor.x, y: __mapHoverAnchor.y };
+
+  const cw = card.offsetWidth || 236;
+  const ch = card.offsetHeight || 240;
+  const bounds = hoverViewportBounds();
+  const gap = 8;        // tight to the land
+  const overlap = 16;   // let the card sit slightly over the country edge
+
+  // Horizontal: centre on the country, then clamp on-screen.
+  let x = anchor.x - cw / 2;
+  x = Math.max(bounds.left, Math.min(x, bounds.right - cw));
+
+  // Vertical: prefer just below the centre. If the full card would clip the
+  // bottom, flip ABOVE the centre so it always shows complete. Whichever side
+  // has more room wins when neither fully fits.
+  const below = anchor.y + gap - overlap;
+  const above = anchor.y - ch - gap + overlap;
+  let y;
+  if (below + ch <= bounds.bottom) {
+    y = below;                       // fits below
+  } else if (above >= bounds.top) {
+    y = above;                       // flip above
+  } else {
+    // Neither fully fits — pick the side with more space.
+    const roomBelow = bounds.bottom - anchor.y;
+    const roomAbove = anchor.y - bounds.top;
+    y = roomAbove > roomBelow ? above : below;
+  }
+  y = Math.max(bounds.top, Math.min(y, bounds.bottom - ch));
+
+  card.style.left = `${x}px`;
+  card.style.top = `${y}px`;
+}
+
+async function showHoverCard(countryId, countryName, activePoly) {
+  __mapHoverPoly = activePoly;
+  // Freeze the cursor position at hover-start as the card's anchor (the card
+  // does not follow the cursor afterwards — it stays pinned to this point).
+  __mapHoverAnchor = { x: __mapPointer.x, y: __mapPointer.y };
+  dimAllExcept(__mapWorldSeries, activePoly, countryId);
+
+  // Render immediately from cache/fallback so it feels instant.
+  renderHoverCard(countryId, countryName);
+
+  // If the profile arrives while still hovering the same country, re-render
+  // ONLY when the content actually changed (new DNA text or a hero image that
+  // wasn't there before) — otherwise we'd reset an already-loaded image.
   const raw = await loadProfile(countryId);
   if (raw && __mapHoverCountryId === countryId) {
-    renderHoverRich(stage, anchor, countryId, countryName);
+    const next = buildHoverTeaser(countryId, countryName);
+    const changed = !__hoverRendered
+      || __hoverRendered.countryId !== countryId
+      || __hoverRendered.dna !== next.dna
+      || __hoverRendered.image !== (next.image || null);
+    if (changed) renderHoverCard(countryId, countryName);
   }
 }
 
@@ -972,279 +1485,18 @@ function uniqueCompact(values, max = Infinity) {
   return out.slice(0, max);
 }
 
-function buildHoverMetaContent(countryId, countryName) {
+// Slim teaser for the minimal hover card: a single line of literary DNA.
+// Deep context (voices, entry work, cultural cue) now lives in the click panel,
+// so the hover stays a lightweight prompt to click rather than a content dump.
+function buildHoverTeaser(countryId, countryName) {
   const profile = buildRegionContextSync(countryId, countryName);
   const hover = profile.hover || {};
-  const books = allCountryBooks(countryId);
-  const keywordText = uniqueCompact(
+  const dna = uniqueCompact(
     Array.isArray(hover.dna) && hover.dna.length ? hover.dna : (profile.keywords || []),
     3
-  ).join(' · ') || 'No clear literary signal yet';
-
-  const voices = uniqueCompact([
-    ...(hover.voices || []),
-    ...(profile.starters || []).map(item => item?.author),
-    ...books.map(book => book?.author),
-  ], 2);
-  const voiceText = voices.join(' · ') || 'No mapped voices yet';
-
-  const hoverEntry = hover.entry && typeof hover.entry === 'object' ? hover.entry : null;
-  const starter =
-    (hoverEntry?.title ? {
-      title: hoverEntry.title,
-      note: hoverEntry.reason || '',
-      author: hoverEntry.author || '',
-    } : null) ||
-    (profile.starters || []).find(item => item?.title) ||
-    (books[0] ? {
-      title: books[0].title,
-      note: `Start with a short work to enter ${countryName}'s literary context.`,
-      author: books[0].author,
-    } : null);
-
-  const entryTitle = truncateText(starter?.title || `One representative work`, 38);
-  const entryReason = truncateText(
-    starter?.note || `Use one concise text to enter ${countryName}'s reading atmosphere.`,
-    52
-  );
-
-  return {
-    keywordText,
-    voiceText,
-    entryTitle,
-    entryReason,
-    cueText: truncateText(String(hover.cue || profile.culture || ''), 84),
-  };
-}
-
-function buildHoverSlotTemplates(zone) {
-  // Each card is assigned a primary quadrant (TL, TR, BL, BR) relative to the anchor.
-  // Candidates are ordered: ideal → same-side alternative → opposite-side escape hatches.
-  // Vertical bias nudges everything away from the viewport edge the anchor is near.
-  const yBias = zone.vertical === 'top' ? 64 : (zone.vertical === 'bottom' ? -64 : 0);
-
-  // Quadrant offsets: dx/dy are center-of-card relative to anchor center.
-  // Positive dx = right of anchor, positive dy = below anchor.
-  const TL = { dx: -240, dy: -148 };
-  const TR = { dx: 240, dy: -148 };
-  const BL = { dx: -240, dy: 110 };
-  const BR = { dx: 240, dy: 110 };
-
-  // When anchor is near the left edge, shift all cards rightward.
-  // When near the right edge, shift leftward.
-  const hShift = zone.horizontal === 'left' ? 120 : (zone.horizontal === 'right' ? -120 : 0);
-
-  const raw = {
-    // Country name: above anchor, fallback below
-    country: [
-      { dx: 0, dy: -96 },
-      { dx: 0, dy: 94 },
-      { dx: -80, dy: -96 },
-      { dx: 80, dy: -96 },
-    ],
-    // Literary DNA → top-left primary
-    dna: [
-      TL,
-      { dx: TL.dx, dy: BL.dy },           // bottom-left
-      { dx: TR.dx, dy: TL.dy },           // top-right escape
-      { dx: TL.dx - 40, dy: TL.dy - 60 }, // further out TL
-      { dx: TR.dx + 40, dy: TR.dy - 60 }, // further out TR
-    ],
-    // Representative voices → top-right primary
-    voices: [
-      TR,
-      { dx: TR.dx, dy: BR.dy },           // bottom-right
-      { dx: TL.dx, dy: TR.dy },           // top-left escape
-      { dx: TR.dx + 40, dy: TR.dy - 60 },
-      { dx: TL.dx - 40, dy: TL.dy - 60 },
-    ],
-    // Entry work → bottom-left primary
-    entry: [
-      BL,
-      { dx: BL.dx, dy: TL.dy },           // top-left
-      { dx: BR.dx, dy: BL.dy },           // bottom-right escape
-      { dx: BL.dx - 40, dy: BL.dy + 60 },
-      { dx: BR.dx + 40, dy: BR.dy + 60 },
-    ],
-    // Context cue → bottom-right primary
-    cue: [
-      BR,
-      { dx: BR.dx, dy: TR.dy },           // top-right
-      { dx: BL.dx, dy: BR.dy },           // bottom-left escape
-      { dx: BR.dx + 40, dy: BR.dy + 60 },
-      { dx: BL.dx - 40, dy: BL.dy + 60 },
-    ],
-  };
-
-  return Object.fromEntries(
-    Object.entries(raw).map(([key, list]) => [
-      key,
-      list.map(slot => ({
-        dx: slot.dx + (key === 'country' ? 0 : hShift),
-        dy: slot.dy + yBias,
-      })),
-    ])
-  );
-}
-
-function slotsToHoverCandidates(anchor, slots, width, height) {
-  return (slots || []).map(slot => ({
-    x: anchor.x + slot.dx - width / 2,
-    y: anchor.y + slot.dy - height / 2,
-  }));
-}
-
-function buildHoverMetaNodes(anchor, countryName, content) {
-  const zone = getHoverAnchorZone(anchor);
-  const slotMap = buildHoverSlotTemplates(zone);
-
-  return [
-    {
-      wrapperClass: 'map-hover-country-name',
-      width: 260,
-      height: 46,
-      candidates: slotsToHoverCandidates(anchor, slotMap.country, 260, 46),
-      html: `<span>${escapeHTML(countryName)}</span>`,
-    },
-    {
-      cls: 'map-hover-meta-dna',
-      width: 198,
-      height: 74,
-      candidates: slotsToHoverCandidates(anchor, slotMap.dna, 198, 74),
-      html: `
-        <div class="map-hover-meta-kicker">Literary DNA</div>
-        <div class="map-hover-meta-text">${escapeHTML(content.keywordText)}</div>
-      `,
-    },
-    {
-      cls: 'map-hover-meta-voices',
-      width: 194,
-      height: 74,
-      candidates: slotsToHoverCandidates(anchor, slotMap.voices, 194, 74),
-      html: `
-        <div class="map-hover-meta-kicker">Representative Voices</div>
-        <div class="map-hover-meta-text">${escapeHTML(content.voiceText)}</div>
-      `,
-    },
-    {
-      cls: 'map-hover-meta-entry',
-      width: 212,
-      height: 94,
-      candidates: slotsToHoverCandidates(anchor, slotMap.entry, 212, 94),
-      html: `
-        <div class="map-hover-meta-kicker">Entry Work</div>
-        <div class="map-hover-meta-entry-title">${escapeHTML(content.entryTitle)}</div>
-        <div class="map-hover-meta-entry-note">${escapeHTML(content.entryReason)}</div>
-      `,
-    },
-    {
-      cls: 'map-hover-meta-cue',
-      width: 230,
-      height: 108,
-      candidates: slotsToHoverCandidates(anchor, slotMap.cue, 230, 108),
-      html: `
-        <div class="map-hover-meta-kicker">Context Cue</div>
-        <div class="map-hover-meta-text">${escapeHTML(content.cueText)}</div>
-      `,
-    },
-  ];
-}
-
-function layoutHoverMetaNodes(nodes, anchor, keepOut) {
-  const placed = [];
-  return nodes.map(node => {
-    const rawCandidates = (node.candidates || []).map(c => ({
-      x: Number.isFinite(c.x) ? c.x : anchor.x + (c.dx || 0),
-      y: Number.isFinite(c.y) ? c.y : anchor.y + (c.dy || 0),
-      w: node.width,
-      h: node.height,
-    }));
-    const baseCandidates = rawCandidates.length ? rawCandidates : [{
-      x: anchor.x + 120,
-      y: anchor.y - 80,
-      w: node.width,
-      h: node.height,
-    }];
-
-    // Expand candidate pool by nudging each base candidate in 8 directions.
-    const nudges = [0, 1, -1, 2, -2, 3, -3];
-    const expandedCandidates = [];
-    for (const base of baseCandidates) {
-      for (const ny of nudges) {
-        for (const nx of nudges) {
-          if (nx === 0 && ny === 0) {
-            expandedCandidates.push(base);
-          } else {
-            expandedCandidates.push({ ...base, x: base.x + nx * 48, y: base.y + ny * 48 });
-          }
-        }
-      }
-    }
-
-    // First pass: strict — no overlap with keepOut or any placed card.
-    let chosen = null;
-    for (const candidate of expandedCandidates) {
-      const rect = clampHoverRect(candidate);
-      if (rectsOverlap(rect, keepOut, 8)) continue;
-      if (placed.some(prev => rectsOverlap(rect, prev, 8))) continue;
-      chosen = rect;
-      break;
-    }
-
-    // Second pass: allow slight keepOut overlap if needed, but never overlap placed cards.
-    if (!chosen) {
-      for (const candidate of expandedCandidates) {
-        const rect = clampHoverRect(candidate);
-        if (placed.some(prev => rectsOverlap(rect, prev, 4))) continue;
-        chosen = rect;
-        break;
-      }
-    }
-
-    // Last resort: minimize total overlap area.
-    if (!chosen) {
-      chosen = pickLeastOverlapRect(baseCandidates, keepOut, placed);
-    }
-
-    placed.push(chosen);
-    return { ...node, x: chosen.x, y: chosen.y };
-  });
-}
-
-function clampHoverRect(rect) {
-  const pos = clampHoverNode(rect.x, rect.y, rect.w, rect.h);
-  return { ...rect, x: pos.x, y: pos.y };
-}
-
-function pickLeastOverlapRect(candidates, keepOut, placed) {
-  let best = clampHoverRect(candidates[0]);
-  let bestScore = Number.POSITIVE_INFINITY;
-  candidates.forEach(candidate => {
-    const rect = clampHoverRect(candidate);
-    const score =
-      overlapArea(rect, keepOut) * 3 +
-      placed.reduce((sum, prev) => sum + overlapArea(rect, prev), 0);
-    if (score < bestScore) {
-      best = rect;
-      bestScore = score;
-    }
-  });
-  return best;
-}
-
-function rectsOverlap(a, b, pad = 0) {
-  return !(
-    a.x + a.w + pad <= b.x ||
-    b.x + b.w + pad <= a.x ||
-    a.y + a.h + pad <= b.y ||
-    b.y + b.h + pad <= a.y
-  );
-}
-
-function overlapArea(a, b) {
-  const x = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
-  const y = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
-  return x * y;
+  ).join(' · ') || 'A reading-context blind spot worth entering';
+  const image = profile.userHero?.image || profile.hero?.image || null;
+  return { dna, image };
 }
 
 function buildHoverTitles(anchor, books, options = {}) {
@@ -1311,6 +1563,7 @@ async function openCountryPanel(countryId, name) {
   buildRegionContext(countryId, name, profile => {
     if (__mapPanelState?.countryId === countryId) {
       __mapPanelState.context = profile;
+      renderPanelHero();
       if (__mapPanelState.activeTab !== 'books') renderPanelBody();
     }
   });
@@ -1338,6 +1591,7 @@ async function openProvincePanel(provinceId, name, books = allProvinceBooks(prov
   buildRegionContext(parentCountryId, provinceName, profile => {
     if (__mapPanelState?.provinceId === provinceId) {
       __mapPanelState.context = profile;
+      renderPanelHero();
       if (__mapPanelState.activeTab !== 'books') renderPanelBody();
     }
   });
@@ -1347,6 +1601,7 @@ function renderPanel() {
   const panelEl = document.getElementById('mapPanel');
   if (!panelEl || !__mapPanelState) return;
 
+  renderPanelHero();
   document.getElementById('mapPanelPlace').textContent = __mapPanelState.placeLabel;
   const subEl = document.getElementById('mapPanelSub');
   const subtitle = buildPanelSubtitle(__mapPanelState);
@@ -1358,6 +1613,46 @@ function renderPanel() {
 
   panelEl.classList.add('open');
   document.body.classList.add('map-panel-open');
+}
+
+// Full-bleed hero image at the top of the panel. The place name is overlaid
+// on the image; the plain-text head is dimmed to a sub-label so the name
+// isn't duplicated. Falls back to the text-only head when no image exists.
+// `hero` resolves user-uploaded photos first (future), then the curated
+// open-source image: userHero ?? hero.
+function renderPanelHero() {
+  const heroEl = document.getElementById('mapPanelHero');
+  const panelEl = document.getElementById('mapPanel');
+  if (!heroEl || !__mapPanelState) return;
+
+  const ctx = __mapPanelState.context || {};
+  const hero = ctx.userHero || ctx.hero || null;
+  const image = hero?.image;
+
+  if (!image) {
+    heroEl.hidden = true;
+    heroEl.innerHTML = '';
+    panelEl.classList.remove('has-hero');
+    return;
+  }
+
+  const credit = hero.credit
+    ? `<span class="map-panel-hero-credit">${escapeHTML(hero.credit)}</span>`
+    : '';
+  const caption = hero.caption
+    ? `<span class="map-panel-hero-caption">${escapeHTML(hero.caption)}</span>`
+    : '';
+
+  heroEl.innerHTML = `
+    <img class="map-panel-hero-img" src="${escapeHTML(image)}" alt="${escapeHTML(__mapPanelState.placeLabel)}" loading="lazy"
+         onerror="this.closest('.map-panel-hero').hidden=true;this.closest('.map-panel').classList.remove('has-hero')">
+    <div class="map-panel-hero-overlay">
+      <span class="map-panel-hero-name">${escapeHTML(__mapPanelState.regionLabel || __mapPanelState.placeLabel)}</span>
+      ${caption}
+    </div>
+    ${credit}`;
+  heroEl.hidden = false;
+  panelEl.classList.add('has-hero');
 }
 
 // Closes only the panel DOM — used internally by goWorld() to avoid recursion.
@@ -1590,6 +1885,7 @@ function normalizeProfile(raw) {
   const p = raw.panel || {};
   return {
     hover:    raw.hover    || {},
+    hero:     raw.hero     || null,
     culture:  p.culture   || raw.culture  || '',
     history:  p.history   || raw.history  || [],
     keywords: p.keywords  || raw.keywords || [],

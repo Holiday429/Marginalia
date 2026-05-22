@@ -221,7 +221,6 @@ body.map-panel-open #mapChart { width: calc(100% - 540px); }
   pointer-events: none;
 }
 
-.map-hover-meta,
 .map-hover-title {
   position: absolute;
   color: rgba(245, 241, 230, 0.96);
@@ -229,66 +228,104 @@ body.map-panel-open #mapChart { width: calc(100% - 540px); }
   pointer-events: none;
 }
 
-.map-hover-meta {
-  padding: 10px 12px 9px;
-  border: 1.6px solid rgba(232,223,200,0.64);
-  border-radius: 18px;
-  background: transparent;
-  backdrop-filter: none;
-  max-width: 232px;
-  animation: mapHoverFadeIn 160ms ease forwards;
-}
-
-.map-hover-country-name {
+/* Polaroid-style hover card pinned to the hovered country: a photo in a thick
+   instant-print frame with a wide bottom strip for the typed "field notes".
+   One node — replaces the old four-direction collision layout. Drops in with a
+   slight tilt + settle, like a print laid on the map. */
+.map-hover-card {
   position: absolute;
-  color: rgba(245, 241, 230, 0.94);
-  text-shadow: 0 2px 10px rgba(0,0,0,0.62);
-  pointer-events: none;
-  font-family: var(--font-serif);
-  font-size: 28px;
-  line-height: 0.9;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
+  width: 236px;
+  padding: 9px 9px 0;            /* even photo border; bottom strip via body */
+  border-radius: 4px;
+  background: #ece3d0;           /* warm instant-print paper */
+  box-shadow: 0 16px 36px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
   overflow: hidden;
-  text-overflow: ellipsis;
-  animation: mapHoverFadeIn 160ms ease forwards;
+  pointer-events: none;
+  transform-origin: 50% 0;
+  animation: mapHoverCardIn 300ms cubic-bezier(.22,1.1,.36,1) forwards;
 }
 
-.map-hover-meta-kicker {
+/* The print window — tall enough to show the photo without heavy cropping.
+   Height is reserved up-front (not gated on load) so the card's full size is
+   known the moment it's positioned, letting the flip-above logic decide
+   correctly even before the photo finishes loading. */
+.map-hover-card-thumb {
+  position: relative;
+  width: 100%;
+  height: 158px;        /* reserved immediately */
+  overflow: hidden;
+  background: #2a241d;
+}
+.map-hover-card-thumb img {
+  width: 100%;
+  height: 158px;
+  object-fit: cover;
+  display: block;
+  /* Develop-in: the print fades up from dark, like an instant photo. */
+  opacity: 0;
+  transform: scale(1.05);
+  filter: saturate(0.4) brightness(0.7);
+  transition: opacity 0.5s ease, transform 0.8s ease, filter 0.9s ease;
+}
+.map-hover-card-thumb.loaded img {
+  opacity: 1;
+  transform: scale(1);
+  filter: saturate(1) brightness(1);
+}
+
+/* Caption strip — darker text on the paper, like handwriting on a polaroid. */
+.map-hover-card-body {
+  padding: 10px 5px 12px;
+}
+.map-hover-card-name {
   font-family: var(--font-serif);
-  font-size: 16px;
-  line-height: 1;
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: #2c241b;
+  font-variation-settings: "opsz" 48;
   margin-bottom: 4px;
-  text-transform: none;
+  min-height: 1.1em;
+}
+.map-hover-card-dna {
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", var(--font-serif);
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: rgba(44, 36, 27, 0.74);
+  margin-bottom: 6px;
+  min-height: 1.35em;
+}
+/* Blinking caret while a field is being typed. */
+.map-hover-card-name.is-typing::after,
+.map-hover-card-dna.is-typing::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 0.8em;
+  margin-left: 1px;
+  vertical-align: -0.1em;
+  background: #9a6a2a;
+  opacity: 0.85;
+  animation: mapHoverCaret 0.7s steps(1) infinite;
 }
 
-.map-hover-meta-text {
-  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", serif;
-  font-size: 12.5px;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
-}
-
-.map-hover-meta-entry-title {
-  font-family: var(--font-serif);
-  font-size: 13px;
-  line-height: 1.15;
-  color: rgba(245, 241, 230, 0.96);
-  margin-bottom: 3px;
-}
-
-.map-hover-meta-entry-note {
+.map-hover-card-count {
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  line-height: 1.25;
-  color: rgba(232,223,200,0.84);
-  letter-spacing: 0.01em;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  color: #9a6a2a;
 }
 
-.map-hover-meta-dna { transform: rotate(1.3deg); }
-.map-hover-meta-voices { transform: rotate(-1deg); }
-.map-hover-meta-entry { transform: rotate(0.8deg); }
-.map-hover-meta-cue { transform: rotate(-1.2deg); }
+@keyframes mapHoverCaret {
+  0%, 50% { opacity: 0.85; }
+  50.01%, 100% { opacity: 0; }
+}
+
+@keyframes mapHoverCardIn {
+  from { opacity: 0; transform: translateY(10px) rotate(-3deg) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0)    rotate(-1.5deg) scale(1); }
+}
 
 .map-hover-title {
   font-family: var(--font-serif);
@@ -331,6 +368,59 @@ body.map-panel-open #mapChart { width: calc(100% - 540px); }
   to {
     opacity: 1;
   }
+}
+
+/* ── Staged entry: hold surrounding UI until continents assemble ────────── */
+/* The corner globe is intentionally NOT held back — it lands first (handed off
+   from the fly-in) and stays visible while the continents slide in behind it. */
+.map-stats,
+#panel-map .map-geo-filters,
+#panel-map .map-header-right {
+  transition: opacity 0.7s ease;
+}
+body.map-staged-entering .map-stats,
+body.map-staged-entering #panel-map .map-geo-filters,
+body.map-staged-entering #panel-map .map-header-right {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Globe fly-in transition overlay (room → map) ───────────────────────── */
+.globe-fly-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34, 29, 24, 0);
+  opacity: 1;
+  pointer-events: none;
+  transition: background 0.45s ease;
+}
+.globe-fly-overlay.is-active {
+  background: rgba(34, 29, 24, 0.96);
+}
+.globe-fly-overlay canvas {
+  display: block;
+}
+
+/* ── Decorative globe (3D ↔ 2D continuity) ──────────────────────────────── */
+.map-globe {
+  position: absolute;
+  left: 18px;
+  bottom: 16px;
+  width: 112px;
+  height: 112px;
+  z-index: 19;
+  pointer-events: none;
+  opacity: 0.92;     /* always visible — handed off from the fly-in */
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.5));
+}
+.map-globe canvas { display: block; }
+
+@media (max-width: 1200px) {
+  .map-globe { width: 92px; height: 92px; }
 }
 
 /* ── Zoom controls ──────────────────────────────────────────────────────── */
@@ -404,6 +494,191 @@ body.map-panel-open .map-zoom { right: 568px; }
 }
 .map-hint.show { opacity: 1; }
 
+/* ── World-view stats sidebar ───────────────────────────────────────────── */
+.map-stats {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 248px;
+  height: 100%;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 2px 24px 0;
+  overflow-y: auto;
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.32s ease, transform 0.42s cubic-bezier(.22,.9,.2,1);
+}
+.map-stats::-webkit-scrollbar { width: 3px; }
+.map-stats::-webkit-scrollbar-track { background: transparent; }
+.map-stats::-webkit-scrollbar-thumb { background: rgba(232,223,200,0.2); border-radius: 2px; }
+
+/* Hidden once a country is focused — the detail panel takes the space. */
+body.map-stats-hidden .map-stats {
+  opacity: 0;
+  transform: translateX(24px);
+  pointer-events: none;
+}
+
+/* Reserve room on the right for the sidebar in world view. */
+body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
+  width: calc(100% - 256px);
+}
+
+.map-stats-card {
+  border: var(--ui-border-width) solid var(--ui-border-color);
+  border-radius: 12px;
+  padding: 14px 15px;
+  background: rgba(232, 223, 200, 0.025);
+}
+
+.map-stats-kicker {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: none;
+  color: #d8ad66;
+  margin-bottom: 12px;
+}
+
+.map-stats-empty {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(232,223,200,0.6);
+}
+
+.map-stats-figures {
+  display: flex;
+  gap: 22px;
+}
+.map-stats-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.map-stats-figure strong {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: 28px;
+  line-height: 1;
+  color: #e8dfc8;
+  font-variation-settings: "opsz" 72;
+}
+.map-stats-figure span {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  color: rgba(232,223,200,0.55);
+}
+
+.map-stats-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  counter-reset: map-rank;
+}
+.map-stats-row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  counter-increment: map-rank;
+}
+.map-stats-row::before {
+  content: counter(map-rank);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: rgba(232,223,200,0.4);
+}
+.map-stats-row-main {
+  min-width: 0;
+}
+.map-stats-row-name {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: rgba(236,229,214,0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.map-stats-bar {
+  height: 2px;
+  background: rgba(232,223,200,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.map-stats-bar-fill {
+  display: block;
+  height: 100%;
+  background: #c4903a;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.map-stats-row-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: rgba(232,223,200,0.68);
+  text-align: right;
+}
+
+.map-stats-insight {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(236,229,214,0.86);
+}
+.map-stats-insight strong {
+  color: #e0bc84;
+  font-weight: 500;
+}
+
+/* Recent exploration list */
+.map-stats-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.map-stats-recent-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 9px;
+}
+.map-stats-recent-flag {
+  font-size: 15px;
+  line-height: 1;
+}
+.map-stats-recent-name {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: rgba(236,229,214,0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.map-stats-recent-meta {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  color: rgba(232,223,200,0.5);
+  text-align: right;
+  white-space: nowrap;
+}
+
 /* ── Side panel ─────────────────────────────────────────────────────────── */
 .map-panel {
   position: absolute;
@@ -421,6 +696,81 @@ body.map-panel-open .map-zoom { right: 568px; }
   overflow: hidden;
 }
 .map-panel.open { transform: translateX(0); }
+
+/* ── Panel hero image (full-bleed, place name overlaid) ─────────────────── */
+.map-panel-hero {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+.map-panel-hero[hidden] { display: none; }
+
+.map-panel-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.map-panel-hero-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 40px 28px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: linear-gradient(180deg, transparent, rgba(34, 29, 24, 0.92));
+}
+.map-panel-hero-name {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #f3ecda;
+  font-variation-settings: "opsz" 96;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.55);
+}
+.map-panel-hero-caption {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: rgba(243,236,218,0.78);
+}
+.map-panel-hero-credit {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: rgba(243,236,218,0.6);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+/* When a hero is present, demote the text head: hide the duplicate place
+   name and let the subtitle sit just under the image. The close button
+   floats over the hero (anchored to the panel, not the head). */
+.map-panel.has-hero .map-panel-head {
+  padding-top: 16px;
+}
+.map-panel.has-hero .map-panel-place {
+  display: none;
+}
+.map-panel-hero { z-index: 1; }
+.map-panel.has-hero .map-panel-head {
+  position: static;
+}
+.map-panel.has-hero .map-panel-close {
+  top: 16px;
+  right: 20px;
+  z-index: 3;
+  background: rgba(34, 29, 24, 0.5);
+}
 
 .map-panel-head {
   padding: 28px 28px 10px;
@@ -838,6 +1188,18 @@ body.map-panel-open .map-zoom { right: 568px; }
 
   .map-header-right {
     display: none;
+  }
+
+  .map-stats {
+    display: none;
+  }
+
+  .map-globe {
+    display: none;
+  }
+
+  body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
+    width: 100%;
   }
 
   .map-panel-head {

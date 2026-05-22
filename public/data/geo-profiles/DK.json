@@ -7,6 +7,12 @@
   "version": 1,
   "updatedAt": "2026-05-16",
 
+  "hero": {
+    "image": "https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?auto=format&fit=crop&w=1200&q=70",
+    "credit": "Nick Karvounis / Unsplash",
+    "caption": "北欧的内省与社会契约"
+  },
+
   "hover": {
     "dna": ["存在的焦虑与日常的宁静", "童话作为哲学容器", "忧郁的轻盈"],
     "voices": ["安徒生", "索伦·克尔凯郭尔"],
