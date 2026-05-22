@@ -544,6 +544,17 @@ body[data-view='room'] {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(20px) saturate(128%);
   padding: 10px;
+  transition: width 0.24s ease, padding 0.24s ease, border-radius 0.24s ease;
+}
+
+/* Collapsed: shrink to a minimal pill (dot + label + chevron) */
+#view-room .room-focus-dock.is-collapsed {
+  width: auto;
+  padding: 3px;
+  border-radius: 999px;
+}
+#view-room .room-focus-dock.is-collapsed .room-focus-slot {
+  width: auto;
 }
 
 #view-room.is-sidebar-collapsed .room-sidebar {
@@ -656,6 +667,11 @@ body[data-view='room'] {
   transition: opacity 0.32s ease;
 }
 
+.room-transition-overlay.is-solid {
+  background: rgba(18, 15, 12, 0.98);
+  backdrop-filter: none;
+}
+
 .room-transition-overlay.is-active {
   opacity: 1;
 }
@@ -679,6 +695,15 @@ body.is-room-panel-entering #view-room {
 body.is-room-panel-leaving #view-room {
   transform: scale(1.01);
   filter: blur(1px) brightness(0.9) saturate(0.92);
+}
+
+body[data-panel='map'] #view-room,
+body[data-panel='map'].is-room-panel-entering #view-room,
+body[data-panel='map'].is-room-panel-leaving #view-room {
+  opacity: 0;
+  transform: none;
+  filter: none;
+  transition: opacity 0.22s ease;
 }
 
 #panel-todo.room-panel {
@@ -739,6 +764,9 @@ body.is-room-panel-leaving #view-room {
     left: 12px;
     bottom: 12px;
     width: min(226px, calc(100vw - 24px));
+  }
+  #view-room .room-focus-dock.is-collapsed {
+    width: auto;
   }
 
   #view-room .room-settings-panel {

@@ -152,7 +152,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     liftY: 0.17,
     rotationY: -0.42,
     targetHeight: 0.4,
-    photoTextureUrl: '/3d/me.jpg',
+    photoTextureUrl: '/3d/profile-frame-room.jpg',
     photoMaterialNameIncludes: 'Image',
     interactiveAction: 'profile',
   },

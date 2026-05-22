@@ -1,21 +1,184 @@
-/* Picture-frame fly-in overlay — entry transition from the 3D room. */
-.frame-fly-overlay {
+/* Room → profile picture transition. The whole sequence (frame swing-in,
+   in-frame photo swap, pull-out, piano-key bounce) plays over an OPAQUE black
+   screen; the profile page is only revealed once the circle has landed and
+   this overlay fades out. */
+.profile-frame-transition {
   position: fixed;
   inset: 0;
   z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+  background: #0b0a09;
+  opacity: 1;
+  transition: opacity 820ms ease;
+}
+
+/* Final beat: fade the entire black overlay away to reveal the profile page. */
+.profile-frame-transition.is-finishing {
+  opacity: 0;
+}
+
+.profile-frame-transition__stage {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  transition: opacity 320ms ease;
+}
+
+.profile-frame-transition__stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* WebGL stage fades, leaving a frozen circle that bounces, then docks. */
+.profile-frame-transition.is-circle-ready .profile-frame-transition__stage {
+  opacity: 0;
+}
+
+/* ── Circle (the pulled-out close-up that becomes the portrait) ── */
+.profile-frame-transition__circle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  opacity: 0;
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.32),
+    inset 0 0 0 1px rgba(255, 244, 223, 0.18);
+  transition: opacity 320ms ease;
+}
+
+.profile-frame-transition.is-circle-ready .profile-frame-transition__circle {
+  opacity: 1;
+}
+
+.profile-frame-transition__circle-img,
+.profile-frame-transition__circle-avatar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-frame-transition__circle-img {
+  object-position: 50% 38%;
+  opacity: 1;
+  transition: opacity 420ms ease;
+}
+
+.profile-frame-transition__circle-avatar {
+  object-position: center;
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+.profile-frame-transition__circle.is-avatar-morph .profile-frame-transition__circle-img {
+  opacity: 0;
+}
+
+.profile-frame-transition__circle.has-avatar.is-avatar-morph .profile-frame-transition__circle-avatar {
+  opacity: 1;
+}
+
+/* A single in-place spin as the ball turns into the portrait at the right end
+   of the shelf. Position is driven via left/top, so transform is free to spin. */
+.profile-frame-transition__circle.is-spinning {
+  animation: profile-frame-spin 520ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes profile-frame-spin {
+  from { transform: rotate(0deg) scale(1); }
+  50%  { transform: rotate(200deg) scale(1.12); }
+  to   { transform: rotate(360deg) scale(1); }
+}
+
+/* ── Prop spine row the circle hops across ── */
+.profile-frame-transition__spines {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12vh;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 420ms ease;
+}
+
+.profile-frame-transition.is-bouncing .profile-frame-transition__spines {
+  opacity: 1;
+}
+
+.profile-frame-transition.is-finishing .profile-frame-transition__spines {
+  opacity: 0;
+}
+
+.profile-frame-transition__spine-row {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 0 14px 16px;
+}
+
+.profile-frame-transition__spine-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #8f744b 0%, #71593b 62%, #5b462f 100%);
+  border-top: 1px solid rgba(184, 154, 82, 0.72);
+  box-shadow:
+    0 10px 22px rgba(26, 20, 14, 0.4),
+    inset 0 1px 0 rgba(255, 245, 224, 0.2);
+}
+
+.profile-frame-transition__spine {
+  position: relative;
+  border-radius: 2px 2px 1px 1px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(34, 29, 24, 0);
-  opacity: 1;
-  pointer-events: none;
-  transition: background 0.45s ease;
+  overflow: hidden;
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 20%, rgba(0, 0, 0, 0.18) 100%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 3px);
+  box-shadow:
+    inset 2px 0 0 rgba(255, 255, 255, 0.08),
+    inset -2px 0 5px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform-origin: bottom center;
+  transition: transform 0.2s cubic-bezier(.2, .85, .2, 1.4), box-shadow 0.2s ease, filter 0.2s ease;
 }
-.frame-fly-overlay.is-active {
-  background: rgba(34, 29, 24, 0.96);
+
+/* Stronger-than-shelf kick when the bouncing circle lands on a spine. */
+.profile-frame-transition__spine.is-kicked {
+  transform: translateY(-17px) scale(1.04);
+  filter: saturate(1.12) brightness(1.06);
+  box-shadow:
+    inset 2px 0 0 rgba(255, 255, 255, 0.12),
+    inset -2px 0 5px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 18px 30px rgba(0, 0, 0, 0.4);
 }
-.frame-fly-overlay canvas {
-  display: block;
+
+.profile-frame-transition__spine-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 11px;
+  line-height: 1.02;
+  letter-spacing: 0.03em;
+  text-align: center;
+  max-height: calc(100% - 20px);
+  overflow: hidden;
 }
 
 #panel-profile {
@@ -161,10 +324,17 @@
   padding: clamp(22px, 2.6vw, 34px);
 }
 
+/* Avatar over name, centred WITHIN the stats-block width (not the whole
+   banner) so the header sits directly above the 2×2 stats and lines up with
+   them — leaving the room image on the right uncovered. */
 .prof-banner__head {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: clamp(14px, 1.8vw, 20px);
+  text-align: center;
+  gap: clamp(10px, 1.4vw, 16px);
+  width: 100%;
+  max-width: 340px;
 }
 
 .prof-banner__media { flex-shrink: 0; }
@@ -179,7 +349,7 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.prof-banner__id { display: flex; flex-direction: column; gap: 4px; }
+.prof-banner__id { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 
 .prof-banner .prof-name {
   margin: 0;
@@ -199,7 +369,13 @@
   color: rgba(237, 224, 200, 0.78);
 }
 
-.prof-banner__meta { display: flex; gap: 18px; margin-top: 3px; }
+.prof-banner__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+}
 
 .prof-banner__meta-item {
   display: flex;
@@ -256,24 +432,96 @@
   color: rgba(237, 224, 200, 0.56);
 }
 
-/* Right: full 3D room image (reserve area for a future pixel figure). */
+/* Right: clickable pixel room → enters the 3D room. The left edge of the
+   image is feathered (mask + blurred bleed) so it dissolves into the info
+   panel instead of meeting it at a hard vertical seam. */
 .prof-banner__room {
+  /* Bleed across the full banner behind the info panel so the feathered left
+     edge dissolves UNDER the text — no hard column seam. Sits in column 2 of
+     the grid but extends left via a negative inset. */
   position: relative;
-  overflow: hidden;
+  grid-column: 2 / 3;
+  overflow: visible;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  display: block;
+}
+
+.prof-banner__room .prof-banner__room-img,
+.prof-banner__room .prof-banner__room-fade {
+  left: clamp(-280px, -22vw, -160px);
 }
 
 .prof-banner__room-img {
   position: absolute;
   inset: 0;
-  background: url('/profile-room-pixel.png') center / cover no-repeat;
+  background: url('/profile-room-pixel-day.png') center / cover no-repeat;
   image-rendering: pixelated;
+  /* Feather the seam side so the image fades out toward the info panel. */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.35) 14%, #000 36%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.35) 14%, #000 36%);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), filter 0.6s ease;
 }
 
-/* Soft fade only at the seam so the room reads complete but blends into the info panel. */
+/* A soft blurred wash over the seam smooths the dissolve further and tints
+   the join with the panel colour — no crisp boundary. */
 .prof-banner__room-fade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, var(--glass-panel) 0%, rgba(40, 34, 28, 0.2) 18%, transparent 42%);
+  background: linear-gradient(90deg, var(--glass-panel) 0%, rgba(40, 34, 28, 0.42) 16%, transparent 44%);
+  backdrop-filter: blur(7px);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.6) 22%, transparent 40%);
+  mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.6) 22%, transparent 40%);
+  pointer-events: none;
+}
+
+/* Hover affordance: gentle zoom + a label cue. */
+.prof-banner__room:hover .prof-banner__room-img,
+.prof-banner__room:focus-visible .prof-banner__room-img {
+  transform: scale(1.04);
+  filter: brightness(1.06);
+}
+
+/* Click → push into the room before navigating to the 3D view. */
+.prof-banner__room.is-zooming .prof-banner__room-img {
+  transform: scale(1.6);
+  filter: brightness(1.12);
+  transition: transform 0.56s cubic-bezier(0.5, 0, 0.2, 1), filter 0.56s ease;
+}
+
+.prof-banner__room.is-zooming .prof-banner__room-fade {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.prof-banner__room-cue {
+  position: absolute;
+  right: clamp(12px, 1.4vw, 18px);
+  bottom: clamp(12px, 1.4vw, 18px);
+  z-index: 2;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f7ecd2;
+  background: rgba(20, 16, 12, 0.5);
+  border: 1px solid rgba(232, 223, 200, 0.28);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+  pointer-events: none;
+}
+
+.prof-banner__room:hover .prof-banner__room-cue,
+.prof-banner__room:focus-visible .prof-banner__room-cue {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 @media (max-width: 760px) {
@@ -1352,13 +1600,17 @@
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 248, 235, 0.045);
 }
 
-/* Path + Streak share one row; streak gets more room so the heatmap reads clearly. */
+/* Streak + Path share one row. Streak sits on the LEFT now and gets the wider
+   track so its heatmap has room; the path/sparkline moves to the right. */
 .prof-rhythm-row {
   display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
+  grid-template-columns: 1.45fr 0.55fr;
   gap: 14px;
   align-items: stretch;
 }
+
+.prof-rhythm-row__path { order: 2; }
+.prof-streak-card { order: 1; }
 
 .prof-rhythm-row__path {
   display: flex;
@@ -3218,9 +3470,18 @@
 @media (min-width: 680px) {
   .prof-rid-stage--cta .prof-rid-stage__overlay {
     flex-direction: row;
-    align-items: center;
+    /* Top-align so the hero book sits up level with the heading rather than
+       hanging below the centred copy. */
+    align-items: flex-start;
     justify-content: center;
     gap: clamp(16px, 2.4vw, 30px);
+  }
+
+  /* Lift the hero book up so its top lines up with the heading instead of
+     hanging below the centred copy. margin (not transform) avoids fighting
+     the book's dock/generate transforms. */
+  .prof-rid-stage--cta .prof-rid-book {
+    margin-top: clamp(-56px, -4vw, -32px);
   }
 }
 

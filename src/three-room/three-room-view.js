@@ -57,7 +57,7 @@ const PANEL_POSES = {
   map: 'approach',
   book: 'approach',
   todo: 'notes',
-  profile: 'front',
+  profile: 'approach',
   web: 'notes',
 };
 
@@ -880,6 +880,7 @@ function buildRoomTransitionMeta(panelId) {
     origin,
     originX,
     originY,
+    suppressRoomBackdrop: panelId === 'map',
   };
 }
 
@@ -958,9 +959,10 @@ function exitRoomViaGlobeFly() {
   closeRoomQuickSearch();
   syncHoverBadge();
 
-  const roomTransition = buildRoomTransitionMeta('map');
+  // The globe fly-in IS the transition visual — suppress the generic room
+  // backdrop so it never flashes a blank dark frame behind/over the globe.
+  const roomTransition = { ...buildRoomTransitionMeta('map'), suppressRoomBackdrop: true };
   const nextParams = { __roomTransition: roomTransition };
-  PanelManager.primeTransition?.(roomTransition, 'map');
 
   // Move the room camera toward the globe while the overlay loads.
   const pose = PANEL_POSES.map;
@@ -970,8 +972,10 @@ function exitRoomViaGlobeFly() {
     syncPoseButtons();
   }
 
+  let navigated = false;
   const navigate = () => {
-    ROOM_VIEW_STATE.transitioning = false;
+    if (navigated) return;
+    navigated = true;
     if (App?.navigateTo && HASH_ROUTED_PANELS.has('map')) {
       App.navigateTo('map', nextParams);
     } else {
@@ -980,9 +984,12 @@ function exitRoomViaGlobeFly() {
   };
 
   import('../map/globe-fly.js')
-    .then(({ playGlobeFlyIn }) => playGlobeFlyIn({ duration: 2600 }))
+    .then(({ playGlobeFlyIn }) => playGlobeFlyIn({ duration: 2600, onLanded: navigate }))
     .catch(() => {})
-    .finally(navigate);
+    .finally(() => {
+      navigate();   // safety net if the animation never fired onLanded
+      ROOM_VIEW_STATE.transitioning = false;
+    });
 }
 
 // Enter the Profile view by "stepping through the picture frame": the room
@@ -1016,7 +1023,7 @@ function exitRoomViaFrameFly() {
   };
 
   import('./frame-fly.js')
-    .then(({ playFrameFlyIn }) => playFrameFlyIn({ duration: 2400 }))
+    .then(({ playFrameFlyIn }) => playFrameFlyIn({ duration: 3600 }))
     .catch(() => {})
     .finally(navigate);
 }

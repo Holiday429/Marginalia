@@ -70,6 +70,31 @@
   color: rgba(249, 235, 213, 0.94);
 }
 
+/* Mini glyph in collapsed pill — sits right after the label, pushes time/chevron right */
+.fw-mini {
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.fw-mini--clock { width: 15px; height: 15px; }
+.fw-mini--hourglass { width: 12px; height: 15px; }
+.fw-mini__ring {
+  fill: none;
+  stroke: rgba(244, 228, 205, 0.32);
+  stroke-width: 1.4;
+}
+.fw-mini__hand {
+  stroke: rgba(219, 166, 89, 0.95);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.fw-mini__frame {
+  fill: none;
+  stroke: rgba(244, 228, 205, 0.4);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+.fw-mini__sand { fill: rgba(219, 166, 89, 0.9); }
+
 .fw-collapse-icon { margin-left: auto; font-size: 0.5rem; opacity: 0.4; }
 
 .fw-collapse-time + .fw-collapse-icon {
@@ -129,28 +154,50 @@
 .fw-mode-btn:hover { border-color: rgba(244,228,205,0.38); color: rgba(249,235,213,0.9); }
 .fw-mode-btn--active { border-color: rgba(255, 214, 150, 0.66); color: rgba(249, 235, 213, 0.95); background: rgba(219, 166, 89, 0.26); }
 
-.fw-mode-btn--pomodoro {
-  --fw-progress: 0%;
-  position: relative;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(rgba(53, 41, 31, 0.92), rgba(53, 41, 31, 0.92)) padding-box,
-    conic-gradient(
-      from -90deg,
-      rgba(219, 166, 89, 0.9) 0 var(--fw-progress),
-      rgba(244, 228, 205, 0.2) var(--fw-progress) 100%
-    ) border-box;
-}
+/* ── Active visuals: clock dial (free) + hourglass (pomodoro) ──── */
 
-.fw-mode-btn--pomodoro:hover {
-  border-color: transparent;
-}
-
-.fw-mode-btn__text {
-  display: inline-flex;
+.fw-visual {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 100%;
+  gap: 6px;
+  padding: 4px 0 2px;
+}
+
+.fw-visual__time {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: rgba(249, 235, 213, 0.94);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Clock dial — free mode */
+.fw-clock { width: 72px; height: 72px; }
+.fw-clock__ring {
+  fill: rgba(244, 228, 205, 0.05);
+  stroke: rgba(244, 228, 205, 0.32);
+  stroke-width: 2;
+}
+.fw-clock__hand {
+  stroke: rgba(219, 166, 89, 0.95);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  transition: x2 0.4s linear, y2 0.4s linear;
+}
+.fw-clock__pin { fill: rgba(219, 166, 89, 0.95); }
+
+/* Hourglass — pomodoro mode */
+.fw-hourglass { width: 52px; height: 72px; }
+.fw-hourglass__frame {
+  fill: rgba(244, 228, 205, 0.05);
+  stroke: rgba(244, 228, 205, 0.4);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.fw-hourglass__sand {
+  fill: rgba(219, 166, 89, 0.9);
+  transition: height 0.4s linear, y 0.4s linear;
 }
 
 .fw-actions { display: flex; gap: 8px; }

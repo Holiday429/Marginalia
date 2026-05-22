@@ -16,6 +16,7 @@ import {
 import { loadAnnualShelf } from './annual-shelf-store.ts';
 import { mountReadingIdentity } from './reading-identity.ts';
 import { HeroBook } from '../components/hero-book/hero-book.js';
+import { maybeSettleFrameFlyIn } from '../three-room/frame-fly.js';
 import type { PublicProfileData, PublicBook, PublicHighlight, SessionDay, DemoPayload } from './profile-types.ts';
 import './profile.css';
 import '../components/hero-book/hero-book.css';
@@ -32,7 +33,7 @@ export function initProfile(): void {
   return;
 }
 
-export async function enterProfile(params: { slug?: string; _settingsOnly?: boolean; _preview?: boolean; _uid?: string } = {}): Promise<void> {
+export async function enterProfile(params: { slug?: string; _settingsOnly?: boolean; _preview?: boolean; _uid?: string; __roomTransition?: { source?: string } } = {}): Promise<void> {
   const container = document.getElementById('panel-profile');
   if (!container) return;
   const showSettingsAction = !params.slug;
@@ -441,7 +442,7 @@ function profileHTML(
         <section class="prof-banner" aria-label="Reader profile">
           <div class="prof-banner__info">
             <div class="prof-banner__head">
-              <div class="prof-banner__media">${avatarEl}</div>
+              <div class="prof-banner__media" data-profile-avatar-target>${avatarEl}</div>
               <div class="prof-banner__id">
                 <h1 class="prof-name">${escapeHtml(displayName)}</h1>
                 <p class="prof-reader-tagline">Soul of a curious wanderer</p>
@@ -476,10 +477,11 @@ function profileHTML(
               `).join('')}
             </div>
           </div>
-          <div class="prof-banner__room" aria-hidden="true">
+          <button type="button" class="prof-banner__room" data-view="room" aria-label="Enter your 3D reading room">
             <div class="prof-banner__room-img"></div>
             <div class="prof-banner__room-fade"></div>
-          </div>
+            <span class="prof-banner__room-cue">Enter room</span>
+          </button>
         </section>
 
         <section class="prof-section prof-section--identity" aria-label="Reading identity">
@@ -522,6 +524,19 @@ function bindProfileChrome(container: HTMLElement, settingsOnly: boolean): void 
 
   if (settingsOnly) {
     container.querySelector<HTMLElement>('#profileBackToProfileBtn')?.addEventListener('click', () => enterProfile());
+  }
+
+  // Room image → zoom in, then enter the 3D room. Intercept the generic
+  // data-view delegate so the zoom plays before navigation.
+  const roomBtn = container.querySelector<HTMLElement>('.prof-banner__room');
+  if (roomBtn) {
+    roomBtn.addEventListener('click', (e) => {
+      if (roomBtn.classList.contains('is-zooming')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      roomBtn.classList.add('is-zooming');
+      window.setTimeout(() => { window.location.hash = '#room'; }, 520);
+    }, true);
   }
 
   // Bottom share section — GLB hero book + preloader "Enter Library"-style CTA.
@@ -981,6 +996,7 @@ function renderResolvedProfile(
   bindProfileChrome(container, false);
   bindProfileEvents(container, highlights, books);
   mountSections(container, books, highlights, sessionDays, profileData, isOwner);
+  maybeSettleFrameFlyIn(container);
 }
 
 function profileHeaderHTML(showSettingsAction: boolean, profile: PublicProfileData, isOwner: boolean): string {
