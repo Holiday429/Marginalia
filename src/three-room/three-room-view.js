@@ -614,6 +614,18 @@ function applyRoomPose(pose) {
   syncPoseButtons();
 }
 
+// Set the pose the room should be in the next time it's entered. Callers
+// outside the room (e.g. the profile banner image) use this to land on a
+// specific camera angle. Applied immediately if the scene is already mounted.
+function setRoomEntryPose(pose) {
+  const normalized = pose === 'approach' || pose === 'shelf' || pose === 'notes' ? pose : 'front';
+  ROOM_VIEW_STATE.pose = normalized;
+  if (ROOM_VIEW_STATE.handle) {
+    ROOM_VIEW_STATE.handle.goToPose(normalized, false);
+    syncPoseButtons();
+  }
+}
+
 function syncPoseButtons() {
   const root = document.getElementById('view-room');
   if (!root) return;
@@ -1028,4 +1040,4 @@ function exitRoomViaFrameFly() {
     .finally(navigate);
 }
 
-export { initRoom, enterRoom, renderRoomTopTabs };
+export { initRoom, enterRoom, renderRoomTopTabs, setRoomEntryPose };

@@ -1,20 +1,21 @@
 /* ==========================================================================
-   Marginalia · Picture-frame fly-in transition
+   Marginalia · Picture-frame fly-in transition (simplified single-photo flow)
    --------------------------------------------------------------------------
-   Narrative — scene → action → person, played over a black screen:
-   Act 1  A real 3D wooden frame swings in from the side (thickness visible).
-          Inside sits frame1 — the whole book-truck scene.
-   Act 2  Inside the same frame, the photo scales/crossfades frame1 → frame2
-          (the reading close-up). The frame never changes.
-   Act 3  frame2 is pulled forward out of the frame; the wood fades. The freed
-          square photo becomes a round avatar and bounces, piano-key style,
-          across a row of book spines — all on black. It then drops into the
-          profile avatar slot. Only AFTER it lands does the profile page fade
-          in behind the (then disappearing) overlay.
+   The frame is the 3D room's entry point into the Profile view. Clicking it
+   lifts the real wooden frame out of the scene onto a solid colour ground:
 
-   The frame opening is textured by aligning our own photo planes to the glb's
-   built-in "Image" mesh (which we hide), so the photo fills the real opening
-   in correct perspective — never the "Insert Image Here" placeholder.
+   Act 1  The frame settles in centre, tilted a touch so its wooden thickness
+          reads as a real object (not a flat UI card), then rotates upright.
+   Act 2  The single photo (same image as the profile avatar) is pulled forward
+          out of the frame while the wood fades away — leaving just the photo.
+   Act 3  The freed photo morphs square → round, shrinks to an avatar-sized
+          ball, and hops left → right across one row of book spines (no extra
+          motion, no flight across the screen). At the right end it spins once
+          in place, then glides in one low arc into the profile banner avatar
+          slot. Only AFTER it lands does the rest of the profile page fade in.
+
+   The photo is textured onto the glb's built-in "Image" mesh so it fills the
+   real opening in correct perspective — never the placeholder graphic.
    ========================================================================== */
 
 import * as THREE from 'three';
@@ -22,8 +23,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
 
 const FRAME_URL = '/3d/wooden_picture_frame.glb';
-const ROOM_PHOTO_URL = '/3d/profile-frame-room.jpg';
-const DETAIL_PHOTO_URL = '/3d/profile-frame-detail.jpg';
+const PHOTO_URL = '/3d/profile-frame-photo.jpg';
 const OVERLAY_ID = 'profileFrameTransitionOverlay';
 const CIRCLE_ID = 'profileFrameTransitionCircle';
 const SPINES_ID = 'profileFrameTransitionSpines';
@@ -56,12 +56,6 @@ function clamp01(value) {
   return Math.max(0, Math.min(1, value));
 }
 
-function smoothRange(value, start, end) {
-  if (end <= start) return value >= end ? 1 : 0;
-  const t = clamp01((value - start) / (end - start));
-  return t * t * (3 - 2 * t);
-}
-
 function cleanupRendererOnly() {
   if (!activeTransition?.rendererState) return;
   const { rendererState } = activeTransition;
@@ -92,7 +86,7 @@ function ensureOverlay() {
     <div class="profile-frame-transition__stage" id="${OVERLAY_ID}Stage"></div>
     <div class="profile-frame-transition__spines" id="${SPINES_ID}" aria-hidden="true"></div>
     <div class="profile-frame-transition__circle" id="${CIRCLE_ID}" aria-hidden="true">
-      <img class="profile-frame-transition__circle-img" src="${DETAIL_PHOTO_URL}" alt="">
+      <img class="profile-frame-transition__circle-img" src="${PHOTO_URL}" alt="">
       <img class="profile-frame-transition__circle-avatar" alt="">
     </div>
   `;
@@ -116,7 +110,8 @@ function ensureOverlay() {
     avatarImg,
     spinesHost: overlay.querySelector(`#${SPINES_ID}`),
     rendererState: null,
-    handoff: null,   // { left, top, size } — circle rect frozen from WebGL
+    handoff: null,    // { left, top, size } — circle rect frozen from WebGL
+    settling: false,  // guard: the bounce/land sequence runs exactly once
   };
   return activeTransition;
 }
@@ -138,7 +133,7 @@ function freezeCircleAt(rect) {
 }
 
 /* Find the glb's photo mesh (the one whose material is the "Image" placeholder)
-   so we can both hide it and copy its transform for our own photo planes. */
+   so we can swap its texture for our photo and pull just that mesh out in Act 2. */
 function findImageMesh(model) {
   let found = null;
   model.traverse((node) => {
@@ -223,14 +218,13 @@ export function playFrameFlyIn(opts = {}) {
       tex.needsUpdate = true;
       return tex;
     };
-    const roomTex = prepTex(textureLoader.load(ROOM_PHOTO_URL));
-    const detailTex = prepTex(textureLoader.load(DETAIL_PHOTO_URL));
+    const photoTex = prepTex(textureLoader.load(PHOTO_URL));
 
     activeTransition.rendererState = {
       renderer,
       raf: 0,
       hardTimeout: window.setTimeout(() => finish(false), duration + 1800),
-      textures: [roomTex, detailTex],
+      textures: [photoTex],
       materials: [],
       geometries: [],
     };
@@ -245,117 +239,104 @@ export function playFrameFlyIn(opts = {}) {
         const box = new THREE.Box3().setFromObject(frame);
         const span = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(span.x, span.y, span.z) || 1;
-        const baseScale = 2.2 / maxDim;
+        // Keep the lifted frame well within the viewport — small enough that it
+        // reads as a real object resting in space, never an oppressive panel
+        // filling the screen, and with ample room for the photo to pull forward.
+        const baseScale = 1.15 / maxDim;
         const center = box.getCenter(new THREE.Vector3()).multiplyScalar(baseScale);
         frame.scale.setScalar(baseScale);
         frame.position.sub(center);
         pivot.add(frame);
 
         // Texture the glb's OWN image mesh — never a separate plane — so the
-        // photo sits exactly in the real opening at the real size. frame1
-        // (room) goes on the built-in material; frame2 (detail) rides on a
-        // pixel-perfect clone of that same mesh so we can crossfade and then
-        // pull only frame2 out of the wood in Act 3.
+        // photo sits exactly in the real opening at the real size. We keep a
+        // reference to this mesh so Act 2 can pull just the photo forward out
+        // of the wood while every other frame part fades away.
         const imageMesh = findImageMesh(frame);
-        let detailMesh = null;
-        let roomMat = null;
-        let detailMat = null;
+        let photoMat = null;
         if (imageMesh) {
           // Clone the glb's OWN image material (keeps its correct UVs/winding —
           // a fresh material breaks the orientation) and just swap the map +
           // strip the extra ao/normal/rough maps that caused the mosaic.
           const baseMat = Array.isArray(imageMesh.material) ? imageMesh.material[0] : imageMesh.material;
-          const cleanMat = (m, tex) => {
-            m.map = tex;
-            m.aoMap = null;
-            m.normalMap = null;
-            m.roughnessMap = null;
-            m.metalnessMap = null;
-            m.emissiveMap = null;
-            m.alphaMap = null;
-            m.transparent = true;
-            m.opacity = 1;
-            m.color?.set?.(0xffffff);
-            m.emissive?.set?.(0x000000);
-            if ('roughness' in m) m.roughness = 0.9;
-            if ('metalness' in m) m.metalness = 0;
-            m.needsUpdate = true;
-            return m;
-          };
-          roomMat = cleanMat(baseMat.clone(), roomTex);
-          imageMesh.material = roomMat;
-
-          detailMesh = imageMesh.clone();
-          detailMat = cleanMat(baseMat.clone(), detailTex);
-          detailMat.opacity = 0;
-          detailMesh.material = detailMat;
-          // Nudge the clone a hair toward the camera so it never z-fights.
-          detailMesh.position.z += 0.002;
-          imageMesh.parent.add(detailMesh);
-
-          activeTransition.rendererState.materials.push(roomMat, detailMat);
+          photoMat = baseMat.clone();
+          photoMat.map = photoTex;
+          photoMat.aoMap = null;
+          photoMat.normalMap = null;
+          photoMat.roughnessMap = null;
+          photoMat.metalnessMap = null;
+          photoMat.emissiveMap = null;
+          photoMat.alphaMap = null;
+          photoMat.transparent = true;
+          photoMat.opacity = 1;
+          photoMat.color?.set?.(0xffffff);
+          photoMat.emissive?.set?.(0x000000);
+          if ('roughness' in photoMat) photoMat.roughness = 0.9;
+          if ('metalness' in photoMat) photoMat.metalness = 0;
+          photoMat.needsUpdate = true;
+          imageMesh.material = photoMat;
+          activeTransition.rendererState.materials.push(photoMat);
         }
 
         const start = performance.now();
-        const SIDE_REVEAL_END = 0.30;   // Act 1 — swing in, show thickness
-        const STORY_SWAP_END = 0.66;    // Act 2 — frame1 → frame2 in-frame
-        const SETTLE_END = 0.76;        // brief hold on frame2
-        // Act 3 Beat A (pull-out) runs SETTLE_END → 1.
+        // Act 1 — the frame lifts out of the scene: it lands centred, tilted a
+        // touch so its wooden thickness reads as a real object, then turns
+        // upright. Act 2 — the photo is pulled forward out of the wood while
+        // every other frame part fades away. No in-frame story swap.
+        const LIFT_END = 0.34;      // Act 1a — settle in, hold the 3D tilt
+        const SQUARE_END = 0.60;    // Act 1b — rotate upright, square to camera
+        const PULLOUT_START = 0.70; // brief hold, then Act 2 pull-out
 
         const projectToScreen = (vec3) => {
           const p = vec3.clone().project(camera);
           return { x: (p.x * 0.5 + 0.5) * w, y: (-p.y * 0.5 + 0.5) * h };
         };
 
-        // Base local transform of the detail mesh, so Act 3 can offset from it.
-        const detailHome = detailMesh ? detailMesh.position.clone() : null;
+        // Base local transform of the image mesh, so Act 2 can offset from it.
+        const photoHome = imageMesh ? imageMesh.position.clone() : null;
 
         const tick = (now) => {
           const t = clamp01((now - start) / duration);
 
-          if (t < SIDE_REVEAL_END) {
-            const e = easeOut(t / SIDE_REVEAL_END);
-            pivot.scale.setScalar(0.46 + 0.46 * e);
-            pivot.rotation.y = THREE.MathUtils.lerp(-1.02, -0.22, e);
-            pivot.rotation.x = THREE.MathUtils.lerp(0.22, 0.05, e);
-            pivot.rotation.z = THREE.MathUtils.lerp(0.08, 0.01, e);
-            pivot.position.set(0.56 * (1 - e), 0.16 * (1 - e), -0.68 * (1 - e));
-          } else if (t < STORY_SWAP_END) {
-            const e = easeInOut((t - SIDE_REVEAL_END) / (STORY_SWAP_END - SIDE_REVEAL_END));
-            // frame2 is a tighter crop of frame1, so the swap reads as a gentle
-            // push-in: the whole framed photo eases a touch closer while frame2
-            // crossfades up over frame1. No UV mangling (the glb mesh UVs are
-            // not 0–1 normalized, so repeat/center would corrupt the image).
-            const cross = smoothRange(e, 0.18, 0.92);
-            pivot.scale.setScalar(0.92 + 0.10 * e);   // subtle dolly-in
-            pivot.rotation.y = THREE.MathUtils.lerp(-0.22, 0, e);
-            pivot.rotation.x = THREE.MathUtils.lerp(0.05, 0, e);
-            pivot.rotation.z = THREE.MathUtils.lerp(0.01, 0, e);
+          if (t < LIFT_END) {
+            // Act 1a — frame eases in from the side and settles centred, held
+            // at a slight 3D tilt so the wooden depth is unmistakably real.
+            const e = easeOut(t / LIFT_END);
+            pivot.scale.setScalar(0.5 + 0.5 * e);
+            pivot.rotation.y = THREE.MathUtils.lerp(-0.92, -0.28, e);
+            pivot.rotation.x = THREE.MathUtils.lerp(0.2, 0.1, e);
+            pivot.rotation.z = THREE.MathUtils.lerp(0.07, 0.02, e);
+            pivot.position.set(0.5 * (1 - e), 0.14 * (1 - e), -0.6 * (1 - e));
+          } else if (t < SQUARE_END) {
+            // Act 1b — the held tilt rotates upright so the photo faces us
+            // square-on, ready to be pulled out.
+            const e = easeInOut((t - LIFT_END) / (SQUARE_END - LIFT_END));
+            pivot.scale.setScalar(1.0 + 0.04 * e);
+            pivot.rotation.y = THREE.MathUtils.lerp(-0.28, 0, e);
+            pivot.rotation.x = THREE.MathUtils.lerp(0.1, 0, e);
+            pivot.rotation.z = THREE.MathUtils.lerp(0.02, 0, e);
             pivot.position.set(0, 0, 0);
-            if (roomMat) roomMat.opacity = 1 - cross;
-            if (detailMat) detailMat.opacity = cross;
-          } else if (t < SETTLE_END) {
-            const e = easeInOut((t - STORY_SWAP_END) / (SETTLE_END - STORY_SWAP_END));
-            pivot.scale.setScalar(1.02 + 0.02 * e);
+          } else if (t < PULLOUT_START) {
+            // Brief hold, perfectly square to camera.
+            pivot.scale.setScalar(1.04);
             pivot.rotation.set(0, 0, 0);
             pivot.position.set(0, 0, 0);
-            if (roomMat) roomMat.opacity = 0;
-            if (detailMat) detailMat.opacity = 1;
           } else {
-            // Act 3 Beat A — pull frame2 forward/down out of the wood; fade
-            // every other frame part away so only the photo remains.
-            const e = easeInOut((t - SETTLE_END) / (1 - SETTLE_END));
-            if (roomMat) roomMat.opacity = 0;
-            if (detailMat) detailMat.opacity = 1;
-            if (detailMesh && detailHome) {
-              detailMesh.position.set(
-                detailHome.x,
-                detailHome.y - 0.16 * e / Math.max(baseScale, 0.0001),
-                detailHome.z + 0.9 * e / Math.max(baseScale, 0.0001),
+            // Act 2 — pull the photo forward/down out of the wood; fade every
+            // other frame part away so only the photo remains for the handoff.
+            const e = easeInOut((t - PULLOUT_START) / (1 - PULLOUT_START));
+            pivot.scale.setScalar(1.04);
+            pivot.rotation.set(0, 0, 0);
+            pivot.position.set(0, 0, 0);
+            if (imageMesh && photoHome) {
+              imageMesh.position.set(
+                photoHome.x,
+                photoHome.y - 0.14 * e / Math.max(baseScale, 0.0001),
+                photoHome.z + 0.9 * e / Math.max(baseScale, 0.0001),
               );
             }
             frame.traverse((node) => {
-              if (node === detailMesh || !node.isMesh || !node.material) return;
+              if (node === imageMesh || !node.isMesh || !node.material) return;
               const mats = Array.isArray(node.material) ? node.material : [node.material];
               mats.forEach((m) => { m.transparent = true; m.opacity = 1 - e; });
             });
@@ -365,10 +346,10 @@ export function playFrameFlyIn(opts = {}) {
 
           if (t < 1) {
             activeTransition.rendererState.raf = requestAnimationFrame(tick);
-          } else if (detailMesh) {
-            // Freeze: project the detail mesh's screen rect for the CSS circle.
-            detailMesh.updateWorldMatrix(true, false);
-            const dBox = new THREE.Box3().setFromObject(detailMesh);
+          } else if (imageMesh) {
+            // Freeze: project the photo mesh's screen rect for the CSS circle.
+            imageMesh.updateWorldMatrix(true, false);
+            const dBox = new THREE.Box3().setFromObject(imageMesh);
             const corners = [
               new THREE.Vector3(dBox.min.x, dBox.max.y, dBox.max.z),
               new THREE.Vector3(dBox.max.x, dBox.min.y, dBox.max.z),
@@ -466,36 +447,35 @@ export async function settleFrameFlyIn(targetRoot = document) {
     return;
   }
 
+  // Guard: the bounce/land sequence must run exactly once. The profile view
+  // can re-render (demo shell → real data), each calling maybeSettleFrameFlyIn;
+  // without this the ball would bounce twice. Re-point the avatar target on a
+  // later call, but never restart the animation.
+  if (activeTransition.settling) return;
+  activeTransition.settling = true;
+
   const { overlay, circle, avatarImg, spinesHost, handoff } = activeTransition;
 
-  // Keep the page hidden behind the opaque overlay until the circle lands.
-  const panel = document.getElementById('panel-profile');
-  if (panel instanceof HTMLElement) {
-    panel.style.opacity = '0';
-    panel.style.transition = 'none';
-  }
+  // The opaque overlay covers the WHOLE page for the entire bounce + fly + spin
+  // (globe-fly model): the profile page may render/re-render freely behind it,
+  // staying invisible, so nothing ever pops in before the avatar has settled.
+  // We only fade the overlay out at the very end. We deliberately do NOT gate
+  // individual page elements — the overlay alone guarantees a pure background.
 
-  // Wire the real avatar image so the circle resolves into the portrait.
-  const revealNode = target.querySelector('.prof-avatar, .prof-avatar--initials');
-  const avatarSource = revealNode instanceof HTMLImageElement
-    ? (revealNode.currentSrc || revealNode.src || '')
+  // Wire the real avatar image so the ball resolves into the portrait at the
+  // correct, upright viewing angle once it docks.
+  const avatarSource = target.querySelector('.prof-avatar, .prof-avatar--initials') instanceof HTMLImageElement
+    ? (target.querySelector('.prof-avatar') && (target.querySelector('.prof-avatar').currentSrc || target.querySelector('.prof-avatar').src)) || ''
     : '';
   if (avatarSource) {
     avatarImg.src = avatarSource;
     circle.classList.add('has-avatar');
   }
 
-  // Lay out the spine row and start the piano-key bounce on black.
+  // Lay out the spine row and start the piano-key bounce on the solid ground.
   const spines = buildSpineRow(spinesHost);
   await nextFrame();
   overlay.classList.add('is-bouncing');
-
-  const avatarSize = Math.min(targetRect.width, targetRect.height);
-  const avatarCenter = {
-    x: targetRect.left + targetRect.width / 2,
-    y: targetRect.top + targetRect.height / 2,
-    size: avatarSize,
-  };
 
   const ballSize = Math.min(handoff.size * 0.42, 96);
   const spineTops = spines
@@ -503,7 +483,7 @@ export async function settleFrameFlyIn(targetRoot = document) {
       const r = s.getBoundingClientRect();
       return { el: s, x: r.left + r.width / 2, y: r.top };
     })
-    .sort((a, b) => a.x - b.x);   // guarantee strict left → right order
+    .sort((a, b) => a.x - b.x);   // strict left → right order
 
   // Where the photo froze (centre of screen, large).
   let cur = {
@@ -512,72 +492,88 @@ export async function settleFrameFlyIn(targetRoot = document) {
     size: handoff.size,
   };
 
-  // Step 1 — shrink IN PLACE into a small ball (no travel, so nothing flies
-  // across the screen). Just a quick scale-down where it already is.
-  await hop(circle, cur, { x: cur.x, y: cur.y, size: ballSize }, 0, 360, null);
+  // Step 1 — morph square → round and shrink IN PLACE into a small ball (no
+  // travel, so nothing flies across the screen). The border-radius transition
+  // runs alongside the scale-down so the photo visibly rounds as it shrinks.
+  circle.classList.add('is-rounding');
+  await hop(circle, cur, { x: cur.x, y: cur.y, size: ballSize }, 0, 420, null);
   cur = { x: cur.x, y: cur.y, size: ballSize };
 
-  // Step 2 — the piano run. Visit only spines from the ball's position
-  // RIGHTWARD, in order, each exactly once. Never hops backward/left, so it
-  // reads as a clean left-to-right run with no repeats and no wild arcs.
-  const run = spineTops.filter((p) => p.x >= cur.x - ballSize);
-  const sequence = run.length ? run : spineTops;
-  for (let i = 0; i < sequence.length; i += 1) {
-    const p = sequence[i];
+  // Step 2 — the piano run: hop every OTHER spine, strictly left → right, each
+  // landed on exactly once. Skipping a book each time keeps the run short and
+  // lively instead of plodding across all ten. The LAST spine is always
+  // included so the run ends at the right edge.
+  const bouncePicks = spineTops.filter((_, i) => i % 2 === 0);
+  if (spineTops.length && bouncePicks[bouncePicks.length - 1] !== spineTops[spineTops.length - 1]) {
+    bouncePicks.push(spineTops[spineTops.length - 1]);
+  }
+  for (let i = 0; i < bouncePicks.length; i += 1) {
+    const p = bouncePicks[i];
+    const isLast = i === bouncePicks.length - 1;
+    const landing = { x: p.x, y: p.y - ballSize * 0.5, size: ballSize };
     // eslint-disable-next-line no-await-in-loop
     await hop(
       circle,
       cur,
-      { x: p.x, y: p.y - ballSize * 0.5, size: ballSize },
-      Math.max(50, ballSize * 1.3),
-      Math.max(240, 360 - i * 16),
+      landing,
+      Math.max(58, ballSize * 1.45),   // a touch higher — bigger gaps between keys
+      Math.max(260, 380 - i * 14),
       () => {
         p.el.classList.add('is-kicked');
         window.setTimeout(() => p.el.classList.remove('is-kicked'), 260);
       },
     );
-    cur = { x: p.x, y: p.y - ballSize * 0.5, size: ballSize };
+    cur = landing;
+    // On the LAST spine, hold a beat so the round portrait visibly locks and
+    // the viewer can read the face. During this hold the shelf fades away, so
+    // by the time the ball flies into the page the background is fully pure
+    // colour — no books, no other elements anywhere on screen.
+    if (isLast) {
+      await sleep(220);              // let the lock read before clearing
+      overlay.classList.add('is-shelf-clearing');
+      await sleep(620);              // wait out the 520ms shelf fade
+    }
   }
 
-  // At the RIGHT end: the ball settles, SPINS in place, and the close-up
-  // crossfades into the round portrait — then glides in one clean low arc to
-  // the profile avatar slot (no wild diagonal flight across the screen).
+  // Step 3 — from the LAST spine, glide in one clean low arc straight into the
+  // profile banner avatar slot (globe-fly style trajectory, no wild diagonal).
+  // Re-query the avatar target FRESH here: the profile may have re-rendered
+  // (demo shell → real data) during the bounce, so the slot we measured at the
+  // start can be stale/detached. Always land on the live slot.
+  const liveTarget = (targetRoot.querySelector(TARGET_SELECTOR) || target);
+  const liveRect = liveTarget.getBoundingClientRect();
+  const avatarSize = Math.min(liveRect.width, liveRect.height) || Math.min(targetRect.width, targetRect.height);
+  const avatarCenter = {
+    x: (liveRect.width ? liveRect.left + liveRect.width / 2 : targetRect.left + targetRect.width / 2),
+    y: (liveRect.height ? liveRect.top + liveRect.height / 2 : targetRect.top + targetRect.height / 2),
+    size: avatarSize,
+  };
+  const revealNode = liveTarget.querySelector('.prof-avatar, .prof-avatar--initials');
+
+  overlay.classList.add('is-landing');
+  await hop(circle, cur, avatarCenter, Math.max(40, avatarSize * 0.45), 640, null);
+
+  // Step 4 — docked in the avatar slot: SPIN ONCE in place (flat 2D turn) and
+  // crossfade the close-up into the real portrait, so the round photo locks at
+  // the correct upright avatar angle exactly where the page avatar will sit.
+  // The page is still entirely hidden behind the opaque overlay.
   circle.classList.add('is-spinning', 'is-avatar-morph');
   await sleep(520);
   circle.classList.remove('is-spinning');
-  overlay.classList.add('is-landing');
-  // Low hop height keeps the path tight and intentional.
-  await hop(circle, cur, avatarCenter, Math.max(40, avatarSize * 0.45), 640, null);
+  await sleep(420);   // brief lock so the settled portrait reads clearly
 
-  // Landed in the avatar slot. Let the circle visibly LOCK in place before
-  // anything else moves — the page stays fully hidden behind black.
+  // Reveal the real page avatar UNDER the docked ball so the swap is seamless
+  // the instant the overlay starts to fade.
   if (revealNode instanceof HTMLElement) {
-    revealNode.style.opacity = '0';
+    revealNode.style.opacity = '1';
     revealNode.style.transition = 'none';
   }
-  await sleep(520);
 
-  // Reveal the real page avatar UNDER the docked circle (seamless swap), and
-  // hold again so it clearly reads as settled before the page joins.
-  if (revealNode instanceof HTMLElement) {
-    revealNode.style.transition = 'opacity 360ms ease';
-    revealNode.style.opacity = '1';
-  }
-  await sleep(420);
-
-  // Only NOW fade the black overlay away — slowly — so the rest of the profile
-  // page emerges gradually around the already-settled avatar, never popping in.
-  if (panel instanceof HTMLElement) {
-    panel.style.transition = 'opacity 760ms ease';
-    panel.style.opacity = '1';
-  }
+  // Step 5 — ONLY NOW fade the opaque overlay out, gradually revealing the rest
+  // of the profile page around the already-settled avatar (globe-fly handoff).
   overlay.classList.add('is-finishing');
 
   await sleep(900);
-  if (panel instanceof HTMLElement) {
-    panel.style.transition = '';
-    panel.style.opacity = '';
-  }
   if (revealNode instanceof HTMLElement) {
     revealNode.style.transition = '';
     revealNode.style.opacity = '';
