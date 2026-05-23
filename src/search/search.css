@@ -1599,3 +1599,12 @@ body[data-view="search"] {
     min-height: 48px;
   }
 }
+
+/* ── Laptop fly-in transition overlay (room → search) ───────────────────── */
+.laptop-fly-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: var(--color-bg, #1a1612);
+}
