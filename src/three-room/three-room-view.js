@@ -502,7 +502,7 @@ function mountRoomScene() {
       onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),
       onPhotoFrameSelect: () => exitRoomViaFrameFly(),
-      onWebSelect: () => openPanel('web'),
+      onWebSelect: () => exitRoomViaGraphFly(),
       onInteractiveHover: (action, pointer) => {
         ROOM_VIEW_STATE.hoverAction = action || null;
         if (pointer) ROOM_VIEW_STATE.hoverPoint = pointer;
@@ -958,6 +958,47 @@ function exitRoomViaHeroFlip() {
     ROOM_VIEW_STATE.transitioning = false;
     openPanel('library', { mode: 'organize' });
   });
+}
+
+// Enter the Graph view with a tack-board fly-in: the room camera moves to the
+// notes pose (east wall), then a fullscreen 3D board animation dissolves into
+// floating concept nodes and hands off to the flat D3 graph. Mirrors
+// exitRoomViaGlobeFly's structure; degrades to a plain navigate on failure.
+function exitRoomViaGraphFly() {
+  if (ROOM_VIEW_STATE.transitioning) return;
+  ROOM_VIEW_STATE.transitioning = true;
+  ROOM_VIEW_STATE.hoverAction = null;
+  closeRoomQuickSearch();
+  syncHoverBadge();
+
+  const roomTransition = { ...buildRoomTransitionMeta('web'), suppressRoomBackdrop: true };
+  const nextParams = { __roomTransition: roomTransition };
+
+  const pose = PANEL_POSES.web;   // 'notes'
+  if (pose && ROOM_VIEW_STATE.handle) {
+    ROOM_VIEW_STATE.pose = pose;
+    ROOM_VIEW_STATE.handle.goToPose(pose, false);
+    syncPoseButtons();
+  }
+
+  let navigated = false;
+  const navigate = () => {
+    if (navigated) return;
+    navigated = true;
+    if (App?.navigateTo && HASH_ROUTED_PANELS.has('web')) {
+      App.navigateTo('web', nextParams);
+    } else {
+      PanelManager.open('web', nextParams);
+    }
+  };
+
+  import('../web/graph-fly.js')
+    .then(({ playGraphFlyIn }) => playGraphFlyIn({ duration: 1800, onLanded: navigate }))
+    .catch(() => {})
+    .finally(() => {
+      navigate();   // safety net if the animation never fired onLanded
+      ROOM_VIEW_STATE.transitioning = false;
+    });
 }
 
 // Enter the Map view with a globe fly-in: the room camera eases toward the
