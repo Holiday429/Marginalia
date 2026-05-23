@@ -497,7 +497,7 @@ function mountRoomScene() {
   if (!ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage, {
       onGlobeSelect: () => exitRoomViaGlobeFly(),
-      onLaptopSelect: () => openPanel('search'),
+      onLaptopSelect: () => exitRoomViaLaptopFly(),
       onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),
       onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),
@@ -958,6 +958,46 @@ function exitRoomViaHeroFlip() {
     ROOM_VIEW_STATE.transitioning = false;
     openPanel('library', { mode: 'organize' });
   });
+}
+
+// Enter the Search view with a laptop screen expand: the MacBook screen grows
+// from its projected position to fill the viewport, then hands off to the flat
+// Search view. CSS-only — no new WebGL renderer. Degrades on failure.
+function exitRoomViaLaptopFly() {
+  if (ROOM_VIEW_STATE.transitioning) return;
+  ROOM_VIEW_STATE.transitioning = true;
+  ROOM_VIEW_STATE.hoverAction = null;
+  closeRoomQuickSearch();
+  syncHoverBadge();
+
+  const roomTransition = { ...buildRoomTransitionMeta('search'), suppressRoomBackdrop: true };
+  const nextParams = { __roomTransition: roomTransition };
+
+  const pose = PANEL_POSES.search;   // 'shelf'
+  if (pose && ROOM_VIEW_STATE.handle) {
+    ROOM_VIEW_STATE.pose = pose;
+    ROOM_VIEW_STATE.handle.goToPose(pose, false);
+    syncPoseButtons();
+  }
+
+  let navigated = false;
+  const navigate = () => {
+    if (navigated) return;
+    navigated = true;
+    if (App?.navigateTo && HASH_ROUTED_PANELS.has('search')) {
+      App.navigateTo('search', nextParams);
+    } else {
+      PanelManager.open('search', nextParams);
+    }
+  };
+
+  import('../search/laptop-fly.js')
+    .then(({ playLaptopFlyIn }) => playLaptopFlyIn({ duration: 600, onLanded: navigate }))
+    .catch(() => {})
+    .finally(() => {
+      navigate();   // safety net if the animation never fired onLanded
+      ROOM_VIEW_STATE.transitioning = false;
+    });
 }
 
 // Enter the Graph view with a tack-board fly-in: the room camera moves to the
