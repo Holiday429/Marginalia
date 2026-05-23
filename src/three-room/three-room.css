@@ -793,3 +793,16 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
 #view-room .room-focus-slot {
   width: 100%;
 }
+
+/* ── Graph fly-in transition overlay (room → graph) ─────────────────────── */
+.graph-fly-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(26, 22, 18, 0);
+  transition: background 0.35s ease;
+}
+.graph-fly-overlay.is-active {
+  background: rgba(26, 22, 18, 0.92);
+}
