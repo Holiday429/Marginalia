@@ -507,9 +507,9 @@ body[data-view="search"] {
 
 .shelf-filters .chip.active,
 .shelf-status-btn.is-active {
-  background: var(--ui-active-fill);
+  background: var(--glass-fill-active);
   color: var(--ui-active-ink);
-  border-color: var(--ui-active-fill);
+  border-color: var(--glass-border-active);
 }
 
 /* ---- Tag row (below search bar) ---- */
@@ -762,8 +762,8 @@ body[data-view="search"] {
   height: 40px;
   padding: 0 18px;
   border-radius: 999px;
-  border: var(--ui-border-width) solid var(--ui-active-fill);
-  background: var(--ui-active-fill);
+  border: var(--ui-border-width) solid var(--glass-border-active);
+  background: var(--glass-fill-active);
   color: var(--ui-active-ink);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 12px;
@@ -1410,7 +1410,7 @@ body[data-view="search"] {
   letter-spacing: var(--track-service-ui);
   font-weight: var(--weight-service-ui-label);
   color: var(--ink);
-  background: transparent;
+  background: var(--glass-fill);
   border: var(--ui-border-width) solid var(--ui-border-strong);
   height: 28px;
   width: 124px;
@@ -1418,7 +1418,9 @@ body[data-view="search"] {
   cursor: pointer;
   border-radius: 4px;
   opacity: 0.94;
-  transition: opacity 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  transition: opacity 0.2s ease, border-color 0.2s ease, background 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1431,7 +1433,8 @@ body[data-view="search"] {
 
 .nav-action-btn:hover {
   opacity: 1;
-  border-color: var(--ui-border-strong);
+  background: var(--glass-fill-hover);
+  border-color: var(--glass-border-active);
 }
 
 @media (max-width: 1220px) {
