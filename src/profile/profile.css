@@ -507,7 +507,7 @@
   z-index: 1;
   /* Sit over the rug between the desk/chair and the front-right of the room. */
   left: 64%;
-  top: 58%;
+  top: 70%;
   /* lg PixelReader is 144px; scale up to read at room proportions. */
   transform: scale(1.6);
   transform-origin: center bottom;
