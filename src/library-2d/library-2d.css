@@ -5,6 +5,7 @@
   background: var(--bg);
 }
 
+body[data-view='library'],
 body[data-view='library-2d'],
 body[data-view='studio'] {
   --library-ink-soft: rgba(232, 223, 200, 0.7);
@@ -332,22 +333,21 @@ body[data-view='studio'] {
 
 #panel-library .library-shelf-actions .chip {
   min-height: 34px;
-  background: var(--ui-active-fill);
-  border: var(--ui-border-width) solid var(--ui-active-fill);
-  color: #fff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.34);
+  background: var(--glass-fill);
+  border: var(--ui-border-width) solid var(--ui-border-strong);
+  color: var(--text-primary);
 }
 
 #panel-library .library-shelf-actions .chip:hover {
-  background: color-mix(in srgb, var(--ui-active-fill) 90%, #fff 10%);
-  border-color: color-mix(in srgb, var(--ui-active-fill) 90%, #fff 10%);
-  color: #fff;
+  background: var(--glass-fill-hover);
+  border-color: var(--glass-border-active);
+  color: var(--text-primary);
 }
 
 #panel-library .library-shelf-actions .chip:active {
-  background: color-mix(in srgb, var(--ui-active-fill) 82%, #000 18%);
-  border-color: color-mix(in srgb, var(--ui-active-fill) 82%, #000 18%);
-  color: #fff;
+  background: var(--glass-fill-active);
+  border-color: var(--glass-border-active);
+  color: var(--text-primary);
 }
 
 #panel-library .library-meta-row {
@@ -1340,7 +1340,7 @@ body[data-view='studio'] {
   height: 34px;
   border-radius: 999px;
   border: var(--ui-border-width) solid var(--ui-border-strong);
-  background: var(--ui-active-fill);
+  background: var(--glass-fill);
   color: var(--ui-active-ink);
   padding: 0 12px;
   font-family: var(--font-service-ui);
@@ -1351,8 +1351,8 @@ body[data-view='studio'] {
 }
 
 #panel-library .library-search-submit:hover {
-  background: color-mix(in srgb, var(--ui-active-fill) 88%, #fff 12%);
-  border-color: color-mix(in srgb, var(--ui-active-fill) 88%, #fff 12%);
+  background: var(--glass-fill-hover);
+  border-color: var(--glass-border-active);
   color: var(--ui-active-ink);
 }
 
@@ -1408,15 +1408,15 @@ body[data-view='studio'] {
 }
 
 #panel-library .library-rail-btn:hover {
-  border-color: var(--ui-active-fill);
-  background: transparent;
+  border-color: var(--glass-border-active);
+  background: var(--glass-fill-hover);
   color: var(--ink);
   transform: translateY(-1px);
 }
 
 #panel-library .library-rail-btn.is-active {
-  border-color: var(--ui-active-fill);
-  background: var(--ui-active-fill);
+  border-color: var(--glass-border-active);
+  background: var(--glass-fill-active);
   color: var(--ui-active-ink);
   transform: translateY(-1px);
 }
@@ -1477,8 +1477,8 @@ body[data-view='studio'] {
 
 #panel-library .library-rail-popover-btn:hover,
 #panel-library .library-rail-popover-btn.is-active {
-  border-color: var(--ui-active-fill);
-  background: var(--ui-active-fill);
+  border-color: var(--glass-border-active);
+  background: var(--glass-fill-active);
   color: var(--ui-active-ink);
 }
 

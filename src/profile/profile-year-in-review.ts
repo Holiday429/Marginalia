@@ -3,6 +3,7 @@ import { BooksStore } from '../store/books-store.ts';
 import { SpineCard } from '../components/spine-card.js';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
 import { mountReadingPath } from './reading-path.ts';
+import { SHELF_BOOKS as MOCK_SHELF_BOOKS } from '../data/mock/seed-spines.js';
 import './annual-shelf.css';
 
 interface ProfileBook {
@@ -59,6 +60,7 @@ interface YearShelfData {
 const ANNUAL_TARGET_COUNT = 10;
 const SOURCE_SHELF_MIN_COUNT = 12;
 const SOURCE_SHELF_MAX_COUNT = 16;
+const MOCK_FILLER_COUNT = 11;
 
 export class ProfileAnnualShelf {
   private host: HTMLElement;
@@ -72,6 +74,7 @@ export class ProfileAnnualShelf {
   private savedOrder: string[] | null;
   private years: number[];
   private state: AnnualShelfState;
+  private badgeTimer = 0;
 
   constructor({ host, books, sessionDays, allowOpenDetails = false, showRhythm = true, isOwner = false, db = null, uid = '', savedOrder = null }: AnnualShelfOptions) {
     this.host = host;
@@ -114,7 +117,6 @@ export class ProfileAnnualShelf {
     const streak = buildStreakSnapshot(year, this.sessionDays);
     const heatmap = this.showRhythm ? streak.heatmap : [];
     const maxLevel = heatmap.length ? Math.max(1, ...heatmap.map((d) => d.level)) : 1;
-    const meta = describeYearActivity(year, shelfData.yearBooks, shelfData.sourceBooks, this.sessionDays);
 
     this.host.innerHTML = `
       <div class="prof-annual">
@@ -135,7 +137,9 @@ export class ProfileAnnualShelf {
               </div>
             </div>
             <div class="prof-rhythm-row">
-            <div class="prof-rhythm-row__path" id="profAnnualPathMount"></div>
+            <div class="prof-rhythm-row__path">
+              <div id="profAnnualPathMount"></div>
+            </div>
             <div class="prof-streak-card">
               <div class="prof-streak-card__summary">
                 <span class="prof-streak-card__eyebrow">${escHtml(streak.eyebrow)}</span>
@@ -147,12 +151,9 @@ export class ProfileAnnualShelf {
                 ${streak.longestYear > 0 ? `<div class="prof-streak-card__best">Best: ${streak.longestYear} days</div>` : ''}
               </div>
               <div class="prof-streak-card__heatmap">
-                <div class="prof-rhythm__meta-row">
-                  <span class="prof-rhythm__meta">${escHtml(meta)}</span>
-                </div>
-                ${streak.insight ? `<p class="prof-rhythm__insight">${escHtml(streak.insight)}</p>` : ''}
               ${heatmap.length
                 ? `
+                <span class="prof-streak-card__heatmap-title">Reading Heatmap</span>
                 <div class="prof-year__heatmap">
                   <div class="prof-year__months">${renderMonthLabels(year, heatmap)}</div>
                   <div class="prof-year__grid" style="grid-template-columns:repeat(${Math.ceil((heatmap.length + firstColumnOffset(year)) / 7)}, minmax(0, 1fr));">
@@ -246,7 +247,7 @@ export class ProfileAnnualShelf {
 
     if (this.showRhythm) {
       const pathMount = this.host.querySelector<HTMLElement>('#profAnnualPathMount');
-      if (pathMount) mountReadingPath(pathMount, this.books as any, { year, showNav: false });
+      if (pathMount) mountReadingPath(pathMount, this.books as any, { year, showNav: false, insight: streak.insight });
     }
 
     if (selectedBooks.length) {
@@ -372,7 +373,7 @@ export class ProfileAnnualShelf {
     });
   }
 
-  private showStaticPreview(book: ProfileBook, top10: ProfileBook[]): void {
+  private showStaticPreview(book: ProfileBook, top10: ProfileBook[], preserveBadge = false): void {
     const titleEl = this.host.querySelector<HTMLElement>('#profAnnualStageTitle');
     const authorEl = this.host.querySelector<HTMLElement>('#profAnnualStageAuthor');
     const bookHost = this.host.querySelector<HTMLElement>('#profAnnualStageBook');
@@ -381,13 +382,27 @@ export class ProfileAnnualShelf {
     if (titleEl) titleEl.textContent = shorten(book.title, 40);
     if (authorEl) authorEl.textContent = book.author;
     if (stage) { stage.classList.remove('is-idle'); stage.classList.add('is-active'); }
-    if (badge) {
-      badge.classList.remove('is-visible', 'is-entered');
-      if (top10.indexOf(book) === 0) { badge.classList.add('is-visible', 'is-entered'); }
+    // When the badge already flew in during playback, leave it untouched so it
+    // simply persists on the No.1 cover — no reset, no second reveal.
+    if (!preserveBadge) {
+      window.clearTimeout(this.badgeTimer);
+      if (badge) badge.classList.remove('is-visible', 'is-entered');
     }
     if (bookHost) {
       bookHost.innerHTML = '';
-      bookHost.appendChild(buildPreviewFrame(book));
+      const frame = buildPreviewFrame(book);
+      frame.classList.add('is-entering');
+      bookHost.appendChild(frame);
+      requestAnimationFrame(() => frame.classList.add('is-entered'));
+    }
+    // No.1 badge flies in once, only after the cover has settled, and only
+    // while this same book is still the (non-animating) preview.
+    if (!preserveBadge && badge && top10.indexOf(book) === 0) {
+      const bookId = book.id;
+      this.badgeTimer = window.setTimeout(() => {
+        if (this.state.isAnimating || this.state.previewBookId !== bookId) return;
+        revealBadge(this.host);
+      }, 520);
     }
     this.state.previewBookId = book.id;
     // Highlight the active slot
@@ -583,6 +598,8 @@ export class ProfileAnnualShelf {
 
     this.state.isAnimating = true;
     this.state.paused = false;
+    // Cancel any pending static badge reveal so it can't fire during playback.
+    window.clearTimeout(this.badgeTimer);
     // Button stays enabled so it can pause / resume the running reveal.
     this.updatePlayBtnIcon(playBtn);
 
@@ -643,8 +660,10 @@ export class ProfileAnnualShelf {
         bookHost.appendChild(frame);
         await waitFrame();
         frame.classList.add('is-entered');
-        if (rankNumber === 1) revealBadge(this.host);
+        // Let the No.1 cover fully settle in the showcase before the badge
+        // appears — it must never pre-empt the cover.
         await delay(520);
+        if (rankNumber === 1) revealBadge(this.host);
       });
 
       revealSlot(this.host, book.id);
@@ -665,9 +684,10 @@ export class ProfileAnnualShelf {
     playBtn.classList.remove('booklist-play-btn--icon');
     playBtn.style.width = '';
 
-    // Keep No.1 book on stage
+    // Keep No.1 book on stage; the badge already flew in during the reveal, so
+    // preserve it rather than resetting and re-revealing.
     const favourite = selectedBooks[0];
-    if (favourite) this.showStaticPreview(favourite, selectedBooks);
+    if (favourite) this.showStaticPreview(favourite, selectedBooks, true);
   }
 
   private async runOrganize(playBtn: HTMLButtonElement): Promise<void> {
@@ -1015,11 +1035,20 @@ function buildYearShelfData(books: ProfileBook[], year: number, savedOrder: stri
     sourceBooks.push(book);
   }
 
-  const sourceWithIndex = sourceBooks.map((book, index) => ({ ...book, sourceIndex: index }));
-  let selectedBooks = selectAnnualBooks(sourceWithIndex, Math.min(ANNUAL_TARGET_COUNT, sourceWithIndex.length), year);
+  const realSource = sourceBooks.map((book, index) => ({ ...book, sourceIndex: index }));
+  let selectedBooks = selectAnnualBooks(realSource, Math.min(ANNUAL_TARGET_COUNT, realSource.length), year);
+
+  // Sprinkle a few decorative mock books (UI-only, same data the Search "All
+  // Books" wall uses) AMONG the real books so the shelf reads richer and the
+  // "Organize" pass visibly gathers the real picks out from the mocks. Mocks
+  // carry synthetic ids and are never selectable as Top-10.
+  const existingIds = new Set(realSource.map((b) => b.id));
+  const fillers = buildMockShelfFillers(existingIds, MOCK_FILLER_COUNT);
+  const interleaved = interleaveBooks(realSource, fillers);
+  const shelfBooks = interleaved.map((book, index) => ({ ...book, sourceIndex: index }));
 
   if (savedOrder && savedOrder.length > 0) {
-    const idToBook = new Map(sourceWithIndex.map((b) => [b.id, b]));
+    const idToBook = new Map(realSource.map((b) => [b.id, b]));
     const ordered: ProfileBook[] = [];
     savedOrder.forEach((id, idx) => {
       const b = idToBook.get(id);
@@ -1028,7 +1057,50 @@ function buildYearShelfData(books: ProfileBook[], year: number, savedOrder: stri
     if (ordered.length > 0) selectedBooks = ordered;
   }
 
-  return { sourceBooks: sourceWithIndex, selectedBooks, yearBooks };
+  return { sourceBooks: shelfBooks, selectedBooks, yearBooks };
+}
+
+// A handful of decorative mock books mapped from the shared spine data. Titles
+// are normalized to Capital Case to match the rest of the UI.
+function buildMockShelfFillers(existingIds: Set<string>, count: number): ProfileBook[] {
+  const fillers: ProfileBook[] = [];
+  for (let i = 0; i < (MOCK_SHELF_BOOKS as unknown[]).length && fillers.length < count; i++) {
+    const mock = (MOCK_SHELF_BOOKS as Array<Record<string, any>>)[i];
+    const id = `mock-shelf-${mock.id ?? slugifyTitle(String(mock.title))}-${i}`;
+    if (existingIds.has(id)) continue;
+    fillers.push({
+      id,
+      title: toTitleCase(String(mock.title ?? '')),
+      author: toTitleCase(String(mock.author ?? '')),
+      spine: mock.spine ?? '#4a4035',
+      text: mock.text ?? '#e8dfc8',
+      status: mock.status ?? 'finished',
+    });
+  }
+  return fillers;
+}
+
+// Distribute the mock books evenly between the real ones so picks and fillers
+// alternate across the shelf rather than clustering at one end.
+function interleaveBooks(real: ProfileBook[], fillers: ProfileBook[]): ProfileBook[] {
+  if (!fillers.length) return [...real];
+  const out: ProfileBook[] = [];
+  const gap = Math.max(1, Math.floor(real.length / (fillers.length + 1)));
+  let fi = 0;
+  real.forEach((book, i) => {
+    out.push(book);
+    if (fi < fillers.length && (i + 1) % gap === 0) out.push(fillers[fi++]);
+  });
+  while (fi < fillers.length) out.push(fillers[fi++]);
+  return out;
+}
+
+function slugifyTitle(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+function toTitleCase(value: string): string {
+  return value.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function dedupeBooks(books: ProfileBook[]): ProfileBook[] {
@@ -1334,11 +1406,10 @@ function renderMonthLabels(year: number, heatmap: Array<{ index: number }>): str
 function getSpineSize(book: ProfileBook): { width: number; height: number } {
   const len = book.title.length;
   const widthSeed = len > 28 ? 52 : len > 18 ? 46 : 40;
-  const seed = (book.id?.charCodeAt(0) ?? 0) % 5;
-  const heightRatio = 1 + seed * 0.05;
-  return getUnifiedShelfSpineSize(book as unknown as { w?: number; h?: number }, {
-    widthSeed,
-    heightSeed: heightRatio,
+  // Uniform height across all shelf-spread spines (real Top-10 + mocks) so the
+  // real picks are indistinguishable from the fillers until "Organize" runs.
+  return getUnifiedShelfSpineSize({ w: widthSeed }, {
+    heightSeed: 1.15,
     widthScaleCollapsed: 1,
     baseHeightCollapsed: 210,
     minWidth: 36,

@@ -15,6 +15,7 @@ import {
 } from './profile-demo-resolver.ts';
 import { loadAnnualShelf } from './annual-shelf-store.ts';
 import { mountReadingIdentity } from './reading-identity.ts';
+import { PixelReader } from '../components/pixel-avatar/pixel-avatar.ts';
 import { HeroBook } from '../components/hero-book/hero-book.js';
 import { maybeSettleFrameFlyIn } from '../three-room/frame-fly.js';
 import type { PublicProfileData, PublicBook, PublicHighlight, SessionDay, DemoPayload } from './profile-types.ts';
@@ -480,6 +481,7 @@ function profileHTML(
           <button type="button" class="prof-banner__room" data-view="room" aria-label="Enter your 3D reading room">
             <div class="prof-banner__room-img"></div>
             <div class="prof-banner__room-fade"></div>
+            <div class="prof-banner__room-avatar" id="profBannerRoomAvatar" aria-hidden="true"></div>
             <span class="prof-banner__room-cue">Enter room</span>
           </button>
         </section>
@@ -526,8 +528,14 @@ function bindProfileChrome(container: HTMLElement, settingsOnly: boolean): void 
     container.querySelector<HTMLElement>('#profileBackToProfileBtn')?.addEventListener('click', () => enterProfile());
   }
 
-  // Room image → zoom in, then enter the 3D room. Intercept the generic
-  // data-view delegate so the zoom plays before navigation.
+  // Room image → zoom in, then enter the 3D room at the FRONT camera angle.
+  // Intercept the generic data-view delegate so the zoom plays before nav.
+  const roomAvatarMount = container.querySelector<HTMLElement>('#profBannerRoomAvatar');
+  if (roomAvatarMount) {
+    const roomReader = new PixelReader({ state: 'reading', size: 'lg', accentColor: '#c49a52' });
+    roomReader.mount(roomAvatarMount);
+  }
+
   const roomBtn = container.querySelector<HTMLElement>('.prof-banner__room');
   if (roomBtn) {
     roomBtn.addEventListener('click', (e) => {
@@ -535,6 +543,9 @@ function bindProfileChrome(container: HTMLElement, settingsOnly: boolean): void 
       e.preventDefault();
       e.stopPropagation();
       roomBtn.classList.add('is-zooming');
+      void import('../three-room/three-room-view.js')
+        .then(({ setRoomEntryPose }) => setRoomEntryPose('front'))
+        .catch(() => {});
       window.setTimeout(() => { window.location.hash = '#room'; }, 520);
     }, true);
   }

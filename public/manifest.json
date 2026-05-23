@@ -4,8 +4,8 @@
   "description": "Margins are where thinking happens.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1714",
-  "theme_color": "#1a1714",
+  "background_color": "#302e2a",
+  "theme_color": "#302e2a",
   "orientation": "any",
   "icons": [
     {

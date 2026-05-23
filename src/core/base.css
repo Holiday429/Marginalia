@@ -29,8 +29,8 @@
   --color-accent-gold:  #c4903a;   /* gold — map / highlight */
   --color-highlight-bg: rgba(197,148,42,0.28);
   --color-highlight-line: #c5941e;
-  --color-smoke-bg:     #2c2722;
-  --color-smoke-bg-soft:#35302b;
+  --color-smoke-bg:     #302e2a;
+  --color-smoke-bg-soft:#3a3833;
   --color-brass-border: #b89a52;
   --color-ivory-text:   #ede0c8;
 
@@ -158,19 +158,33 @@
   --bg-tool: var(--color-smoke-bg);
   --bg-tool-soft: var(--color-smoke-bg-soft);
   --panel-glass: rgba(61, 54, 48, 0.82);
-  --panel-border: rgba(184, 154, 82, 0.62);
-  --panel-border-strong: rgba(184, 154, 82, 0.9);
+  --panel-border: rgba(232, 224, 200, 0.16);
+  --panel-border-strong: rgba(232, 224, 200, 0.28);
   --text-primary: var(--color-ivory-text);
   --text-secondary: rgba(237, 224, 200, 0.78);
   --text-muted: rgba(237, 224, 200, 0.54);
   --accent-gold: var(--color-brass-border);
   --accent-green: #78966a;
-  --ui-border-width: 1.5px;
-  --ui-border-width-strong: 2px;
+
+  /* ── Glass UI system ──────────────────────────────────────────────────
+     Thin 1px edges + translucent fills. No solid color blocks; hover and
+     active states read through low-opacity glass, not opaque paint. */
+  --ui-border-width: 1px;
+  --ui-border-width-strong: 1px;
   --ui-border-color: var(--panel-border);
   --ui-border-strong: var(--panel-border-strong);
-  --ui-active-fill: #b89a52;
-  --ui-active-ink: #2c2722;
+  --glass-fill: rgba(232, 224, 200, 0.04);          /* resting control surface */
+  --glass-fill-hover: rgba(232, 224, 200, 0.08);    /* hover feedback */
+  --glass-fill-active: rgba(232, 224, 200, 0.14);   /* selected / pressed */
+  --glass-border-active: rgba(232, 224, 200, 0.42); /* brighter edge for active */
+  /* Panel-level glass — cards, sections, larger surfaces (matches profile). */
+  --glass-panel: rgba(52, 46, 40, 0.5);
+  --glass-panel-soft: rgba(44, 38, 33, 0.4);
+  --glass-blur: blur(24px) saturate(1.08);
+  --ui-active-ink: var(--text-primary);
+  /* Legacy alias — was a solid gold block; now routes to glass active fill so
+     existing references render as translucent highlights, not opaque paint. */
+  --ui-active-fill: var(--glass-fill-active);
 }
 
 /* ── Per-view theme overrides ──────────────────────────────────────────── */
@@ -178,10 +192,10 @@
 /* Search — dark warm tool palette */
 body[data-view="search"] {
   --bg: var(--bg-tool);
-  --bg-soft: var(--bg-tool-soft);
+  --bg-soft: var(--glass-panel-soft);
   --ink: var(--text-primary);
   --ink-soft: var(--text-secondary);
-  --paper: var(--bg-tool-soft);
+  --paper: var(--glass-panel);
   --rule: var(--panel-border);
   --rule-strong: var(--panel-border-strong);
   --rule-soft: rgba(184,154,82,0.34);
@@ -191,13 +205,14 @@ body[data-view="search"] {
 }
 
 /* Library 2D — same dark warm base */
+body[data-view="library"],
 body[data-view="library-2d"],
 body[data-view="studio"] {
   --bg: var(--bg-tool);
-  --bg-soft: var(--bg-tool-soft);
+  --bg-soft: var(--glass-panel-soft);
   --ink: var(--text-primary);
   --ink-soft: var(--text-secondary);
-  --paper: var(--bg-tool-soft);
+  --paper: var(--glass-panel);
   --rule: var(--panel-border);
   --rule-strong: var(--panel-border-strong);
   --rule-soft: rgba(184,154,82,0.34);
@@ -209,10 +224,10 @@ body[data-view="studio"] {
 /* Room base */
 body[data-view="room"] {
   --bg: var(--bg-room-dark);
-  --bg-soft: var(--bg-tool-soft);
+  --bg-soft: var(--glass-panel-soft);
   --ink: var(--text-primary);
   --ink-soft: var(--text-secondary);
-  --paper: var(--bg-tool-soft);
+  --paper: var(--glass-panel);
   --rule: var(--panel-border);
   --rule-strong: var(--panel-border-strong);
   --rule-soft: rgba(184,154,82,0.34);
@@ -224,10 +239,10 @@ body[data-view="room"] {
 /* Book detail */
 body[data-view="book"] {
   --bg: var(--bg-tool);
-  --bg-soft: var(--bg-tool-soft);
+  --bg-soft: var(--glass-panel-soft);
   --ink: var(--text-primary);
   --ink-soft: var(--text-secondary);
-  --paper: var(--bg-tool-soft);
+  --paper: var(--glass-panel);
   --rule: var(--panel-border);
   --rule-strong: var(--panel-border-strong);
   --rule-soft: rgba(184,154,82,0.34);
@@ -239,10 +254,10 @@ body[data-view="book"] {
 /* Profile */
 body[data-view="profile"] {
   --bg: var(--bg-tool);
-  --bg-soft: var(--bg-tool-soft);
+  --bg-soft: var(--glass-panel-soft);
   --ink: var(--text-primary);
   --ink-soft: var(--text-secondary);
-  --paper: var(--bg-tool-soft);
+  --paper: var(--glass-panel);
   --rule: var(--panel-border);
   --rule-strong: var(--panel-border-strong);
   --rule-soft: rgba(184,154,82,0.34);
@@ -254,10 +269,10 @@ body[data-view="profile"] {
 /* Map */
 body[data-view="map"] {
   --bg: var(--bg-tool);
-  --bg-soft: var(--bg-tool-soft);
+  --bg-soft: var(--glass-panel-soft);
   --ink: var(--text-primary);
   --ink-soft: var(--text-secondary);
-  --paper: var(--bg-tool-soft);
+  --paper: var(--glass-panel);
   --rule: var(--panel-border);
   --rule-strong: var(--panel-border-strong);
   --rule-soft: rgba(184,154,82,0.34);
@@ -269,10 +284,10 @@ body[data-view="map"] {
 /* Web (Graph) */
 body[data-view="web"] {
   --bg: var(--bg-tool);
-  --bg-soft: var(--bg-tool-soft);
+  --bg-soft: var(--glass-panel-soft);
   --ink: var(--text-primary);
   --ink-soft: var(--text-secondary);
-  --paper: var(--bg-tool-soft);
+  --paper: var(--glass-panel);
   --rule: var(--panel-border);
   --rule-strong: var(--panel-border-strong);
   --rule-soft: rgba(184,154,82,0.34);
@@ -302,9 +317,7 @@ body {
   position: relative;
   min-height: 100vh;
   padding: 0;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(184, 154, 82, 0.12), transparent 44%),
-    linear-gradient(180deg, #2c2722 0%, #27221d 100%);
+  background: #302e2a;
   color: var(--text-primary);
   isolation: isolate;
 }
@@ -425,10 +438,11 @@ body {
   overflow-x: auto;
   padding: 5px;
   border-radius: 18px;
-  border: var(--ui-border-width-strong) solid var(--ui-border-strong);
-  background: transparent;
+  border: var(--ui-border-width) solid var(--ui-border-color);
+  background: var(--glass-fill);
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.2);
-  backdrop-filter: none;
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
   scrollbar-width: none;
 }
 .panel-masthead .room-top-tabs::-webkit-scrollbar { display: none; }
@@ -451,13 +465,13 @@ body {
 }
 
 .panel-masthead .room-top-tabs .room-nav-item:hover {
-  background: transparent;
-  border-color: var(--ui-border-strong);
+  background: var(--glass-fill-hover);
+  border-color: transparent;
   color: rgba(249, 235, 213, 0.98);
 }
 
 .panel-masthead .room-top-tabs .room-nav-item.is-active {
-  background: var(--ui-active-fill);
+  background: var(--glass-fill-active);
   border-color: transparent;
   color: var(--ui-active-ink);
 }
@@ -506,17 +520,20 @@ body {
   letter-spacing: var(--track-service-ui);
   font-weight: var(--weight-service-ui-label);
   color: var(--ink);
-  background: transparent;
+  background: var(--glass-fill);
   border: var(--ui-border-width) solid var(--ui-border-strong);
   min-height: 44px;
   padding: 0 18px;
   cursor: pointer;
   border-radius: 14px;
-  transition: opacity 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .panel-header-action:hover {
-  border-color: var(--ui-border-strong);
+  background: var(--glass-fill-hover);
+  border-color: var(--glass-border-active);
 }
 
 @media (max-width: 1180px) {
