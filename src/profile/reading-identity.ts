@@ -213,7 +213,7 @@ function threeWordsHTML(data: ReadingIdentityResult): string {
   const manifesto = data.poeticProjection?.ifYouWereABook || data.archetype.summary;
   return `
     <div class="prof-rid-words">
-      <span class="prof-rid-words__title">In three words</span>
+      <span class="prof-rid-words__title">In Three Words</span>
       <div class="prof-rid-words__list">
         ${words.map((w) => `<span class="prof-rid-words__word">${escapeHtml(w)}</span>`).join('')}
       </div>
@@ -241,7 +241,7 @@ function rhythmHTML(data: ReadingIdentityResult): string {
   if (!rows.length) return '';
   return `
     <div class="prof-rid-rhythm">
-      <span class="prof-rid-rhythm__title">Reading rhythm</span>
+      <span class="prof-rid-rhythm__title">Reading Rhythm</span>
       ${rows.map((row) => `
         <div class="prof-rid-rhythm__row">
           <svg class="prof-rid-rhythm__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RHYTHM_ICONS[row.key] ?? RHYTHM_ICONS.pace}</svg>
@@ -273,7 +273,7 @@ function referenceLayoutHTML(
       <div class="prof-rid-ref__grid">
         <div class="prof-rid-ref__main">
           <div class="prof-rid-ref__archetype">
-            <span class="prof-rid-ref__kicker">The reader you are</span>
+            <span class="prof-rid-ref__kicker">The Reader You Are</span>
             <h3 class="prof-rid-ref__title">${escapeHtml(data.archetype.title)}</h3>
             ${data.archetype.titleZh ? `<p class="prof-rid-ref__title-zh">「${escapeHtml(data.archetype.titleZh)}」</p>` : ''}
             <p class="prof-rid-ref__summary">
@@ -301,13 +301,16 @@ function referenceLayoutHTML(
           `}
         </div>
 
-        <div class="prof-rid-ref__side">
+        <div class="prof-rid-ref__words-cell">
           ${threeWordsHTML(data)}
-          ${rhythmHTML(data)}
         </div>
 
         <div class="prof-rid-ref__genres-cell">
           ${genresHTML(options.genres ?? [])}
+        </div>
+
+        <div class="prof-rid-ref__rhythm-cell">
+          ${rhythmHTML(data)}
         </div>
       </div>
     </section>
@@ -410,7 +413,8 @@ function bindResult(host: HTMLElement, initialData: ReadingIdentityResult): void
     const summaryTextEl = host.querySelector<HTMLElement>('.prof-rid-ref__summary-text');
     const summaryZhEl = host.querySelector<HTMLElement>('.prof-rid-ref__summary-zh');
     const tagsEl = host.querySelector<HTMLElement>('.prof-rid-ref__tags');
-    const sideEl = host.querySelector<HTMLElement>('.prof-rid-ref__side');
+    const wordsCellEl = host.querySelector<HTMLElement>('.prof-rid-ref__words-cell');
+    const rhythmCellEl = host.querySelector<HTMLElement>('.prof-rid-ref__rhythm-cell');
     if (summaryEl) summaryEl.classList.add('is-typing');
     if (summaryTextEl) summaryTextEl.textContent = '';
 
@@ -426,7 +430,8 @@ function bindResult(host: HTMLElement, initialData: ReadingIdentityResult): void
         const tags = buildTags(currentData);
         tagsEl.innerHTML = tags.map((tag) => `<span class="prof-rid-ref__tag">${escapeHtml(tag)}</span>`).join('');
       }
-      if (sideEl) sideEl.innerHTML = threeWordsHTML(currentData) + rhythmHTML(currentData);
+      if (wordsCellEl) wordsCellEl.innerHTML = threeWordsHTML(currentData);
+      if (rhythmCellEl) rhythmCellEl.innerHTML = rhythmHTML(currentData);
       if (summaryTextEl) {
         typeTimer = typewrite(summaryTextEl, currentData.archetype.summary, () => {
           regenerating = false;
@@ -442,6 +447,12 @@ function bindResult(host: HTMLElement, initialData: ReadingIdentityResult): void
 function resultHTML(data: ReadingIdentityResult, options: RidRenderOptions = {}): string {
   return `
     <div class="prof-rid prof-rid--reference">
+      <div class="prof-section__head prof-section__head--stacked prof-rid-result-head">
+        <div>
+          <h2 class="prof-section__title">Reading Identity</h2>
+          <p class="prof-section__subcopy">An outside eye on how you read.</p>
+        </div>
+      </div>
       ${referenceLayoutHTML(data, options)}
     </div>
   `;

@@ -246,12 +246,13 @@
   left: 8px;
   right: 8px;
   bottom: 0;
-  height: 13px;
+  height: 14px;
   border-radius: 2px;
   background: linear-gradient(180deg, #8f744b 0%, #71593b 62%, #5b462f 100%);
   border-top: 1px solid rgba(184, 154, 82, 0.72);
+  /* Same plank shadow as the rack shelves so both read as one real bookcase. */
   box-shadow:
-    0 8px 18px rgba(26, 20, 14, 0.34),
+    0 9px 20px rgba(0, 0, 0, 0.54),
     inset 0 1px 0 rgba(255, 245, 224, 0.2);
   pointer-events: none;
 }
@@ -397,11 +398,12 @@
 .booklist-shelf-plank {
   height: 14px;
   border-radius: 2px;
-  background: linear-gradient(180deg, #3a3020 0%, #221b12 66%, #18120c 100%);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  /* Unified wood: same warm plank as the Shelf-spread bottom shelf. */
+  background: linear-gradient(180deg, #8f744b 0%, #71593b 62%, #5b462f 100%);
+  border-top: 1px solid rgba(184, 154, 82, 0.72);
   box-shadow:
     0 9px 20px rgba(0, 0, 0, 0.54),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    inset 0 1px 0 rgba(255, 245, 224, 0.2);
   margin-top: 2px;
 }
 

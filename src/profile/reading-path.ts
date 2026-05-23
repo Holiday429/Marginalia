@@ -119,7 +119,7 @@ function summaryHTML(data: YearData): string {
   `;
 }
 
-function viewHTML(years: YearData[], index: number, showNav: boolean): string {
+function viewHTML(years: YearData[], index: number, showNav: boolean, insight = ''): string {
   const data = years[index];
   const canPrev = index > 0;
   const canNext = index < years.length - 1;
@@ -136,6 +136,7 @@ function viewHTML(years: YearData[], index: number, showNav: boolean): string {
         ${nav}
       </div>
       ${chartSVG(data)}
+      ${insight ? `<p class="prof-path__insight">${escapeHtml(insight)}</p>` : ''}
     </div>
   `;
 }
@@ -144,6 +145,8 @@ export interface MountPathOptions {
   /** Lock the chart to a single year (no internal nav). Used when an outer control owns the year. */
   year?: number;
   showNav?: boolean;
+  /** Insight line rendered inside the chart card (e.g. "March was the busiest month…"). */
+  insight?: string;
 }
 
 export function mountReadingPath(host: HTMLElement, books: PublicBook[], options: MountPathOptions = {}): void {
@@ -160,7 +163,7 @@ export function mountReadingPath(host: HTMLElement, books: PublicBook[], options
   if (index < 0) index = years.length - 1;
 
   const render = () => {
-    host.innerHTML = viewHTML(years, index, showNav);
+    host.innerHTML = viewHTML(years, index, showNav, options.insight);
     host.querySelectorAll<HTMLButtonElement>('[data-path-dir]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const next = index + Number(btn.dataset.pathDir);

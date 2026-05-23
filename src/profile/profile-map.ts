@@ -109,8 +109,7 @@ const REGION_NAMES = typeof Intl !== 'undefined' && Intl.DisplayNames
   ? new Intl.DisplayNames(['en'], { type: 'region' })
   : null;
 
-const UNLIT_FILL = '#3d3026';
-const DIMMED_FILL = '#2b221c';
+const UNLIT_FILL = '#564636';
 const HISTORICAL_LINE = '#9f845b';
 const ACTIVE_LINE = '#e3bc75';
 
@@ -270,9 +269,9 @@ export class ProfileMap {
         exclude: ['AQ'],
       }));
       this.polygonSeries.mapPolygons.template.setAll({
-        stroke: am5.color(0x5a4636),
+        stroke: am5.color(0x8a7152),
         strokeWidth: 0.8,
-        strokeOpacity: 0.72,
+        strokeOpacity: 0.78,
         fillOpacity: 1,
         interactive: false,
       });
@@ -287,6 +286,9 @@ export class ProfileMap {
         strokeWidth: 1.1,
         strokeOpacity: 0.38,
         strokeDasharray: [3, 5],
+        // Great-circle curve so the dashed line matches the avatar's
+        // geodesicInterp path exactly (default straight segments diverge).
+        lineType: 'geodesic',
       });
 
       this.activeLineSeries = this.chart.series.push(am5map.MapLineSeries.new(this.root, {}));
@@ -295,6 +297,7 @@ export class ProfileMap {
         strokeWidth: 1.7,
         strokeOpacity: 0.9,
         strokeDasharray: [4, 2],
+        lineType: 'geodesic',
       });
 
       this.pointSeries = this.chart.series.push(am5map.MapPointSeries.new(this.root, {}));
@@ -691,7 +694,9 @@ export class ProfileMap {
     this.polygonSeries.mapPolygons.each((poly: any) => {
       const polyId = poly.dataItem?.get('id') ?? '';
       if (!visitCounts.has(polyId)) {
-        poly.set('fill', am5.color(DIMMED_FILL));
+        // Unvisited countries keep the readable land tone (not a darker dim),
+        // so the map stays legible during playback like the static view.
+        poly.set('fill', am5.color(UNLIT_FILL));
         return;
       }
 
