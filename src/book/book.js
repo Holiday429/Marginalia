@@ -656,7 +656,6 @@ function renderBook(b, sections) {
           `).join('')}
         </div>
       </section>
-      ${renderFooter(b)}
     </div>
   `;
 
@@ -927,8 +926,8 @@ function renderOverview(b) {
       ${b.relatedBooks?.length ? `
         <div class="ov-related-strip">
           <div class="ov-related-head">
-            <span class="ov-related-label">Related Books</span>
-            <button class="ov-related-see-all" type="button" data-target="related-books">${b.relatedBooks.length} 本相关 →</button>
+            <span class="ov-related-label book-section-title">Related Books</span>
+            <button class="ov-related-see-all" type="button" data-target="related-books">View Details →</button>
           </div>
           <div class="ov-related-scroll">
             ${b.relatedBooks.map(item => {
@@ -964,11 +963,10 @@ function renderIntegration(b) {
   return `
     <section class="takeaways-section">
       <div class="takeaways-main">
-        <div class="section-label">§ 02 — Integration</div>
-        <h2>My Conclusion</h2>
+        <h2 class="book-section-title">My Conclusion</h2>
         <div class="takeaway-body">
           ${insight.oneLiner         ? `<p><em>${esc(insight.oneLiner)}</em></p>` : ''}
-          ${insight.answeredQuestion ? `<p><strong>本书回答的问题：</strong>${esc(insight.answeredQuestion)}</p>` : ''}
+          ${insight.answeredQuestion ? `<p><strong>Question answered by this book:</strong>${esc(insight.answeredQuestion)}</p>` : ''}
           ${insight.integration      ? `<p>${esc(insight.integration)}</p>` : ''}
         </div>
         ${stanceCards.length ? `
@@ -996,7 +994,7 @@ function renderHighlights(b) {
   return `
     <section class="highlights-section">
       <div class="section-head">
-        <h2>Highlights</h2>
+        <h2 class="book-section-title">Highlights</h2>
         <div class="sh-actions">
           <button class="hl-add-btn" type="button" id="hlAddBtn">+ Add highlight</button>
           <button class="hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
@@ -1071,8 +1069,7 @@ function renderHighlightItem(h, i) {
 function renderCulturalContext(b) {
   return `
     <section class="cultural-bg">
-      <div class="section-label">§ 04 — Cultural Context</div>
-      <h2 class="section-title">Cultural Context</h2>
+      <h2 class="section-title book-section-title">Cultural Context</h2>
       <div class="cultural-grid">
         ${b.culturalContext.map(c => `
           <div class="cultural-item">
@@ -1090,8 +1087,7 @@ function renderRelatedConcepts(b) {
   const items = getBookGraphConcepts(b.id);
   return `
     <section class="connections-section">
-      <div class="section-label">§ 05 — Concept Network</div>
-      <h2>Related Concepts</h2>
+      <h2 class="book-section-title">Related Concepts</h2>
       <div class="related-concept-grid">
         ${items.map(({ concept, link, context }) => {
           const statusMeta = MarginaliaGraph.getLinkStatusMeta(link.status);
@@ -1121,25 +1117,25 @@ function renderMindmap(b) {
   const mm = b.mindmap || {};
   const timeline     = mm.timeline     || [];
   const revolutions  = mm.revolutions  || [];
-  const ideas        = mm.ideas        || [];
-  const happinessViews = mm.happiness?.views || [];
-  const futurePaths  = mm.futurePaths  || [];
 
   const tabs = [
     timeline.length    ? { id: 'timeline',    label: 'Timeline' }    : null,
     revolutions.length ? { id: 'revolutions', label: 'Revolutions' } : null,
-    ideas.length       ? { id: 'ideas',        label: 'Core Ideas' }  : null,
-    (mm.happiness?.question || happinessViews.length) ? { id: 'happiness', label: 'Happiness' } : null,
-    futurePaths.length ? { id: 'future',       label: 'Future Paths' } : null,
   ].filter(Boolean);
 
   const firstTabId = tabs[0]?.id || 'timeline';
 
   return `
     <section class="mindmap-section">
-      <div class="section-label">§ 03 — Visual Notes</div>
-      <h2 class="mindmap-title">${esc(mm.title || 'Visual Notes')}</h2>
-      <div class="mindmap-sub">${esc(mm.subtitle || `${b.titleZh || b.title} · concepts / timeline / arguments`)}</div>
+      <div class="section-head section-head--visual-notes">
+        <h2 class="mindmap-title book-section-title">Knowledge structure</h2>
+        <div class="sh-actions">
+          <label class="hl-add-btn vn-import-btn" title="Import visual notes">
+            Import visual notes
+            <input type="file" accept=".html,text/html" class="vn-file-input" hidden multiple>
+          </label>
+        </div>
+      </div>
 
       <div class="mm-top-tabs">
         ${tabs.map(t => `
@@ -1172,15 +1168,15 @@ function renderMindmap(b) {
           <div class="mm-rev-tabs">
             ${revolutions.map((r, i) => `
               <button class="mm-rev-tab${i === 0 ? ' is-active' : ''}" type="button" data-mm-rev-tab="${esc(r.id || `r${i}`)}">
-                <small>${esc(r.period || '')}</small>${esc(r.title || '')}
+                ${esc(r.title || '')}
               </button>`).join('')}
           </div>
           <div class="mm-rev-panels">
             ${revolutions.map((r, i) => `
               <article class="mm-rev-card${i === 0 ? ' is-active' : ''}" data-mm-rev-pane="${esc(r.id || `r${i}`)}">
                 <div class="mm-rev-head">
-                  <div class="mm-rev-tag">${esc(r.period || '')}</div>
                   <h3>${esc(r.title || '')}</h3>
+                  ${r.period ? `<div class="mm-rev-period">${esc(r.period)}</div>` : ''}
                   <p>${esc(r.thesis || '')}</p>
                 </div>
                 <div class="mm-rev-branches">
@@ -1201,51 +1197,6 @@ function renderMindmap(b) {
               </article>`).join('')}
           </div>
         </div>
-
-        <div class="mm-tab-pane${firstTabId === 'ideas' ? ' is-active' : ''}" data-mm-pane="ideas">
-          <article class="mm-panel">
-            <div class="mm-panel-label">Core Ideas</div>
-            <h3>Core Ideas</h3>
-            <div class="mm-ideas">
-              ${ideas.map(it => `
-                <div class="mm-idea">
-                  <h4>${esc(it.title || '')}</h4>
-                  <p>${esc(it.body || '')}</p>
-                </div>`).join('')}
-            </div>
-          </article>
-        </div>
-
-        <div class="mm-tab-pane${firstTabId === 'happiness' ? ' is-active' : ''}" data-mm-pane="happiness">
-          <article class="mm-panel">
-            <div class="mm-panel-label">Happiness Question</div>
-            <h3>Happiness Question</h3>
-            <p class="mm-question">${esc(mm.happiness?.question || '')}</p>
-            <div class="mm-view-grid">
-              ${happinessViews.map(v => `
-                <div class="mm-view">
-                  <h4>${esc(v.title || '')}</h4>
-                  <p>${esc(v.body || '')}</p>
-                </div>`).join('')}
-            </div>
-            ${mm.happiness?.verdict ? `<p class="mm-verdict">${esc(mm.happiness.verdict)}</p>` : ''}
-          </article>
-        </div>
-
-        <div class="mm-tab-pane${firstTabId === 'future' ? ' is-active' : ''}" data-mm-pane="future">
-          <article class="mm-panel">
-            <div class="mm-panel-label">Future Paths</div>
-            <h3>Three Paths Beyond Current Humanity</h3>
-            <div class="mm-path-grid">
-              ${futurePaths.map(p => `
-                <div class="mm-path">
-                  <h4>${esc(p.title || '')}</h4>
-                  ${p.badge ? `<div class="mm-path-badge">${esc(p.badge)}</div>` : ''}
-                  <ul>${(p.details || []).map(d => `<li>${esc(d)}</li>`).join('')}</ul>
-                </div>`).join('')}
-            </div>
-          </article>
-        </div>
       </div>
     </section>
   `;
@@ -1254,7 +1205,7 @@ function renderMindmap(b) {
 function renderConnections(b) {
   return `
     <section class="connections-section">
-      <h2>Related Books</h2>
+      <h2 class="book-section-title">Related Books</h2>
       <ul class="connection-list">
         ${b.relatedBooks.map(item => {
           const storeMatch = BooksStore.getAll().find(bk => bk.title === item.title || bk.titleZh === item.title)
@@ -1291,8 +1242,7 @@ function renderActions(b) {
   const actions = b.actions || [];
   return `
     <section class="actions-section">
-      <div class="section-label">§ 07 — Actions</div>
-      <h2>Actions</h2>
+      <h2 class="book-section-title">Actions</h2>
       ${actions.length ? `
         <ul class="action-list">
           ${actions.map(a => `
@@ -1410,8 +1360,7 @@ function renderNotesSection(b) {
   const html = `
     <section class="notes-section">
       <div class="nt-header">
-        <h2>My Notes</h2>
-        <span class="nt-sub">Write down your thoughts, reactions, and takeaways</span>
+        <h2 class="book-section-title">My Notes</h2>
       </div>
 
       <div class="nt-templates-grid">
@@ -1464,16 +1413,6 @@ function renderMountedPanelSection({ id, label, book, panelId, leadingHtml = '',
   };
 }
 
-function renderFooter(b) {
-  const total = BooksStore.getAll().length;
-  return `
-    <footer class="book-foot">
-      <span>Marginalia · ${esc(b.titleZh || b.title)}</span>
-      <span>Last edited ${formatDate(b.meta?.finishedAt) || '—'} · Book #${total}</span>
-    </footer>
-  `;
-}
-
 /* ── Utilities ───────────────────────────────────────────────────────────── */
 
 function esc(s) {
@@ -1491,7 +1430,10 @@ function formatDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   if (isNaN(+d)) return iso;
-  return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function daysBetween(a, b) {

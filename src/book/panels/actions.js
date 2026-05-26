@@ -38,14 +38,11 @@ import { PanelRegistry } from './registry.js';
       container.innerHTML = `
         <section class="actions-panel">
           <div class="actions-panel-head">
-            <h2 class="actions-panel-title">Action Items</h2>
-            <p class="actions-panel-desc">Knowledge you intend to act on from this book.</p>
+            <h2 class="actions-panel-title book-section-title">Actions</h2>
           </div>
 
           <ul class="actions-list" data-actions-list>
-            ${open.length === 0
-              ? `<li class="actions-empty">No open actions yet.</li>`
-              : open.map(renderItem).join('')}
+            ${open.map(renderItem).join('')}
           </ul>
 
           <form class="actions-add-form" data-actions-add-form autocomplete="off">
@@ -63,7 +60,11 @@ import { PanelRegistry } from './registry.js';
           ${resolved.length > 0 ? `
             <details class="actions-resolved">
               <summary class="actions-resolved-toggle">
-                ${resolved.length} resolved
+                <span class="actions-resolved-label">Resolved</span>
+                <span class="actions-resolved-meta">
+                  <span class="actions-resolved-count">${resolved.length}</span>
+                  <span class="actions-resolved-chevron" aria-hidden="true">▸</span>
+                </span>
               </summary>
               <ul class="actions-list actions-list--resolved">
                 ${resolved.map(renderItem).join('')}

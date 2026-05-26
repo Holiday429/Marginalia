@@ -93,21 +93,9 @@ import { NotesStore } from '../../store/notes-store.js';
     function buildHTML(notes, activeId) {
       return `
         <section class="vn-panel">
-          <div class="vn-head">
-            <h2>Visual Notes</h2>
-            <label class="vn-upload-btn" title="Import HTML file">
-              + Import
-              <input type="file" accept=".html,text/html" class="vn-file-input" hidden multiple>
-            </label>
-          </div>
-
           ${notes.length === 0 ? `
             <div class="vn-empty">
-              <p>Import any HTML visual note — Claude Chat exports, mind maps, diagrams.</p>
-              <label class="vn-upload-btn vn-upload-btn--large">
-                Choose file
-                <input type="file" accept=".html,text/html" class="vn-file-input" hidden multiple>
-              </label>
+              <p>No visual notes imported yet. Use the Import button above.</p>
             </div>
           ` : `
             <div class="vn-tabs">
@@ -158,10 +146,18 @@ import { NotesStore } from '../../store/notes-store.js';
         });
       });
 
-      // File import
-      container.querySelectorAll('.vn-file-input').forEach(input => {
-        input.addEventListener('change', () => handleFiles(input.files));
-      });
+      // File import (button in visual-notes section header)
+      const sectionRoot = container.closest('.book-section') || container.parentElement;
+      if (sectionRoot) {
+        sectionRoot.querySelectorAll('.vn-file-input').forEach((input) => {
+          if (input.dataset.vnBound === '1') return;
+          input.dataset.vnBound = '1';
+          input.addEventListener('change', async () => {
+            await handleFiles(input.files);
+            input.value = '';
+          });
+        });
+      }
 
       // Write content into iframes after DOM is ready
       container.querySelectorAll('[data-vn-iframe]').forEach(iframe => {
