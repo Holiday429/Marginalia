@@ -9,6 +9,7 @@ import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
 import { initSearchDecor3d } from './search-decor-3d.js';
+import { maybeSettleLaptopFlyIn } from './laptop-fly.js';
 
 const SHELF_STATE = {
   filter: 'all',
@@ -39,10 +40,13 @@ function initSearch() {
   bindShelfEvents();
   refreshShelfFromSource();
   initSearchDecor3d();
+  // If we arrived via the room's laptop fly-in, glide the search bar into place.
+  maybeSettleLaptopFlyIn(document);
 }
 
 function enterSearch() {
   refreshShelfFromSource();
+  maybeSettleLaptopFlyIn(document);
 }
 
 function renderStatsBar() {
