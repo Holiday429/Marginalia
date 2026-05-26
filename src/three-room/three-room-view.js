@@ -961,9 +961,10 @@ function exitRoomViaHeroFlip() {
 }
 
 // Enter the Search view with a laptop screen expand: the MacBook zooms toward
-// the camera with a real search-bar UI mounted on its screen (CSS3DRenderer);
-// once the screen fills the viewport, the search bar glides into the real
-// Search page slot (settleLaptopFlyIn). Mirrors the profile frame-fly handoff.
+// the camera straight from the desk (no pan to the shelf wall) with a real
+// search-bar UI mounted on its screen (CSS3DRenderer); once the screen fills
+// the viewport, the search bar glides into the real Search page slot
+// (settleLaptopFlyIn). Mirrors the profile frame-fly handoff.
 function exitRoomViaLaptopFly() {
   if (ROOM_VIEW_STATE.transitioning) return;
   ROOM_VIEW_STATE.transitioning = true;
@@ -974,12 +975,9 @@ function exitRoomViaLaptopFly() {
   const roomTransition = { ...buildRoomTransitionMeta('search'), suppressRoomBackdrop: true };
   const nextParams = { __roomTransition: roomTransition };
 
-  const pose = PANEL_POSES.search;   // 'shelf'
-  if (pose && ROOM_VIEW_STATE.handle) {
-    ROOM_VIEW_STATE.pose = pose;
-    ROOM_VIEW_STATE.handle.goToPose(pose, false);
-    syncPoseButtons();
-  }
+  // No camera pose change — the laptop is on the desk in the current view, so
+  // the fly-in zooms/pulls it straight out from where it sits. Panning to the
+  // 'shelf' (bookshelf wall) pose first felt like an unrelated detour.
 
   let navigated = false;
   const navigate = () => {

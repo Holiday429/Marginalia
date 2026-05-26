@@ -49,34 +49,6 @@ function enterSearch() {
   maybeSettleLaptopFlyIn(document);
 }
 
-function renderStatsBar() {
-  const shelfBooks = SHELF_RECORDS.filter(b => !b._isMock);
-  const detailBooks = BooksStore.getAll();
-
-  const finished = shelfBooks.filter(b => b.status === 'finished').length;
-  const reading = shelfBooks.filter(b => b.status === 'reading');
-  const highlights = detailBooks.reduce((n, b) => n + (b.highlights ? b.highlights.length : 0), 0);
-  const allActions = detailBooks.reduce((arr, b) => arr.concat(b.actions || []), []);
-  const actionsDone = allActions.filter(a => a.status === 'done').length;
-  const actionsPending = allActions.filter(a => a.status !== 'done').length;
-
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-
-  const year = new Date().getFullYear();
-  set('statBooksFinished', finished);
-  set('statBooksYear', `'${String(year).slice(2)}`);
-  set('statBooksVsLastYear', finished > 0 ? `↗ +3 vs last year` : '');
-
-  set('statReadingCount', reading.length);
-  set('statReadingTitle', reading.length > 0 ? toTitleCase(reading[0].title) : '');
-
-  set('statHighlights', highlights);
-  set('statHighlightsSub', highlights > 0 ? `↗ +12 this month` : '');
-
-  set('statActionsDone', actionsDone);
-  set('statActionsPending', actionsPending > 0 ? `${actionsPending} pending review` : '');
-}
-
 function animateIn() {
   const page = document.querySelector('#view-search .page');
   if (!page) return;
@@ -97,7 +69,6 @@ function syncShelfRecords() {
 
 function refreshShelfFromSource() {
   syncShelfRecords();
-  renderStatsBar();
   renderTagChips();
   renderShelfSectionInternal();
 }

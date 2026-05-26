@@ -44,6 +44,12 @@ const SCREEN = {
 // element.style.width = (SCREEN.width * PX_PER_UNIT)px, then object scaled 1/PX_PER_UNIT.
 const PX_PER_UNIT = 600;
 
+// Pivot scale at the end of Act 1 (laptop framed) and Act 2 (screen fills
+// viewport). The bar is counter-scaled by ACT1_END_SCALE/pivotScale during
+// Act 2 so the screen grows but the search bar holds a constant size.
+const ACT1_END_SCALE = 2.1;
+const ACT2_END_SCALE = 4.4;
+
 let activeTransition = null;
 
 function easeOut(t)   { return 1 - Math.pow(1 - t, 3); }
@@ -212,9 +218,10 @@ export function playLaptopFlyIn(opts = {}) {
           if (t <= 0.45) {
             /* Act 1 — zoom in + rotate to face camera */
             const e = easeOut(t / 0.45);
-            pivot.scale.setScalar(0.55 + e * 1.55);          // 0.55 → 2.1
+            pivot.scale.setScalar(0.55 + e * (ACT1_END_SCALE - 0.55));
             pivot.position.set(0, -0.22 + e * 0.16, 0);
             pivot.rotation.set(0.16 - e * 0.16, 0.08 - e * 0.08, 0);
+            screenEl.style.setProperty('--bar-counter', '1');
 
             if (!screenLit && t > 0.12) {
               screenLit = true;
@@ -224,20 +231,24 @@ export function playLaptopFlyIn(opts = {}) {
             // continues a little into Act 2 so the typing reads clearly.
             typeTo((t - 0.16) / 0.44);
           } else if (t <= 0.80) {
-            /* Act 2 — fill viewport, fade laptop body */
-            const e = (t - 0.45) / 0.35;
-            // Scale up so the screen face fills the viewport
-            pivot.scale.setScalar(2.1 + easeInOut(e) * 1.7);  // 2.1 → 3.8
-            pivot.position.set(0, easeInOut(e) * 0.02, 0);
+            /* Act 2 — the screen grows to fill the viewport, but the search
+               bar stays a fixed apparent size. We scale the pivot up (screen
+               background fills the screen) and counter-scale the bar by the
+               inverse, so only the black screen expands around a steady bar. */
+            const e = easeInOut((t - 0.45) / 0.35);
+            const pScale = ACT1_END_SCALE + e * (ACT2_END_SCALE - ACT1_END_SCALE);
+            pivot.scale.setScalar(pScale);
+            pivot.position.set(0, e * 0.02, 0);
             pivot.rotation.set(0, 0, 0);
-            // Typewriter keeps running into early Act 2 (finishes by t≈0.60)
+            // Counter-scale the bar so its on-screen size holds constant.
+            screenEl.style.setProperty('--bar-counter', String(ACT1_END_SCALE / pScale));
             typeTo((t - 0.16) / 0.44);
 
             // Fade laptop body (CSS3D screen stays fully opaque)
             model.traverse((child) => {
               if (!child.isMesh) return;
               const mats = Array.isArray(child.material) ? child.material : [child.material];
-              mats.forEach((m) => { m.transparent = true; m.opacity = Math.max(0, 1 - easeInOut(e) * 1.3); });
+              mats.forEach((m) => { m.transparent = true; m.opacity = Math.max(0, 1 - e * 1.3); });
             });
 
             if (!landedFired && t >= 0.74) {
@@ -247,7 +258,8 @@ export function playLaptopFlyIn(opts = {}) {
             }
           } else {
             /* tail — hold while CSS handoff is set up by settleLaptopFlyIn */
-            pivot.scale.setScalar(3.8);
+            pivot.scale.setScalar(ACT2_END_SCALE);
+            screenEl.style.setProperty('--bar-counter', String(ACT1_END_SCALE / ACT2_END_SCALE));
             model.visible = false;     // body fully gone
           }
 
@@ -304,14 +316,23 @@ export async function settleLaptopFlyIn(targetRoot = document) {
     return;
   }
 
-  // Copy the real input's computed look so the ghost ends visually identical.
+  // Copy the real input's computed look so the ghost ends visually identical:
+  // same font, radius, border colour/width, and the same icon/text padding so
+  // the icon and placeholder land exactly where the real input draws them.
   const cs = getComputedStyle(landEl);
-  const finalFont    = cs.fontSize;
-  const finalRadius  = cs.borderTopLeftRadius;
-  const finalPadL    = cs.paddingLeft;
-  const finalPadR    = cs.paddingRight;
+  const finalFont   = cs.fontSize;
+  const finalRadius = cs.borderTopLeftRadius;
+  const finalPadL   = cs.paddingLeft;   // real input reserves left space for icon
+  const finalPadR   = cs.paddingRight;
+  const finalBorder = `${cs.borderTopWidth} solid ${cs.borderTopColor}`;
+  const finalColor  = cs.color;
+  // The real search icon sits absolutely at this x inside the wrapper.
+  const realIcon = (realBar instanceof HTMLElement)
+    ? realBar.querySelector('.shelf-searchbar-icon') : null;
+  const iconLeft = realIcon ? getComputedStyle(realIcon).left : '16px';
 
-  // Build a standalone CSS clone of the search bar at the frozen rect.
+  // Build a ghost that mirrors the real .shelf-searchbar structure: a relative
+  // box with an absolutely-positioned icon and left-padded text.
   const ghost = document.createElement('div');
   ghost.className = 'laptop-fly-ghost-bar';
   ghost.innerHTML = `
@@ -334,8 +355,8 @@ export async function settleLaptopFlyIn(targetRoot = document) {
   // Measure the real landing slot (the input box).
   const targetRect = landEl.getBoundingClientRect();
 
-  // Glide to the real position AND match its computed font/padding/radius so
-  // the settled ghost is the same size as the real search bar (no jump).
+  // Glide to the real position AND match its computed look so the settled ghost
+  // is the same size/shape as the real search bar (no jump on handoff).
   ghost.style.transition = [
     'left 0.62s cubic-bezier(0.4,0,0.2,1)',
     'top 0.62s cubic-bezier(0.4,0,0.2,1)',
@@ -344,6 +365,7 @@ export async function settleLaptopFlyIn(targetRoot = document) {
     'font-size 0.62s cubic-bezier(0.4,0,0.2,1)',
     'padding 0.62s cubic-bezier(0.4,0,0.2,1)',
     'border-radius 0.62s cubic-bezier(0.4,0,0.2,1)',
+    'border-color 0.62s cubic-bezier(0.4,0,0.2,1)',
   ].join(', ');
 
   await nextFrame();
@@ -353,8 +375,13 @@ export async function settleLaptopFlyIn(targetRoot = document) {
   ghost.style.height       = `${targetRect.height}px`;
   ghost.style.fontSize     = finalFont;
   ghost.style.borderRadius = finalRadius;
+  ghost.style.border       = finalBorder;
+  ghost.style.color        = finalColor;
   ghost.style.paddingLeft  = finalPadL;
   ghost.style.paddingRight = finalPadR;
+  // Move the ghost icon to the real icon's x so it aligns with the input.
+  const ghostIcon = ghost.querySelector('.laptop-fly-ghost-bar__icon');
+  if (ghostIcon instanceof SVGElement) ghostIcon.style.left = iconLeft;
 
   await sleep(640);
 

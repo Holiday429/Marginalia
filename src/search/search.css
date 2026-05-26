@@ -206,92 +206,9 @@ body[data-view="search"] {
   background: transparent;
 }
 
-/* ---- Stats cards ---- */
-.shelf-stats-bar {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-top: 22px;
-}
-
-.shelf-stat {
-  position: relative;
-  padding: var(--sp-fluid-sm) var(--sp-fluid-md);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  border: var(--ui-border-width) solid var(--ui-border-color);
-  border-radius: 12px;
-  background: linear-gradient(150deg, rgba(184,154,82,0.06), rgba(184,154,82,0.015));
-}
-
-.shelf-stat-icon {
-  position: absolute;
-  top: 50%;
-  right: var(--sp-fluid-md);
-  transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
-  color: var(--ink-soft);
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.shelf-stat-label {
-  font-family: var(--font-service-ui);
-  font-size: var(--fs-fluid-xs);
-  letter-spacing: var(--track-service-ui);
-  color: var(--ink-soft);
-  font-weight: var(--weight-service-ui-label);
-  text-transform: none;
-}
-
-.shelf-stat-value-row {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  margin-top: 2px;
-}
-
-.shelf-stat-num {
-  font-family: var(--font-serif);
-  font-size: clamp(28px, 2.4vw, 40px);
-  font-weight: 300;
-  line-height: 1;
-  color: #f0ece4;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
-.shelf-stat-year {
-  font-family: var(--font-service-ui);
-  font-size: var(--fs-fluid-sm);
-  color: var(--ink-soft);
-  letter-spacing: var(--track-service-ui);
-  font-weight: var(--weight-service-ui);
-  padding-bottom: 4px;
-}
-
-.shelf-stat-sub {
-  font-family: var(--font-mono);
-  font-size: var(--fs-fluid-xs);
-  color: #6a9a6a;
-  letter-spacing: 0.02em;
-  margin-top: 2px;
-  min-height: 1em;
-}
-
-/* Stats cards collapse on tablet and below */
-@media (max-width: 900px) {
-  .shelf-stats-bar { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 480px) {
-  .shelf-stats-bar { grid-template-columns: 1fr; }
-}
-
 /* ---- Shelf ---- */
 .shelf-section {
-  padding: var(--section-title-gap-from-divider) 0 16px;
+  padding: 0 0 16px;
   border-bottom: none;
   margin-bottom: 0;
   animation: slideUp 0.8s cubic-bezier(.2, .8, .2, 1) 0.14s both;
@@ -1670,6 +1587,10 @@ body[data-view="search"] {
   color: rgba(232, 223, 200, 0.72);
   white-space: nowrap;
   overflow: hidden;
+  /* Counter-scale (set in JS) so the bar holds a constant apparent size while
+     the screen background grows around it during Act 2. Anchored top-centre. */
+  transform: scale(var(--bar-counter, 1));
+  transform-origin: center top;
 }
 .laptop-fly-screen__icon {
   width: 30px;
@@ -1704,23 +1625,29 @@ body[data-view="search"] {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 0.5em;
   background: rgba(232, 223, 200, 0.05);
   border: 2px solid rgba(232, 223, 200, 0.24);
   border-radius: 14px;
-  padding-left: 0.95em;
-  padding-right: 0.95em;
+  /* Reserve left space for the absolutely-positioned icon (≈ icon + gap). */
+  padding-left: 2.2em;
+  padding-right: 1em;
   font-family: var(--font-mono, 'IBM Plex Mono', monospace);
   font-size: 25px;
   color: rgba(232, 223, 200, 0.72);
   white-space: nowrap;
   overflow: hidden;
 }
+/* Icon absolutely positioned, mirroring the real .shelf-searchbar-icon — its
+   `left` is set inline to match the real input so it lands in the same spot. */
 .laptop-fly-ghost-bar__icon {
-  width: 1.15em;
-  height: 1.15em;
-  flex-shrink: 0;
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1em;
+  height: 1em;
   opacity: 0.55;
+  pointer-events: none;
 }
 .laptop-fly-ghost-bar__text {
   overflow: hidden;
