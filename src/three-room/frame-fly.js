@@ -295,18 +295,23 @@ export function playFrameFlyIn(opts = {}) {
         // Base local transform of the image mesh, so Act 2 can offset from it.
         const photoHome = imageMesh ? imageMesh.position.clone() : null;
 
+        // Y offset that places the settled frame in the lower half of the
+        // viewport — gives the photo plenty of upward travel room when it
+        // pulls out of the wood before landing on the spine row below.
+        const FRAME_Y = -0.30;
+
         const tick = (now) => {
           const t = clamp01((now - start) / duration);
 
           if (t < LIFT_END) {
-            // Act 1a — frame eases in from the side and settles centred, held
-            // at a slight 3D tilt so the wooden depth is unmistakably real.
+            // Act 1a — frame eases in from the side and settles in the lower
+            // half, tilted so its wooden thickness reads as a real object.
             const e = easeOut(t / LIFT_END);
             pivot.scale.setScalar(0.5 + 0.5 * e);
             pivot.rotation.y = THREE.MathUtils.lerp(-0.92, -0.28, e);
             pivot.rotation.x = THREE.MathUtils.lerp(0.2, 0.1, e);
             pivot.rotation.z = THREE.MathUtils.lerp(0.07, 0.02, e);
-            pivot.position.set(0.5 * (1 - e), 0.14 * (1 - e), -0.6 * (1 - e));
+            pivot.position.set(0.5 * (1 - e), 0.14 * (1 - e) + FRAME_Y * e, -0.6 * (1 - e));
           } else if (t < SQUARE_END) {
             // Act 1b — the held tilt rotates upright so the photo faces us
             // square-on, ready to be pulled out.
@@ -315,23 +320,23 @@ export function playFrameFlyIn(opts = {}) {
             pivot.rotation.y = THREE.MathUtils.lerp(-0.28, 0, e);
             pivot.rotation.x = THREE.MathUtils.lerp(0.1, 0, e);
             pivot.rotation.z = THREE.MathUtils.lerp(0.02, 0, e);
-            pivot.position.set(0, 0, 0);
+            pivot.position.set(0, FRAME_Y, 0);
           } else if (t < PULLOUT_START) {
             // Brief hold, perfectly square to camera.
             pivot.scale.setScalar(1.04);
             pivot.rotation.set(0, 0, 0);
-            pivot.position.set(0, 0, 0);
+            pivot.position.set(0, FRAME_Y, 0);
           } else {
-            // Act 2 — pull the photo forward/down out of the wood; fade every
+            // Act 2 — pull the photo forward/up out of the wood; fade every
             // other frame part away so only the photo remains for the handoff.
             const e = easeInOut((t - PULLOUT_START) / (1 - PULLOUT_START));
             pivot.scale.setScalar(1.04);
             pivot.rotation.set(0, 0, 0);
-            pivot.position.set(0, 0, 0);
+            pivot.position.set(0, FRAME_Y, 0);
             if (imageMesh && photoHome) {
               imageMesh.position.set(
                 photoHome.x,
-                photoHome.y - 0.14 * e / Math.max(baseScale, 0.0001),
+                photoHome.y + 0.14 * e / Math.max(baseScale, 0.0001),
                 photoHome.z + 0.9 * e / Math.max(baseScale, 0.0001),
               );
             }
