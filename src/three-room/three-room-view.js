@@ -992,7 +992,7 @@ function exitRoomViaLaptopFly() {
   };
 
   import('../search/laptop-fly.js')
-    .then(({ playLaptopFlyIn }) => playLaptopFlyIn({ duration: 600, onLanded: navigate }))
+    .then(({ playLaptopFlyIn }) => playLaptopFlyIn({ duration: 1600, onLanded: navigate }))
     .catch(() => {})
     .finally(() => {
       navigate();   // safety net if the animation never fired onLanded

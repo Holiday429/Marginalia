@@ -1606,5 +1606,84 @@ body[data-view="search"] {
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  background: var(--color-bg, #1a1612);
+  background: rgba(48, 46, 42, 0);
+  transition: background 0.32s ease;
+}
+.laptop-fly-overlay.is-active {
+  background: rgba(48, 46, 42, 0.94);
+}
+.laptop-fly-overlay canvas {
+  display: block;
+}
+
+/* Ghost UI — search bar + filter chips rendered inside the 3D screen rect,
+   then flown to their real DOM positions in the Search view. */
+.laptop-fly-ghost {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.laptop-fly-ghost__screen {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 18px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.laptop-fly-ghost__searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.laptop-fly-ghost__search-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.laptop-fly-ghost__placeholder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.laptop-fly-ghost__chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.laptop-fly-ghost__chip {
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  white-space: nowrap;
+}
+
+.laptop-fly-ghost__chip.is-active {
+  background: rgba(201, 169, 110, 0.25);
+  border-color: rgba(201, 169, 110, 0.5);
+  color: rgba(201, 169, 110, 0.9);
 }
