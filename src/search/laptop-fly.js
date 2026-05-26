@@ -83,6 +83,15 @@ function stageSearchTransitionState(targetRoot = document) {
   return view;
 }
 
+function buildSearchBarClone() {
+  const source = document.querySelector('.shelf-searchbar');
+  if (!(source instanceof HTMLElement)) return null;
+  const clone = source.cloneNode(true);
+  clone.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
+  clone.classList.add('laptop-fly-shared-bar');
+  return clone;
+}
+
 /* ──────────────────────────────────────────────────────────────────────────
    Act 1 + 2 — the WebGL + CSS3D fly-in. Resolves once the screen fills the
    viewport and we've frozen the search bar's rect. Keeps the overlay alive
@@ -154,25 +163,30 @@ export function playLaptopFlyIn(opts = {}) {
     const pivot = new THREE.Group();
     scene.add(pivot);
 
-    /* ── build the CSS3D search-bar element ── */
+    /* ── build the CSS3D search-bar element (reuses real search-bar DOM) ── */
     const screenEl = document.createElement('div');
     screenEl.className = 'laptop-fly-screen';
     screenEl.style.width  = `${Math.round(SCREEN.width  * PX_PER_UNIT)}px`;
     screenEl.style.height = `${Math.round(SCREEN.height * PX_PER_UNIT)}px`;
     screenEl.innerHTML = `
       <div class="laptop-fly-screen__inner">
-        <div class="laptop-fly-screen__bar">
-          <svg class="laptop-fly-screen__icon" viewBox="0 0 16 16" aria-hidden="true">
-            <circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.5"/>
-            <line x1="10.4" y1="10.4" x2="13.6" y2="13.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-          <div class="laptop-fly-screen__field">
-            <span class="laptop-fly-screen__text"></span>
-            <span class="laptop-fly-screen__caret"></span>
-          </div>
-        </div>
+        <div class="laptop-fly-screen__bar-host"></div>
       </div>
     `;
+    const screenBarHost = screenEl.querySelector('.laptop-fly-screen__bar-host');
+    const sharedScreenBar = buildSearchBarClone();
+    if (screenBarHost instanceof HTMLElement && sharedScreenBar instanceof HTMLElement) {
+      screenBarHost.appendChild(sharedScreenBar);
+    }
+    const screenInput = sharedScreenBar?.querySelector('input') || null;
+    if (screenInput instanceof HTMLInputElement) {
+      screenInput.readOnly = true;
+      screenInput.tabIndex = -1;
+      screenInput.value = '';
+      screenInput.placeholder = '';
+      screenInput.setAttribute('aria-hidden', 'true');
+    }
+
     const css3d = new CSS3DObject(screenEl);
     css3d.scale.setScalar(1 / PX_PER_UNIT);
     css3d.position.set(0, SCREEN.centerY, SCREEN.z);
@@ -181,9 +195,8 @@ export function playLaptopFlyIn(opts = {}) {
     activeTransition = {
       overlay,
       screenEl,
-      textEl: screenEl.querySelector('.laptop-fly-screen__text'),
-      caretEl: screenEl.querySelector('.laptop-fly-screen__caret'),
-      barEl: screenEl.querySelector('.laptop-fly-screen__bar'),
+      barEl: sharedScreenBar || screenEl.querySelector('.laptop-fly-shared-bar'),
+      inputEl: screenInput,
       renderer,
       cssRenderer,
       raf: 0,
@@ -198,7 +211,9 @@ export function playLaptopFlyIn(opts = {}) {
       const target = Math.round(PLACEHOLDER.length * clamp01(fraction));
       if (target === typed) return;
       typed = target;
-      activeTransition.textEl.textContent = PLACEHOLDER.slice(0, typed);
+      if (activeTransition.inputEl instanceof HTMLInputElement) {
+        activeTransition.inputEl.value = PLACEHOLDER.slice(0, typed);
+      }
     }
 
     /* project the bar element's on-screen rect (for the CSS handoff) */
@@ -373,9 +388,10 @@ export async function settleLaptopFlyIn(targetRoot = document) {
 
   await sleep(720);
 
-  // Glow pulse on landing.
+  // Switch highlight to the REAL search bar and fade the ghost out.
   if (view) view.classList.add(SEARCH_BAR_LIVE_CLASS);
-  ghost.classList.add('is-glowing');
+  ghost.style.transition = 'opacity 140ms ease';
+  ghost.style.opacity = '0';
   await sleep(160);
 
   // Reveal the real page underneath, then fade the overlay out so the page

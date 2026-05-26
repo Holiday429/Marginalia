@@ -18,7 +18,7 @@ body[data-view="search"] {
 #view-search.is-laptop-transition .tool-page-shell--search,
 #view-search.is-laptop-transition .tool-page-inner--search,
 #view-search.is-laptop-transition .page {
-  background: #050506;
+  background: var(--bg-tool, #302e2a);
 }
 
 #view-search.is-laptop-transition .shared-header-wrap,
@@ -1597,7 +1597,7 @@ body[data-view="search"] {
   transition: background 0.32s ease;
 }
 .laptop-fly-overlay.is-active {
-  background: rgba(5, 5, 6, 0.98);
+  background: rgba(48, 46, 42, 0.96);
 }
 .laptop-fly-overlay__gl,
 .laptop-fly-overlay__css {
@@ -1612,7 +1612,7 @@ body[data-view="search"] {
   display: block;
 }
 .laptop-fly-overlay.is-finishing {
-  background: rgba(5, 5, 6, 0);
+  background: rgba(48, 46, 42, 0);
   transition: background 0.5s ease;
 }
 
@@ -1620,7 +1620,7 @@ body[data-view="search"] {
    maps to world units. Black screen with a single large search bar. */
 .laptop-fly-screen {
   box-sizing: border-box;
-  background: #0a0a0c;
+  background: rgba(48, 46, 42, 0.96);
   border-radius: 6px;
   overflow: hidden;
   opacity: 0;
@@ -1633,61 +1633,28 @@ body[data-view="search"] {
   position: absolute;
   inset: 0;
   display: flex;
-  /* Bar sits at ~30% from the top of the display, mirroring the real Search
-     page's toolbar position; generous side padding so it never touches edges */
+  /* Bar sits at ~30% from the top of the display; screen grows around it while
+     the bar itself stays fixed-size via --bar-counter. */
   align-items: flex-start;
   justify-content: center;
   padding: 30% 13% 0;
 }
-.laptop-fly-screen__bar {
-  position: relative;
+.laptop-fly-screen__bar-host {
   width: 100%;
-  box-sizing: border-box;
-  background: rgba(232, 223, 200, 0.05);
-  border: 2px solid rgba(232, 223, 200, 0.24);
-  border-radius: 14px;
-  padding: 0;
-  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
-  font-size: 25px;
-  letter-spacing: 0.01em;
-  color: rgba(232, 223, 200, 0.72);
-  white-space: nowrap;
-  overflow: hidden;
-  /* Counter-scale (set in JS) so the bar holds a constant apparent size while
-     the screen background grows around it during Act 2. Anchored top-centre. */
+  max-width: 100%;
+  /* Counter-scale so the bar does NOT expand while the laptop screen scales up. */
   transform: scale(var(--bar-counter, 1));
   transform-origin: center top;
 }
-.laptop-fly-screen__icon {
-  position: absolute;
-  left: 22px;
-  top: 50%;
-  width: 28px;
-  height: 28px;
-  transform: translateY(-50%);
-  opacity: 0.55;
+
+.laptop-fly-shared-bar {
+  width: 100%;
+  flex: 0 0 auto;
 }
-.laptop-fly-screen__field {
-  display: flex;
-  align-items: center;
-  min-height: 68px;
-  padding: 0 24px 0 64px;
-}
-.laptop-fly-screen__text {
-  overflow: hidden;
-  white-space: nowrap;
-}
-.laptop-fly-screen__caret {
-  display: inline-block;
-  width: 3px;
-  height: 1em;
-  margin-left: 2px;
-  background: rgba(201, 169, 110, 0.9);
-  animation: laptop-fly-blink 0.7s steps(1) infinite;
-}
-@keyframes laptop-fly-blink {
-  0%, 50%   { opacity: 1; }
-  51%, 100% { opacity: 0; }
+
+.laptop-fly-shared-bar input {
+  pointer-events: none;
+  caret-color: transparent;
 }
 
 /* Flat ghost bar — takes over at the handoff and glides to the real slot.
@@ -1698,6 +1665,7 @@ body[data-view="search"] {
   position: fixed;
   z-index: 10001;
   box-sizing: border-box;
+  opacity: 1;
   pointer-events: none;
   transform-origin: top left;
   will-change: transform;
@@ -1710,17 +1678,4 @@ body[data-view="search"] {
 
 .laptop-fly-ghost-bar input {
   box-shadow: none;
-}
-
-.laptop-fly-ghost-bar.is-glowing {
-  filter: drop-shadow(0 0 12px rgba(201, 169, 110, 0.38));
-}
-
-.laptop-fly-ghost-bar.is-glowing input {
-  border-color: rgba(201, 169, 110, 0.9);
-  box-shadow:
-    0 0 0 1px rgba(201, 169, 110, 0.52),
-    0 0 28px rgba(201, 169, 110, 0.44),
-    0 0 56px rgba(201, 169, 110, 0.22);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
