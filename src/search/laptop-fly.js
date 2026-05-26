@@ -32,11 +32,12 @@ const MACBOOK_URL = '/3d/macbook.glb';
 const PLACEHOLDER = 'Search your shelf by title, author, or tag';
 
 // Screen face geometry in pivot-local units (verified from GLB).
+// Inset well inside the lid bezel so the screen UI never spills past the
+// black display area as the laptop scales up.
 const SCREEN = {
-  // Front lid face, inset from the bezel
-  width:  1.74,    // world units across the visible display
-  height: 1.10,    // world units down the visible display
-  centerY: 0.06,   // vertical centre of display relative to pivot origin
+  width:  1.56,    // world units across the visible display (bezel-inset)
+  height: 0.96,    // world units down the visible display
+  centerY: 0.12,   // vertical centre of display relative to pivot origin
   z:       0.77,   // front face, a hair proud of the glass
 };
 // CSS3DObject convention: element pixels map to world units via this divisor.
@@ -219,8 +220,9 @@ export function playLaptopFlyIn(opts = {}) {
               screenLit = true;
               screenEl.classList.add('is-lit');
             }
-            // Type placeholder over t=0.14 → 0.42
-            typeTo((t - 0.14) / 0.28);
+            // Type placeholder slowly over t=0.16 → 0.60 (≈ 880ms at 2s) —
+            // continues a little into Act 2 so the typing reads clearly.
+            typeTo((t - 0.16) / 0.44);
           } else if (t <= 0.80) {
             /* Act 2 — fill viewport, fade laptop body */
             const e = (t - 0.45) / 0.35;
@@ -228,7 +230,8 @@ export function playLaptopFlyIn(opts = {}) {
             pivot.scale.setScalar(2.1 + easeInOut(e) * 1.7);  // 2.1 → 3.8
             pivot.position.set(0, easeInOut(e) * 0.02, 0);
             pivot.rotation.set(0, 0, 0);
-            typeTo(1);
+            // Typewriter keeps running into early Act 2 (finishes by t≈0.60)
+            typeTo((t - 0.16) / 0.44);
 
             // Fade laptop body (CSS3D screen stays fully opaque)
             model.traverse((child) => {
@@ -286,16 +289,27 @@ export async function settleLaptopFlyIn(targetRoot = document) {
 
   const { overlay, handoff } = activeTransition;
 
-  // Find the real search bar slot.
-  const realBar = targetRoot.querySelector('.shelf-searchbar')
+  // Find the real search input (the visible bordered box) so we land on its
+  // exact rect — not the flex wrapper, which can be wider/taller.
+  const realInput = targetRoot.querySelector('.shelf-searchbar input')
+    || document.querySelector('.shelf-searchbar input');
+  const realBar = realInput?.closest('.shelf-searchbar')
+    || targetRoot.querySelector('.shelf-searchbar')
     || document.querySelector('.shelf-searchbar');
-  if (!(realBar instanceof HTMLElement)) {
-    // No target — just fade out.
+  const landEl = (realInput instanceof HTMLElement) ? realInput : realBar;
+  if (!(landEl instanceof HTMLElement)) {
     overlay.classList.add('is-finishing');
     await sleep(420);
     cleanup();
     return;
   }
+
+  // Copy the real input's computed look so the ghost ends visually identical.
+  const cs = getComputedStyle(landEl);
+  const finalFont    = cs.fontSize;
+  const finalRadius  = cs.borderTopLeftRadius;
+  const finalPadL    = cs.paddingLeft;
+  const finalPadR    = cs.paddingRight;
 
   // Build a standalone CSS clone of the search bar at the frozen rect.
   const ghost = document.createElement('div');
@@ -317,24 +331,30 @@ export async function settleLaptopFlyIn(targetRoot = document) {
   activeTransition.screenEl?.remove();
   await nextFrame();
 
-  // Measure the real slot.
-  const targetRect = realBar.getBoundingClientRect();
+  // Measure the real landing slot (the input box).
+  const targetRect = landEl.getBoundingClientRect();
 
-  // Glide to the real position.
+  // Glide to the real position AND match its computed font/padding/radius so
+  // the settled ghost is the same size as the real search bar (no jump).
   ghost.style.transition = [
     'left 0.62s cubic-bezier(0.4,0,0.2,1)',
     'top 0.62s cubic-bezier(0.4,0,0.2,1)',
     'width 0.62s cubic-bezier(0.4,0,0.2,1)',
     'height 0.62s cubic-bezier(0.4,0,0.2,1)',
     'font-size 0.62s cubic-bezier(0.4,0,0.2,1)',
+    'padding 0.62s cubic-bezier(0.4,0,0.2,1)',
+    'border-radius 0.62s cubic-bezier(0.4,0,0.2,1)',
   ].join(', ');
 
   await nextFrame();
-  ghost.style.left   = `${targetRect.left}px`;
-  ghost.style.top    = `${targetRect.top}px`;
-  ghost.style.width  = `${targetRect.width}px`;
-  ghost.style.height = `${targetRect.height}px`;
-  ghost.classList.add('is-shrinking');
+  ghost.style.left         = `${targetRect.left}px`;
+  ghost.style.top          = `${targetRect.top}px`;
+  ghost.style.width        = `${targetRect.width}px`;
+  ghost.style.height       = `${targetRect.height}px`;
+  ghost.style.fontSize     = finalFont;
+  ghost.style.borderRadius = finalRadius;
+  ghost.style.paddingLeft  = finalPadL;
+  ghost.style.paddingRight = finalPadR;
 
   await sleep(640);
 
