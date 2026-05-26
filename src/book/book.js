@@ -438,6 +438,167 @@ async function enterBook(params = {}) {
     });
   }
 
+  // ── Notes tab wiring ─────────────────────────────────────────────────────
+  // Load saved free note
+  const freeNoteTextarea = root.querySelector('#ntFreeNote');
+  const freeNoteSaveBtn  = root.querySelector('#ntFreeNoteSave');
+  const freeNoteSaveStatus = root.querySelector('#ntFreeNoteSaveStatus');
+  if (freeNoteTextarea) {
+    NotesStore?.getNote(id).then(saved => {
+      if (saved?.content) freeNoteTextarea.value = saved.content;
+    }).catch(() => {});
+  }
+  if (freeNoteSaveBtn && freeNoteTextarea) {
+    let freeNoteTimer = null;
+    const doSaveFreeNote = async () => {
+      try {
+        await NotesStore?.saveNote(id, freeNoteTextarea.value);
+        if (freeNoteSaveStatus) { freeNoteSaveStatus.textContent = 'Saved'; setTimeout(() => { if (freeNoteSaveStatus) freeNoteSaveStatus.textContent = ''; }, 2000); }
+      } catch (err) {
+        logError(err, { context: 'book freeNote save', bookId: id });
+        if (freeNoteSaveStatus) freeNoteSaveStatus.textContent = 'Failed to save';
+      }
+    };
+    freeNoteSaveBtn.addEventListener('click', doSaveFreeNote);
+    freeNoteTextarea.addEventListener('input', () => {
+      clearTimeout(freeNoteTimer);
+      if (freeNoteSaveStatus) freeNoteSaveStatus.textContent = '';
+      freeNoteTimer = setTimeout(doSaveFreeNote, 1200);
+    });
+  }
+
+  // Template card expand/collapse with prompt-card → write-area flow
+  const templateEditor   = root.querySelector('#ntTemplateEditor');
+  const editorLabel      = root.querySelector('#ntEditorLabel');
+  const promptList       = root.querySelector('#ntPromptList');
+  const writeArea        = root.querySelector('#ntWriteArea');
+  const activeQuestion   = root.querySelector('#ntActiveQuestion');
+  const editorArea       = root.querySelector('#ntEditorArea');
+  const editorClose      = root.querySelector('#ntEditorClose');
+  const answerSaveBtn    = root.querySelector('#ntAnswerSave');
+  const answerBackBtn    = root.querySelector('#ntAnswerBack');
+  const templateSaveBtn  = root.querySelector('#ntTemplateSave');
+  const templateSaveStatus = root.querySelector('#ntTemplateSaveStatus');
+  let activeTemplateId = null;
+  // Accumulated Q&A pairs for this template session: [{ q, a }]
+  let templateAnswers = [];
+
+  const showPromptList = () => {
+    if (promptList) promptList.hidden = false;
+    if (writeArea)  writeArea.hidden  = true;
+  };
+
+  const showWriteArea = (question) => {
+    if (promptList) promptList.hidden = true;
+    if (writeArea)  writeArea.hidden  = false;
+    if (activeQuestion) activeQuestion.textContent = question;
+    if (editorArea) { editorArea.value = ''; editorArea.focus(); }
+  };
+
+  const buildPromptList = (prompts) => {
+    if (!promptList) return;
+    promptList.innerHTML = prompts.map((p, i) => {
+      const answered = templateAnswers.some(a => a.q === p);
+      return `<button class="nt-prompt-card${answered ? ' is-answered' : ''}" type="button" data-prompt-idx="${i}" data-prompt-text="${esc(p)}">
+        ${answered ? '<span class="nt-prompt-check">✓</span>' : ''}
+        <span class="nt-prompt-text">${esc(p)}</span>
+      </button>`;
+    }).join('');
+
+    promptList.querySelectorAll('.nt-prompt-card').forEach(btn => {
+      btn.addEventListener('click', () => showWriteArea(btn.dataset.promptText));
+    });
+  };
+
+  root.querySelectorAll('.nt-card[data-template-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      const tid = card.dataset.templateId;
+      if (!templateEditor) return;
+
+      activeTemplateId = tid;
+      templateAnswers = [];
+
+      if (tid === 'custom') {
+        if (editorLabel) editorLabel.textContent = 'Custom note';
+        buildPromptList([]);
+        if (writeArea)  { writeArea.hidden = false; }
+        if (promptList) { promptList.hidden = true; }
+        if (activeQuestion) activeQuestion.textContent = '';
+        if (editorArea) { editorArea.placeholder = 'Write your own note…'; editorArea.value = ''; editorArea.focus(); }
+      } else {
+        const tmpl = NOTE_TEMPLATES.find(t => t.id === tid);
+        if (!tmpl) return;
+        if (editorLabel) editorLabel.textContent = tmpl.title;
+        buildPromptList(tmpl.prompts);
+        showPromptList();
+      }
+
+      templateEditor.hidden = false;
+      templateEditor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      root.querySelectorAll('.nt-card').forEach(c => c.classList.toggle('is-active', c === card));
+    });
+  });
+
+  if (answerSaveBtn) {
+    answerSaveBtn.addEventListener('click', () => {
+      const answer = editorArea?.value.trim();
+      const question = activeQuestion?.textContent.trim();
+      if (!answer || !question) return;
+      // Record answer, mark prompt answered
+      templateAnswers = templateAnswers.filter(a => a.q !== question);
+      templateAnswers.push({ q: question, a: answer });
+      // Rebuild prompt list with checkmarks
+      const tmpl = NOTE_TEMPLATES.find(t => t.id === activeTemplateId);
+      if (tmpl) buildPromptList(tmpl.prompts);
+      showPromptList();
+    });
+  }
+
+  if (answerBackBtn) {
+    answerBackBtn.addEventListener('click', () => showPromptList());
+  }
+
+  if (editorClose && templateEditor) {
+    editorClose.addEventListener('click', () => {
+      templateEditor.hidden = true;
+      activeTemplateId = null;
+      templateAnswers = [];
+      root.querySelectorAll('.nt-card').forEach(c => c.classList.remove('is-active'));
+    });
+  }
+
+  if (templateSaveBtn) {
+    templateSaveBtn.addEventListener('click', async () => {
+      const tmpl = NOTE_TEMPLATES.find(t => t.id === activeTemplateId);
+      const label = tmpl?.title || 'Custom note';
+      // For custom template, grab textarea directly; for structured, use accumulated answers
+      let content;
+      if (activeTemplateId === 'custom') {
+        content = editorArea?.value.trim() || '';
+      } else {
+        // Also include any unsaved answer currently in the textarea
+        const pendingQ = activeQuestion?.textContent.trim();
+        const pendingA = editorArea?.value.trim();
+        if (pendingQ && pendingA && !templateAnswers.some(a => a.q === pendingQ)) {
+          templateAnswers.push({ q: pendingQ, a: pendingA });
+        }
+        content = templateAnswers.map(({ q, a }) => `${q}\n${a}`).join('\n\n');
+      }
+      if (!content) return;
+      try {
+        await NotesStore?.saveNote(id, `[${label}]\n${content}`);
+        if (templateSaveStatus) { templateSaveStatus.textContent = 'Saved'; setTimeout(() => { if (templateSaveStatus) templateSaveStatus.textContent = ''; }, 2000); }
+        if (freeNoteTextarea) {
+          const prev = freeNoteTextarea.value.trim();
+          freeNoteTextarea.value = prev ? `${prev}\n\n[${label}]\n${content}` : `[${label}]\n${content}`;
+        }
+      } catch (err) {
+        logError(err, { context: 'book templateNote save', bookId: id });
+        if (templateSaveStatus) templateSaveStatus.textContent = 'Failed to save';
+      }
+    });
+  }
+
   // Delete book (user-created books only)
   const deleteBtn = root.querySelector('[data-delete-book]');
   if (deleteBtn) {
@@ -1150,28 +1311,119 @@ function renderAiPlaceholder(label) {
   return `<div class="ai-panel-placeholder"><span>No ${esc(label)} yet — use the Generate button above to create one with AI.</span></div>`;
 }
 
-function renderNotesSection(b) {
-  const contextHtml = b.readingContextBlocks.length
-    ? `
-      <section class="context-section">
-        ${b.readingContextBlocks.map((block) => `
-          <div class="ctx-block">
-            <div class="ctx-label">${esc(block.label)}</div>
-            <div class="ctx-content">${esc(block.body).replace(/\n/g, '<br>')}</div>
-            ${block.tags?.length ? `<div class="ctx-tags">${block.tags.map((tag) => `<span class="ctx-tag">${esc(tag)}</span>`).join('')}</div>` : ''}
-          </div>
-        `).join('')}
-      </section>
-    `
-    : `<div class="ai-panel-placeholder"><span>No reading context yet — add your own notes to capture when and why this book met you.</span></div>`;
+const NOTE_TEMPLATES = [
+  {
+    id: 'reading-context',
+    icon: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 4h14M3 8h10M3 12h7"/><circle cx="15" cy="14" r="3"/><path d="M15 12.5v1.5l1 1"/></svg>`,
+    title: 'Reading Context',
+    desc: 'Capture when, where, and in what state of mind you picked up this book.',
+    prompts: ['When and where did you read this?', 'What was happening in your life at the time?', 'What drew you to this book?'],
+    placeholder: `When and where did you read this?\n\nWhat was happening in your life at the time?\n\nWhat drew you to this book?`,
+  },
+  {
+    id: 'core-takeaways',
+    icon: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M10 3c0 0-5 3.5-5 8a5 5 0 0010 0c0-4.5-5-8-5-8z"/><path d="M10 11v3M8.5 15.5h3"/></svg>`,
+    title: 'Core Takeaways',
+    desc: 'The most important ideas and how they changed your thinking.',
+    prompts: ['What is the single most important idea in this book?', 'What assumption did it overturn for you?', 'What insight do you keep returning to?'],
+    placeholder: `What is the single most important idea in this book?\n\nWhat assumption did it overturn for you?\n\nWhat insight do you keep returning to?`,
+  },
+  {
+    id: 'connections',
+    icon: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="5" cy="10" r="2"/><circle cx="15" cy="5" r="2"/><circle cx="15" cy="15" r="2"/><path d="M7 10h3l3-3.5M10 10l3 3.5"/></svg>`,
+    title: 'Connections & Associations',
+    desc: 'Links to other books, ideas, or personal experiences this book resonates with.',
+    prompts: ['What other books or ideas does this connect to?', 'What personal experience does it mirror?', 'What real-world pattern does it illuminate?'],
+    placeholder: `What other books or ideas does this connect to?\n\nWhat personal experience does it mirror?\n\nWhat real-world pattern does it illuminate?`,
+  },
+  {
+    id: 'actions',
+    icon: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="4" width="14" height="13" rx="1.5"/><path d="M7 9l2 2 4-4"/><path d="M7 14h6"/></svg>`,
+    title: 'Actions & Applications',
+    desc: 'How you plan to apply what you learned — concrete next steps.',
+    prompts: ['What action can you take this week?', 'How will this change how you think or choose?', 'What would you tell your future self about this book?'],
+    placeholder: `What action can you take this week?\n\nHow will this change how you think or choose?\n\nWhat would you tell your future self about this book?`,
+  },
+];
 
-  return renderMountedPanelSection({
-    id: 'notes',
-    label: BOOK_SECTION_LABELS.notes,
-    book: b,
-    panelId: 'notes',
-    leadingHtml: contextHtml,
-  });
+function renderNotesSection(b) {
+  const templateCards = NOTE_TEMPLATES.map(t => `
+    <button class="nt-card" type="button" data-template-id="${esc(t.id)}">
+      <div class="nt-card-icon">${t.icon}</div>
+      <div class="nt-card-title">${esc(t.title)}</div>
+      <p class="nt-card-desc">${esc(t.desc)}</p>
+      <span class="nt-card-cta">Use template</span>
+    </button>`).join('');
+
+  const customCard = `
+    <button class="nt-card nt-card--custom" type="button" data-template-id="custom">
+      <div class="nt-card-plus">+</div>
+      <div class="nt-card-title">Custom template</div>
+      <p class="nt-card-desc">Create your own note template</p>
+    </button>`;
+
+  // Template editor — prompt cards are vertical bordered blocks, clickable to activate.
+  // Active prompt shows question italic above the input area; user writes answer then saves
+  // that Q&A before picking the next prompt. Also a global "Save note" button.
+  const templateEditor = `
+    <div class="nt-template-editor" id="ntTemplateEditor" hidden>
+      <div class="nt-editor-head">
+        <span class="nt-editor-label" id="ntEditorLabel"></span>
+        <button class="nt-editor-close" type="button" id="ntEditorClose" aria-label="Close template">×</button>
+      </div>
+      <div class="nt-editor-body">
+        <div class="nt-prompt-list" id="ntPromptList"></div>
+        <div class="nt-write-area" id="ntWriteArea" hidden>
+          <p class="nt-active-question" id="ntActiveQuestion"></p>
+          <textarea class="nt-editor-area" id="ntEditorArea" rows="5" placeholder="Write your answer here…"></textarea>
+          <div class="nt-write-actions">
+            <button class="nt-answer-save" type="button" id="ntAnswerSave">Save this answer</button>
+            <button class="nt-answer-back" type="button" id="ntAnswerBack">← Back to prompts</button>
+          </div>
+        </div>
+      </div>
+      <div class="nt-editor-footer">
+        <button class="nt-save-btn" type="button" id="ntTemplateSave">Save all notes</button>
+        <span class="nt-save-status" id="ntTemplateSaveStatus"></span>
+      </div>
+    </div>`;
+
+  // Free note area — always visible at the bottom
+  const freeNoteArea = `
+    <div class="nt-free-section">
+      <div class="nt-free-label">Free notes</div>
+      <div class="nt-free-area">
+        <textarea
+          class="nt-free-textarea"
+          id="ntFreeNote"
+          placeholder="Start writing your notes…"
+          rows="6"
+          data-book-id="${esc(b.id)}"
+        ></textarea>
+        <div class="nt-free-footer">
+          <button class="nt-save-btn" type="button" id="ntFreeNoteSave">Save</button>
+          <span class="nt-save-status" id="ntFreeNoteSaveStatus"></span>
+        </div>
+      </div>
+    </div>`;
+
+  const html = `
+    <section class="notes-section">
+      <div class="nt-header">
+        <h2>My Notes</h2>
+        <span class="nt-sub">Write down your thoughts, reactions, and takeaways</span>
+      </div>
+
+      <div class="nt-templates-grid">
+        ${templateCards}
+        ${customCard}
+      </div>
+
+      ${templateEditor}
+      ${freeNoteArea}
+    </section>`;
+
+  return { id: 'notes', label: BOOK_SECTION_LABELS.notes, html };
 }
 
 function renderVisualNotesSection(b) {
