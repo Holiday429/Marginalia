@@ -1,0 +1,478 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@11.12.0
+2 info using node@v22.16.0
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/Holiday_1/Desktop/Growth/Marginalia/.npmrc
+5 silly config load:file:/Users/Holiday_1/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm install @types/qrcode
+8 verbose argv "install" "--save-dev" "@types/qrcode" "--cache" ".npm-cache"
+9 verbose logfile logs-max:10 dir:/Users/Holiday_1/Desktop/Growth/Marginalia/.npm-cache/_logs/2026-05-26T08_05_20_891Z-
+10 verbose logfile /Users/Holiday_1/Desktop/Growth/Marginalia/.npm-cache/_logs/2026-05-26T08_05_20_891Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 silly idealTree buildDeps
+14 silly fetch manifest @types/qrcode@*
+15 silly packumentCache full:https://registry.npmjs.org/@types%2fqrcode cache-miss
+16 http fetch GET 200 https://registry.npmjs.org/@types%2fqrcode 1501ms (cache miss)
+17 silly packumentCache full:https://registry.npmjs.org/@types%2fqrcode set size:undefined disposed:false
+18 silly placeDep ROOT @types/qrcode@1.5.6 OK for: marginalia@0.1.0 want: *
+19 silly fetch manifest esbuild@^0.27.0 || ^0.28.0
+20 silly packumentCache full:https://registry.npmjs.org/esbuild cache-miss
+21 http fetch GET 200 https://registry.npmjs.org/esbuild 253ms (cache revalidated)
+22 silly packumentCache full:https://registry.npmjs.org/esbuild set size:1254708 disposed:false
+23 silly placeDep node_modules/vitest esbuild@0.28.0 OK for: vite@8.0.10 want: ^0.27.0 || ^0.28.0
+24 silly fetch manifest @esbuild/aix-ppc64@0.28.0
+25 silly packumentCache full:https://registry.npmjs.org/@esbuild%2faix-ppc64 cache-miss
+26 silly fetch manifest @esbuild/android-arm@0.28.0
+27 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm cache-miss
+28 silly fetch manifest @esbuild/android-arm64@0.28.0
+29 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm64 cache-miss
+30 silly fetch manifest @esbuild/android-x64@0.28.0
+31 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-x64 cache-miss
+32 silly fetch manifest @esbuild/darwin-arm64@0.28.0
+33 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-arm64 cache-miss
+34 silly fetch manifest @esbuild/darwin-x64@0.28.0
+35 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-x64 cache-miss
+36 silly fetch manifest @esbuild/freebsd-arm64@0.28.0
+37 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 cache-miss
+38 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-arm 337ms (cache revalidated)
+39 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm set size:221749 disposed:false
+40 silly fetch manifest @esbuild/freebsd-x64@0.28.0
+41 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-x64 cache-miss
+42 http fetch GET 200 https://registry.npmjs.org/@esbuild%2ffreebsd-x64 300ms (cache revalidated)
+43 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-x64 set size:197070 disposed:false
+44 silly fetch manifest @esbuild/linux-arm@0.28.0
+45 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm cache-miss
+46 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-arm 220ms (cache revalidated)
+47 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm set size:195140 disposed:false
+48 silly fetch manifest @esbuild/linux-arm64@0.28.0
+49 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm64 cache-miss
+50 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-arm64 227ms (cache revalidated)
+51 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm64 set size:197274 disposed:false
+52 silly fetch manifest @esbuild/linux-ia32@0.28.0
+53 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ia32 cache-miss
+54 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-x64 1203ms (cache revalidated)
+55 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-x64 set size:195551 disposed:false
+56 silly fetch manifest @esbuild/linux-loong64@0.28.0
+57 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-loong64 cache-miss
+58 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-ia32 194ms (cache revalidated)
+59 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ia32 set size:196150 disposed:false
+60 silly fetch manifest @esbuild/linux-mips64el@0.28.0
+61 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-mips64el cache-miss
+62 http fetch GET 200 https://registry.npmjs.org/@esbuild%2faix-ppc64 1324ms (cache revalidated)
+63 silly packumentCache full:https://registry.npmjs.org/@esbuild%2faix-ppc64 set size:64314 disposed:false
+64 silly fetch manifest @esbuild/linux-ppc64@0.28.0
+65 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ppc64 cache-miss
+66 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-arm64 1340ms (cache revalidated)
+67 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm64 set size:200684 disposed:false
+68 silly fetch manifest @esbuild/linux-riscv64@0.28.0
+69 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-riscv64 cache-miss
+70 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fdarwin-x64 1394ms (cache revalidated)
+71 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-x64 set size:196195 disposed:false
+72 silly fetch manifest @esbuild/linux-s390x@0.28.0
+73 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-s390x cache-miss
+74 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-loong64 198ms (cache revalidated)
+75 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-loong64 set size:252211 disposed:false
+76 silly fetch manifest @esbuild/linux-x64@0.28.0
+77 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-x64 cache-miss
+78 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fdarwin-arm64 1410ms (cache revalidated)
+79 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-arm64 set size:197958 disposed:false
+80 silly fetch manifest @esbuild/netbsd-arm64@0.28.0
+81 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-arm64 cache-miss
+82 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-mips64el 229ms (cache revalidated)
+83 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-mips64el set size:201062 disposed:false
+84 silly fetch manifest @esbuild/netbsd-x64@0.28.0
+85 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-x64 cache-miss
+86 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-ppc64 226ms (cache revalidated)
+87 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ppc64 set size:199310 disposed:false
+88 silly fetch manifest @esbuild/openbsd-arm64@0.28.0
+89 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 cache-miss
+90 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-riscv64 214ms (cache revalidated)
+91 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-riscv64 set size:198981 disposed:false
+92 silly fetch manifest @esbuild/openbsd-x64@0.28.0
+93 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-x64 cache-miss
+94 http fetch GET 200 https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 1525ms (cache revalidated)
+95 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 set size:198853 disposed:false
+96 silly fetch manifest @esbuild/openharmony-arm64@0.28.0
+97 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenharmony-arm64 cache-miss
+98 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fnetbsd-arm64 237ms (cache revalidated)
+99 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-arm64 set size:40794 disposed:false
+100 silly fetch manifest @esbuild/sunos-x64@0.28.0
+101 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fsunos-x64 cache-miss
+102 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-s390x 258ms (cache revalidated)
+103 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-s390x set size:198784 disposed:false
+104 silly fetch manifest @esbuild/win32-arm64@0.28.0
+105 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-arm64 cache-miss
+106 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-x64 256ms (cache revalidated)
+107 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-x64 set size:195479 disposed:false
+108 silly fetch manifest @esbuild/win32-ia32@0.28.0
+109 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-ia32 cache-miss
+110 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 235ms (cache revalidated)
+111 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 set size:46111 disposed:false
+112 silly fetch manifest @esbuild/win32-x64@0.28.0
+113 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-x64 cache-miss
+114 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fopenharmony-arm64 305ms (cache revalidated)
+115 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenharmony-arm64 set size:29494 disposed:false
+116 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fnetbsd-x64 331ms (cache revalidated)
+117 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-x64 set size:193883 disposed:false
+118 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fopenbsd-x64 317ms (cache revalidated)
+119 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-x64 set size:197080 disposed:false
+120 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fsunos-x64 272ms (cache revalidated)
+121 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fsunos-x64 set size:195721 disposed:false
+122 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fwin32-arm64 419ms (cache revalidated)
+123 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-arm64 set size:197504 disposed:false
+124 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fwin32-x64 394ms (cache revalidated)
+125 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-x64 set size:194073 disposed:false
+126 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fwin32-ia32 603ms (cache revalidated)
+127 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-ia32 set size:196374 disposed:false
+128 silly placeDep node_modules/vitest @esbuild/aix-ppc64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+129 silly placeDep node_modules/vitest @esbuild/android-arm@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+130 silly placeDep node_modules/vitest @esbuild/android-arm64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+131 silly placeDep node_modules/vitest @esbuild/android-x64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+132 silly placeDep node_modules/vitest @esbuild/darwin-arm64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+133 silly placeDep node_modules/vitest @esbuild/darwin-x64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+134 silly placeDep node_modules/vitest @esbuild/freebsd-arm64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+135 silly placeDep node_modules/vitest @esbuild/freebsd-x64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+136 silly placeDep node_modules/vitest @esbuild/linux-arm@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+137 silly placeDep node_modules/vitest @esbuild/linux-arm64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+138 silly placeDep node_modules/vitest @esbuild/linux-ia32@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+139 silly placeDep node_modules/vitest @esbuild/linux-loong64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+140 silly placeDep node_modules/vitest @esbuild/linux-mips64el@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+141 silly placeDep node_modules/vitest @esbuild/linux-ppc64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+142 silly placeDep node_modules/vitest @esbuild/linux-riscv64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+143 silly placeDep node_modules/vitest @esbuild/linux-s390x@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+144 silly placeDep node_modules/vitest @esbuild/linux-x64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+145 silly placeDep ROOT @esbuild/netbsd-arm64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+146 silly placeDep node_modules/vitest @esbuild/netbsd-x64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+147 silly placeDep ROOT @esbuild/openbsd-arm64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+148 silly placeDep node_modules/vitest @esbuild/openbsd-x64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+149 silly placeDep ROOT @esbuild/openharmony-arm64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+150 silly placeDep node_modules/vitest @esbuild/sunos-x64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+151 silly placeDep node_modules/vitest @esbuild/win32-arm64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+152 silly placeDep node_modules/vitest @esbuild/win32-ia32@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+153 silly placeDep node_modules/vitest @esbuild/win32-x64@0.28.0 OK for: esbuild@0.28.0 want: 0.28.0
+154 silly reify moves {}
+155 silly audit bulk request {
+155 silly audit   '@emnapi/core': [ '1.10.0' ],
+155 silly audit   '@emnapi/runtime': [ '1.10.0' ],
+155 silly audit   '@emnapi/wasi-threads': [ '1.2.1' ],
+155 silly audit   '@esbuild/aix-ppc64': [ '0.21.5' ],
+155 silly audit   '@esbuild/android-arm': [ '0.21.5' ],
+155 silly audit   '@esbuild/android-arm64': [ '0.21.5' ],
+155 silly audit   '@esbuild/android-x64': [ '0.21.5' ],
+155 silly audit   '@esbuild/darwin-arm64': [ '0.21.5' ],
+155 silly audit   '@esbuild/darwin-x64': [ '0.21.5' ],
+155 silly audit   '@esbuild/freebsd-arm64': [ '0.21.5' ],
+155 silly audit   '@esbuild/freebsd-x64': [ '0.21.5' ],
+155 silly audit   '@esbuild/linux-arm': [ '0.21.5' ],
+155 silly audit   '@esbuild/linux-arm64': [ '0.21.5' ],
+155 silly audit   '@esbuild/linux-ia32': [ '0.21.5' ],
+155 silly audit   '@esbuild/linux-loong64': [ '0.21.5' ],
+155 silly audit   '@esbuild/linux-mips64el': [ '0.21.5' ],
+155 silly audit   '@esbuild/linux-ppc64': [ '0.21.5' ],
+155 silly audit   '@esbuild/linux-riscv64': [ '0.21.5' ],
+155 silly audit   '@esbuild/linux-s390x': [ '0.21.5' ],
+155 silly audit   '@esbuild/linux-x64': [ '0.21.5' ],
+155 silly audit   '@esbuild/netbsd-x64': [ '0.21.5' ],
+155 silly audit   '@esbuild/openbsd-x64': [ '0.21.5' ],
+155 silly audit   '@esbuild/sunos-x64': [ '0.21.5' ],
+155 silly audit   '@esbuild/win32-arm64': [ '0.21.5' ],
+155 silly audit   '@esbuild/win32-ia32': [ '0.21.5' ],
+155 silly audit   '@esbuild/win32-x64': [ '0.21.5' ],
+155 silly audit   '@firebase/ai': [ '2.11.1' ],
+155 silly audit   '@firebase/analytics': [ '0.10.21' ],
+155 silly audit   '@firebase/analytics-compat': [ '0.2.27' ],
+155 silly audit   '@firebase/analytics-types': [ '0.8.3' ],
+155 silly audit   '@firebase/app': [ '0.14.11' ],
+155 silly audit   '@firebase/app-check': [ '0.11.2' ],
+155 silly audit   '@firebase/app-check-compat': [ '0.4.2' ],
+155 silly audit   '@firebase/app-check-interop-types': [ '0.3.3' ],
+155 silly audit   '@firebase/app-check-types': [ '0.5.3' ],
+155 silly audit   '@firebase/app-compat': [ '0.5.11' ],
+155 silly audit   '@firebase/app-types': [ '0.9.4' ],
+155 silly audit   '@firebase/auth': [ '1.13.0' ],
+155 silly audit   '@firebase/auth-compat': [ '0.6.5' ],
+155 silly audit   '@firebase/auth-interop-types': [ '0.2.4' ],
+155 silly audit   '@firebase/auth-types': [ '0.13.0' ],
+155 silly audit   '@firebase/component': [ '0.7.2' ],
+155 silly audit   '@firebase/data-connect': [ '0.6.0' ],
+155 silly audit   '@firebase/database': [ '1.1.2' ],
+155 silly audit   '@firebase/database-compat': [ '2.1.3' ],
+155 silly audit   '@firebase/database-types': [ '1.0.19' ],
+155 silly audit   '@firebase/firestore': [ '4.14.0' ],
+155 silly audit   '@firebase/firestore-compat': [ '0.4.8' ],
+155 silly audit   '@firebase/firestore-types': [ '3.0.3' ],
+155 silly audit   '@firebase/functions': [ '0.13.3' ],
+155 silly audit   '@firebase/functions-compat': [ '0.4.3' ],
+155 silly audit   '@firebase/functions-types': [ '0.6.3' ],
+155 silly audit   '@firebase/installations': [ '0.6.21' ],
+155 silly audit   '@firebase/installations-compat': [ '0.2.21' ],
+155 silly audit   '@firebase/installations-types': [ '0.5.3' ],
+155 silly audit   '@firebase/logger': [ '0.5.0' ],
+155 silly audit   '@firebase/messaging': [ '0.12.25' ],
+155 silly audit   '@firebase/messaging-compat': [ '0.2.25' ],
+155 silly audit   '@firebase/messaging-interop-types': [ '0.2.3' ],
+155 silly audit   '@firebase/performance': [ '0.7.11' ],
+155 silly audit   '@firebase/performance-compat': [ '0.2.24' ],
+155 silly audit   '@firebase/performance-types': [ '0.2.3' ],
+155 silly audit   'web-vitals': [ '4.2.4', '5.2.0' ],
+155 silly audit   '@firebase/remote-config': [ '0.8.2' ],
+155 silly audit   '@firebase/remote-config-compat': [ '0.2.23' ],
+155 silly audit   '@firebase/remote-config-types': [ '0.5.0' ],
+155 silly audit   '@firebase/rules-unit-testing': [ '5.0.0' ],
+155 silly audit   '@firebase/storage': [ '0.14.2' ],
+155 silly audit   '@firebase/storage-compat': [ '0.4.2' ],
+155 silly audit   '@firebase/storage-types': [ '0.8.3' ],
+155 silly audit   '@firebase/util': [ '1.15.0' ],
+155 silly audit   '@firebase/webchannel-wrapper': [ '1.0.5' ],
+155 silly audit   '@grpc/grpc-js': [ '1.9.15' ],
+155 silly audit   '@grpc/proto-loader': [ '0.7.15' ],
+155 silly audit   '@jridgewell/sourcemap-codec': [ '1.5.5' ],
+155 silly audit   '@napi-rs/wasm-runtime': [ '1.1.4' ],
+155 silly audit   '@opentelemetry/api': [ '1.9.1' ],
+155 silly audit   '@opentelemetry/api-logs': [ '0.208.0' ],
+155 silly audit   '@opentelemetry/core': [ '2.2.0', '2.7.1' ],
+155 silly audit   '@opentelemetry/exporter-logs-otlp-http': [ '0.208.0' ],
+155 silly audit   '@opentelemetry/otlp-exporter-base': [ '0.208.0' ],
+155 silly audit   '@opentelemetry/otlp-transformer': [ '0.208.0' ],
+155 silly audit   '@opentelemetry/resources': [ '2.2.0', '2.7.1' ],
+155 silly audit   '@opentelemetry/sdk-logs': [ '0.208.0' ],
+155 silly audit   '@opentelemetry/sdk-metrics': [ '2.2.0' ],
+155 silly audit   '@opentelemetry/sdk-trace-base': [ '2.2.0' ],
+155 silly audit   '@opentelemetry/semantic-conventions': [ '1.40.0' ],
+155 silly audit   '@oxc-project/types': [ '0.127.0' ],
+155 silly audit   '@posthog/core': [ '1.28.0' ],
+155 silly audit   '@posthog/types': [ '1.372.6' ],
+155 silly audit   '@protobufjs/aspromise': [ '1.1.2' ],
+155 silly audit   '@protobufjs/base64': [ '1.1.2' ],
+155 silly audit   '@protobufjs/codegen': [ '2.0.5' ],
+155 silly audit   '@protobufjs/eventemitter': [ '1.1.0' ],
+155 silly audit   '@protobufjs/fetch': [ '1.1.0' ],
+155 silly audit   '@protobufjs/float': [ '1.0.2' ],
+155 silly audit   '@protobufjs/inquire': [ '1.1.1' ],
+155 silly audit   '@protobufjs/path': [ '1.1.2' ],
+155 silly audit   '@protobufjs/pool': [ '1.1.0' ],
+155 silly audit   '@protobufjs/utf8': [ '1.1.1' ],
+155 silly audit   '@rolldown/binding-android-arm64': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-darwin-arm64': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-darwin-x64': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-freebsd-x64': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-linux-arm-gnueabihf': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-linux-arm64-gnu': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-linux-arm64-musl': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-linux-ppc64-gnu': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-linux-s390x-gnu': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-linux-x64-gnu': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-linux-x64-musl': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-openharmony-arm64': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-wasm32-wasi': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-win32-arm64-msvc': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/binding-win32-x64-msvc': [ '1.0.0-rc.17' ],
+155 silly audit   '@rolldown/pluginutils': [ '1.0.0-rc.17' ],
+155 silly audit   '@rollup/rollup-android-arm-eabi': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-android-arm64': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-darwin-arm64': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-darwin-x64': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-freebsd-arm64': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-freebsd-x64': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-arm-gnueabihf': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-arm-musleabihf': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-arm64-gnu': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-arm64-musl': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-loong64-gnu': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-loong64-musl': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-ppc64-gnu': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-ppc64-musl': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-riscv64-gnu': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-riscv64-musl': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-s390x-gnu': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-x64-gnu': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-linux-x64-musl': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-openbsd-x64': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-openharmony-arm64': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-win32-arm64-msvc': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-win32-ia32-msvc': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-win32-x64-gnu': [ '4.60.2' ],
+155 silly audit   '@rollup/rollup-win32-x64-msvc': [ '4.60.2' ],
+155 silly audit   '@sentry-internal/browser-utils': [ '10.51.0' ],
+155 silly audit   '@sentry-internal/feedback': [ '10.51.0' ],
+155 silly audit   '@sentry-internal/replay': [ '10.51.0' ],
+155 silly audit   '@sentry-internal/replay-canvas': [ '10.51.0' ],
+155 silly audit   '@sentry/browser': [ '10.51.0' ],
+155 silly audit   '@sentry/core': [ '10.51.0' ],
+155 silly audit   '@standard-schema/spec': [ '1.1.0' ],
+155 silly audit   '@tybys/wasm-util': [ '0.10.2' ],
+155 silly audit   '@types/chai': [ '5.2.3' ],
+155 silly audit   '@types/deep-eql': [ '4.0.2' ],
+155 silly audit   '@types/estree': [ '1.0.8' ],
+155 silly audit   '@types/node': [ '25.6.0' ],
+155 silly audit   '@types/stats.js': [ '0.17.4' ],
+155 silly audit   '@types/three': [ '0.160.0' ],
+155 silly audit   '@types/trusted-types': [ '2.0.7' ],
+155 silly audit   '@types/webxr': [ '0.5.24' ],
+155 silly audit   '@vitest/expect': [ '4.1.5' ],
+155 silly audit   '@vitest/pretty-format': [ '4.1.5' ],
+155 silly audit   '@vitest/runner': [ '4.1.5' ],
+155 silly audit   '@vitest/snapshot': [ '4.1.5' ],
+155 silly audit   '@vitest/spy': [ '4.1.5' ],
+155 silly audit   '@vitest/utils': [ '4.1.5' ],
+155 silly audit   'ansi-regex': [ '5.0.1' ],
+155 silly audit   'ansi-styles': [ '4.3.0' ],
+155 silly audit   'assertion-error': [ '2.0.1' ],
+155 silly audit   camelcase: [ '5.3.1' ],
+155 silly audit   chai: [ '6.2.2' ],
+155 silly audit   cliui: [ '8.0.1', '6.0.0' ],
+155 silly audit   'color-convert': [ '2.0.1' ],
+155 silly audit   'color-name': [ '1.1.4' ],
+155 silly audit   'convert-source-map': [ '2.0.0' ],
+155 silly audit   'core-js': [ '3.49.0' ],
+155 silly audit   decamelize: [ '1.2.0' ],
+155 silly audit   'detect-libc': [ '2.1.2' ],
+155 silly audit   dijkstrajs: [ '1.0.3' ],
+155 silly audit   dompurify: [ '3.4.2' ],
+155 silly audit   'emoji-regex': [ '8.0.0' ],
+155 silly audit   'es-module-lexer': [ '2.1.0' ],
+155 silly audit   esbuild: [ '0.21.5' ],
+155 silly audit   escalade: [ '3.2.0' ],
+155 silly audit   'estree-walker': [ '3.0.3' ],
+155 silly audit   'expect-type': [ '1.3.0' ],
+155 silly audit   'faye-websocket': [ '0.11.4' ],
+155 silly audit   fdir: [ '6.5.0' ],
+155 silly audit   fflate: [ '0.6.10', '0.4.8' ],
+155 silly audit   'find-up': [ '4.1.0' ],
+155 silly audit   firebase: [ '12.12.1' ],
+155 silly audit   fsevents: [ '2.3.3' ],
+155 silly audit   'get-caller-file': [ '2.0.5' ],
+155 silly audit   'http-parser-js': [ '0.5.10' ],
+155 silly audit   idb: [ '7.1.1' ],
+155 silly audit   'is-fullwidth-code-point': [ '3.0.0' ],
+155 silly audit   lightningcss: [ '1.32.0' ],
+155 silly audit   'lightningcss-android-arm64': [ '1.32.0' ],
+155 silly audit   'lightningcss-darwin-arm64': [ '1.32.0' ],
+155 silly audit   'lightningcss-darwin-x64': [ '1.32.0' ],
+155 silly audit   'lightningcss-freebsd-x64': [ '1.32.0' ],
+155 silly audit   'lightningcss-linux-arm-gnueabihf': [ '1.32.0' ],
+155 silly audit   'lightningcss-linux-arm64-gnu': [ '1.32.0' ],
+155 silly audit   'lightningcss-linux-arm64-musl': [ '1.32.0' ],
+155 silly audit   'lightningcss-linux-x64-gnu': [ '1.32.0' ],
+155 silly audit   'lightningcss-linux-x64-musl': [ '1.32.0' ],
+155 silly audit   'lightningcss-win32-arm64-msvc': [ '1.32.0' ],
+155 silly audit   'lightningcss-win32-x64-msvc': [ '1.32.0' ],
+155 silly audit   'locate-path': [ '5.0.0' ],
+155 silly audit   'lodash.camelcase': [ '4.3.0' ],
+155 silly audit   long: [ '5.3.2' ],
+155 silly audit   'magic-string': [ '0.30.21' ],
+155 silly audit   meshoptimizer: [ '0.18.1' ],
+155 silly audit   nanoid: [ '3.3.12' ],
+155 silly audit   obug: [ '2.1.1' ],
+155 silly audit   'p-limit': [ '2.3.0' ],
+155 silly audit   'p-locate': [ '4.1.0' ],
+155 silly audit   'p-try': [ '2.2.0' ],
+155 silly audit   'path-exists': [ '4.0.0' ],
+155 silly audit   pathe: [ '2.0.3' ],
+155 silly audit   picocolors: [ '1.1.1' ],
+155 silly audit   picomatch: [ '4.0.4' ],
+155 silly audit   'playwright-core': [ '1.60.0' ],
+155 silly audit   pngjs: [ '5.0.0' ],
+155 silly audit   postcss: [ '8.5.13' ],
+155 silly audit   'posthog-js': [ '1.372.6' ],
+155 silly audit   preact: [ '10.29.1' ],
+155 silly audit   protobufjs: [ '7.5.6' ],
+155 silly audit   qrcode: [ '1.5.4' ],
+155 silly audit   'wrap-ansi': [ '6.2.0', '7.0.0' ],
+155 silly audit   y18n: [ '4.0.3', '5.0.8' ],
+155 silly audit   yargs: [ '15.4.1', '17.7.2' ],
+155 silly audit   'yargs-parser': [ '18.1.3', '21.1.1' ],
+155 silly audit   'query-selector-shadow-dom': [ '1.0.1' ],
+155 silly audit   'require-directory': [ '2.1.1' ],
+155 silly audit   'require-main-filename': [ '2.0.0' ],
+155 silly audit   rolldown: [ '1.0.0-rc.17' ],
+155 silly audit   rollup: [ '4.60.2' ],
+155 silly audit   'safe-buffer': [ '5.2.1' ],
+155 silly audit   'set-blocking': [ '2.0.0' ],
+155 silly audit   siginfo: [ '2.0.0' ],
+155 silly audit   'source-map-js': [ '1.2.1' ],
+155 silly audit   stackback: [ '0.0.2' ],
+155 silly audit   'std-env': [ '4.1.0' ],
+155 silly audit   'string-width': [ '4.2.3' ],
+155 silly audit   'strip-ansi': [ '6.0.1' ],
+155 silly audit   three: [ '0.160.1' ],
+155 silly audit   tinybench: [ '2.9.0' ],
+155 silly audit   tinyexec: [ '1.1.2' ],
+155 silly audit   tinyglobby: [ '0.2.16' ],
+155 silly audit   tinyrainbow: [ '3.1.0' ],
+155 silly audit   tslib: [ '2.8.1' ],
+155 silly audit   typescript: [ '5.9.3' ],
+155 silly audit   'undici-types': [ '7.19.2' ],
+155 silly audit   vite: [ '5.4.21', '8.0.10' ],
+155 silly audit   vitest: [ '4.1.5' ],
+155 silly audit   '@vitest/mocker': [ '4.1.5' ],
+155 silly audit   'websocket-driver': [ '0.7.4' ],
+155 silly audit   'websocket-extensions': [ '0.1.4' ],
+155 silly audit   'which-module': [ '2.0.1' ],
+155 silly audit   'why-is-node-running': [ '2.3.0' ],
+155 silly audit   zod: [ '4.4.2' ],
+155 silly audit   '@types/qrcode': [ '1.5.6' ]
+155 silly audit }
+156 http cache @types/qrcode@https://registry.npmjs.org/@types/qrcode/-/qrcode-1.5.6.tgz 0ms (cache hit)
+157 silly tarball no local data for @types/qrcode@https://registry.npmjs.org/@types/qrcode/-/qrcode-1.5.6.tgz. Extracting by manifest.
+158 http fetch GET 200 https://registry.npmjs.org/@types/qrcode/-/qrcode-1.5.6.tgz 202ms (cache miss)
+159 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 546ms
+160 silly audit report {
+160 silly audit report   esbuild: [
+160 silly audit report     {
+160 silly audit report       id: 1102341,
+160 silly audit report       url: 'https://github.com/advisories/GHSA-67mh-4wv8-2f99',
+160 silly audit report       title: 'esbuild enables any website to send any requests to the development server and read the response',
+160 silly audit report       severity: 'moderate',
+160 silly audit report       vulnerable_versions: '<=0.24.2',
+160 silly audit report       cwe: [Array],
+160 silly audit report       cvss: [Object]
+160 silly audit report     }
+160 silly audit report   ],
+160 silly audit report   protobufjs: [
+160 silly audit report     {
+160 silly audit report       id: 1119378,
+160 silly audit report       url: 'https://github.com/advisories/GHSA-jggg-4jg4-v7c6',
+160 silly audit report       title: 'protobufjs: Denial of Service via unbounded recursive JSON descriptor expansion',
+160 silly audit report       severity: 'moderate',
+160 silly audit report       vulnerable_versions: '<=7.5.7',
+160 silly audit report       cwe: [Array],
+160 silly audit report       cvss: [Object]
+160 silly audit report     }
+160 silly audit report   ],
+160 silly audit report   vite: [
+160 silly audit report     {
+160 silly audit report       id: 1116229,
+160 silly audit report       url: 'https://github.com/advisories/GHSA-4w7w-66w2-5vf9',
+160 silly audit report       title: 'Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling',
+160 silly audit report       severity: 'moderate',
+160 silly audit report       vulnerable_versions: '<=6.4.1',
+160 silly audit report       cwe: [Array],
+160 silly audit report       cvss: [Object]
+160 silly audit report     }
+160 silly audit report   ]
+160 silly audit report }
+161 silly packumentCache corgi:https://registry.npmjs.org/esbuild cache-miss
+162 silly packumentCache corgi:https://registry.npmjs.org/protobufjs cache-miss
+163 silly packumentCache corgi:https://registry.npmjs.org/vite cache-miss
+164 http fetch GET 200 https://registry.npmjs.org/vite 198ms (cache revalidated)
+165 silly packumentCache corgi:https://registry.npmjs.org/vite set size:2249718 disposed:false
+166 http fetch GET 200 https://registry.npmjs.org/protobufjs 278ms (cache revalidated)
+167 silly packumentCache corgi:https://registry.npmjs.org/protobufjs set size:269668 disposed:false
+168 http fetch GET 200 https://registry.npmjs.org/esbuild 288ms (cache revalidated)
+169 silly packumentCache corgi:https://registry.npmjs.org/esbuild set size:885757 disposed:false
+170 silly packumentCache corgi:https://registry.npmjs.org/@grpc%2fproto-loader cache-miss
+171 silly packumentCache corgi:https://registry.npmjs.org/@opentelemetry%2fotlp-transformer cache-miss
+172 http fetch GET 200 https://registry.npmjs.org/@grpc%2fproto-loader 271ms (cache revalidated)
+173 silly packumentCache corgi:https://registry.npmjs.org/@grpc%2fproto-loader set size:103824 disposed:false
+174 http fetch GET 200 https://registry.npmjs.org/@opentelemetry%2fotlp-transformer 276ms (cache revalidated)
+175 silly packumentCache corgi:https://registry.npmjs.org/@opentelemetry%2fotlp-transformer set size:109001 disposed:false
+176 silly ADD node_modules/@types/qrcode
+177 verbose cwd /Users/Holiday_1/Desktop/Growth/Marginalia
+178 verbose os Darwin 25.5.0
+179 verbose node v22.16.0
+180 verbose npm  v11.12.0
+181 verbose exit 0
+182 info ok

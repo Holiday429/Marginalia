@@ -79,6 +79,15 @@ export const AIFeatureRegistry = (() => {
       promptId: 'action-suggest',
     },
 
+    /* ── Overview / Export ───────────────────────────────────────────────── */
+
+    'reading-card': {
+      label: 'Generate reading card',
+      panel: 'overview',
+      outputType: 'json',
+      promptId: 'reading-card',
+    },
+
     /* ── Profile ──────────────────────────────────────────────────────────── */
 
     'reader-portrait': {

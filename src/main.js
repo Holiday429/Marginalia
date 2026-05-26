@@ -79,6 +79,7 @@ import './ai/features/prompts/reader-portrait.js';
 import './ai/features/prompts/reader-identity.js';
 import './ai/features/prompts/character-map.js';
 import './ai/features/prompts/geo-context.js';
+import './ai/features/prompts/reading-card.js';
 
 // 6b. Panel scripts
 import './book/panels/notes.js';
