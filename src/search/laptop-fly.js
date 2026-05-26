@@ -1,62 +1,64 @@
 /* ==========================================================================
-   Marginalia · Laptop fly-in transition  (v6 — CSS3D screen)
+   Marginalia · Laptop fly-in transition  (v7 — flat overlay bar)
    ─────────────────────────────────────────────────────────────────────────
-   The search UI is REAL DOM mounted onto the laptop's screen plane via
-   CSS3DRenderer (the same technique the room uses to mount 2D walls onto 3D
-   surfaces). Because the CSS3D layer shares the WebGL camera, the search bar
-   stays glued to the screen face through every rotation/scale/translation —
-   no manual projection, no drift.
+   The WebGL laptop and the search bar live on two separate layers:
+     • a WebGL canvas renders/animates the MacBook (fly out → freeze → zoom);
+     • a FLAT fixed-position search bar is drawn on TOP of it (override layer).
+   The bar is NOT mapped onto the 3D screen plane — it's an ordinary DOM
+   element centred over the screen region. It holds a single constant size the
+   entire time (it never scales with the laptop zoom), and it is the very same
+   element that later flies to the real Search page slot. One bar, start to
+   finish — so there is never a size/position mismatch or a second ghost.
 
-   Sequence
+   Sequence (sequential beats — see the phase constants below)
    ─────────────────────────────────────────────────────────────────────────
-   Act 1 (0–45%)   MacBook zooms forward from the desk, lid rotating to face
-                   the camera head-on. The screen lights up; a large search
-                   bar (CSS3D, on the screen) types out its placeholder.
-   Act 2 (45–80%)  Laptop keeps zooming until the screen fills the viewport.
-                   The WebGL laptop body fades out. We freeze the search bar's
-                   on-screen rect, navigate (page renders hidden behind overlay).
-   Act 3 (handoff) settleLaptopFlyIn() takes the frozen bar (now a plain fixed
-                   CSS element) and glides it to the real #shelfSearchInput
-                   slot with a glow pulse, then the page fades in around it.
+   Act 1   MacBook flies out of the desk, lid rotating to face the camera
+           head-on, and SETTLES at a framed pose. Screen dark; no bar yet.
+   Freeze  Laptop holds perfectly still. The flat bar fades in over the lit
+           screen and types its placeholder, char by char. The bar only ever
+           appears on a stationary laptop — no moving-body overlap / ghosting.
+   Act 3   Text complete. The laptop keeps zooming until its lit screen fills
+           the viewport; the WebGL body fades out. The bar stays the same size
+           the whole time. We navigate (page renders hidden behind the overlay).
+   Handoff settleLaptopFlyIn() keeps the bar's SIZE fixed and glides it (frame
+           fading away) so its "Search your shelf…" line settles into the real
+           #shelfSearchInput's text position. The real input's own glowing
+           border then appears, our line fades, and the page reveals around it.
 
    GLB facts (verified): macbook.glb → Object_0 body/lid, Object_1 keyboard.
-   After Three.js load + baseScale=1.5/maxDim and centring, the lid screen
-   face sits at world Z≈+0.757, spanning X≈±0.95, lid Y≈-0.61→+0.71.
    ========================================================================== */
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { CSS3DObject, CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 
 const MACBOOK_URL = '/3d/macbook.glb';
 const PLACEHOLDER = 'Search your shelf by title, author, or tag';
 
-// Screen face geometry in pivot-local units (verified from GLB).
-// Inset well inside the lid bezel so the screen UI never spills past the
-// black display area as the laptop scales up.
-const SCREEN = {
-  width:  1.56,    // world units across the visible display (bezel-inset)
-  height: 0.96,    // world units down the visible display
-  centerY: 0.12,   // vertical centre of display relative to pivot origin
-  z:       0.77,   // front face, a hair proud of the glass
-};
-// CSS3DObject convention: element pixels map to world units via this divisor.
-// element.style.width = (SCREEN.width * PX_PER_UNIT)px, then object scaled 1/PX_PER_UNIT.
-const PX_PER_UNIT = 600;
-
-// Pivot scale at the end of Act 1 (laptop framed) and Act 2 (screen fills
-// viewport). The bar is counter-scaled by ACT1_END_SCALE/pivotScale during
-// Act 2 so the screen grows but the search bar holds a constant size.
-const ACT1_END_SCALE = 2.1;
-const ACT2_END_SCALE = 4.4;
+// Pivot scale at the end of Act 1 (laptop framed) and Act 3 (screen fills
+// viewport). The bar is counter-scaled by FRAMED_SCALE/pivotScale during the
+// fill beat so the screen grows but the search bar holds a constant size.
+const FRAMED_SCALE = 2.1;     // laptop framed, facing camera (Act 1 end)
+const FULLSCREEN_SCALE = 4.4; // screen fills viewport (Act 3 end)
 const SEARCH_VIEW_ID = 'view-search';
 const SEARCH_STAGE_CLASS = 'is-laptop-transition';
 const SEARCH_BAR_LIVE_CLASS = 'is-laptop-transition-bar-live';
 const SEARCH_REVEAL_CLASS = 'is-laptop-transition-revealing';
 
 let activeTransition = null;
-const TYPE_START = 0.16;
-const TYPE_DURATION = 0.56;
+
+/* ── Timeline phases (fractions of `duration`) ───────────────────────────────
+   Sequential, non-overlapping beats so each reads as a distinct moment:
+     0    → FLY_END   : laptop flies out of the room + rotates to face camera.
+     FLY_END → LIT    : laptop FROZEN; screen wakes from dark to lit (no text).
+     LIT  → TYPE_END  : laptop FROZEN; placeholder types out, char by char.
+     TYPE_END → FILL  : text done & bar held; laptop zooms until screen fills.
+     FILL → 1         : tail hold while the CSS handoff is wired up.
+   The freeze (FLY_END → TYPE_END) is the key beat: the bar only appears after
+   the laptop has fully settled, so there is never a moving-laptop + bar overlap. */
+const FLY_END  = 0.34;  // laptop reaches framed pose, fully still
+const LIT      = 0.42;  // screen finished waking; typing may begin
+const TYPE_END = 0.66;  // placeholder fully typed
+const FILL     = 0.90;  // screen has filled the viewport
 
 function easeOut(t)   { return 1 - Math.pow(1 - t, 3); }
 function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
@@ -83,19 +85,10 @@ function stageSearchTransitionState(targetRoot = document) {
   return view;
 }
 
-function buildSearchBarClone() {
-  const source = document.querySelector('.shelf-searchbar');
-  if (!(source instanceof HTMLElement)) return null;
-  const clone = source.cloneNode(true);
-  clone.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
-  clone.classList.add('laptop-fly-shared-bar');
-  return clone;
-}
-
 /* ──────────────────────────────────────────────────────────────────────────
-   Act 1 + 2 — the WebGL + CSS3D fly-in. Resolves once the screen fills the
-   viewport and we've frozen the search bar's rect. Keeps the overlay alive
-   for settleLaptopFlyIn().
+   Acts 1–3 — the WebGL laptop fly-in + flat-bar typing. Resolves once the
+   screen fills the viewport and we've frozen the search bar's rect. Keeps the
+   overlay (and the bar) alive for settleLaptopFlyIn().
 ────────────────────────────────────────────────────────────────────────── */
 export function playLaptopFlyIn(opts = {}) {
   const duration = opts.duration ?? 2000;
@@ -113,16 +106,19 @@ export function playLaptopFlyIn(opts = {}) {
 
     const hardTimeout = setTimeout(() => finish(false), duration + 1600);
 
-    /* overlay with two stacked layers: WebGL canvas + CSS3D layer */
+    /* overlay with two stacked layers: WebGL laptop + a FLAT bar overlay.
+       The search bar is a plain fixed element drawn on top of the laptop
+       (not mapped onto the 3D screen) — it holds a constant size through the
+       whole zoom and is the very element that later flies to the real slot. */
     const overlay = document.createElement('div');
     overlay.className = 'laptop-fly-overlay';
     overlay.innerHTML = `
       <div class="laptop-fly-overlay__gl"></div>
-      <div class="laptop-fly-overlay__css"></div>
+      <div class="laptop-fly-overlay__ui"></div>
     `;
     document.body.appendChild(overlay);
-    const glLayer  = overlay.querySelector('.laptop-fly-overlay__gl');
-    const cssLayer = overlay.querySelector('.laptop-fly-overlay__css');
+    const glLayer = overlay.querySelector('.laptop-fly-overlay__gl');
+    const uiLayer = overlay.querySelector('.laptop-fly-overlay__ui');
 
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -141,13 +137,6 @@ export function playLaptopFlyIn(opts = {}) {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     glLayer.appendChild(renderer.domElement);
 
-    const cssRenderer = new CSS3DRenderer();
-    cssRenderer.setSize(w, h);
-    cssLayer.appendChild(cssRenderer.domElement);
-    cssRenderer.domElement.style.position = 'absolute';
-    cssRenderer.domElement.style.inset = '0';
-    cssRenderer.domElement.style.pointerEvents = 'none';
-
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(34, w / h, 0.1, 100);
     camera.position.set(0, 0, 4.8);
@@ -163,57 +152,49 @@ export function playLaptopFlyIn(opts = {}) {
     const pivot = new THREE.Group();
     scene.add(pivot);
 
-    /* ── build the CSS3D search-bar element (reuses real search-bar DOM) ── */
-    const screenEl = document.createElement('div');
-    screenEl.className = 'laptop-fly-screen';
-    screenEl.style.width  = `${Math.round(SCREEN.width  * PX_PER_UNIT)}px`;
-    screenEl.style.height = `${Math.round(SCREEN.height * PX_PER_UNIT)}px`;
-    screenEl.innerHTML = `
-      <div class="laptop-fly-screen__inner">
-        <div class="laptop-fly-screen__bar-host"></div>
+    /* ── build the FLAT search-bar element (fixed overlay, constant size) ──
+       Width is a fixed fraction of the viewport, clamped, and centred over the
+       laptop's screen region. It never scales while the laptop zooms — only the
+       handoff glide changes its transform. */
+    const barWidth = Math.round(Math.min(640, Math.max(380, w * 0.46)));
+    const barEl = document.createElement('div');
+    barEl.className = 'laptop-fly-bar';
+    barEl.style.width = `${barWidth}px`;
+    barEl.style.left = `${Math.round(w / 2 - barWidth / 2)}px`;
+    // Sit in the upper-middle of the screen, clearly inside the lit display.
+    barEl.style.top = `${Math.round(h * 0.34)}px`;
+    barEl.innerHTML = `
+      <svg class="laptop-fly-bar__icon" viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="10.4" y1="10.4" x2="13.6" y2="13.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div class="laptop-fly-bar__field">
+        <span class="laptop-fly-bar__text"></span>
+        <span class="laptop-fly-bar__caret"></span>
       </div>
     `;
-    const screenBarHost = screenEl.querySelector('.laptop-fly-screen__bar-host');
-    const sharedScreenBar = buildSearchBarClone();
-    if (screenBarHost instanceof HTMLElement && sharedScreenBar instanceof HTMLElement) {
-      screenBarHost.appendChild(sharedScreenBar);
-    }
-    const screenInput = sharedScreenBar?.querySelector('input') || null;
-    if (screenInput instanceof HTMLInputElement) {
-      screenInput.readOnly = true;
-      screenInput.tabIndex = -1;
-      screenInput.value = '';
-      screenInput.placeholder = '';
-      screenInput.setAttribute('aria-hidden', 'true');
-    }
-
-    const css3d = new CSS3DObject(screenEl);
-    css3d.scale.setScalar(1 / PX_PER_UNIT);
-    css3d.position.set(0, SCREEN.centerY, SCREEN.z);
-    pivot.add(css3d);
+    uiLayer.appendChild(barEl);
 
     activeTransition = {
       overlay,
-      screenEl,
-      barEl: sharedScreenBar || screenEl.querySelector('.laptop-fly-shared-bar'),
-      inputEl: screenInput,
+      barEl,
+      textEl: barEl.querySelector('.laptop-fly-bar__text'),
+      caretEl: barEl.querySelector('.laptop-fly-bar__caret'),
       renderer,
-      cssRenderer,
+      cssRenderer: null,
       raf: 0,
       hardTimeout,
       handoff: null,     // frozen { left, top, width, height } of the bar
       settling: false,
     };
 
-    /* typewriter — types PLACEHOLDER across Act 1 */
+    /* typewriter — types PLACEHOLDER across the frozen beat (LIT → TYPE_END) */
     let typed = 0;
     function typeTo(fraction) {
       const target = Math.round(PLACEHOLDER.length * clamp01(fraction));
       if (target === typed) return;
       typed = target;
-      if (activeTransition.inputEl instanceof HTMLInputElement) {
-        activeTransition.inputEl.value = PLACEHOLDER.slice(0, typed);
-      }
+      activeTransition.textEl.textContent = PLACEHOLDER.slice(0, typed);
     }
 
     /* project the bar element's on-screen rect (for the CSS handoff) */
@@ -247,67 +228,75 @@ export function playLaptopFlyIn(opts = {}) {
 
         pivot.updateMatrixWorld(true);
         renderer.render(scene, camera);
-        cssRenderer.render(scene, camera);
         requestAnimationFrame(() => overlay.classList.add('is-active'));
 
         const start = performance.now();
-        let screenLit  = false;
+        let barShown = false;
         let landedFired = false;
+
+        // Pose the laptop holds during the entire freeze beat (FLY_END → TYPE_END).
+        const setFramedPose = () => {
+          pivot.scale.setScalar(FRAMED_SCALE);
+          pivot.position.set(0, -0.06, 0);
+          pivot.rotation.set(0, 0, 0);
+        };
 
         const tick = (now) => {
           const t = clamp01((now - start) / duration);
 
-          if (t <= 0.45) {
-            /* Act 1 — zoom in + rotate to face camera */
-            const e = easeOut(t / 0.45);
-            pivot.scale.setScalar(0.55 + e * (ACT1_END_SCALE - 0.55));
+          if (t <= FLY_END) {
+            /* Act 1 — laptop flies out of the room and rotates to face the
+               camera. No search bar yet. */
+            const e = easeOut(t / FLY_END);
+            pivot.scale.setScalar(0.55 + e * (FRAMED_SCALE - 0.55));
             pivot.position.set(0, -0.22 + e * 0.16, 0);
             pivot.rotation.set(0.16 - e * 0.16, 0.08 - e * 0.08, 0);
-            screenEl.style.setProperty('--bar-counter', '1');
+          } else if (t <= TYPE_END) {
+            /* Freeze beat — laptop is perfectly still at the framed pose. The
+               flat bar fades in over the screen (FLY_END → LIT), then the
+               placeholder types out (LIT → TYPE_END). The laptop does not
+               move, so the bar never overlaps a moving body. */
+            setFramedPose();
 
-            if (!screenLit && t > 0.12) {
-              screenLit = true;
-              screenEl.classList.add('is-lit');
+            if (!barShown && t >= FLY_END) {
+              barShown = true;
+              barEl.classList.add('is-shown');   // fade the bar in (CSS)
             }
-            // Type placeholder more slowly over t=0.16 → 0.72 so the line
-            // keeps building well into the fullscreen screen-expansion beat.
-            typeTo((t - TYPE_START) / TYPE_DURATION);
-          } else if (t <= 0.80) {
-            /* Act 2 — the screen grows to fill the viewport, but the search
-               bar stays a fixed apparent size. We scale the pivot up (screen
-               background fills the screen) and counter-scale the bar by the
-               inverse, so only the black screen expands around a steady bar. */
-            const e = easeInOut((t - 0.45) / 0.35);
-            const pScale = ACT1_END_SCALE + e * (ACT2_END_SCALE - ACT1_END_SCALE);
+            typeTo((t - LIT) / (TYPE_END - LIT));
+          } else if (t <= FILL) {
+            /* Act 3 — text done; the laptop zooms in until its screen fills the
+               viewport. The bar is a separate flat overlay and is NOT touched
+               here, so it holds a perfectly constant size while the laptop
+               grows behind it — reads as the screen pushing toward you. */
+            typeTo(1);
+            const e = easeInOut((t - TYPE_END) / (FILL - TYPE_END));
+            const pScale = FRAMED_SCALE + e * (FULLSCREEN_SCALE - FRAMED_SCALE);
             pivot.scale.setScalar(pScale);
-            pivot.position.set(0, e * 0.02, 0);
+            pivot.position.set(0, -0.06 + e * 0.06, 0);
             pivot.rotation.set(0, 0, 0);
-            // Counter-scale the bar so its on-screen size holds constant.
-            screenEl.style.setProperty('--bar-counter', String(ACT1_END_SCALE / pScale));
-            typeTo((t - TYPE_START) / TYPE_DURATION);
 
-            // Fade laptop body (CSS3D screen stays fully opaque)
+            // Fade the laptop body out so we end on a clean dark field carrying
+            // just the search bar.
             model.traverse((child) => {
               if (!child.isMesh) return;
               const mats = Array.isArray(child.material) ? child.material : [child.material];
               mats.forEach((m) => { m.transparent = true; m.opacity = Math.max(0, 1 - e * 1.3); });
             });
 
-            if (!landedFired && t >= 0.74) {
+            if (!landedFired && t >= FILL - 0.05) {
               landedFired = true;
               freezeBarRect();
               onLanded?.();    // navigate; page renders hidden behind overlay
             }
           } else {
-            /* tail — hold while CSS handoff is set up by settleLaptopFlyIn */
-            pivot.scale.setScalar(ACT2_END_SCALE);
-            screenEl.style.setProperty('--bar-counter', String(ACT1_END_SCALE / ACT2_END_SCALE));
+            /* tail — hold while the handoff is set up by settleLaptopFlyIn */
+            typeTo(1);
+            pivot.scale.setScalar(FULLSCREEN_SCALE);
             model.visible = false;     // body fully gone
           }
 
           pivot.updateMatrixWorld(true);
           renderer.render(scene, camera);
-          cssRenderer.render(scene, camera);
 
           if (t < 1) {
             activeTransition.raf = requestAnimationFrame(tick);
@@ -326,8 +315,8 @@ export function playLaptopFlyIn(opts = {}) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Act 3 — settle. Convert the CSS3D bar into a plain fixed element at the
-   frozen rect, glide it to the real search slot with a glow, then fade the
+   Handoff — settle. Glide the same flat bar from its frozen rect onto the real
+   search slot (scaling to land exactly on top), pulse a glow, then fade the
    overlay out so the page shows through. Mirrors settleFrameFlyIn().
 ────────────────────────────────────────────────────────────────────────── */
 export async function settleLaptopFlyIn(targetRoot = document) {
@@ -338,16 +327,16 @@ export async function settleLaptopFlyIn(targetRoot = document) {
   if (activeTransition.settling) return;
   activeTransition.settling = true;
 
-  // The WebGL/CSS3D renderers are done — tear them down but keep the overlay.
+  // The WebGL renderer is done — tear it down but keep the overlay + the bar.
   cleanupRendererOnly();
 
-  const { overlay, handoff } = activeTransition;
+  const { overlay, handoff, barEl } = activeTransition;
   const view = stageSearchTransitionState(targetRoot);
 
-  // Land on the real wrapper, then reveal that exact DOM underneath the ghost.
+  // Land exactly on the real search bar's rect.
   const realBar = targetRoot.querySelector('.shelf-searchbar')
     || document.querySelector('.shelf-searchbar');
-  if (!(realBar instanceof HTMLElement)) {
+  if (!(realBar instanceof HTMLElement) || !barEl) {
     overlay.classList.add('is-finishing');
     await sleep(420);
     cleanup();
@@ -355,54 +344,46 @@ export async function settleLaptopFlyIn(targetRoot = document) {
   }
 
   const targetRect = realBar.getBoundingClientRect();
-  const ghost = realBar.cloneNode(true);
-  ghost.classList.add('laptop-fly-ghost-bar');
-  ghost.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
-  const ghostInput = ghost.querySelector('input');
-  if (ghostInput instanceof HTMLInputElement) {
-    ghostInput.readOnly = true;
-    ghostInput.tabIndex = -1;
-    ghostInput.value = '';
-    ghostInput.setAttribute('aria-hidden', 'true');
-  }
-  ghost.setAttribute('aria-hidden', 'true');
-  ghost.style.left = `${targetRect.left}px`;
-  ghost.style.top = `${targetRect.top}px`;
-  ghost.style.width = `${targetRect.width}px`;
 
-  const dx = handoff.left - targetRect.left;
-  const dy = handoff.top - targetRect.top;
-  const scaleX = targetRect.width > 0 ? handoff.width / targetRect.width : 1;
-  const scaleY = targetRect.height > 0 ? handoff.height / targetRect.height : 1;
-  ghost.style.transform = `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`;
-  overlay.appendChild(ghost);
+  // Keep the bar's SIZE unchanged. Instead, glide the whole bar (so its
+  // "Search your shelf…" line travels) until that line lands on the real
+  // input's text position. The bar's left-padding (42px) and font (13px mono)
+  // already match the real input, so a pure translate — no scale — lands the
+  // text exactly. We drop the bar's own frame during the glide so only the
+  // text appears to settle in, then the real input's glowing border takes over.
+  barEl.classList.add('is-flying');
+  barEl.style.transformOrigin = 'top left';
 
-  // Swap the CSS3D screen out for the flat ghost.
-  activeTransition.screenEl?.remove();
-  await nextFrame();
-
-  ghost.style.transition = 'transform 0.72s cubic-bezier(0.22, 1, 0.36, 1)';
+  // Vertically align the text baselines: both bar and input are the same
+  // height, so matching their tops aligns the centred text too.
+  const dx = targetRect.left - handoff.left;
+  const dy = (targetRect.top + targetRect.height / 2)
+    - (handoff.top + handoff.height / 2);
 
   await nextFrame();
-  ghost.style.transform = 'translate(0, 0) scale(1, 1)';
+  barEl.style.transition =
+    'transform 0.66s cubic-bezier(0.22, 1, 0.36, 1)';
+  await nextFrame();
+  // Fade the bar's frame (border + fill) out as it travels; only the text /
+  // icon ride along. The line lands in place rather than popping in.
+  barEl.classList.add('is-frameless');
+  barEl.style.transform = `translate(${dx}px, ${dy}px)`;
 
-  await sleep(720);
+  await sleep(660);
 
-  // Switch highlight to the REAL search bar and fade the ghost out.
+  // The real input's own glowing border appears underneath, exactly where the
+  // text just landed (SEARCH_BAR_LIVE_CLASS uses the Search page's border/glow).
   if (view) view.classList.add(SEARCH_BAR_LIVE_CLASS);
-  ghost.style.transition = 'opacity 140ms ease';
-  ghost.style.opacity = '0';
-  await sleep(160);
+  await sleep(220);
 
-  // Reveal the real page underneath, then fade the overlay out so the page
-  // shows through around the now-settled bar. Drop the ghost once the real
-  // bar is visible.
+  // Hand the text off to the real (empty) input: fade our travelling text out
+  // as the page content reveals around the now-glowing bar.
   overlay.classList.add('is-finishing');
-  await sleep(260);
   if (view) view.classList.add(SEARCH_REVEAL_CLASS);
-  await sleep(160);
-  ghost.remove();
-  await sleep(260);
+  barEl.style.transition = 'opacity 0.32s ease';
+  barEl.style.opacity = '0';
+  await sleep(340);
+  barEl.remove();
   cleanup({ preserveSearchState: true });
   await sleep(900);
   clearSearchTransitionState(targetRoot);

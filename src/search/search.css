@@ -18,7 +18,7 @@ body[data-view="search"] {
 #view-search.is-laptop-transition .tool-page-shell--search,
 #view-search.is-laptop-transition .tool-page-inner--search,
 #view-search.is-laptop-transition .page {
-  background: var(--bg-tool, #302e2a);
+  background: #050506;
 }
 
 #view-search.is-laptop-transition .shared-header-wrap,
@@ -1585,9 +1585,11 @@ body[data-view="search"] {
   }
 }
 
-/* ── Laptop fly-in transition (room → search), CSS3D screen ─────────────────
-   The search bar is real DOM mounted onto the laptop screen via CSS3DRenderer,
-   then handed off to a flat ghost that glides to the real search slot.       */
+/* ── Laptop fly-in transition (room → search), flat overlay bar ─────────────
+   WebGL laptop on the __gl layer; a single flat search bar on the __ui layer,
+   drawn on top of the laptop screen. The bar holds a constant size through the
+   whole zoom, then flies to the real .shelf-searchbar slot — one element, no
+   clone, so it lands exactly on top with no ghost.                           */
 .laptop-fly-overlay {
   position: fixed;
   inset: 0;
@@ -1597,15 +1599,16 @@ body[data-view="search"] {
   transition: background 0.32s ease;
 }
 .laptop-fly-overlay.is-active {
-  background: rgba(48, 46, 42, 0.96);
+  /* site background (smoke gray #302e2a), not pure black */
+  background: var(--bg-tool, #302e2a);
 }
 .laptop-fly-overlay__gl,
-.laptop-fly-overlay__css {
+.laptop-fly-overlay__ui {
   position: absolute;
   inset: 0;
 }
-.laptop-fly-overlay__css {
-  /* CSS3D layer sits above the WebGL canvas */
+.laptop-fly-overlay__ui {
+  /* flat bar layer sits above the WebGL canvas */
   z-index: 1;
 }
 .laptop-fly-overlay canvas {
@@ -1616,66 +1619,75 @@ body[data-view="search"] {
   transition: background 0.5s ease;
 }
 
-/* CSS3D screen plane — sized in px, scaled down by 1/PX_PER_UNIT in JS so it
-   maps to world units. Black screen with a single large search bar. */
-.laptop-fly-screen {
-  box-sizing: border-box;
-  background: rgba(48, 46, 42, 0.96);
-  border-radius: 6px;
-  overflow: hidden;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.laptop-fly-screen.is-lit {
-  opacity: 1;
-}
-.laptop-fly-screen__inner {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  /* Bar sits at ~30% from the top of the display; screen grows around it while
-     the bar itself stays fixed-size via --bar-counter. */
-  align-items: flex-start;
-  justify-content: center;
-  padding: 30% 13% 0;
-}
-.laptop-fly-screen__bar-host {
-  width: 100%;
-  max-width: 100%;
-  /* Counter-scale so the bar does NOT expand while the laptop screen scales up. */
-  transform: scale(var(--bar-counter, 1));
-  transform-origin: center top;
-}
-
-.laptop-fly-shared-bar {
-  width: 100%;
-  flex: 0 0 auto;
-}
-
-.laptop-fly-shared-bar input {
-  pointer-events: none;
-  caret-color: transparent;
-}
-
-/* Flat ghost bar — takes over at the handoff and glides to the real slot.
-   Starts matching .laptop-fly-screen__bar (font 30px, radius 14px) so the
-   CSS3D→flat swap is seamless; its font/padding/radius animate to the real
-   search input's computed values during the glide (set inline in JS). */
-.laptop-fly-ghost-bar {
+/* Flat search bar — a fixed element positioned over the laptop screen (left/
+   top/width set inline in JS). Constant size; only its transform animates,
+   during the handoff glide to the real slot. Styled to resemble the real
+   .shelf-searchbar input so the landing overlaps cleanly. */
+.laptop-fly-bar {
   position: fixed;
-  z-index: 10001;
   box-sizing: border-box;
-  opacity: 1;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 16px 0 42px;
+  border: 1px solid rgba(232, 223, 200, 0.34);
+  border-radius: 12px;
+  background: rgba(12, 12, 14, 0.72);
+  color: rgba(232, 223, 200, 0.82);
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
   pointer-events: none;
   transform-origin: top left;
   will-change: transform;
+  opacity: 0;
+  transition: opacity 0.24s ease, border-color 0.4s ease, background 0.4s ease, box-shadow 0.4s ease;
 }
-
-.laptop-fly-ghost-bar .shelf-searchbar-icon,
-.laptop-fly-ghost-bar input {
-  pointer-events: none;
+.laptop-fly-bar.is-shown {
+  opacity: 1;
 }
-
-.laptop-fly-ghost-bar input {
+/* During the handoff glide the bar sheds its own frame so only the
+   "Search your shelf…" line travels into the real input's text slot. */
+.laptop-fly-bar.is-frameless {
+  border-color: transparent;
+  background: transparent;
   box-shadow: none;
+}
+.laptop-fly-bar__icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translateY(-50%);
+  color: rgba(232, 223, 200, 0.55);
+  opacity: 0.8;
+}
+.laptop-fly-bar__field {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.laptop-fly-bar__text {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.laptop-fly-bar__caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  background: rgba(201, 169, 110, 0.9);
+  animation: laptop-fly-blink 0.7s steps(1) infinite;
+}
+@keyframes laptop-fly-blink {
+  0%, 50%   { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+/* The caret stops blinking and hides once the line starts travelling. */
+.laptop-fly-bar.is-frameless .laptop-fly-bar__caret {
+  opacity: 0;
+  animation: none;
 }
