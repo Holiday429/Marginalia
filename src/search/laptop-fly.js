@@ -1,19 +1,21 @@
 /* ==========================================================================
-   Marginalia · Laptop fly-in transition
-   The MacBook on the desk zooms toward the camera; as it fills the screen its
-   display lights up showing a ghost of the Search UI (search bar + filter chip
-   + tags). The 3D laptop dissolves, the ghost elements fly to their real DOM
-   positions, and the rest of the Search page fades in around them.
-
-   Sequence
+   Marginalia · Laptop fly-in transition  (v3)
    ─────────────────────────────────────────────────────────────────────────
-   Phase A (0–45%)  WebGL: MacBook zooms forward + rotates to face camera.
-                    Screen glows on at t=0.25.
-   Phase B (45–75%) WebGL: laptop body fades out. CSS ghost search bar +
-                    filter chips appear inside the projected screen rect.
-   Phase C (75–100%) Ghost elements animate from screen rect to their real
-                    DOM positions (FLIP). onLanded fires at t=0.82.
-                    Overlay fades out, revealing the real page. Ghost removed.
+   The MacBook zooms from desk scale toward the camera until its screen fills
+   the viewport. A search-bar UI lives inside a CSS div that is repositioned
+   every rAF frame to match the projected screen rect — so the UI tracks the
+   3D screen exactly as it grows. When the screen covers the whole window the
+   search bar is already sitting in its real position, and the real Search
+   page fades in behind the overlay.
+
+   Phases
+   ─────────────────────────────────────────────────────────────────────────
+   A (0–55%)   MacBook zooms forward; laptop body fills screen.
+               Screen UI div tracks the 3D rect every frame.
+   B (55–85%)  Laptop bezel / body fade out. Screen div keeps growing.
+               At t=0.78 the screen rect ≈ covers viewport → onLanded.
+   C (85–100%) Overlay fades out revealing real Search page underneath.
+               Screen div stays fixed so search bar appears to "land".
    ========================================================================== */
 
 import * as THREE from 'three';
@@ -22,13 +24,13 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const MACBOOK_URL = '/3d/macbook.glb';
 
 /**
- * @param {object} [opts]
- * @param {number} [opts.duration=1600]
- * @param {() => void} [opts.onLanded]  fired at t=0.82 — navigate here
+ * @param {object}   [opts]
+ * @param {number}   [opts.duration=1800]
+ * @param {Function} [opts.onLanded]  — navigate here (called while overlay still covers page)
  */
 export function playLaptopFlyIn(opts = {}) {
-  const duration = opts.duration ?? 1600;
-  const onLanded = typeof opts.onLanded === 'function' ? opts.onLanded : null;
+  const duration  = opts.duration  ?? 1800;
+  const onLanded  = typeof opts.onLanded === 'function' ? opts.onLanded : null;
 
   return new Promise((resolve) => {
     let settled = false;
@@ -39,9 +41,9 @@ export function playLaptopFlyIn(opts = {}) {
       resolve();
     };
 
-    const hardTimeout = setTimeout(() => finish(), duration + 1400);
+    const hardTimeout = setTimeout(() => finish(), duration + 1500);
 
-    /* ── overlay ── */
+    /* ── root overlay ─────────────────────────────────────────────────── */
     const overlay = document.createElement('div');
     overlay.className = 'laptop-fly-overlay';
     document.body.appendChild(overlay);
@@ -49,7 +51,7 @@ export function playLaptopFlyIn(opts = {}) {
     const w = window.innerWidth;
     const h = window.innerHeight;
 
-    /* ── WebGL renderer ── */
+    /* ── WebGL renderer ───────────────────────────────────────────────── */
     let renderer;
     try {
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -64,23 +66,83 @@ export function playLaptopFlyIn(opts = {}) {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     overlay.appendChild(renderer.domElement);
 
-    /* ── scene ── */
-    const scene = new THREE.Scene();
+    /* ── scene ────────────────────────────────────────────────────────── */
+    const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(34, w / h, 0.1, 100);
     camera.position.set(0, 0, 4.8);
 
-    const key = new THREE.DirectionalLight(0xffe6c8, 2.0);
+    const key  = new THREE.DirectionalLight(0xfff0e0, 1.8);
     key.position.set(2, 3, 4);
     scene.add(key);
-    const fill = new THREE.DirectionalLight(0x9fb0c4, 0.5);
+    const fill = new THREE.DirectionalLight(0x9fb0c4, 0.45);
     fill.position.set(-3, -1, -2);
     scene.add(fill);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 
     const pivot = new THREE.Group();
     scene.add(pivot);
 
-    let screenMesh = null; // the laptop display plane we'll light up
+    /* ── screen-tracking UI div ───────────────────────────────────────── */
+    // This div is positioned every frame to match the projected screen rect.
+    // It contains the ghost search UI and grows with the laptop until the
+    // screen fills the viewport.
+    const screenUI = document.createElement('div');
+    screenUI.className = 'laptop-fly-screen-ui';
+    screenUI.innerHTML = `
+      <div class="laptop-fly-screen-ui__inner">
+        <div class="laptop-fly-screen-ui__searchbar">
+          <svg class="laptop-fly-screen-ui__icon" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.3" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="10.3" y1="10.3" x2="13.5" y2="13.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <span class="laptop-fly-screen-ui__placeholder">Search your shelf by title, author, or tag</span>
+        </div>
+        <div class="laptop-fly-screen-ui__chips">
+          <span class="laptop-fly-screen-ui__chip is-active">All</span>
+          <span class="laptop-fly-screen-ui__chip">Finished</span>
+          <span class="laptop-fly-screen-ui__chip">Reading</span>
+          <span class="laptop-fly-screen-ui__chip">To Read</span>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(screenUI);
+
+    /* ── helpers ──────────────────────────────────────────────────────── */
+    let screenMesh = null;  // the laptop display face we project from
+
+    // Project the screen mesh's front face to CSS pixel rect.
+    // Returns { x, y, w, h } in viewport pixels.
+    function projectScreenRect() {
+      if (!screenMesh) return null;
+      const box = new THREE.Box3().setFromObject(screenMesh);
+      // Use front face corners (max Z face) for the projection
+      const pts = [
+        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+      ].map((v) => {
+        v.project(camera);
+        return { x: (v.x * 0.5 + 0.5) * w, y: (-v.y * 0.5 + 0.5) * h };
+      });
+      const xs = pts.map((p) => p.x);
+      const ys = pts.map((p) => p.y);
+      const rx = Math.min(...xs);
+      const ry = Math.min(...ys);
+      return { x: rx, y: ry, w: Math.max(...xs) - rx, h: Math.max(...ys) - ry };
+    }
+
+    // Snap the screen UI div to the projected rect every frame.
+    function syncScreenUI(rect) {
+      if (!rect) return;
+      screenUI.style.left   = rect.x + 'px';
+      screenUI.style.top    = rect.y + 'px';
+      screenUI.style.width  = rect.w + 'px';
+      screenUI.style.height = rect.h + 'px';
+    }
+
+    const easeOut    = (t) => 1 - Math.pow(1 - t, 3);
+    const easeInOut  = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
     let raf = null;
     const teardown = () => {
@@ -89,255 +151,128 @@ export function playLaptopFlyIn(opts = {}) {
       renderer.domElement?.remove();
       renderer.dispose();
       overlay.remove();
-      ghostEl?.remove();
+      screenUI.remove();
     };
 
-    /* ── ghost UI (appears inside the 3D screen, flies to real positions) ── */
-    let ghostEl = null;
-
-    function buildGhost() {
-      ghostEl = document.createElement('div');
-      ghostEl.className = 'laptop-fly-ghost';
-      ghostEl.innerHTML = `
-        <div class="laptop-fly-ghost__screen">
-          <div class="laptop-fly-ghost__searchbar">
-            <svg class="laptop-fly-ghost__search-icon" viewBox="0 0 16 16" aria-hidden="true">
-              <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
-              <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-            </svg>
-            <span class="laptop-fly-ghost__placeholder">Search your shelf by title, author, or tag</span>
-          </div>
-          <div class="laptop-fly-ghost__chips">
-            <span class="laptop-fly-ghost__chip is-active">All</span>
-            <span class="laptop-fly-ghost__chip">Finished</span>
-            <span class="laptop-fly-ghost__chip">Reading</span>
-            <span class="laptop-fly-ghost__chip">To Read</span>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(ghostEl);
-      return ghostEl;
-    }
-
-    /* ── FLIP helper: move ghostEl from current rect to real DOM target ── */
-    function flyGhostToTarget(ghostScreenRect) {
-      if (!ghostEl) return;
-
-      // Find real search bar position
-      const realSearchbar = document.getElementById('shelfSearchInput');
-      const realFilters   = document.getElementById('shelfStatusChips');
-
-      const screen = ghostEl.querySelector('.laptop-fly-ghost__screen');
-      const bar    = ghostEl.querySelector('.laptop-fly-ghost__searchbar');
-      const chips  = ghostEl.querySelector('.laptop-fly-ghost__chips');
-      if (!screen || !bar || !chips) return;
-
-      // Position ghost at the projected screen rect
-      screen.style.left   = ghostScreenRect.x + 'px';
-      screen.style.top    = ghostScreenRect.y + 'px';
-      screen.style.width  = ghostScreenRect.w + 'px';
-      screen.style.height = ghostScreenRect.h + 'px';
-
-      // Force layout read before animating
-      screen.getBoundingClientRect();
-
-      // Determine landing targets
-      const barTarget    = realSearchbar?.closest('.shelf-searchbar')?.getBoundingClientRect();
-      const chipsTarget  = realFilters?.getBoundingClientRect();
-
-      screen.style.transition = 'left 0.45s cubic-bezier(0.4,0,0.2,1), top 0.45s cubic-bezier(0.4,0,0.2,1), width 0.45s cubic-bezier(0.4,0,0.2,1), height 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease';
-      bar.style.transition    = 'all 0.4s cubic-bezier(0.4,0,0.2,1)';
-      chips.style.transition  = 'all 0.4s cubic-bezier(0.4,0,0.2,1) 0.05s';
-
-      if (barTarget) {
-        screen.style.left   = barTarget.left + 'px';
-        screen.style.top    = barTarget.top + 'px';
-        screen.style.width  = barTarget.width + 'px';
-        screen.style.height = (chipsTarget ? (chipsTarget.bottom - barTarget.top) : barTarget.height) + 'px';
-      }
-
-      // Fade ghost out as real page appears
-      setTimeout(() => {
-        if (ghostEl) ghostEl.style.opacity = '0';
-      }, 280);
-    }
-
-    /* ── project 3D screen rect to CSS pixels ── */
-    function getScreenRect() {
-      if (!screenMesh) {
-        // Fallback: centre of viewport, 45% wide, 28% tall
-        return { x: w * 0.275, y: h * 0.28, w: w * 0.45, h: h * 0.28 };
-      }
-      const box = new THREE.Box3().setFromObject(screenMesh);
-      const corners = [
-        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-      ];
-      const projected = corners.map((v) => {
-        v.project(camera);
-        return {
-          x: (v.x * 0.5 + 0.5) * w,
-          y: (-v.y * 0.5 + 0.5) * h,
-        };
-      });
-      const xs = projected.map((p) => p.x);
-      const ys = projected.map((p) => p.y);
-      const x = Math.min(...xs);
-      const y = Math.min(...ys);
-      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-    }
-
-    const easeInOut = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    const easeOut   = (t) => 1 - Math.pow(1 - t, 3);
-
-    /* ── load model ── */
+    /* ── load MacBook GLB ─────────────────────────────────────────────── */
     const loader = new GLTFLoader();
     loader.load(
       MACBOOK_URL,
       (gltf) => {
         const model = gltf.scene;
 
-        // Normalise scale
-        const box = new THREE.Box3().setFromObject(model);
-        const span = box.getSize(new THREE.Vector3());
+        // Normalise to a consistent base size
+        const box0   = new THREE.Box3().setFromObject(model);
+        const span   = box0.getSize(new THREE.Vector3());
         const maxDim = Math.max(span.x, span.y, span.z) || 1;
-        const baseScale = 1.6 / maxDim;
-        const center = box.getCenter(new THREE.Vector3()).multiplyScalar(baseScale);
-        model.scale.setScalar(baseScale);
+        const base   = 1.5 / maxDim;
+        const center = box0.getCenter(new THREE.Vector3()).multiplyScalar(base);
+        model.scale.setScalar(base);
         model.position.sub(center);
         pivot.add(model);
 
-        // Find the screen mesh (brightest / flattest face, or just the first mesh
-        // that has "screen" / "display" in its name, fallback to first Mesh).
+        // Identify the screen mesh: prefer a child named screen/display/lcd,
+        // fall back to any mesh whose bounding box is roughly flat on Z.
         model.traverse((child) => {
           if (!child.isMesh) return;
-          const name = (child.name || '').toLowerCase();
-          if (!screenMesh || name.includes('screen') || name.includes('display') || name.includes('lcd')) {
+          const n = (child.name || '').toLowerCase();
+          if (!screenMesh) { screenMesh = child; return; }
+          if (n.includes('screen') || n.includes('display') || n.includes('lcd')) {
             screenMesh = child;
           }
         });
 
-        // Starting pose: laptop a bit below and tilted away
-        pivot.position.set(0, -0.3, 0);
-        pivot.rotation.set(0.3, 0.12, 0);
-        pivot.scale.setScalar(0.72);
+        // Initial pose: small, slightly below centre, lid angle natural
+        pivot.scale.setScalar(0.6);
+        pivot.position.set(0, -0.28, 0);
+        pivot.rotation.set(0.22, 0.1, 0);
 
-        // Render first frame, then darken the overlay (room stays visible until now)
+        // Render first frame THEN darken — room stays visible, no black flash
         renderer.render(scene, camera);
         requestAnimationFrame(() => overlay.classList.add('is-active'));
 
         const start = performance.now();
-        let ghostAdded = false;
         let landedFired = false;
-        let ghostScreenRect = null;
-
-        /* ── screen emissive material ── */
-        let screenMat = null;
-        if (screenMesh?.material) {
-          const mats = Array.isArray(screenMesh.material)
-            ? screenMesh.material
-            : [screenMesh.material];
-          screenMat = mats[0];
-          if (screenMat) {
-            screenMat = screenMat.clone();
-            screenMat.emissive = new THREE.Color(0x4a90c8);
-            screenMat.emissiveIntensity = 0;
-            if (Array.isArray(screenMesh.material)) {
-              screenMesh.material[0] = screenMat;
-            } else {
-              screenMesh.material = screenMat;
-            }
-          }
-        }
+        let screenUIVisible = false;
 
         const tick = (now) => {
           const t = Math.min(1, (now - start) / duration);
 
-          if (t < 0.45) {
-            /* ── Phase A: zoom laptop in, rotate to face camera ── */
-            const e = easeOut(t / 0.45);
-            pivot.scale.setScalar(0.72 + e * 0.88);         // 0.72 → 1.6
-            pivot.position.set(0, -0.3 + e * 0.24, 0);       // rise up
-            pivot.rotation.set(0.3 - e * 0.38, 0.12 - e * 0.12, 0); // tilt to face
+          /* ── Phase A (0 – 55%): zoom MacBook in ── */
+          if (t <= 0.55) {
+            const e = easeOut(t / 0.55);
+            // Scale from 0.6 up to 2.8 — enough for the screen to fill viewport
+            pivot.scale.setScalar(0.6 + e * 2.2);
+            pivot.position.set(0, -0.28 + e * 0.22, 0);
+            // Flatten tilt as it approaches — lid faces camera head-on
+            pivot.rotation.set(0.22 - e * 0.26, 0.1 - e * 0.1, 0);
 
-            // Screen glows on between t=0.25 and t=0.45
-            if (t > 0.25 && screenMat) {
-              const glow = Math.min(1, (t - 0.25) / 0.2);
-              screenMat.emissiveIntensity = easeInOut(glow) * 0.55;
-            }
-          } else if (t < 0.75) {
-            /* ── Phase B: laptop body fades out, ghost appears ── */
-            const e = (t - 0.45) / 0.30;
-
-            // Freeze laptop pose at end of Phase A
-            pivot.scale.setScalar(1.6);
-            pivot.position.set(0, -0.06, 0);
-            pivot.rotation.set(-0.08, 0, 0);
-
-            // Fade out laptop body meshes (keep screen mesh glowing briefly)
-            model.traverse((child) => {
-              if (!child.isMesh) return;
-              if (child === screenMesh) return;
-              const mats = Array.isArray(child.material) ? child.material : [child.material];
-              mats.forEach((m) => { m.transparent = true; m.opacity = 1 - easeInOut(e); });
-            });
-
-            // Screen fades too, slightly delayed
-            if (screenMat) {
-              screenMat.transparent = true;
-              screenMat.opacity = 1 - easeInOut(Math.max(0, e - 0.3) / 0.7);
-              screenMat.emissiveIntensity = 0.55 * (1 - easeInOut(e));
-            }
-
-            // Inject ghost at start of Phase B
-            if (!ghostAdded) {
-              ghostAdded = true;
-              ghostScreenRect = getScreenRect();
-              buildGhost();
-              // Position ghost screen
-              const screen = ghostEl.querySelector('.laptop-fly-ghost__screen');
-              if (screen && ghostScreenRect) {
-                screen.style.left   = ghostScreenRect.x + 'px';
-                screen.style.top    = ghostScreenRect.y + 'px';
-                screen.style.width  = ghostScreenRect.w + 'px';
-                screen.style.height = ghostScreenRect.h + 'px';
-              }
-              // Fade ghost in
-              requestAnimationFrame(() => {
-                ghostEl.style.opacity = '1';
-              });
-            }
-          } else {
-            /* ── Phase C: ghost flies to real positions, page fades in ── */
-            if (!landedFired && t >= 0.82) {
-              landedFired = true;
-              onLanded?.();               // navigate — real page renders behind overlay
-            }
-
-            if (ghostAdded && ghostScreenRect && !ghostEl._flying) {
-              ghostEl._flying = true;
-              // Fade the WebGL canvas out while ghost flies
-              renderer.domElement.style.transition = 'opacity 0.3s ease';
-              renderer.domElement.style.opacity = '0';
-              // Fly ghost elements to real DOM positions
-              flyGhostToTarget(ghostScreenRect);
+            // Show screen UI once the laptop is big enough to house it legibly
+            if (t > 0.18 && !screenUIVisible) {
+              screenUIVisible = true;
+              screenUI.classList.add('is-visible');
             }
           }
 
-          if (t < 0.75) renderer.render(scene, camera);
+          /* ── Phase B (55% – 85%): bezel/body fade out ── */
+          if (t > 0.55 && t <= 0.85) {
+            const e = (t - 0.55) / 0.30;
+
+            // Keep scale growing slowly so screen completely covers viewport
+            pivot.scale.setScalar(2.8 + easeInOut(e) * 0.6);
+            pivot.position.set(0, -0.06, 0);
+            pivot.rotation.set(-0.04, 0, 0);
+
+            // Fade laptop body meshes; leave screen mesh opaque until late
+            model.traverse((child) => {
+              if (!child.isMesh || child === screenMesh) return;
+              const mats = Array.isArray(child.material) ? child.material : [child.material];
+              mats.forEach((m) => {
+                m.transparent = true;
+                m.opacity = Math.max(0, 1 - easeInOut(e) * 1.4);
+              });
+            });
+            // Screen itself fades at the very end of Phase B
+            if (screenMesh) {
+              const mats = Array.isArray(screenMesh.material)
+                ? screenMesh.material : [screenMesh.material];
+              mats.forEach((m) => {
+                m.transparent = true;
+                m.opacity = Math.max(0, 1 - easeInOut(Math.max(0, e - 0.55) / 0.45));
+              });
+            }
+
+            // Navigate at t=0.78 while overlay still covers page
+            if (!landedFired && t >= 0.78) {
+              landedFired = true;
+              onLanded?.();
+            }
+          }
+
+          /* ── Phase C (85% – 100%): fade overlay out ── */
+          if (t > 0.85 && t <= 1) {
+            if (!landedFired) { landedFired = true; onLanded?.(); }
+            const e = (t - 0.85) / 0.15;
+            overlay.style.opacity = String(1 - easeInOut(e));
+            screenUI.style.opacity = String(1 - easeInOut(e));
+          }
+
+          // Project and reposition screen UI every frame during phases A + B
+          if (t <= 0.85) {
+            const rect = projectScreenRect();
+            syncScreenUI(rect);
+          }
+
+          renderer.render(scene, camera);
 
           if (t < 1) {
             raf = requestAnimationFrame(tick);
           } else {
             if (!landedFired) { landedFired = true; onLanded?.(); }
-            // Fade overlay out to reveal real page
-            overlay.style.transition = 'opacity 0.45s ease';
-            requestAnimationFrame(() => { overlay.style.opacity = '0'; });
-            setTimeout(() => finish(teardown), 480);
+            setTimeout(() => finish(teardown), 120);
           }
         };
+
         raf = requestAnimationFrame(tick);
       },
       undefined,
