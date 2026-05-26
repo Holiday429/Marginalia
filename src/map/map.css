@@ -397,13 +397,13 @@ body.map-staged-entering #panel-map .map-header-right {
   justify-content: center;
   /* Transparent until the globe's first frame is up (room shows through, no
      black flash); then it darkens. The globe canvas is always topmost. */
-  background: rgba(22, 18, 14, 0);
+  background: rgba(48, 46, 42, 0);
   opacity: 1;
   pointer-events: none;
   transition: background 0.4s ease;
 }
 .globe-fly-overlay.is-active {
-  background: rgba(22, 18, 14, 0.98);
+  background: rgba(48, 46, 42, 0.98);
 }
 .globe-fly-overlay canvas {
   display: block;
