@@ -806,3 +806,27 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
 .graph-fly-overlay.is-active {
   background: rgba(26, 22, 18, 0.92);
 }
+
+/* ── Book fly-in transition overlay (room → book detail) ─────────────────── */
+.book-fly-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+  background: rgba(26, 22, 18, 0);
+  transition: background 0.35s ease;
+}
+.book-fly-overlay.is-active {
+  background: rgba(26, 22, 18, 0.55);
+}
+
+/* Cover card — inline-positioned by JS; img fills the card */
+.book-fly-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: var(--book-fly-bg, #14263e);
+}

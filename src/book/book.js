@@ -105,15 +105,16 @@ async function enterBook(params = {}) {
     });
   }
 
-  // Wire up annotation toggles
+  // Wire up annotation collapse toggles (annotations are expanded by default)
   root.querySelectorAll('.hl-annotation-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
-      const ann = btn.parentElement.querySelector('.hl-annotation');
+      const hlBody = btn.closest('.hl-body');
+      const ann = hlBody?.querySelector('[data-hl-annotation]');
       if (!ann) return;
-      const open = ann.classList.toggle('visible');
-      btn.classList.toggle('open', open);
+      const collapsed = ann.classList.toggle('is-collapsed');
+      btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
       const icon = btn.querySelector('.tog-icon');
-      if (icon) icon.textContent = open ? '×' : '+';
+      if (icon) icon.textContent = collapsed ? '+' : '−';
     });
   });
 
@@ -251,7 +252,119 @@ async function enterBook(params = {}) {
   }
 
 
-  // Wire up knowledge structure inner tabs
+  // ── Overview: stat cards → jump to tab ───────────────────────────────
+  root.querySelectorAll('.ov-stat-card[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabBtn = root.querySelector(`.book-tab-btn[data-target="${CSS.escape(btn.dataset.target)}"]`);
+      if (tabBtn) tabBtn.click();
+    });
+  });
+
+  // ── Overview: tags ────────────────────────────────────────────────────
+  const tagsRoot = root.querySelector('[data-ov-tags]');
+  const tagForm  = root.querySelector('[data-tag-form]');
+  const tagInput = root.querySelector('[data-tag-input]');
+
+  root.querySelector('[data-add-tag]')?.addEventListener('click', () => {
+    tagForm.hidden = false;
+    root.querySelector('[data-add-tag]').hidden = true;
+    tagInput?.focus();
+  });
+  root.querySelector('[data-cancel-tag]')?.addEventListener('click', () => {
+    tagForm.hidden = true;
+    root.querySelector('[data-add-tag]').hidden = false;
+    if (tagInput) tagInput.value = '';
+  });
+  tagForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newTag = tagInput?.value.trim();
+    if (!newTag) return;
+    const current = Array.from(root.querySelectorAll('.ov-tag')).map(el => el.firstChild?.textContent?.trim()).filter(Boolean);
+    if (current.includes(newTag)) { tagForm.hidden = true; return; }
+    const updated = [...current, newTag];
+    try {
+      await MarginaliaBooksCloud?.setBookTags?.({ bookId: id, tags: updated });
+    } catch (err) { logError(err, { context: 'book tags save', bookId: id }); }
+    enterBook({ id });
+  });
+  root.querySelectorAll('[data-remove-tag]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const remove = btn.dataset.removeTag;
+      const current = Array.from(root.querySelectorAll('.ov-tag')).map(el => el.firstChild?.textContent?.trim()).filter(Boolean);
+      const updated = current.filter(t => t !== remove);
+      try {
+        await MarginaliaBooksCloud?.setBookTags?.({ bookId: id, tags: updated });
+      } catch (err) { logError(err, { context: 'book tag remove', bookId: id }); }
+      enterBook({ id });
+    });
+  });
+
+  // ── Overview: rating ──────────────────────────────────────────────────
+  root.querySelectorAll('[data-star]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const val = parseInt(btn.dataset.star, 10);
+      root.querySelectorAll('[data-star]').forEach((s, i) => {
+        const filled = i < val;
+        s.classList.toggle('is-filled', filled);
+        s.querySelector('svg')?.setAttribute('fill', filled ? 'currentColor' : 'none');
+      });
+      const ratingPrompt = root.querySelector('.ov-rating-prompt');
+      const ratingValEl  = root.querySelector('.ov-rating-val');
+      if (ratingPrompt) ratingPrompt.remove();
+      if (ratingValEl) ratingValEl.textContent = `${val}/5`;
+      else {
+        const span = document.createElement('span');
+        span.className = 'ov-rating-val';
+        span.textContent = `${val}/5`;
+        root.querySelector('[data-ov-rating]')?.appendChild(span);
+      }
+      try {
+        await MarginaliaBooksCloud?.setBookRating?.({ bookId: id, rating: val });
+      } catch (err) { logError(err, { context: 'book rating save', bookId: id }); }
+    });
+  });
+
+  // ── Overview: reading progress ────────────────────────────────────────
+  root.querySelector('[data-edit-progress]')?.addEventListener('click', () => {
+    root.querySelector('[data-ov-progress-display]').hidden = true;
+    root.querySelector('[data-progress-select]').hidden = false;
+    root.querySelector('[data-progress-select]')?.focus();
+  });
+  root.querySelector('[data-progress-select]')?.addEventListener('change', async (e) => {
+    const val = e.target.value;
+    const labels = { 'not-started': 'Not started', 'in-progress': 'In progress', 'done': 'Done' };
+    const textEl = root.querySelector('[data-ov-progress-text]');
+    const dotEl  = root.querySelector('.ov-progress-dot');
+    if (textEl) textEl.textContent = labels[val] || val;
+    if (dotEl) dotEl.className = `ov-progress-dot ov-progress-dot--${val}`;
+    e.target.hidden = true;
+    root.querySelector('[data-ov-progress-display]').hidden = false;
+    try {
+      await MarginaliaBooksCloud?.setBookProgress?.({ bookId: id, readingProgress: val });
+    } catch (err) { logError(err, { context: 'book progress save', bookId: id }); }
+  });
+
+  // ── Overview: Douban link ─────────────────────────────────────────────
+  root.querySelector('[data-edit-douban]')?.addEventListener('click', () => {
+    root.querySelector('[data-douban-field]').querySelector('a, button')?.setAttribute('hidden', '');
+    root.querySelector('[data-edit-douban]')?.setAttribute('hidden', '');
+    root.querySelector('[data-douban-form]').hidden = false;
+    root.querySelector('[data-douban-input]')?.focus();
+  });
+  root.querySelector('[data-cancel-douban]')?.addEventListener('click', () => {
+    root.querySelector('[data-douban-form]').hidden = true;
+    root.querySelector('[data-edit-douban]')?.removeAttribute('hidden');
+  });
+  root.querySelector('[data-douban-form]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = root.querySelector('[data-douban-input]')?.value.trim() || '';
+    try {
+      await MarginaliaBooksCloud?.setBookDouban?.({ bookId: id, douban: url });
+    } catch (err) { logError(err, { context: 'book douban save', bookId: id }); }
+    enterBook({ id });
+  });
+
+  // ── Overview: Wire up knowledge structure inner tabs
   root.querySelectorAll('.mm-top-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       const paneId = tab.dataset.mmTab;
@@ -275,11 +388,33 @@ async function enterBook(params = {}) {
     });
   });
 
-  // Wire up connection items
-  root.querySelectorAll('.connection-item[data-book-id]').forEach(item => {
-    item.addEventListener('click', () => {
-      const id = item.dataset.bookId;
-      if (id && BooksStore.getById(id)) App.show('book', { id });
+  // Wire up Related Books actions
+  root.querySelectorAll('.connection-action--open').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const bookId = btn.dataset.bookId;
+      if (bookId && BooksStore.getById(bookId)) App.show('book', { id: bookId });
+    });
+  });
+  root.querySelectorAll('.connection-action--add').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const title = btn.dataset.addBookTitle;
+      const author = btn.dataset.addBookAuthor;
+      if (title) App.show('new-entry', { prefill: { title, author } });
+    });
+  });
+  // Overview related strip — card click → open book, see-all → switch tab
+  root.querySelectorAll('.ov-rel-card.is-openable').forEach(card => {
+    card.addEventListener('click', () => {
+      const bookId = card.dataset.bookId;
+      if (bookId) App.show('book', { id: bookId });
+    });
+  });
+  root.querySelectorAll('.ov-related-see-all[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabBtn = root.querySelector(`.book-tab-btn[data-target="${CSS.escape(btn.dataset.target)}"]`);
+      if (tabBtn) tabBtn.click();
     });
   });
 
@@ -434,28 +569,141 @@ function renderOverview(b) {
   const cv = b.cover || {};
   const cvStyle = `--cv-bg:${cv.bg || '#14263e'}; --cv-text:${cv.text || '#e8dfc8'}`;
   const hasCoverImage = Boolean(cv.image);
-  const ratingNum = b.rating ?? '—';
-  const stars = Array.from({ length: 5 }, (_, i) =>
-    `<div class="star${i < (b.rating || 0) ? '' : ' empty'}"></div>`
-  ).join('');
 
+  // ── Meta rows (hollow icon + label + value) ──────────────────────────
   const metaRows = [
     b.meta?.startedAt && b.meta?.finishedAt && {
-      k: 'Reading Window',
+      icon: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 1v4M11 1v4M2 7h12"/></svg>`,
+      k: 'Reading window',
       v: `${formatDate(b.meta.startedAt)} – ${formatDate(b.meta.finishedAt)}`
     },
-    b.meta?.edition   && { k: 'Edition',      v: esc(b.meta.edition) },
-    b.meta?.pages     && { k: 'Total Pages',   v: `${b.meta.pages} 页` },
-    b.meta?.readingHours && b.meta?.startedAt && b.meta?.finishedAt && {
-      k: 'Reading time',
-      v: `${daysBetween(b.meta.startedAt, b.meta.finishedAt)} 天 · 约 ${b.meta.readingHours} 小时`
+    b.meta?.edition && {
+      icon: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 2h7l3 3v9H3z"/><path d="M10 2v3h3"/><path d="M5 8h6M5 11h4"/></svg>`,
+      k: 'Edition',
+      v: esc(b.meta.edition)
     },
-    b.tags?.length && { k: 'Tags', v: b.tags.join(' · ') }
+    b.year && {
+      icon: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5l2.5 1.5"/></svg>`,
+      k: 'Published',
+      v: esc(String(b.year))
+    },
+    b.meta?.publisher && {
+      icon: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 13V4l6-2 6 2v9"/><path d="M8 2v11"/><path d="M2 9h6M8 9h6"/></svg>`,
+      k: 'Publisher',
+      v: esc(b.meta.publisher)
+    },
   ].filter(Boolean);
+
+  // ── Tags ─────────────────────────────────────────────────────────────
+  // Cycling palette — muted, harmonious with the dark theme
+  const TAG_COLORS = [
+    { bg: 'rgba(168,132,90,0.18)',  color: '#c8a96e' },
+    { bg: 'rgba(100,138,120,0.18)', color: '#7db89e' },
+    { bg: 'rgba(140,110,160,0.18)', color: '#b08cc8' },
+    { bg: 'rgba(90,130,165,0.18)',  color: '#7aaac0' },
+    { bg: 'rgba(160,110,100,0.18)', color: '#c8857a' },
+    { bg: 'rgba(120,145,90,0.18)',  color: '#96b870' },
+  ];
+  const tags = Array.isArray(b.tags) ? b.tags : [];
+  const tagsHtml = `
+    <div class="ov-field">
+      <div class="ov-field-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5l5.5-6.5H14v6.5L7.5 15z"/><circle cx="11" cy="5" r="1" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <span class="ov-field-label">Tags</span>
+      <div class="ov-field-val">
+        <div class="ov-tags" data-ov-tags>
+          ${tags.map((t, i) => {
+            const c = TAG_COLORS[i % TAG_COLORS.length];
+            return `<button class="ov-tag" type="button" data-remove-tag="${esc(t)}" style="--tag-bg:${c.bg};--tag-color:${c.color}" title="Click to remove">${esc(t)}</button>`;
+          }).join('')}
+          <button class="ov-tag-add" type="button" data-add-tag aria-label="Add tag">+</button>
+        </div>
+        <form class="ov-tag-form" data-tag-form hidden>
+          <input class="ov-tag-input" type="text" placeholder="Tag name…" maxlength="32" data-tag-input>
+          <button class="ov-tag-form-save" type="submit">Add</button>
+          <button class="ov-tag-form-cancel" type="button" data-cancel-tag>Cancel</button>
+        </form>
+      </div>
+    </div>`;
+
+  // ── Reading progress ──────────────────────────────────────────────────
+  const PROGRESS_OPTIONS = [
+    { value: 'not-started', label: 'Not started' },
+    { value: 'in-progress', label: 'In progress' },
+    { value: 'done',        label: 'Done' },
+  ];
+  const currentProgress = b.meta?.readingProgress || (
+    b.status === 'read' ? 'done' : b.status === 'reading' ? 'in-progress' : 'not-started'
+  );
+  const progressHtml = `
+    <div class="ov-field">
+      <div class="ov-field-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+      </div>
+      <span class="ov-field-label">Progress</span>
+      <div class="ov-field-val">
+        <div class="ov-progress-display" data-ov-progress-display>
+          <span class="ov-progress-dot ov-progress-dot--${esc(currentProgress)}"></span>
+          <span class="ov-progress-text" data-ov-progress-text>${esc(PROGRESS_OPTIONS.find(o => o.value === currentProgress)?.label || 'Not started')}</span>
+          <button class="ov-field-edit-btn" type="button" data-edit-progress aria-label="Edit progress">Edit</button>
+        </div>
+        <select class="ov-progress-select" data-progress-select hidden>
+          ${PROGRESS_OPTIONS.map(o => `<option value="${o.value}"${o.value === currentProgress ? ' selected' : ''}>${o.label}</option>`).join('')}
+        </select>
+      </div>
+    </div>`;
+
+  // ── Rating (standalone block, rendered separately in right column) ───
+  const ratingVal = b.rating || 0;
+  const ratingBlockHtml = `
+    <div class="rating-block">
+      <div class="rating-label">Rating</div>
+      <div class="rating-num">${ratingVal || '—'}<sup>/5</sup></div>
+      <div class="ov-rating" data-ov-rating>
+        ${Array.from({ length: 5 }, (_, i) => `
+          <button class="ov-star${i < ratingVal ? ' is-filled' : ''}" type="button" data-star="${i + 1}" aria-label="${i + 1} stars">
+            <svg viewBox="0 0 16 16" fill="${i < ratingVal ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.8 3.6 4 .6-2.9 2.8.7 4L8 11l-3.6 1.9.7-4L2.1 6.2l4-.6z"/></svg>
+          </button>`).join('')}
+      </div>
+      ${!ratingVal ? `<div class="rating-note">Tap to rate</div>` : ''}
+    </div>`;
+
+  // ── Douban link ───────────────────────────────────────────────────────
+  const doubanUrl = b.meta?.douban || '';
+  const doubanHtml = `
+    <div class="ov-field">
+      <div class="ov-field-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7 9a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M13 15l-3.5-3.5"/></svg>
+      </div>
+      <span class="ov-field-label">Douban</span>
+      <div class="ov-field-val" data-douban-field>
+        ${doubanUrl
+          ? `<a class="ov-link" href="${esc(doubanUrl)}" target="_blank" rel="noopener">${esc(doubanUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 38))}${doubanUrl.length > 42 ? '…' : ''}</a>
+             <button class="ov-field-edit-btn" type="button" data-edit-douban>Edit</button>`
+          : `<button class="ov-field-add-btn" type="button" data-edit-douban>Add link</button>`
+        }
+        <form class="ov-douban-form" data-douban-form hidden>
+          <input class="ov-douban-input" type="url" placeholder="https://book.douban.com/…" value="${esc(doubanUrl)}" data-douban-input>
+          <button class="ov-tag-form-save" type="submit">Save</button>
+          <button class="ov-tag-form-cancel" type="button" data-cancel-douban>Cancel</button>
+        </form>
+      </div>
+    </div>`;
+
+  // ── Stat cards (count + jump, no content) ────────────────────────────
+  const statCards = [
+    { id: 'highlights',   label: 'Highlights',   count: (b.highlights || []).length,    target: 'highlights'   },
+    { id: 'notes',        label: 'Notes',         count: (b.readingContextBlocks || []).length, target: 'notes' },
+    { id: 'connections',  label: 'Connections',   count: getBookGraphConcepts(b.id).length,     target: 'visual-notes' },
+    { id: 'actions',      label: 'Actions',        count: (b.actions || []).length,       target: 'actions'      },
+  ];
 
   return `
     <section class="book-overview">
       <div class="book-overview-hero">
+
+        <!-- Col 1: cover -->
         <div class="book-cover-stack">
           <div class="book-cover${hasCoverImage ? ' has-image' : ''}" style="${cvStyle}" role="img" aria-label="${esc(b.titleZh || b.title)} cover">
             ${hasCoverImage
@@ -474,43 +722,72 @@ function renderOverview(b) {
             }
           </div>
           <div class="book-cover-tools">
-            <button type="button" class="book-cover-upload-btn" data-upload-cover-btn>Upload Cover</button>
+            <button type="button" class="book-cover-upload-btn" data-upload-cover-btn>Upload cover</button>
             <span class="book-cover-upload-status" data-upload-cover-status></span>
             <input type="file" accept="image/*" data-upload-cover-input hidden>
           </div>
         </div>
+
+        <!-- Col 2: title + meta fields -->
         <div class="book-overview-main">
           <div class="book-title-big">${formatTitle(b.titleZh || b.title)}</div>
           <div class="book-author">${esc((b.authorZh ? b.authorZh + ' · ' : '') + b.author)}</div>
-          <p class="book-overview-summary">${esc(b.summary || '')}</p>
-          <div class="meta-rows">
+          ${b.summary ? `<p class="book-overview-summary">${esc(b.summary)}</p>` : ''}
+
+          <div class="ov-fields">
             ${metaRows.map(r => `
-              <div class="meta-row">
-                <span class="meta-k">${r.k}</span>
-                <span class="meta-v">${r.v}</span>
+              <div class="ov-field ov-field--static">
+                <div class="ov-field-icon">${r.icon}</div>
+                <span class="ov-field-label">${r.k}</span>
+                <div class="ov-field-val">${r.v}</div>
               </div>`).join('')}
+            ${progressHtml}
+            ${tagsHtml}
+            ${doubanHtml}
           </div>
-          <div class="book-user-note-block">
-            <label class="book-user-note-label" for="book-user-note-${esc(b.id)}">My take</label>
-            <textarea
-              id="book-user-note-${esc(b.id)}"
-              class="book-user-note-input"
-              data-user-note-input
-              maxlength="280"
-              placeholder="One sentence that captures what this book meant to you…"
-              rows="2"
-            >${esc(b.userNote || '')}</textarea>
-            <span class="book-user-note-status" data-user-note-status></span>
-          </div>
+
           ${isUserBook(b) ? `<button class="book-delete-btn" type="button" data-delete-book="${esc(b.id)}">Remove book</button>` : ''}
         </div>
-        <div class="rating-block">
-          <div class="rating-label">Overall rating</div>
-          <div class="rating-num">${ratingNum}<sup>/5</sup></div>
-          <div class="rating-stars">${stars}</div>
-          <div class="rating-note">${esc((b.insight?.oneLiner || b.summary || '').slice(0, 40))}</div>
-        </div>
+
+        <!-- Col 3: rating -->
+        ${ratingBlockHtml}
+
       </div>
+
+      <!-- Stat cards — full width below hero (cover left → rating right) -->
+      <div class="ov-stats">
+        ${statCards.map(s => `
+          <button class="ov-stat-card" type="button" data-target="${esc(s.target)}">
+            <span class="ov-stat-num">${s.count}</span>
+            <span class="ov-stat-label">${esc(s.label)}</span>
+          </button>`).join('')}
+      </div>
+
+      ${b.relatedBooks?.length ? `
+        <div class="ov-related-strip">
+          <div class="ov-related-head">
+            <span class="ov-related-label">Related Books</span>
+            <button class="ov-related-see-all" type="button" data-target="related-books">${b.relatedBooks.length} 本相关 →</button>
+          </div>
+          <div class="ov-related-scroll">
+            ${b.relatedBooks.map(item => {
+              const storeMatch = BooksStore.getAll().find(bk => bk.title === item.title || bk.titleZh === item.title)
+                || (item.id ? BooksStore.getById(item.id) : null);
+              const coverImg = storeMatch?.cover?.image || item.cover || null;
+              const cvBg = storeMatch?.cover?.bg || '#14263e';
+              const cvText = storeMatch?.cover?.text || '#e8dfc8';
+              const bookId = storeMatch?.id || item.id || null;
+              return `
+                <div class="ov-rel-card${bookId ? ' is-openable' : ''}"${bookId ? ` data-book-id="${esc(String(bookId))}"` : ''}>
+                  <div class="ov-rel-cover${coverImg ? ' has-image' : ''}" style="--cv-bg:${esc(cvBg)};--cv-text:${esc(cvText)}">
+                    ${coverImg ? `<img src="${esc(coverImg)}" alt="${esc(item.title)}">` : `<span class="ov-rel-cover-title">${esc(item.title)}</span>`}
+                  </div>
+                  <div class="ov-rel-title">${esc(item.title)}</div>
+                  <div class="ov-rel-author">${esc(item.author || '')}</div>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
     </section>
   `;
 }
@@ -559,17 +836,16 @@ function renderHighlights(b) {
     <section class="highlights-section">
       <div class="section-head">
         <h2>Highlights</h2>
-        <span class="sh-meta">${items.length} excerpts</span>
+        <div class="sh-actions">
+          <button class="hl-add-btn" type="button" id="hlAddBtn">+ Add highlight</button>
+          <button class="hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
+        </div>
       </div>
       ${items.length ? `
         <ul class="highlight-list" id="hlList">
           ${items.map((h, i) => renderHighlightItem(h, i)).join('')}
         </ul>
-      ` : `<div class="ai-panel-placeholder"><span>No highlights yet — import them from Kindle or add them manually below.</span></div>`}
-      <div class="hl-add-row">
-        <button class="hl-add-btn" type="button" id="hlAddBtn">+ Add highlight</button>
-        <button class="hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
-      </div>
+      ` : `<div class="ai-panel-placeholder"><span>No highlights yet — import them from Kindle or add them manually above.</span></div>`}
       <div class="hl-kindle-zone" id="hlKindleZone" hidden data-book-id="${esc(b.id)}"></div>
       <form class="hl-form" id="hlForm" hidden>
         <div class="hl-form-row">
@@ -615,18 +891,16 @@ function renderHighlightItem(h, i) {
     <li class="hl-item${isUser ? ' hl-item--user' : ''}" data-hl-id="${esc(String(h.id))}">
       <div class="hl-index">${String(i + 1).padStart(2, '0')}</div>
       <div class="hl-body">
-        <p class="hl-quote">${esc(h.quote)}</p>
-        <span class="hl-location">${h.page ? `p. ${h.page} · ` : ''}${esc(h.chapter || '')}</span>
-        ${h.kind ? `<span class="hl-kind">${esc(normalizeHighlightKind(h.kind))}</span>` : ''}
-        ${h.conceptId ? `<button class="hl-concept-link" type="button" data-open-concept-id="${esc(h.conceptId)}">Open concept</button>` : ''}
+        <div class="hl-quote-row">
+          <p class="hl-quote">${esc(h.quote)}</p>
+          ${h.annotation ? `
+            <button class="hl-annotation-toggle" type="button" aria-expanded="true" aria-label="Collapse culture note">
+              <span class="tog-label">Culture note</span><span class="tog-icon">−</span>
+            </button>` : ''}
+        </div>
         ${isUser ? `<button class="hl-delete-btn" type="button" data-hl-delete="${esc(String(h.id))}" aria-label="Delete highlight">×</button>` : ''}
         ${h.annotation ? `
-          <br>
-          <button class="hl-annotation-toggle" type="button">
-            <span class="tog-icon">+</span> Culture note
-          </button>
-          <div class="hl-annotation">
-            <div class="hl-annotation-tag">Culture note</div>
+          <div class="hl-annotation" data-hl-annotation>
             <p>${esc(h.annotation)}</p>
           </div>` : ''}
       </div>
@@ -819,21 +1093,31 @@ function renderMindmap(b) {
 function renderConnections(b) {
   return `
     <section class="connections-section">
-      <div class="section-label">§ 05 — Cross-book Connections</div>
       <h2>Related Books</h2>
       <ul class="connection-list">
         ${b.relatedBooks.map(item => {
-          const canOpen = Boolean(item.id && BooksStore.getById(item.id));
+          const storeMatch = BooksStore.getAll().find(bk => bk.title === item.title || bk.titleZh === item.title)
+            || (item.id ? BooksStore.getById(item.id) : null);
+          const canOpen = Boolean(storeMatch);
+          const coverImg = storeMatch?.cover?.image || item.cover || null;
+          const cvBg = storeMatch?.cover?.bg || '#14263e';
+          const cvText = storeMatch?.cover?.text || '#e8dfc8';
+          const bookId = storeMatch?.id || item.id || null;
           return `
-            <li class="connection-item${canOpen ? ' is-openable' : ''}"${canOpen ? ` data-book-id="${esc(item.id)}"` : ''}>
+            <li class="connection-item">
               <div class="connection-main">
                 <div class="connection-title">${esc(item.title || '')}</div>
                 <div class="connection-author">${esc(item.author || '')}</div>
                 <p class="connection-relation">${esc(item.relation || '')}</p>
+                <div class="connection-footer">
+                  ${item.type ? `<span class="connection-type">${esc(item.type)}</span>` : ''}
+                  ${canOpen && bookId
+                    ? `<button class="connection-action connection-action--open" type="button" data-book-id="${esc(String(bookId))}">Open book →</button>`
+                    : `<button class="connection-action connection-action--add" type="button" data-add-book-title="${esc(item.title)}" data-add-book-author="${esc(item.author || '')}">+ Add to shelf</button>`}
+                </div>
               </div>
-              <div class="connection-meta">
-                ${item.type ? `<span class="connection-type">${esc(item.type)}</span>` : ''}
-                <span class="connection-open${canOpen ? '' : ' is-disabled'}">${canOpen ? 'Open' : 'Not in shelf'}</span>
+              <div class="connection-cover${coverImg ? ' has-image' : ''}" style="--cv-bg:${esc(cvBg)};--cv-text:${esc(cvText)}">
+                ${coverImg ? `<img src="${esc(coverImg)}" alt="${esc(item.title)}">` : `<span class="connection-cover-title">${esc(item.title)}</span>`}
               </div>
             </li>`;
         }).join('')}

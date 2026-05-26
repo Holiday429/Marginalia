@@ -594,6 +594,47 @@ export class RoomScene {
     };
   }
 
+  /** Returns the desk book's projected bounding rect in CSS pixels,
+   *  or null if the model hasn't loaded yet. Used by the book fly-in to
+   *  anchor the cover card exactly on top of the 3D object. */
+  getDeskBookScreenRect(): { left: number; top: number; width: number; height: number } | null {
+    const model = this.namedModels.get('desk-book-sapiens');
+    if (!model) return null;
+    const canvas = this.renderer.domElement;
+    const canvasRect = canvas.getBoundingClientRect();
+    if (!canvasRect.width || !canvasRect.height) return null;
+
+    const box = new THREE.Box3().setFromObject(model);
+    const corners = [
+      new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+      new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+      new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+      new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+      new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+      new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+      new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+      new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+    ];
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    corners.forEach((corner) => {
+      const ndc = corner.clone().project(this.camera);
+      const sx = canvasRect.left + ((ndc.x + 1) / 2) * canvasRect.width;
+      const sy = canvasRect.top + ((-ndc.y + 1) / 2) * canvasRect.height;
+      if (sx < minX) minX = sx;
+      if (sx > maxX) maxX = sx;
+      if (sy < minY) minY = sy;
+      if (sy > maxY) maxY = sy;
+    });
+
+    return {
+      left: minX,
+      top: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }
+
   pause(): void {
     this._paused = true;
     window.cancelAnimationFrame(this.frameHandle);

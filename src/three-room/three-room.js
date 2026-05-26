@@ -74,6 +74,10 @@ export function createThreeRoomPreview(host, options = {}) {
       return scene.getHeroBookScreenPos();
     },
 
+    getDeskBookScreenRect() {
+      return scene.getDeskBookScreenRect();
+    },
+
     pause() {
       scene.pause();
     },
