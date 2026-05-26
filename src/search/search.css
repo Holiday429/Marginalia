@@ -1617,9 +1617,11 @@ body[data-view="search"] {
 }
 
 /* Screen-tracking UI ────────────────────────────────────────────────────────
-   Repositioned every rAF frame to match the projected 3D screen rect.
-   left/top/width/height set in JS. Font size driven by --lf-fs (also JS).
-   No CSS transition on geometry — this div must track the 3D rect exactly. */
+   left/top/width/height driven by JS (pivot-local corners projected each rAF).
+   Font size via --lf-fs (proportional to screen width, set in JS).
+   No CSS transitions on geometry — must track 3D screen exactly.
+   Vertical position: bar at 30% from top of projected rect, mirroring the
+   real Search page's toolbar position when the screen fills the viewport. */
 .laptop-fly-screen-ui {
   position: fixed;
   z-index: 10000;
@@ -1627,61 +1629,67 @@ body[data-view="search"] {
   box-sizing: border-box;
   overflow: hidden;
   opacity: 0;
-  /* Vertical centering: the search bar lives roughly 32% down the screen */
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   justify-content: flex-start;
-  padding-top: 32%;
-  padding-left: 6%;
-  padding-right: 6%;
-  gap: 0;
+  /* 30% from top: matches real search bar position when screen = full page */
+  padding-top: 30%;
+  padding-left: 7%;
+  padding-right: 7%;
+  gap: 0.6em;
 }
 .laptop-fly-screen-ui.is-visible {
   opacity: 1;
-  transition: opacity 0.18s ease;
+  transition: opacity 0.22s ease;
 }
 
-.laptop-fly-screen-ui__searchbar {
+.laptop-fly-screen-ui__bar {
   display: flex;
   align-items: center;
   gap: 0.6em;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 0.5em;
-  padding: 0.55em 0.9em;
+  background: rgba(232, 223, 200, 0.07);
+  border: 1px solid rgba(232, 223, 200, 0.2);
+  border-radius: 0.45em;
+  padding: 0.5em 0.85em;
   font-family: var(--font-mono, 'IBM Plex Mono', monospace);
-  font-size: var(--lf-fs, 12px);
-  color: rgba(232, 223, 200, 0.6);
+  font-size: var(--lf-fs, 13px);
+  color: rgba(232, 223, 200, 0.58);
   white-space: nowrap;
   overflow: hidden;
-  margin-bottom: 0.6em;
 }
 
 .laptop-fly-screen-ui__icon {
   width: 1em;
   height: 1em;
   flex-shrink: 0;
-  opacity: 0.65;
+  opacity: 0.6;
+}
+
+.laptop-fly-screen-ui__placeholder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
 }
 
 .laptop-fly-screen-ui__chips {
   display: flex;
-  gap: 0.45em;
+  gap: 0.4em;
   flex-wrap: nowrap;
 }
 
 .laptop-fly-screen-ui__chip {
   font-family: var(--font-mono, 'IBM Plex Mono', monospace);
-  font-size: calc(var(--lf-fs, 12px) * 0.82);
-  padding: 0.28em 0.85em;
+  font-size: calc(var(--lf-fs, 13px) * 0.8);
+  padding: 0.25em 0.8em;
   border-radius: 2em;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: rgba(232, 223, 200, 0.48);
+  border: 1px solid rgba(232, 223, 200, 0.17);
+  color: rgba(232, 223, 200, 0.44);
   background: transparent;
   white-space: nowrap;
 }
 .laptop-fly-screen-ui__chip.is-active {
-  background: rgba(201, 169, 110, 0.22);
-  border-color: rgba(201, 169, 110, 0.48);
-  color: rgba(201, 169, 110, 0.88);
+  background: rgba(201, 169, 110, 0.2);
+  border-color: rgba(201, 169, 110, 0.45);
+  color: rgba(201, 169, 110, 0.85);
 }
