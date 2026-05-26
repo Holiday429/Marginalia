@@ -960,9 +960,10 @@ function exitRoomViaHeroFlip() {
   });
 }
 
-// Enter the Search view with a laptop screen expand: the MacBook screen grows
-// from its projected position to fill the viewport, then hands off to the flat
-// Search view. CSS-only — no new WebGL renderer. Degrades on failure.
+// Enter the Search view with a laptop screen expand: the MacBook zooms toward
+// the camera with a real search-bar UI mounted on its screen (CSS3DRenderer);
+// once the screen fills the viewport, the search bar glides into the real
+// Search page slot (settleLaptopFlyIn). Mirrors the profile frame-fly handoff.
 function exitRoomViaLaptopFly() {
   if (ROOM_VIEW_STATE.transitioning) return;
   ROOM_VIEW_STATE.transitioning = true;
@@ -992,7 +993,7 @@ function exitRoomViaLaptopFly() {
   };
 
   import('../search/laptop-fly.js')
-    .then(({ playLaptopFlyIn }) => playLaptopFlyIn({ duration: 1600, onLanded: navigate }))
+    .then(({ playLaptopFlyIn }) => playLaptopFlyIn({ duration: 2000, onLanded: navigate }))
     .catch(() => {})
     .finally(() => {
       navigate();   // safety net if the animation never fired onLanded
@@ -1081,6 +1082,45 @@ function exitRoomViaGlobeFly() {
     .catch(() => {})
     .finally(() => {
       navigate();   // safety net if the animation never fired onLanded
+      ROOM_VIEW_STATE.transitioning = false;
+    });
+}
+
+// Enter the Book detail panel by lifting the desk book: the spine rises,
+// pivots to show its cover, scales up to fill the screen, then hands off
+// to the flat Book panel. Mirrors exitRoomViaGlobeFly's structure.
+function exitRoomViaBookFly(bookId) {
+  if (ROOM_VIEW_STATE.transitioning) return;
+  ROOM_VIEW_STATE.transitioning = true;
+  ROOM_VIEW_STATE.hoverAction = null;
+  closeRoomQuickSearch();
+  syncHoverBadge();
+
+  const roomTransition = { ...buildRoomTransitionMeta('book'), suppressRoomBackdrop: true };
+  const nextParams = { id: bookId, __roomTransition: roomTransition };
+
+  const pose = PANEL_POSES.book;   // 'approach'
+  if (pose && ROOM_VIEW_STATE.handle) {
+    ROOM_VIEW_STATE.pose = pose;
+    ROOM_VIEW_STATE.handle.goToPose(pose, false);
+    syncPoseButtons();
+  }
+
+  let navigated = false;
+  const navigate = () => {
+    if (navigated) return;
+    navigated = true;
+    PanelManager.open('book', nextParams);
+  };
+
+  const coverUrl = BooksStore.getById?.(bookId)?.cover?.image ?? null;
+  const coverRect = ROOM_VIEW_STATE.handle?.getDeskBookScreenRect?.() ?? null;
+
+  import('../book/book-fly.js')
+    .then(({ playBookFlyIn }) => playBookFlyIn({ duration: 600, onLanded: navigate, coverUrl, coverRect }))
+    .catch(() => {})
+    .finally(() => {
+      navigate();   // safety net if onLanded never fired
       ROOM_VIEW_STATE.transitioning = false;
     });
 }
