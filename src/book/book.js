@@ -9,6 +9,7 @@ import { ActionsStore } from '../store/actions-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { renderSearchSection } from '../search/search.js';
 import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.js';
+import { MarginaliaAuth } from '../firebase/auth.js';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
 import { PanelRegistry } from './panels/registry.js';
 // Register panel render functions (side-effect imports).
@@ -23,6 +24,10 @@ import { openConceptDrawer } from '../core/concept-ui.js';
 import { AIGenerateUI } from '../ai/client/generate-ui.ts';
 import { KindleImport } from '../api/kindle-import.js';
 import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
+import { generateReadingCardBlob, fetchReadingCardAI } from './reading-card.ts';
+import { ENV } from '../core/env.ts';
+import { HeroBook } from '../components/hero-book/hero-book.js';
+import '../components/hero-book/hero-book.css';
 
 let __currentBookId = null;
 
@@ -31,20 +36,40 @@ function initBook() {}
 async function enterBook(params = {}) {
   const fallbackId = BooksStore.getAll()[0]?.id || 'sapiens';
   const id = params.id || __currentBookId || fallbackId;
-  const storeBook = BooksStore.getById(id);
-  const seedBook = SEED_BOOK_BY_ID[id];
-  const book = id === 'sapiens'
-    ? (seedBook || storeBook)
-    : (storeBook || seedBook);
+  const publicSlug = String(params.publicSlug || '').trim().toLowerCase();
+  const publicView = Boolean(publicSlug);
+  let noteContent = '';
+  let liveHighlights = [];
+  let book = null;
+
+  if (publicView) {
+    const publicBook = await fetchPublicBookContext(publicSlug, id);
+    if (!publicBook) {
+      renderMissingBookState('This shared book is not available.');
+      return;
+    }
+    book = publicBook.book;
+    liveHighlights = publicBook.highlights;
+    noteContent = publicBook.noteContent;
+  } else {
+    const storeBook = BooksStore.getById(id);
+    const seedBook = SEED_BOOK_BY_ID[id];
+    book = id === 'sapiens'
+      ? (seedBook || storeBook)
+      : (storeBook || seedBook);
+  }
+
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
   __currentBookId = id;
 
   // Merge live user highlights from HighlightsStore (Firestore) with any
   // seed highlights baked into the book object. View-local copy — seed never mutated.
-  const liveHighlights = HighlightsStore.getUid()
-    ? HighlightsStore.getAll().filter((h) => h.bookId === id)
-    : ((await NotesStore?.getHighlights(id)) || []);
-  const mergedHighlights = [...(book.highlights || []), ...liveHighlights];
+  if (!publicView) {
+    liveHighlights = HighlightsStore.getUid()
+      ? HighlightsStore.getAll().filter((h) => h.bookId === id)
+      : ((await NotesStore?.getHighlights(id)) || []);
+  }
+  const mergedHighlights = dedupeHighlights([...(book.highlights || []), ...liveHighlights]);
 
   // Merge actions: ActionsStore (Firestore) takes precedence over any actions
   // baked into the book object (seed data). For unauthenticated users the
@@ -56,8 +81,11 @@ async function enterBook(params = {}) {
     ...book,
     ...(mergedHighlights.length ? { highlights: mergedHighlights } : {}),
     ...(ActionsStore.getUid() ? { actions: liveActions } : {}),
+    noteContent,
+    isReadOnly: publicView,
   };
   const bookView = buildBookDetailModel(rawBookView);
+  if (publicView) bookView.sections = ['overview', 'highlights', 'notes'];
 
   const root = document.getElementById('panel-book');
   const sections = getBookSections(bookView);
@@ -74,7 +102,7 @@ async function enterBook(params = {}) {
   });
 
   // Mount AI generate toolbars
-  AIGenerateUI?.mount(bookView, root);
+  if (!publicView) AIGenerateUI?.mount(bookView, root);
 
   // Wire up sidebar tabs
   const outline = root.querySelector('.book-outline');
@@ -599,6 +627,101 @@ async function enterBook(params = {}) {
     });
   }
 
+  // ── Reading card modal / generation ──────────────────────────────────────
+  let currentReadingCardUrl = '';
+  let currentReadingCardBlob = null;
+  let currentReadingCardName = `${sanitizeFilename(book.title || 'book')}-reading-card.png`;
+  let readingCardHero = null;
+
+  if (!publicView) {
+    root.querySelector('[data-generate-card]')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      readingCardHero = openReadingCardModal(root, bookView.titleZh || bookView.title, readingCardHero);
+
+      try {
+        const noteText = await loadReadingCardNotes(id, root, noteContent);
+        const allHighlights = dedupeHighlights([...(bookView.highlights || []), ...liveHighlights]);
+        const selectedHighlights = selectReadingCardHighlights(allHighlights);
+        const aiResult = await fetchReadingCardAI({
+          book: bookView,
+          highlights: allHighlights,
+          notes: noteText,
+        });
+        const shareUrl = await buildReadingCardShareUrl(id);
+        const blob = await generateReadingCardBlob({
+          title: bookView.title,
+          displayTitle: bookView.titleZh || bookView.title,
+          subtitle: bookView.titleZh && bookView.titleZh !== bookView.title ? bookView.title : '',
+          author: [bookView.authorZh, bookView.author].filter(Boolean).join(' · ') || bookView.author || '',
+          rating: bookView.rating,
+          summary: bookView.summary,
+          highlights: selectedHighlights.length ? selectedHighlights : ['No highlights captured yet.'],
+          takeaway: aiResult.takeaway,
+          keywords: mergeReadingCardKeywords(bookView.tags, aiResult.keywords),
+          coverUrl: bookView.cover?.image,
+          shareUrl,
+          readingWindow: formatReadingWindow(bookView),
+          edition: bookView.meta?.edition || '',
+          publisher: bookView.meta?.publisher || '',
+          publishedYear: bookView.year ? String(bookView.year) : '',
+          spineColor: bookView.cover?.bg || '#171311',
+          textColor: bookView.cover?.text || '#f0e8d8',
+        });
+
+        if (currentReadingCardUrl) URL.revokeObjectURL(currentReadingCardUrl);
+        currentReadingCardBlob = blob;
+        currentReadingCardUrl = URL.createObjectURL(blob);
+        currentReadingCardName = `${sanitizeFilename(bookView.title || 'book')}-reading-card.png`;
+        showReadingCardResult(root, {
+          blobUrl: currentReadingCardUrl,
+          bookTitle: bookView.titleZh || bookView.title,
+          fileName: currentReadingCardName,
+        });
+      } catch (err) {
+        logError(err, { context: 'reading-card generate', bookId: id });
+        showReadingCardError(root, 'Reading card generation failed. Please try again.');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  root.querySelector('[data-reading-card-modal]')?.addEventListener('click', async (e) => {
+    const closeBtn = e.target.closest('[data-close-reading-card-modal]');
+    const shareBtn = e.target.closest('[data-share-card]');
+    const downloadBtn = e.target.closest('[data-download-card]');
+
+    if (closeBtn || e.target === e.currentTarget) {
+      closeReadingCardModal(root, readingCardHero);
+      return;
+    }
+
+    if (shareBtn && currentReadingCardBlob) {
+      try {
+        const file = new File([currentReadingCardBlob], currentReadingCardName, { type: 'image/png' });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: bookView.titleZh || bookView.title });
+        } else {
+          const a = document.createElement('a');
+          a.href = currentReadingCardUrl;
+          a.download = currentReadingCardName;
+          a.click();
+        }
+      } catch (err) {
+        logError(err, { context: 'reading-card share', bookId: id });
+      }
+      return;
+    }
+
+    if (downloadBtn && currentReadingCardUrl) {
+      const a = document.createElement('a');
+      a.href = currentReadingCardUrl;
+      a.download = currentReadingCardName;
+      a.click();
+    }
+  });
+
   // Delete book (user-created books only)
   const deleteBtn = root.querySelector('[data-delete-book]');
   if (deleteBtn) {
@@ -646,6 +769,7 @@ function renderBook(b, sections) {
                 </button>
               `).join('')}
             </nav>
+            ${b.isReadOnly ? '' : renderReadingCardCTA()}
           </div>
         </aside>
         <div class="book-detail-main">
@@ -656,6 +780,7 @@ function renderBook(b, sections) {
           `).join('')}
         </div>
       </section>
+      ${b.isReadOnly ? '' : renderReadingCardModal()}
     </div>
   `;
 
@@ -708,7 +833,9 @@ function getBookSections(b) {
 
 function renderMasthead(b) {
   if (renderUnifiedPanelHeader) {
-    return renderUnifiedPanelHeader('search', { actionLabel: 'New Note', actionId: 'bookNewNoteBtn' });
+    return b.isReadOnly
+      ? renderUnifiedPanelHeader('search')
+      : renderUnifiedPanelHeader('search', { actionLabel: 'New Note', actionId: 'bookNewNoteBtn' });
   }
   return `
     <header class="book-masthead">
@@ -724,8 +851,43 @@ function renderMasthead(b) {
   `;
 }
 
+function renderReadingCardCTA() {
+  return `
+    <div class="book-outline-card-section">
+      <button class="book-outline-card-btn" type="button" data-generate-card>
+        <svg class="book-outline-card-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3.5 13.8 8l4.7 1.8-4.7 1.8L12 16.1l-1.8-4.5L5.5 9.8 10.2 8 12 3.5Z"></path>
+          <path d="m18.3 4.8.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z"></path>
+          <path d="m18.3 14.8.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z"></path>
+        </svg>
+        <span class="book-outline-card-btn-label">
+          Generate reading card
+        </span>
+      </button>
+    </div>
+  `;
+}
+
+function renderReadingCardModal() {
+  return `
+    <div class="reading-card-modal" data-reading-card-modal hidden>
+      <div class="reading-card-modal__panel" data-reading-card-modal-panel>
+        <button class="reading-card-modal__close" type="button" data-close-reading-card-modal aria-label="Close reading card">×</button>
+        <div class="reading-card-modal__body" data-reading-card-modal-body>
+          <div class="reading-card-modal__loading" data-reading-card-loading>
+            <div class="reading-card-modal__hero" data-reading-card-hero aria-hidden="true"></div>
+            <p class="reading-card-modal__status" data-reading-card-status></p>
+          </div>
+          <div class="reading-card-modal__result" data-reading-card-result hidden></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 
 function renderOverview(b) {
+  const isReadOnly = Boolean(b.isReadOnly);
   const cv = b.cover || {};
   const cvStyle = `--cv-bg:${cv.bg || '#14263e'}; --cv-text:${cv.text || '#e8dfc8'}`;
   const hasCoverImage = Boolean(cv.image);
@@ -775,15 +937,17 @@ function renderOverview(b) {
         <div class="ov-tags" data-ov-tags>
           ${tags.map((t, i) => {
             const c = TAG_COLORS[i % TAG_COLORS.length];
+            if (isReadOnly) return `<span class="ov-tag ov-tag--static" style="--tag-bg:${c.bg};--tag-color:${c.color}">${esc(t)}</span>`;
             return `<button class="ov-tag" type="button" data-remove-tag="${esc(t)}" style="--tag-bg:${c.bg};--tag-color:${c.color}" title="Click to remove">${esc(t)}</button>`;
           }).join('')}
-          <button class="ov-tag-add" type="button" data-add-tag aria-label="Add tag">+</button>
+          ${isReadOnly ? '' : '<button class="ov-tag-add" type="button" data-add-tag aria-label="Add tag">+</button>'}
         </div>
-        <form class="ov-tag-form" data-tag-form hidden>
-          <input class="ov-tag-input" type="text" placeholder="Tag name…" maxlength="32" data-tag-input>
-          <button class="ov-tag-form-save" type="submit">Add</button>
-          <button class="ov-tag-form-cancel" type="button" data-cancel-tag>Cancel</button>
-        </form>
+        ${isReadOnly ? '' : `
+          <form class="ov-tag-form" data-tag-form hidden>
+            <input class="ov-tag-input" type="text" placeholder="Tag name…" maxlength="32" data-tag-input>
+            <button class="ov-tag-form-save" type="submit">Add</button>
+            <button class="ov-tag-form-cancel" type="button" data-cancel-tag>Cancel</button>
+          </form>`}
       </div>
     </div>`;
 
@@ -806,11 +970,12 @@ function renderOverview(b) {
         <div class="ov-progress-display" data-ov-progress-display>
           <span class="ov-progress-dot ov-progress-dot--${esc(currentProgress)}"></span>
           <span class="ov-progress-text" data-ov-progress-text>${esc(PROGRESS_OPTIONS.find(o => o.value === currentProgress)?.label || 'Not started')}</span>
-          <button class="ov-field-edit-btn" type="button" data-edit-progress aria-label="Edit progress">Edit</button>
+          ${isReadOnly ? '' : '<button class="ov-field-edit-btn" type="button" data-edit-progress aria-label="Edit progress">Edit</button>'}
         </div>
-        <select class="ov-progress-select" data-progress-select hidden>
-          ${PROGRESS_OPTIONS.map(o => `<option value="${o.value}"${o.value === currentProgress ? ' selected' : ''}>${o.label}</option>`).join('')}
-        </select>
+        ${isReadOnly ? '' : `
+          <select class="ov-progress-select" data-progress-select hidden>
+            ${PROGRESS_OPTIONS.map(o => `<option value="${o.value}"${o.value === currentProgress ? ' selected' : ''}>${o.label}</option>`).join('')}
+          </select>`}
       </div>
     </div>`;
 
@@ -821,12 +986,15 @@ function renderOverview(b) {
       <div class="rating-label">Rating</div>
       <div class="rating-num">${ratingVal || '—'}<sup>/5</sup></div>
       <div class="ov-rating" data-ov-rating>
-        ${Array.from({ length: 5 }, (_, i) => `
-          <button class="ov-star${i < ratingVal ? ' is-filled' : ''}" type="button" data-star="${i + 1}" aria-label="${i + 1} stars">
-            <svg viewBox="0 0 16 16" fill="${i < ratingVal ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.8 3.6 4 .6-2.9 2.8.7 4L8 11l-3.6 1.9.7-4L2.1 6.2l4-.6z"/></svg>
-          </button>`).join('')}
+        ${Array.from({ length: 5 }, (_, i) => isReadOnly
+          ? `<span class="ov-star${i < ratingVal ? ' is-filled' : ''}" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="${i < ratingVal ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.8 3.6 4 .6-2.9 2.8.7 4L8 11l-3.6 1.9.7-4L2.1 6.2l4-.6z"/></svg>
+            </span>`
+          : `<button class="ov-star${i < ratingVal ? ' is-filled' : ''}" type="button" data-star="${i + 1}" aria-label="${i + 1} stars">
+              <svg viewBox="0 0 16 16" fill="${i < ratingVal ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.8 3.6 4 .6-2.9 2.8.7 4L8 11l-3.6 1.9.7-4L2.1 6.2l4-.6z"/></svg>
+            </button>`).join('')}
       </div>
-      ${!ratingVal ? `<div class="rating-note">Tap to rate</div>` : ''}
+      ${!ratingVal && !isReadOnly ? '<div class="rating-note">Tap to rate</div>' : ''}
     </div>`;
 
   // ── Douban link ───────────────────────────────────────────────────────
@@ -840,14 +1008,15 @@ function renderOverview(b) {
       <div class="ov-field-val" data-douban-field>
         ${doubanUrl
           ? `<a class="ov-link" href="${esc(doubanUrl)}" target="_blank" rel="noopener">${esc(doubanUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 38))}${doubanUrl.length > 42 ? '…' : ''}</a>
-             <button class="ov-field-edit-btn" type="button" data-edit-douban>Edit</button>`
-          : `<button class="ov-field-add-btn" type="button" data-edit-douban>Add link</button>`
+             ${isReadOnly ? '' : '<button class="ov-field-edit-btn" type="button" data-edit-douban>Edit</button>'}`
+          : (isReadOnly ? '<span class="ov-field-empty">—</span>' : '<button class="ov-field-add-btn" type="button" data-edit-douban>Add link</button>')
         }
-        <form class="ov-douban-form" data-douban-form hidden>
-          <input class="ov-douban-input" type="url" placeholder="https://book.douban.com/…" value="${esc(doubanUrl)}" data-douban-input>
-          <button class="ov-tag-form-save" type="submit">Save</button>
-          <button class="ov-tag-form-cancel" type="button" data-cancel-douban>Cancel</button>
-        </form>
+        ${isReadOnly ? '' : `
+          <form class="ov-douban-form" data-douban-form hidden>
+            <input class="ov-douban-input" type="url" placeholder="https://book.douban.com/…" value="${esc(doubanUrl)}" data-douban-input>
+            <button class="ov-tag-form-save" type="submit">Save</button>
+            <button class="ov-tag-form-cancel" type="button" data-cancel-douban>Cancel</button>
+          </form>`}
       </div>
     </div>`;
 
@@ -881,11 +1050,12 @@ function renderOverview(b) {
               `
             }
           </div>
-          <div class="book-cover-tools">
-            <button type="button" class="book-cover-upload-btn" data-upload-cover-btn>Upload cover</button>
-            <span class="book-cover-upload-status" data-upload-cover-status></span>
-            <input type="file" accept="image/*" data-upload-cover-input hidden>
-          </div>
+          ${isReadOnly ? '' : `
+            <div class="book-cover-tools">
+              <button type="button" class="book-cover-upload-btn" data-upload-cover-btn>Upload cover</button>
+              <span class="book-cover-upload-status" data-upload-cover-status></span>
+              <input type="file" accept="image/*" data-upload-cover-input hidden>
+            </div>`}
         </div>
 
         <!-- Col 2: title + meta fields -->
@@ -906,7 +1076,7 @@ function renderOverview(b) {
             ${doubanHtml}
           </div>
 
-          ${isUserBook(b) ? `<button class="book-delete-btn" type="button" data-delete-book="${esc(b.id)}">Remove book</button>` : ''}
+          ${!isReadOnly && isUserBook(b) ? `<button class="book-delete-btn" type="button" data-delete-book="${esc(b.id)}">Remove book</button>` : ''}
         </div>
 
         <!-- Col 3: rating -->
@@ -948,6 +1118,7 @@ function renderOverview(b) {
             }).join('')}
           </div>
         </div>` : ''}
+
     </section>
   `;
 }
@@ -991,60 +1162,63 @@ function renderIntegration(b) {
 
 function renderHighlights(b) {
   const items = b.highlights || [];
+  const isReadOnly = Boolean(b.isReadOnly);
   return `
     <section class="highlights-section">
       <div class="section-head">
         <h2 class="book-section-title">Highlights</h2>
-        <div class="sh-actions">
-          <button class="hl-add-btn" type="button" id="hlAddBtn">+ Add highlight</button>
-          <button class="hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
-        </div>
+        ${isReadOnly ? '' : `
+          <div class="sh-actions">
+            <button class="hl-add-btn" type="button" id="hlAddBtn">+ Add highlight</button>
+            <button class="hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
+          </div>`}
       </div>
       ${items.length ? `
         <ul class="highlight-list" id="hlList">
-          ${items.map((h, i) => renderHighlightItem(h, i)).join('')}
+          ${items.map((h, i) => renderHighlightItem(h, i, isReadOnly)).join('')}
         </ul>
-      ` : `<div class="ai-panel-placeholder"><span>No highlights yet — import them from Kindle or add them manually above.</span></div>`}
-      <div class="hl-kindle-zone" id="hlKindleZone" hidden data-book-id="${esc(b.id)}"></div>
-      <form class="hl-form" id="hlForm" hidden>
-        <div class="hl-form-row">
-          <label class="hl-form-label">Quote <span class="hl-form-req">*</span></label>
-          <textarea class="hl-form-textarea" id="hlFormQuote" rows="3" placeholder="Paste the passage here…"></textarea>
-        </div>
-        <div class="hl-form-meta-row">
-          <div class="hl-form-col">
-            <label class="hl-form-label">Page</label>
-            <input class="hl-form-input" id="hlFormPage" type="number" min="1" placeholder="—">
+      ` : `<div class="ai-panel-placeholder"><span>${isReadOnly ? 'No highlights were shared for this book.' : 'No highlights yet — import them from Kindle or add them manually above.'}</span></div>`}
+      ${isReadOnly ? '' : `
+        <div class="hl-kindle-zone" id="hlKindleZone" hidden data-book-id="${esc(b.id)}"></div>
+        <form class="hl-form" id="hlForm" hidden>
+          <div class="hl-form-row">
+            <label class="hl-form-label">Quote <span class="hl-form-req">*</span></label>
+            <textarea class="hl-form-textarea" id="hlFormQuote" rows="3" placeholder="Paste the passage here…"></textarea>
           </div>
-          <div class="hl-form-col">
-            <label class="hl-form-label">Kind</label>
-            <select class="hl-form-select" id="hlFormKind">
-              <option value="">—</option>
-              <option value="concept">Concept</option>
-              <option value="argument">Argument</option>
-              <option value="critique">Critique</option>
-              <option value="action">Action trigger</option>
-            </select>
+          <div class="hl-form-meta-row">
+            <div class="hl-form-col">
+              <label class="hl-form-label">Page</label>
+              <input class="hl-form-input" id="hlFormPage" type="number" min="1" placeholder="—">
+            </div>
+            <div class="hl-form-col">
+              <label class="hl-form-label">Kind</label>
+              <select class="hl-form-select" id="hlFormKind">
+                <option value="">—</option>
+                <option value="concept">Concept</option>
+                <option value="argument">Argument</option>
+                <option value="critique">Critique</option>
+                <option value="action">Action trigger</option>
+              </select>
+            </div>
+            <div class="hl-form-col hl-form-col--wide">
+              <label class="hl-form-label">Chapter / section</label>
+              <input class="hl-form-input" id="hlFormChapter" type="text" placeholder="—">
+            </div>
           </div>
-          <div class="hl-form-col hl-form-col--wide">
-            <label class="hl-form-label">Chapter / section</label>
-            <input class="hl-form-input" id="hlFormChapter" type="text" placeholder="—">
+          <div class="hl-form-row">
+            <label class="hl-form-label">Note (optional)</label>
+            <textarea class="hl-form-textarea" id="hlFormNote" rows="2" placeholder="Your own annotation…"></textarea>
           </div>
-        </div>
-        <div class="hl-form-row">
-          <label class="hl-form-label">Note (optional)</label>
-          <textarea class="hl-form-textarea" id="hlFormNote" rows="2" placeholder="Your own annotation…"></textarea>
-        </div>
-        <div class="hl-form-actions">
-          <button class="hl-form-save" type="submit">Save</button>
-          <button class="hl-form-cancel" type="button" id="hlFormCancel">Cancel</button>
-        </div>
-      </form>
+          <div class="hl-form-actions">
+            <button class="hl-form-save" type="submit">Save</button>
+            <button class="hl-form-cancel" type="button" id="hlFormCancel">Cancel</button>
+          </div>
+        </form>`}
     </section>
   `;
 }
 
-function renderHighlightItem(h, i) {
+function renderHighlightItem(h, i, readOnly = false) {
   const isUser = Boolean(h.bookId); // user-created highlights have bookId from store
   return `
     <li class="hl-item${isUser ? ' hl-item--user' : ''}" data-hl-id="${esc(String(h.id))}">
@@ -1057,7 +1231,7 @@ function renderHighlightItem(h, i) {
               <span class="tog-label">Culture note</span><span class="tog-icon">−</span>
             </button>` : ''}
         </div>
-        ${isUser ? `<button class="hl-delete-btn" type="button" data-hl-delete="${esc(String(h.id))}" aria-label="Delete highlight">×</button>` : ''}
+        ${isUser && !readOnly ? `<button class="hl-delete-btn" type="button" data-hl-delete="${esc(String(h.id))}" aria-label="Delete highlight">×</button>` : ''}
         ${h.annotation ? `
           <div class="hl-annotation" data-hl-annotation>
             <p>${esc(h.annotation)}</p>
@@ -1297,6 +1471,23 @@ const NOTE_TEMPLATES = [
 ];
 
 function renderNotesSection(b) {
+  if (b.isReadOnly) {
+    const noteContent = String(b.noteContent || '').trim();
+    return {
+      id: 'notes',
+      label: BOOK_SECTION_LABELS.notes,
+      html: `
+        <section class="notes-section notes-section--readonly">
+          <div class="nt-header">
+            <h2 class="book-section-title">My Notes</h2>
+          </div>
+          ${noteContent
+            ? `<div class="notes-readonly-body">${noteContent.split(/\n+/).map((line) => `<p>${esc(line)}</p>`).join('')}</div>`
+            : '<div class="ai-panel-placeholder"><span>No notes were shared for this book.</span></div>'}
+        </section>`,
+    };
+  }
+
   const templateCards = NOTE_TEMPLATES.map(t => `
     <button class="nt-card" type="button" data-template-id="${esc(t.id)}">
       <div class="nt-card-icon">${t.icon}</div>
@@ -1411,6 +1602,194 @@ function renderMountedPanelSection({ id, label, book, panelId, leadingHtml = '',
       if (slot) panel.render(book, slot);
     },
   };
+}
+
+async function fetchPublicBookContext(slug, bookId) {
+  const db = MarginaliaAuth?.db;
+  if (!db || !slug || !bookId) return null;
+
+  const userSnap = await db.collection('users').where('settings.slug', '==', slug).limit(1).get();
+  if (userSnap.empty) return null;
+
+  const userDoc = userSnap.docs[0];
+  const userData = userDoc.data() || {};
+  if (userData.settings?.profilePublic === false) return null;
+
+  const workspaceId = ENV.WORKSPACE_ID || 'default';
+  const bookRef = db.collection('workspaces').doc(workspaceId).collection('users').doc(userDoc.id).collection('books').doc(bookId);
+  const bookSnap = await bookRef.get();
+  if (!bookSnap.exists) return null;
+
+  const bookData = bookSnap.data() || {};
+  const [noteSnap, highlightSnap] = await Promise.all([
+    bookRef.collection('notes').doc('main').get().catch(() => null),
+    db.collection('workspaces').doc(workspaceId).collection('users').doc(userDoc.id)
+      .collection('highlights').where('bookId', '==', bookId).limit(24).get().catch(() => null),
+  ]);
+
+  return {
+    book: {
+      id: bookId,
+      ...bookData,
+      title: bookData.title || bookData.meta?.title || bookId,
+      author: bookData.author || bookData.meta?.author || '',
+      highlights: [],
+    },
+    highlights: (highlightSnap?.docs || []).map((doc) => ({ id: doc.id, ...doc.data() })),
+    noteContent: String(noteSnap?.data()?.content || ''),
+  };
+}
+
+function renderMissingBookState(message) {
+  const root = document.getElementById('panel-book');
+  if (!root) return;
+  root.innerHTML = renderToolPageShell('book', `
+    <div class="page">
+      <section class="book-missing-state">
+        <h2>Book unavailable</h2>
+        <p>${esc(message)}</p>
+      </section>
+    </div>
+  `);
+}
+
+function dedupeHighlights(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = String(item?.quote || '').trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function loadReadingCardNotes(bookId, root, fallbackNote = '') {
+  const noteEditor = root.querySelector('#ntFreeNote');
+  if (noteEditor?.value?.trim()) return htmlToPlainText(noteEditor.value.trim());
+
+  if (fallbackNote?.trim()) return htmlToPlainText(fallbackNote);
+
+  await NotesStore?.ready?.();
+  const stored = await NotesStore?.getNote(bookId);
+  return htmlToPlainText(stored?.content || '');
+}
+
+function selectReadingCardHighlights(highlights) {
+  return highlights
+    .slice()
+    .sort((a, b) => {
+      const annotationDelta = Number(Boolean(b.annotation)) - Number(Boolean(a.annotation));
+      if (annotationDelta) return annotationDelta;
+      return (b.quote?.length || 0) - (a.quote?.length || 0);
+    })
+    .slice(0, 3)
+    .map((item) => truncate(String(item.quote || '').trim(), 140))
+    .filter(Boolean);
+}
+
+function mergeReadingCardKeywords(tags = [], aiKeywords = []) {
+  const merged = [...(Array.isArray(tags) ? tags : []), ...(Array.isArray(aiKeywords) ? aiKeywords : [])]
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+  return Array.from(new Set(merged)).slice(0, 6);
+}
+
+async function buildReadingCardShareUrl(bookId) {
+  const fallback = window.location.href;
+  const db = MarginaliaAuth?.db;
+  const uid = MarginaliaAuth?.user?.uid;
+  if (!db || !uid || !bookId) return fallback;
+
+  try {
+    const snap = await db.doc(`users/${uid}`).get();
+    const slug = String(snap.data()?.settings?.slug || '').trim().toLowerCase();
+    if (!slug) return fallback;
+    return `${window.location.origin}${window.location.pathname}#/p/${slug}/book/${encodeURIComponent(bookId)}`;
+  } catch {
+    return fallback;
+  }
+}
+
+function openReadingCardModal(root, title, heroBook = null) {
+  const modal = root.querySelector('[data-reading-card-modal]');
+  const loading = root.querySelector('[data-reading-card-loading]');
+  const result = root.querySelector('[data-reading-card-result]');
+  const status = root.querySelector('[data-reading-card-status]');
+  const heroMount = root.querySelector('[data-reading-card-hero]');
+  if (!modal || !loading || !result || !status || !heroMount) return heroBook;
+
+  if (!heroBook) {
+    heroBook = new HeroBook({ height: 220 });
+    heroBook.mount(heroMount);
+  }
+
+  modal.hidden = false;
+  loading.hidden = false;
+  result.hidden = true;
+  result.innerHTML = '';
+  status.textContent = `Generating your custom reading note of ${title}`;
+  heroBook.open();
+  document.body.classList.add('reading-card-modal-open');
+  return heroBook;
+}
+
+function closeReadingCardModal(root, heroBook = null) {
+  const modal = root.querySelector('[data-reading-card-modal]');
+  if (!modal) return;
+  modal.hidden = true;
+  heroBook?.close?.();
+  document.body.classList.remove('reading-card-modal-open');
+}
+
+function showReadingCardResult(root, { blobUrl, bookTitle, fileName }) {
+  const loading = root.querySelector('[data-reading-card-loading]');
+  const result = root.querySelector('[data-reading-card-result]');
+  if (!loading || !result) return;
+
+  loading.hidden = true;
+  result.hidden = false;
+  result.innerHTML = `
+    <div class="reading-card-modal__preview-wrap">
+      <img src="${blobUrl}" alt="Reading card for ${esc(bookTitle)}" class="reading-card-modal__preview">
+    </div>
+    <div class="reading-card-modal__actions">
+      <button type="button" class="reading-card-modal__action reading-card-modal__action--primary" data-share-card data-file-name="${esc(fileName)}">Share</button>
+      <button type="button" class="reading-card-modal__action" data-download-card data-file-name="${esc(fileName)}">Download</button>
+    </div>
+  `;
+}
+
+function showReadingCardError(root, message) {
+  const loading = root.querySelector('[data-reading-card-loading]');
+  const result = root.querySelector('[data-reading-card-result]');
+  if (!loading || !result) return;
+
+  loading.hidden = true;
+  result.hidden = false;
+  result.innerHTML = `<div class="reading-card-modal__error">${esc(message)}</div>`;
+}
+
+function formatReadingWindow(book) {
+  const start = book?.meta?.startedAt ? formatDate(book.meta.startedAt) : '';
+  const end = book?.meta?.finishedAt ? formatDate(book.meta.finishedAt) : '';
+  if (start && end) return `${start} - ${end}`;
+  return start || end || '';
+}
+
+function sanitizeFilename(value) {
+  return String(value || 'book')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'book';
+}
+
+function htmlToPlainText(content) {
+  const raw = String(content || '').trim();
+  if (!raw) return '';
+  const div = document.createElement('div');
+  div.innerHTML = raw.replace(/\n/g, '<br>');
+  return div.textContent?.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim() || '';
 }
 
 /* ── Utilities ───────────────────────────────────────────────────────────── */

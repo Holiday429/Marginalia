@@ -49,14 +49,39 @@ const PX_PER_UNIT = 600;
 // Act 2 so the screen grows but the search bar holds a constant size.
 const ACT1_END_SCALE = 2.1;
 const ACT2_END_SCALE = 4.4;
+const SEARCH_VIEW_ID = 'view-search';
+const SEARCH_STAGE_CLASS = 'is-laptop-transition';
+const SEARCH_BAR_LIVE_CLASS = 'is-laptop-transition-bar-live';
+const SEARCH_REVEAL_CLASS = 'is-laptop-transition-revealing';
 
 let activeTransition = null;
+const TYPE_START = 0.16;
+const TYPE_DURATION = 0.56;
 
 function easeOut(t)   { return 1 - Math.pow(1 - t, 3); }
 function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
 function clamp01(v)   { return Math.max(0, Math.min(1, v)); }
 function sleep(ms)    { return new Promise((r) => setTimeout(r, ms)); }
 function nextFrame()  { return new Promise((r) => requestAnimationFrame(() => r())); }
+
+function getSearchView(targetRoot = document) {
+  if (targetRoot instanceof Document) return targetRoot.getElementById(SEARCH_VIEW_ID);
+  return targetRoot.querySelector?.(`#${SEARCH_VIEW_ID}`) || document.getElementById(SEARCH_VIEW_ID);
+}
+
+function clearSearchTransitionState(targetRoot = document) {
+  const view = getSearchView(targetRoot);
+  if (!(view instanceof HTMLElement)) return;
+  view.classList.remove(SEARCH_STAGE_CLASS, SEARCH_BAR_LIVE_CLASS, SEARCH_REVEAL_CLASS);
+}
+
+function stageSearchTransitionState(targetRoot = document) {
+  const view = getSearchView(targetRoot);
+  if (!(view instanceof HTMLElement)) return null;
+  view.classList.add(SEARCH_STAGE_CLASS);
+  view.classList.remove(SEARCH_BAR_LIVE_CLASS, SEARCH_REVEAL_CLASS);
+  return view;
+}
 
 /* ──────────────────────────────────────────────────────────────────────────
    Act 1 + 2 — the WebGL + CSS3D fly-in. Resolves once the screen fills the
@@ -141,8 +166,10 @@ export function playLaptopFlyIn(opts = {}) {
             <circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.5"/>
             <line x1="10.4" y1="10.4" x2="13.6" y2="13.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <span class="laptop-fly-screen__text"></span>
-          <span class="laptop-fly-screen__caret"></span>
+          <div class="laptop-fly-screen__field">
+            <span class="laptop-fly-screen__text"></span>
+            <span class="laptop-fly-screen__caret"></span>
+          </div>
         </div>
       </div>
     `;
@@ -227,9 +254,9 @@ export function playLaptopFlyIn(opts = {}) {
               screenLit = true;
               screenEl.classList.add('is-lit');
             }
-            // Type placeholder slowly over t=0.16 → 0.60 (≈ 880ms at 2s) —
-            // continues a little into Act 2 so the typing reads clearly.
-            typeTo((t - 0.16) / 0.44);
+            // Type placeholder more slowly over t=0.16 → 0.72 so the line
+            // keeps building well into the fullscreen screen-expansion beat.
+            typeTo((t - TYPE_START) / TYPE_DURATION);
           } else if (t <= 0.80) {
             /* Act 2 — the screen grows to fill the viewport, but the search
                bar stays a fixed apparent size. We scale the pivot up (screen
@@ -242,7 +269,7 @@ export function playLaptopFlyIn(opts = {}) {
             pivot.rotation.set(0, 0, 0);
             // Counter-scale the bar so its on-screen size holds constant.
             screenEl.style.setProperty('--bar-counter', String(ACT1_END_SCALE / pScale));
-            typeTo((t - 0.16) / 0.44);
+            typeTo((t - TYPE_START) / TYPE_DURATION);
 
             // Fade laptop body (CSS3D screen stays fully opaque)
             model.traverse((child) => {
@@ -300,103 +327,69 @@ export async function settleLaptopFlyIn(targetRoot = document) {
   cleanupRendererOnly();
 
   const { overlay, handoff } = activeTransition;
+  const view = stageSearchTransitionState(targetRoot);
 
-  // Find the real search input (the visible bordered box) so we land on its
-  // exact rect — not the flex wrapper, which can be wider/taller.
-  const realInput = targetRoot.querySelector('.shelf-searchbar input')
-    || document.querySelector('.shelf-searchbar input');
-  const realBar = realInput?.closest('.shelf-searchbar')
-    || targetRoot.querySelector('.shelf-searchbar')
+  // Land on the real wrapper, then reveal that exact DOM underneath the ghost.
+  const realBar = targetRoot.querySelector('.shelf-searchbar')
     || document.querySelector('.shelf-searchbar');
-  const landEl = (realInput instanceof HTMLElement) ? realInput : realBar;
-  if (!(landEl instanceof HTMLElement)) {
+  if (!(realBar instanceof HTMLElement)) {
     overlay.classList.add('is-finishing');
     await sleep(420);
     cleanup();
     return;
   }
 
-  // Copy the real input's computed look so the ghost ends visually identical:
-  // same font, radius, border colour/width, and the same icon/text padding so
-  // the icon and placeholder land exactly where the real input draws them.
-  const cs = getComputedStyle(landEl);
-  const finalFont   = cs.fontSize;
-  const finalRadius = cs.borderTopLeftRadius;
-  const finalPadL   = cs.paddingLeft;   // real input reserves left space for icon
-  const finalPadR   = cs.paddingRight;
-  const finalBorder = `${cs.borderTopWidth} solid ${cs.borderTopColor}`;
-  const finalColor  = cs.color;
-  // The real search icon sits absolutely at this x inside the wrapper.
-  const realIcon = (realBar instanceof HTMLElement)
-    ? realBar.querySelector('.shelf-searchbar-icon') : null;
-  const iconLeft = realIcon ? getComputedStyle(realIcon).left : '16px';
+  const targetRect = realBar.getBoundingClientRect();
+  const ghost = realBar.cloneNode(true);
+  ghost.classList.add('laptop-fly-ghost-bar');
+  ghost.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
+  const ghostInput = ghost.querySelector('input');
+  if (ghostInput instanceof HTMLInputElement) {
+    ghostInput.readOnly = true;
+    ghostInput.tabIndex = -1;
+    ghostInput.value = '';
+    ghostInput.setAttribute('aria-hidden', 'true');
+  }
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.style.left = `${targetRect.left}px`;
+  ghost.style.top = `${targetRect.top}px`;
+  ghost.style.width = `${targetRect.width}px`;
 
-  // Build a ghost that mirrors the real .shelf-searchbar structure: a relative
-  // box with an absolutely-positioned icon and left-padded text.
-  const ghost = document.createElement('div');
-  ghost.className = 'laptop-fly-ghost-bar';
-  ghost.innerHTML = `
-    <svg class="laptop-fly-ghost-bar__icon" viewBox="0 0 16 16" aria-hidden="true">
-      <circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.5"/>
-      <line x1="10.4" y1="10.4" x2="13.6" y2="13.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-    <span class="laptop-fly-ghost-bar__text">${PLACEHOLDER}</span>
-  `;
-  ghost.style.left   = `${handoff.left}px`;
-  ghost.style.top    = `${handoff.top}px`;
-  ghost.style.width  = `${handoff.width}px`;
-  ghost.style.height = `${handoff.height}px`;
+  const dx = handoff.left - targetRect.left;
+  const dy = handoff.top - targetRect.top;
+  const scaleX = targetRect.width > 0 ? handoff.width / targetRect.width : 1;
+  const scaleY = targetRect.height > 0 ? handoff.height / targetRect.height : 1;
+  ghost.style.transform = `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`;
   overlay.appendChild(ghost);
 
   // Swap the CSS3D screen out for the flat ghost.
   activeTransition.screenEl?.remove();
   await nextFrame();
 
-  // Measure the real landing slot (the input box).
-  const targetRect = landEl.getBoundingClientRect();
-
-  // Glide to the real position AND match its computed look so the settled ghost
-  // is the same size/shape as the real search bar (no jump on handoff).
-  ghost.style.transition = [
-    'left 0.62s cubic-bezier(0.4,0,0.2,1)',
-    'top 0.62s cubic-bezier(0.4,0,0.2,1)',
-    'width 0.62s cubic-bezier(0.4,0,0.2,1)',
-    'height 0.62s cubic-bezier(0.4,0,0.2,1)',
-    'font-size 0.62s cubic-bezier(0.4,0,0.2,1)',
-    'padding 0.62s cubic-bezier(0.4,0,0.2,1)',
-    'border-radius 0.62s cubic-bezier(0.4,0,0.2,1)',
-    'border-color 0.62s cubic-bezier(0.4,0,0.2,1)',
-  ].join(', ');
+  ghost.style.transition = 'transform 0.72s cubic-bezier(0.22, 1, 0.36, 1)';
 
   await nextFrame();
-  ghost.style.left         = `${targetRect.left}px`;
-  ghost.style.top          = `${targetRect.top}px`;
-  ghost.style.width        = `${targetRect.width}px`;
-  ghost.style.height       = `${targetRect.height}px`;
-  ghost.style.fontSize     = finalFont;
-  ghost.style.borderRadius = finalRadius;
-  ghost.style.border       = finalBorder;
-  ghost.style.color        = finalColor;
-  ghost.style.paddingLeft  = finalPadL;
-  ghost.style.paddingRight = finalPadR;
-  // Move the ghost icon to the real icon's x so it aligns with the input.
-  const ghostIcon = ghost.querySelector('.laptop-fly-ghost-bar__icon');
-  if (ghostIcon instanceof SVGElement) ghostIcon.style.left = iconLeft;
+  ghost.style.transform = 'translate(0, 0) scale(1, 1)';
 
-  await sleep(640);
+  await sleep(720);
 
   // Glow pulse on landing.
+  if (view) view.classList.add(SEARCH_BAR_LIVE_CLASS);
   ghost.classList.add('is-glowing');
-  await sleep(120);
+  await sleep(160);
 
   // Reveal the real page underneath, then fade the overlay out so the page
   // shows through around the now-settled bar. Drop the ghost once the real
   // bar is visible.
   overlay.classList.add('is-finishing');
-  await sleep(360);
+  await sleep(260);
+  if (view) view.classList.add(SEARCH_REVEAL_CLASS);
+  await sleep(160);
   ghost.remove();
   await sleep(260);
-  cleanup();
+  cleanup({ preserveSearchState: true });
+  await sleep(900);
+  clearSearchTransitionState(targetRoot);
 }
 
 /* Poll for the search slot, then settle (mirrors maybeSettleFrameFlyIn). */
@@ -431,10 +424,11 @@ function cleanupRendererOnly() {
   a.cssRenderer = null;
 }
 
-function cleanup() {
+function cleanup({ preserveSearchState = false } = {}) {
   cleanupRendererOnly();
   activeTransition?.overlay?.remove();
   activeTransition = null;
+  if (!preserveSearchState) clearSearchTransitionState(document);
 }
 
 export function cancelLaptopFlyIn() {

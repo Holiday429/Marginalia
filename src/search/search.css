@@ -15,6 +15,74 @@ body[data-view="search"] {
   padding: 20px 20px 92px;
 }
 
+#view-search.is-laptop-transition .tool-page-shell--search,
+#view-search.is-laptop-transition .tool-page-inner--search,
+#view-search.is-laptop-transition .page {
+  background: #050506;
+}
+
+#view-search.is-laptop-transition .shared-header-wrap,
+#view-search.is-laptop-transition .section-head,
+#view-search.is-laptop-transition .shelf-filters-wrap,
+#view-search.is-laptop-transition .shelf-tag-row,
+#view-search.is-laptop-transition .shelf-quick-rows,
+#view-search.is-laptop-transition .shelf-wall-head,
+#view-search.is-laptop-transition .shelf-wall-grid,
+#view-search.is-laptop-transition .shelf-next-row {
+  opacity: 0;
+  transform: translateY(18px);
+  filter: blur(10px);
+  pointer-events: none;
+  transition:
+    opacity 0.52s cubic-bezier(.22, 1, .36, 1),
+    transform 0.62s cubic-bezier(.22, 1, .36, 1),
+    filter 0.52s ease;
+}
+
+#view-search.is-laptop-transition .shared-header-wrap { transition-delay: 90ms; }
+#view-search.is-laptop-transition .section-head { transition-delay: 130ms; }
+#view-search.is-laptop-transition .shelf-filters-wrap { transition-delay: 180ms; }
+#view-search.is-laptop-transition .shelf-tag-row { transition-delay: 230ms; }
+#view-search.is-laptop-transition .shelf-quick-rows { transition-delay: 280ms; }
+#view-search.is-laptop-transition .shelf-wall-head { transition-delay: 320ms; }
+#view-search.is-laptop-transition .shelf-wall-grid { transition-delay: 380ms; }
+#view-search.is-laptop-transition .shelf-next-row { transition-delay: 460ms; }
+
+#view-search.is-laptop-transition .shelf-searchbar {
+  opacity: 0;
+  transform: translateY(16px) scale(0.985);
+  transition:
+    opacity 0.26s ease,
+    transform 0.48s cubic-bezier(.22, 1, .36, 1);
+}
+
+#view-search.is-laptop-transition.is-laptop-transition-bar-live .shelf-searchbar {
+  opacity: 1;
+  transform: none;
+}
+
+#view-search.is-laptop-transition.is-laptop-transition-bar-live .shelf-searchbar input {
+  border-color: rgba(201, 169, 110, 0.84);
+  box-shadow:
+    0 0 0 1px rgba(201, 169, 110, 0.28),
+    0 0 24px rgba(201, 169, 110, 0.16);
+  transition: border-color 0.32s ease, box-shadow 0.42s ease;
+}
+
+#view-search.is-laptop-transition.is-laptop-transition-revealing .shared-header-wrap,
+#view-search.is-laptop-transition.is-laptop-transition-revealing .section-head,
+#view-search.is-laptop-transition.is-laptop-transition-revealing .shelf-filters-wrap,
+#view-search.is-laptop-transition.is-laptop-transition-revealing .shelf-tag-row,
+#view-search.is-laptop-transition.is-laptop-transition-revealing .shelf-quick-rows,
+#view-search.is-laptop-transition.is-laptop-transition-revealing .shelf-wall-head,
+#view-search.is-laptop-transition.is-laptop-transition-revealing .shelf-wall-grid,
+#view-search.is-laptop-transition.is-laptop-transition-revealing .shelf-next-row {
+  opacity: 1;
+  transform: none;
+  filter: blur(0);
+  pointer-events: auto;
+}
+
 /* ---- Masthead ---- */
 .app-masthead {
   display: flex;
@@ -1529,7 +1597,7 @@ body[data-view="search"] {
   transition: background 0.32s ease;
 }
 .laptop-fly-overlay.is-active {
-  background: rgba(48, 46, 42, 0.94);
+  background: rgba(5, 5, 6, 0.98);
 }
 .laptop-fly-overlay__gl,
 .laptop-fly-overlay__css {
@@ -1544,7 +1612,7 @@ body[data-view="search"] {
   display: block;
 }
 .laptop-fly-overlay.is-finishing {
-  background: rgba(48, 46, 42, 0);
+  background: rgba(5, 5, 6, 0);
   transition: background 0.5s ease;
 }
 
@@ -1572,15 +1640,13 @@ body[data-view="search"] {
   padding: 30% 13% 0;
 }
 .laptop-fly-screen__bar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  position: relative;
   width: 100%;
   box-sizing: border-box;
   background: rgba(232, 223, 200, 0.05);
   border: 2px solid rgba(232, 223, 200, 0.24);
   border-radius: 14px;
-  padding: 18px 26px;
+  padding: 0;
   font-family: var(--font-mono, 'IBM Plex Mono', monospace);
   font-size: 25px;
   letter-spacing: 0.01em;
@@ -1593,10 +1659,19 @@ body[data-view="search"] {
   transform-origin: center top;
 }
 .laptop-fly-screen__icon {
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translateY(-50%);
   opacity: 0.55;
+}
+.laptop-fly-screen__field {
+  display: flex;
+  align-items: center;
+  min-height: 68px;
+  padding: 0 24px 0 64px;
 }
 .laptop-fly-screen__text {
   overflow: hidden;
@@ -1623,44 +1698,29 @@ body[data-view="search"] {
   position: fixed;
   z-index: 10001;
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  background: rgba(232, 223, 200, 0.05);
-  border: 2px solid rgba(232, 223, 200, 0.24);
-  border-radius: 14px;
-  /* Reserve left space for the absolutely-positioned icon (≈ icon + gap). */
-  padding-left: 2.2em;
-  padding-right: 1em;
-  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
-  font-size: 25px;
-  color: rgba(232, 223, 200, 0.72);
-  white-space: nowrap;
-  overflow: hidden;
+  pointer-events: none;
+  transform-origin: top left;
+  will-change: transform;
 }
-/* Icon absolutely positioned, mirroring the real .shelf-searchbar-icon — its
-   `left` is set inline to match the real input so it lands in the same spot. */
-.laptop-fly-ghost-bar__icon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1em;
-  height: 1em;
-  opacity: 0.55;
+
+.laptop-fly-ghost-bar .shelf-searchbar-icon,
+.laptop-fly-ghost-bar input {
   pointer-events: none;
 }
-.laptop-fly-ghost-bar__text {
-  overflow: hidden;
-  text-overflow: ellipsis;
+
+.laptop-fly-ghost-bar input {
+  box-shadow: none;
 }
+
 .laptop-fly-ghost-bar.is-glowing {
+  filter: drop-shadow(0 0 12px rgba(201, 169, 110, 0.38));
+}
+
+.laptop-fly-ghost-bar.is-glowing input {
   border-color: rgba(201, 169, 110, 0.9);
   box-shadow:
-    0 0 0 1px rgba(201, 169, 110, 0.5),
-    0 0 22px rgba(201, 169, 110, 0.55),
-    0 0 48px rgba(201, 169, 110, 0.3);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease,
-    left 0.62s cubic-bezier(0.4,0,0.2,1), top 0.62s cubic-bezier(0.4,0,0.2,1),
-    width 0.62s cubic-bezier(0.4,0,0.2,1), height 0.62s cubic-bezier(0.4,0,0.2,1),
-    font-size 0.62s cubic-bezier(0.4,0,0.2,1);
+    0 0 0 1px rgba(201, 169, 110, 0.52),
+    0 0 28px rgba(201, 169, 110, 0.44),
+    0 0 56px rgba(201, 169, 110, 0.22);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }

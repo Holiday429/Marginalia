@@ -3308,3 +3308,243 @@
   color: var(--accent);
   border-color: var(--accent);
 }
+
+/* ==========================================================================
+   Reading Card Export
+   ========================================================================== */
+
+.book-outline-card-section {
+  margin-top: 18px;
+}
+
+.book-outline.is-collapsed .book-outline-card-section {
+  display: none;
+}
+
+@media (max-width: 1080px) {
+  .book-outline-card-section {
+    margin-top: 14px;
+  }
+}
+
+.book-outline-card-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.book-outline-card-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.book-outline-card-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.book-outline-card-btn-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+  flex: 0 0 20px;
+}
+
+.book-outline-card-btn-label {
+  font: 400 14px/1.2 var(--font-serif);
+  color: inherit;
+}
+
+.reading-card-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+.reading-card-modal__panel {
+  width: min(760px, calc(100vw - 40px));
+  max-height: calc(100vh - 56px);
+  overflow: auto;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+}
+
+.reading-card-modal__body {
+  padding: 32px;
+}
+
+.reading-card-modal__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-soft);
+  font: 300 22px/1 var(--font-serif);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.reading-card-modal__close:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.reading-card-modal__loading {
+  min-height: 520px;
+  display: grid;
+  place-items: center;
+  gap: 22px;
+  align-content: center;
+}
+
+.reading-card-modal__hero {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+}
+
+.reading-card-modal__hero .hero-book {
+  pointer-events: none;
+}
+
+.reading-card-modal__status {
+  max-width: 520px;
+  margin: 0;
+  text-align: center;
+  color: var(--paper);
+  font: 500 24px/1.45 var(--font-serif);
+}
+
+.reading-card-modal__preview-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.reading-card-modal__preview {
+  display: block;
+  width: min(100%, 500px);
+  border: 1px solid var(--rule);
+}
+
+.reading-card-modal__actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.reading-card-modal__action {
+  min-width: 148px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-service-ui);
+  font-size: 11px;
+  letter-spacing: var(--track-service-ui);
+  font-weight: var(--weight-service-ui-label);
+  cursor: pointer;
+}
+
+.reading-card-modal__action--primary {
+  background: var(--glass-fill);
+}
+
+.reading-card-modal__action:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.reading-card-modal__error {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  color: var(--paper);
+  font: 400 22px/1.5 var(--font-serif);
+  text-align: center;
+}
+
+.notes-section--readonly .notes-readonly-body {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  padding: 22px 24px;
+  background: rgba(255,255,255,0.03);
+}
+
+.notes-section--readonly .notes-readonly-body p {
+  margin: 0;
+  font: 400 18px/1.75 var(--font-serif);
+  color: var(--ink);
+}
+
+.book-missing-state {
+  max-width: 560px;
+  margin: 80px auto 0;
+  border: 1px solid var(--rule);
+  border-radius: 24px;
+  padding: 32px;
+  background: rgba(255,255,255,0.03);
+}
+
+.book-missing-state h2 {
+  margin: 0 0 10px;
+  font: 500 32px/1.1 var(--font-serif);
+  color: var(--ink);
+}
+
+.book-missing-state p {
+  margin: 0;
+  color: var(--ink-soft);
+  font: 400 17px/1.7 var(--font-serif);
+}
+
+@media (max-width: 720px) {
+  .book-outline-card-btn {
+    padding: 10px 12px;
+  }
+
+  .book-outline-card-btn-label {
+    font-size: 13px;
+  }
+
+  .reading-card-modal__body {
+    padding: 24px 18px 20px;
+  }
+
+  .reading-card-modal__loading {
+    min-height: 400px;
+  }
+
+  .reading-card-modal__status {
+    font-size: 20px;
+  }
+
+  .reading-card-modal__actions {
+    flex-direction: column;
+  }
+
+  .reading-card-modal__action {
+  width: 100%;
+  }
+}

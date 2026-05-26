@@ -97,6 +97,14 @@ const App = (() => {
       return;
     }
 
+    const profileBookMatch = rawHash.match(/^\/p\/([a-z0-9][a-z0-9-]{0,30}[a-z0-9]?)\/book\/([^/?#]+)$/i);
+    if (profileBookMatch) {
+      const slug = profileBookMatch[1].toLowerCase();
+      const bookId = decodeURIComponent(profileBookMatch[2]);
+      if (PanelManager) PanelManager.open('book', { id: bookId, publicSlug: slug });
+      return;
+    }
+
     // Public profile route: #/p/{slug}
     const profileMatch = rawHash.match(/^\/p\/([a-z0-9][a-z0-9-]{0,30}[a-z0-9]?)$/i);
     if (profileMatch) {
