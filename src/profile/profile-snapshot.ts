@@ -8,9 +8,18 @@ export interface SnapshotResult {
 
 const CARD_WIDTH = 1200;
 
-/** Hide elements that shouldn't appear in the exported image. */
-const EXCLUDE_SELECTORS = [
+/**
+ * Elements fully removed from layout during capture (collapse, no trailing
+ * whitespace). The CTA lives here so the image ends right after the shelf.
+ */
+const COLLAPSE_SELECTORS = [
   '.prof-share-cta',
+  '.panel-header',
+  '.primary-tabs',
+];
+
+/** Elements hidden but keeping their layout box (preserves surrounding spacing). */
+const HIDE_SELECTORS = [
   '.prof-map-zoom',
   '.prof-map-pills',
   '.prof-map-play-btn',
@@ -19,40 +28,46 @@ const EXCLUDE_SELECTORS = [
   '.booklist-play-btn',
   '.booklist-section-head--source',
   '.prof-annual__shelf-controls',
-  '.panel-header',
-  '.primary-tabs',
 ];
+
+function setDisplay(els: HTMLElement[], hidden: boolean): void {
+  els.forEach((el) => { el.style.display = hidden ? 'none' : ''; });
+}
 
 function setVisibility(els: HTMLElement[], hidden: boolean): void {
   els.forEach((el) => { el.style.visibility = hidden ? 'hidden' : ''; });
 }
 
-/** Resolve a CSS custom property to its computed value on the document root. */
-function resolveVar(name: string, fallback: string): string {
-  const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+/** Resolve a CSS custom property as computed on `el` (respects scoped overrides). */
+function resolveVar(el: HTMLElement, name: string, fallback: string): string {
+  const val = getComputedStyle(el).getPropertyValue(name).trim();
   return val || fallback;
 }
 
 /**
- * html-to-image clones the DOM into a foreign SVG context where `body[data-view]`
- * selector overrides don't apply. Stamp the resolved token values directly onto
- * the clone root so every descendant that reads these vars sees the correct colours.
+ * The dark profile tokens (--bg-tool, --ink, --gold, …) are scoped to
+ * `#panel-profile`, not :root — :root still holds the light taupe defaults.
+ * html-to-image clones the target into an offscreen SVG context that loses
+ * those ancestor-scoped overrides, so the clone would fall back to the light
+ * theme. Read the *computed* values from the live target (which inherits the
+ * profile scope) and stamp them onto the clone root so descendants resolve
+ * the same colours they show on screen.
  */
-function buildCssVarOverrides(): string {
-  const pairs: string[] = [];
-  const docStyle = getComputedStyle(document.documentElement);
+function buildCssVarOverrides(el: HTMLElement): string {
+  const style = getComputedStyle(el);
   const vars = [
     '--bg', '--bg-soft', '--bg-deep', '--ink', '--ink-soft',
-    '--muted', '--muted-soft', '--paper', '--surface',
+    '--muted', '--muted-soft', '--muted-faint', '--paper', '--surface',
     '--rule', '--rule-strong', '--rule-soft',
-    '--accent', '--accent-gold', '--gold',
-    '--glass-border', '--glass-panel', '--glass-panel-soft',
+    '--accent', '--accent-gold', '--gold', '--gold-bright',
+    '--glass-border', '--glass-border-soft', '--glass-panel', '--glass-panel-soft', '--glass-blur',
     '--panel-border', '--panel-border-strong',
     '--text-primary', '--text-secondary',
     '--bg-tool', '--bg-tool-soft',
   ];
+  const pairs: string[] = [];
   vars.forEach((v) => {
-    const val = docStyle.getPropertyValue(v).trim();
+    const val = style.getPropertyValue(v).trim();
     if (val) pairs.push(`${v}:${val}`);
   });
   return pairs.join(';');
@@ -62,15 +77,19 @@ export async function captureProfileSnapshot(container: HTMLElement): Promise<Sn
   const target = container.querySelector<HTMLElement>('.prof-shell__inner');
   if (!target) throw new Error('Profile content area not found.');
 
-  const toHide = EXCLUDE_SELECTORS.flatMap((sel) =>
+  const toCollapse = COLLAPSE_SELECTORS.flatMap((sel) =>
     Array.from(target.querySelectorAll<HTMLElement>(sel)),
   );
+  const toHide = HIDE_SELECTORS.flatMap((sel) =>
+    Array.from(target.querySelectorAll<HTMLElement>(sel)),
+  );
+  setDisplay(toCollapse, true);
   setVisibility(toHide, true);
   target.style.overflow = 'visible';
 
   // Resolved bg colour for the canvas fill (avoids transparent / wrong-colour gaps).
-  const bgColor = resolveVar('--bg-tool', '#302e2a');
-  const cssVarStyle = buildCssVarOverrides();
+  const bgColor = resolveVar(target, '--bg-tool', '#302e2a');
+  const cssVarStyle = buildCssVarOverrides(target);
 
   try {
     const scale = CARD_WIDTH / target.scrollWidth;
@@ -96,6 +115,7 @@ export async function captureProfileSnapshot(container: HTMLElement): Promise<Sn
     const blob = await fetch(dataUrl).then((r) => r.blob());
     return { dataUrl, blob };
   } finally {
+    setDisplay(toCollapse, false);
     setVisibility(toHide, false);
     target.style.overflow = '';
   }

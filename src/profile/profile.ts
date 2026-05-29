@@ -481,29 +481,29 @@ function profileHTML(
             </div>
           </div>
         </section>
+      </div>
 
-        <div class="prof-snapshot-modal" id="profSnapshotModal" role="dialog" aria-modal="true" aria-label="Reading card preview" hidden>
-          <div class="prof-snapshot-modal__backdrop" id="profSnapshotBackdrop"></div>
-          <div class="prof-snapshot-modal__panel">
-            <div class="prof-snapshot-modal__head">
-              <span class="prof-snapshot-modal__title">Reading card</span>
-              <button class="prof-snapshot-modal__close" id="profSnapshotClose" type="button" aria-label="Close">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
-              </button>
-            </div>
-            <div class="prof-snapshot-modal__preview" id="profSnapshotPreview">
-              <div class="prof-snapshot-modal__spinner" aria-label="Generating…"></div>
-            </div>
-            <div class="prof-snapshot-modal__actions">
-              <button class="prof-snapshot-btn prof-snapshot-btn--primary" id="profSnapshotDownload" type="button" disabled>
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M5 7l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
-                Save image
-              </button>
-              <button class="prof-snapshot-btn prof-snapshot-btn--ghost" id="profSnapshotShare" type="button" disabled hidden>
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="3" r="1.5"/><circle cx="12" cy="13" r="1.5"/><circle cx="4" cy="8" r="1.5"/><path d="M5.4 7.3l5.2-3M5.4 8.7l5.2 3"/></svg>
-                Share
-              </button>
-            </div>
+      <div class="prof-snapshot-modal" id="profSnapshotModal" role="dialog" aria-modal="true" aria-label="Reading card preview" hidden>
+        <div class="prof-snapshot-modal__backdrop" id="profSnapshotBackdrop"></div>
+        <div class="prof-snapshot-modal__panel">
+          <div class="prof-snapshot-modal__head">
+            <span class="prof-snapshot-modal__title">Reading card</span>
+            <button class="prof-snapshot-modal__close" id="profSnapshotClose" type="button" aria-label="Close">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
+            </button>
+          </div>
+          <div class="prof-snapshot-modal__preview" id="profSnapshotPreview">
+            <div class="prof-snapshot-modal__spinner" aria-label="Generating…"></div>
+          </div>
+          <div class="prof-snapshot-modal__actions">
+            <button class="prof-snapshot-btn prof-snapshot-btn--primary" id="profSnapshotDownload" type="button" disabled>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M5 7l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
+              Save image
+            </button>
+            <button class="prof-snapshot-btn prof-snapshot-btn--ghost" id="profSnapshotShare" type="button" disabled hidden>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="3" r="1.5"/><circle cx="12" cy="13" r="1.5"/><circle cx="4" cy="8" r="1.5"/><path d="M5.4 7.3l5.2-3M5.4 8.7l5.2 3"/></svg>
+              Share
+            </button>
           </div>
         </div>
       </div>
