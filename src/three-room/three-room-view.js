@@ -5,7 +5,10 @@ import { renderPrimaryTabsMarkup } from '../core/primary-tabs.js';
 import { attachFocusWidgetTo } from '../components/reading-session/focus-widget.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
 import { BooksStore } from '../store/books-store.ts';
+import { EntitlementsStore } from '../store/entitlements-store.ts';
+import { openCheckout } from '../services/billing.ts';
 import { NewEntry } from '../new-entry/new-entry.js';
+import { RoomAudio } from './room-audio.ts';
 
 const SPACE_ITEMS = [
   { id: 'library', label: 'Library', icon: 'library' },
@@ -22,6 +25,8 @@ const QUICK_ACTION_ITEMS = [
 ];
 
 const ROOM_AVATAR_STORAGE_KEY = 'marginalia_room_avatar_data_url';
+const ROOM_ATMOSPHERE_STORAGE_KEY = 'marginalia_room_atmosphere_v1';
+const ROOM_BLINDS_STORAGE_KEY = 'marginalia_room_blinds_v1';
 
 const HOVER_META_BY_ACTION = {
   map: { icon: 'map', title: 'Map', description: 'Explore Reading Places' },
@@ -36,6 +41,9 @@ const HOVER_META_BY_ACTION = {
 const ROOM_VIEW_STATE = {
   pose: 'front',
   skinId: 'warm-study',
+  atmosphereMode: 'auto',
+  resolvedAtmosphere: 'afternoon',
+  blindPreset: 'half',
   handle: null,
   transitionTimer: null,
   transitioning: false,
@@ -46,6 +54,9 @@ const ROOM_VIEW_STATE = {
   hoverAction: null,
   hoverPoint: { x: 0, y: 0 },
   authBound: false,
+  audioBound: false,
+  atmosphereBound: false,
+  atmosphereTimer: null,
   quickSearchOpen: false,
   quickSearchMessage: '',
 };
@@ -160,11 +171,13 @@ function buildRoomMarkup() {
         <div class="room-settings-block">
           <h3>Room Atmosphere</h3>
           <div class="room-chip-row">
-            <button type="button" class="room-chip active" data-room-atmosphere="morning">Morning</button>
+            <button type="button" class="room-chip" data-room-atmosphere="auto">Auto</button>
+            <button type="button" class="room-chip" data-room-atmosphere="morning">Morning</button>
             <button type="button" class="room-chip" data-room-atmosphere="afternoon">Afternoon</button>
             <button type="button" class="room-chip" data-room-atmosphere="dusk">Dusk</button>
             <button type="button" class="room-chip" data-room-atmosphere="night">Night</button>
           </div>
+          <p class="room-atmosphere-note" id="roomAtmosphereNote"></p>
         </div>
 
         <div class="room-settings-block">
@@ -179,16 +192,38 @@ function buildRoomMarkup() {
         </div>
 
         <div class="room-settings-block">
+          <h3>Window Blinds</h3>
+          <div class="room-chip-row">
+            <button type="button" class="room-chip" data-room-blinds="open">Open</button>
+            <button type="button" class="room-chip" data-room-blinds="half">Half</button>
+            <button type="button" class="room-chip" data-room-blinds="closed">Closed</button>
+          </div>
+          <p class="room-atmosphere-note" id="roomBlindsNote"></p>
+        </div>
+
+        <div class="room-settings-block">
           <h3>Background Music</h3>
-          <div class="room-music-card">
+          <div class="room-music-card" id="roomAudioNowPlaying">
             <div class="room-music-cover" aria-hidden="true"></div>
             <div class="room-music-meta">
-              <strong>Forest Lullabye</strong>
-              <span>Ambient Demo</span>
+              <strong id="roomAudioTrackTitle">Room soundtrack</strong>
+              <span id="roomAudioTrackSubtitle">Add built-in tracks in /public/audio/room/manifest.json</span>
+            </div>
+            <div class="room-music-actions">
+              <button type="button" class="room-icon-pill" id="roomAudioPlayToggle" aria-label="Play music">Play</button>
+              <button type="button" class="room-icon-pill" id="roomAudioMuteToggle" aria-label="Mute music">Mute</button>
             </div>
           </div>
+          <div class="room-audio-track-list" id="roomAudioTrackList" aria-label="Music tracks"></div>
+          <p class="room-audio-status" id="roomAudioStatus" aria-live="polite"></p>
           <label class="room-slider-label" for="roomMusicVolume">Volume</label>
           <input id="roomMusicVolume" type="range" min="0" max="100" value="62">
+          <div class="room-audio-upload" id="roomAudioUploadArea">
+            <input id="roomCustomAudioInput" type="file" accept="audio/*" hidden>
+            <button type="button" class="room-chip" id="roomAudioUploadBtn">Add Personal Track</button>
+            <button type="button" class="room-chip" id="roomAudioUpgradeBtn" hidden>Unlock Pro Uploads</button>
+            <p class="room-audio-note" id="roomAudioUploadNote"></p>
+          </div>
         </div>
 
         <div class="room-settings-block">
@@ -311,6 +346,8 @@ function initRoom() {
   ROOM_VIEW_STATE.settingsOpen = false;
   ROOM_VIEW_STATE.quickSearchOpen = false;
   ROOM_VIEW_STATE.quickSearchMessage = '';
+  ROOM_VIEW_STATE.atmosphereMode = loadStoredAtmosphereMode();
+  ROOM_VIEW_STATE.blindPreset = loadStoredBlindPreset();
 
   if (ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle.destroy();
@@ -321,6 +358,8 @@ function initRoom() {
   ensureFallbackPanels();
   bindRoomEvents();
   bindAuthEvents();
+  bindRoomAudioEvents();
+  bindRoomAtmosphereEvents();
   mountRoomScene();
   syncRoomChrome();
   syncRoomTitle();
@@ -328,11 +367,19 @@ function initRoom() {
   syncPoseButtons();
   syncFreeLookButton();
   syncRoomQuickSearch();
+  applyAtmospherePreset(ROOM_VIEW_STATE.atmosphereMode, { persist: false });
+  syncAtmosphereControls();
+  applyBlindPreset(ROOM_VIEW_STATE.blindPreset, { persist: false });
+  syncBlindControls();
+  syncRoomAudio();
+  RoomAudio.init().then(syncRoomAudio).catch(() => {});
   const focusSlot = document.getElementById('roomFocusWidgetSlot');
   if (focusSlot) attachFocusWidgetTo(focusSlot);
 }
 
 function enterRoom() {
+  ROOM_VIEW_STATE.atmosphereMode = loadStoredAtmosphereMode();
+  ROOM_VIEW_STATE.blindPreset = loadStoredBlindPreset();
   ensureRoomDom();
   ensureFallbackPanels();
   mountRoomScene();
@@ -342,6 +389,12 @@ function enterRoom() {
   syncPoseButtons();
   syncFreeLookButton();
   syncRoomQuickSearch();
+  applyAtmospherePreset(ROOM_VIEW_STATE.atmosphereMode, { persist: false });
+  syncAtmosphereControls();
+  applyBlindPreset(ROOM_VIEW_STATE.blindPreset, { persist: false });
+  syncBlindControls();
+  syncRoomAudio();
+  RoomAudio.init().then(syncRoomAudio).catch(() => {});
   const focusSlot = document.getElementById('roomFocusWidgetSlot');
   if (focusSlot) attachFocusWidgetTo(focusSlot);
 }
@@ -377,6 +430,33 @@ function bindAuthEvents() {
   window.addEventListener('marginalia:auth-changed', () => {
     syncRoomTitle();
     syncRoomUserCard();
+    syncRoomAudio();
+  });
+  window.addEventListener('marginalia:entitlements-changed', syncRoomAudio);
+}
+
+function bindRoomAudioEvents() {
+  if (ROOM_VIEW_STATE.audioBound) return;
+  ROOM_VIEW_STATE.audioBound = true;
+  RoomAudio.subscribe(() => {
+    syncRoomAudio();
+  });
+}
+
+function bindRoomAtmosphereEvents() {
+  if (ROOM_VIEW_STATE.atmosphereBound) return;
+  ROOM_VIEW_STATE.atmosphereBound = true;
+
+  if (ROOM_VIEW_STATE.atmosphereTimer) {
+    window.clearInterval(ROOM_VIEW_STATE.atmosphereTimer);
+  }
+
+  ROOM_VIEW_STATE.atmosphereTimer = window.setInterval(() => {
+    refreshAutoAtmosphere();
+  }, 60 * 1000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshAutoAtmosphere();
   });
 }
 
@@ -443,9 +523,8 @@ function bindRoomEvents() {
 
     const atmosphereChip = event.target.closest('[data-room-atmosphere]');
     if (atmosphereChip) {
-      root.querySelectorAll('[data-room-atmosphere]').forEach((chip) => chip.classList.remove('active'));
-      atmosphereChip.classList.add('active');
-      applyAtmospherePreset(atmosphereChip.dataset.roomAtmosphere || 'afternoon');
+      applyAtmospherePreset(atmosphereChip.dataset.roomAtmosphere || 'auto');
+      syncAtmosphereControls();
       return;
     }
 
@@ -456,9 +535,55 @@ function bindRoomEvents() {
       return;
     }
 
+    const blindsChip = event.target.closest('[data-room-blinds]');
+    if (blindsChip) {
+      applyBlindPreset(blindsChip.dataset.roomBlinds || 'half');
+      syncBlindControls();
+      return;
+    }
+
     const effectChip = event.target.closest('[data-room-effect]');
     if (effectChip) {
       effectChip.classList.toggle('active');
+      return;
+    }
+
+    const removeTrackBtn = event.target.closest('[data-room-remove-track-id]');
+    if (removeTrackBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      RoomAudio.removeCustomTrack(removeTrackBtn.dataset.roomRemoveTrackId || '').catch(() => {});
+      return;
+    }
+
+    const trackBtn = event.target.closest('[data-room-track-id]');
+    if (trackBtn) {
+      RoomAudio.selectTrack(trackBtn.dataset.roomTrackId || '', { autoplay: true }).catch(() => {});
+      return;
+    }
+
+    if (event.target.closest('#roomAudioPlayToggle')) {
+      RoomAudio.togglePlayback().catch(() => {});
+      return;
+    }
+
+    if (event.target.closest('#roomAudioMuteToggle')) {
+      const audioState = RoomAudio.getState();
+      RoomAudio.setMuted(!audioState.muted);
+      return;
+    }
+
+    if (event.target.closest('#roomAudioUploadBtn')) {
+      const fileInput = document.getElementById('roomCustomAudioInput');
+      if (fileInput instanceof HTMLInputElement) fileInput.click();
+      return;
+    }
+
+    if (event.target.closest('#roomAudioUpgradeBtn')) {
+      openCheckout('pro_monthly', (message) => {
+        const note = document.getElementById('roomAudioUploadNote');
+        if (note) note.textContent = message || 'Unable to open checkout right now.';
+      });
       return;
     }
 
@@ -476,9 +601,16 @@ function bindRoomEvents() {
 
   root.addEventListener('input', (event) => {
     const input = event.target.closest('#roomQuickSearchInput');
-    if (!input) return;
-    ROOM_VIEW_STATE.quickSearchMessage = '';
-    syncRoomQuickSearch();
+    if (input) {
+      ROOM_VIEW_STATE.quickSearchMessage = '';
+      syncRoomQuickSearch();
+      return;
+    }
+
+    const volumeInput = event.target.closest('#roomMusicVolume');
+    if (volumeInput instanceof HTMLInputElement) {
+      RoomAudio.setVolume(Number(volumeInput.value || 0) / 100);
+    }
   });
 
   root.addEventListener('submit', (event) => {
@@ -486,6 +618,31 @@ function bindRoomEvents() {
     if (!form) return;
     event.preventDefault();
     submitRoomQuickSearch();
+  });
+
+  root.addEventListener('change', (event) => {
+    const fileInput = event.target.closest('#roomCustomAudioInput');
+    if (!(fileInput instanceof HTMLInputElement)) return;
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    if (!EntitlementsStore.hasEntitlement('room.customAudio')) {
+      const note = document.getElementById('roomAudioUploadNote');
+      if (note) note.textContent = 'Upgrade to Pro to add personal tracks on this device.';
+      fileInput.value = '';
+      return;
+    }
+
+    RoomAudio.addCustomTrack(file)
+      .then(() => {
+        const note = document.getElementById('roomAudioUploadNote');
+        if (note) note.textContent = '';
+        fileInput.value = '';
+      })
+      .catch((error) => {
+        const note = document.getElementById('roomAudioUploadNote');
+        if (note) note.textContent = error instanceof Error ? error.message : 'Unable to add this track.';
+        fileInput.value = '';
+      });
   });
 
 }
@@ -514,6 +671,7 @@ function mountRoomScene() {
 
   if (ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle.setSkin(ROOM_VIEW_STATE.skinId);
+    ROOM_VIEW_STATE.handle.setBlindPreset?.(ROOM_VIEW_STATE.blindPreset);
     ROOM_VIEW_STATE.handle.goToPose(ROOM_VIEW_STATE.pose, true);
   }
 
@@ -813,6 +971,227 @@ function loadUploadedAvatarData() {
   }
 }
 
+function loadStoredAtmosphereMode() {
+  try {
+    const stored = localStorage.getItem(ROOM_ATMOSPHERE_STORAGE_KEY) || 'auto';
+    return normalizeAtmosphereMode(stored);
+  } catch (error) {
+    return 'auto';
+  }
+}
+
+function saveStoredAtmosphereMode(mode) {
+  try {
+    localStorage.setItem(ROOM_ATMOSPHERE_STORAGE_KEY, normalizeAtmosphereMode(mode));
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+function loadStoredBlindPreset() {
+  try {
+    const stored = localStorage.getItem(ROOM_BLINDS_STORAGE_KEY) || 'half';
+    return normalizeBlindPreset(stored);
+  } catch (error) {
+    return 'half';
+  }
+}
+
+function saveStoredBlindPreset(preset) {
+  try {
+    localStorage.setItem(ROOM_BLINDS_STORAGE_KEY, normalizeBlindPreset(preset));
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+function normalizeAtmosphereMode(mode) {
+  return ['auto', 'morning', 'afternoon', 'dusk', 'night'].includes(mode) ? mode : 'auto';
+}
+
+function normalizeBlindPreset(preset) {
+  return ['open', 'half', 'closed'].includes(preset) ? preset : 'half';
+}
+
+function resolveAtmosphereForDate(date = new Date()) {
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const totalMinutes = (hour * 60) + minute;
+
+  if (totalMinutes >= 360 && totalMinutes < 720) return 'morning';
+  if (totalMinutes >= 720 && totalMinutes < 1080) return 'afternoon';
+  if (totalMinutes >= 1080 && totalMinutes < 1200) return 'dusk';
+  return 'night';
+}
+
+function resolveActiveAtmosphere(mode = ROOM_VIEW_STATE.atmosphereMode) {
+  const normalized = normalizeAtmosphereMode(mode);
+  return normalized === 'auto' ? resolveAtmosphereForDate() : normalized;
+}
+
+function getSkinIdForAtmosphere(atmosphere) {
+  if (atmosphere === 'morning') return 'mist-morning';
+  if (atmosphere === 'dusk') return 'amber-dusk';
+  if (atmosphere === 'night') return 'night-lamp';
+  return 'warm-study';
+}
+
+function applyAtmospherePreset(mode, { persist = true } = {}) {
+  const normalizedMode = normalizeAtmosphereMode(mode);
+  const resolvedAtmosphere = resolveActiveAtmosphere(normalizedMode);
+
+  ROOM_VIEW_STATE.atmosphereMode = normalizedMode;
+  ROOM_VIEW_STATE.resolvedAtmosphere = resolvedAtmosphere;
+  ROOM_VIEW_STATE.skinId = getSkinIdForAtmosphere(resolvedAtmosphere);
+
+  if (persist) saveStoredAtmosphereMode(normalizedMode);
+  if (ROOM_VIEW_STATE.handle) ROOM_VIEW_STATE.handle.setSkin(ROOM_VIEW_STATE.skinId);
+}
+
+function refreshAutoAtmosphere() {
+  if (ROOM_VIEW_STATE.atmosphereMode !== 'auto') return;
+  const nextAtmosphere = resolveAtmosphereForDate();
+  if (ROOM_VIEW_STATE.resolvedAtmosphere === nextAtmosphere) return;
+  applyAtmospherePreset('auto', { persist: false });
+  syncAtmosphereControls();
+}
+
+function syncAtmosphereControls() {
+  const root = document.getElementById('view-room');
+  if (!root) return;
+
+  root.querySelectorAll('[data-room-atmosphere]').forEach((node) => {
+    node.classList.toggle('active', node.dataset.roomAtmosphere === ROOM_VIEW_STATE.atmosphereMode);
+  });
+
+  const note = document.getElementById('roomAtmosphereNote');
+  if (!note) return;
+
+  if (ROOM_VIEW_STATE.atmosphereMode === 'auto') {
+    note.textContent = `Auto uses this device's local time. Current: ${formatAtmosphereLabel(ROOM_VIEW_STATE.resolvedAtmosphere)}.`;
+    return;
+  }
+
+  note.textContent = `Fixed to ${formatAtmosphereLabel(ROOM_VIEW_STATE.resolvedAtmosphere)}.`;
+}
+
+function formatAtmosphereLabel(atmosphere) {
+  if (atmosphere === 'morning') return 'Morning';
+  if (atmosphere === 'afternoon') return 'Afternoon';
+  if (atmosphere === 'dusk') return 'Dusk';
+  return 'Night';
+}
+
+function applyBlindPreset(preset, { persist = true } = {}) {
+  ROOM_VIEW_STATE.blindPreset = normalizeBlindPreset(preset);
+  if (persist) saveStoredBlindPreset(ROOM_VIEW_STATE.blindPreset);
+  ROOM_VIEW_STATE.handle?.setBlindPreset?.(ROOM_VIEW_STATE.blindPreset);
+}
+
+function syncBlindControls() {
+  const root = document.getElementById('view-room');
+  if (!root) return;
+
+  root.querySelectorAll('[data-room-blinds]').forEach((node) => {
+    node.classList.toggle('active', node.dataset.roomBlinds === ROOM_VIEW_STATE.blindPreset);
+  });
+
+  const note = document.getElementById('roomBlindsNote');
+  if (!note) return;
+  note.textContent = ROOM_VIEW_STATE.blindPreset === 'open'
+    ? 'Blinds are stacked near the top so the outside scene stays visible.'
+    : ROOM_VIEW_STATE.blindPreset === 'closed'
+      ? 'Blinds cover the window fully.'
+      : 'Blinds are partially raised for a softer frame.';
+}
+
+function syncRoomAudio() {
+  const state = RoomAudio.getState();
+  const selectedTrack = state.tracks.find((track) => track.id === state.selectedTrackId) || null;
+
+  const title = document.getElementById('roomAudioTrackTitle');
+  if (title) title.textContent = selectedTrack?.title || 'Room soundtrack';
+
+  const subtitle = document.getElementById('roomAudioTrackSubtitle');
+  if (subtitle) {
+    subtitle.textContent = selectedTrack?.subtitle
+      || (state.ready ? 'Add built-in tracks in /public/audio/room/manifest.json' : 'Loading room audio…');
+  }
+
+  const playToggle = document.getElementById('roomAudioPlayToggle');
+  if (playToggle) {
+    playToggle.textContent = state.isPlaying ? 'Pause' : 'Play';
+    playToggle.setAttribute('aria-pressed', String(state.isPlaying));
+    playToggle.toggleAttribute('disabled', !state.tracks.length);
+  }
+
+  const muteToggle = document.getElementById('roomAudioMuteToggle');
+  if (muteToggle) {
+    muteToggle.textContent = state.muted ? 'Unmute' : 'Mute';
+    muteToggle.setAttribute('aria-pressed', String(state.muted));
+    muteToggle.toggleAttribute('disabled', !state.tracks.length);
+  }
+
+  const volumeInput = document.getElementById('roomMusicVolume');
+  if (volumeInput instanceof HTMLInputElement) {
+    volumeInput.value = String(Math.round(state.volume * 100));
+    volumeInput.disabled = !state.tracks.length;
+  }
+
+  const status = document.getElementById('roomAudioStatus');
+  if (status) {
+    const fallbackStatus = !state.tracks.length && state.ready
+      ? 'No built-in room tracks yet. Add files to /public/audio/room and update manifest.json.'
+      : '';
+    status.textContent = state.statusMessage || fallbackStatus;
+  }
+
+  const trackList = document.getElementById('roomAudioTrackList');
+  if (trackList) {
+    trackList.innerHTML = state.tracks.map((track) => `
+      <div class="room-track-row${track.id === state.selectedTrackId ? ' is-active' : ''}">
+        <button
+          type="button"
+          class="room-track-select"
+          data-room-track-id="${track.id}"
+          aria-pressed="${track.id === state.selectedTrackId ? 'true' : 'false'}"
+        >
+          <span class="room-track-copy">
+            <strong>${escapeRoomHtml(track.title)}</strong>
+            <span>${escapeRoomHtml(track.subtitle)}</span>
+          </span>
+        </button>
+        <span class="room-track-side">
+          <span class="room-track-kind">${track.kind === 'custom' ? 'Personal' : 'Built-in'}</span>
+          ${track.kind === 'custom'
+            ? `<button type="button" class="room-track-remove" data-room-remove-track-id="${track.id}" aria-label="Remove ${escapeRoomHtml(track.title)}">Remove</button>`
+            : ''}
+        </span>
+      </div>
+    `).join('');
+  }
+
+  const canUploadCustomAudio = EntitlementsStore.hasEntitlement('room.customAudio');
+  const uploadBtn = document.getElementById('roomAudioUploadBtn');
+  const upgradeBtn = document.getElementById('roomAudioUpgradeBtn');
+  const uploadNote = document.getElementById('roomAudioUploadNote');
+  if (uploadBtn) uploadBtn.hidden = !canUploadCustomAudio;
+  if (upgradeBtn) upgradeBtn.hidden = canUploadCustomAudio;
+  if (uploadNote && !uploadNote.textContent.trim()) {
+    uploadNote.textContent = canUploadCustomAudio
+      ? `Pro keeps up to ${RoomAudio.getCustomTrackLimit()} personal tracks on this device.`
+      : 'Upgrade to Pro to add personal tracks on this device.';
+  }
+}
+
+function escapeRoomHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
 function syncHoverBadge() {
   const badge = document.getElementById('roomHoverBadge');
   const icon = document.getElementById('roomHoverIcon');
@@ -840,14 +1219,6 @@ function syncHoverBadge() {
   const top = Math.min(Math.max(12, ROOM_VIEW_STATE.hoverPoint.y - 64), window.innerHeight - 96);
   badge.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
   badge.hidden = false;
-}
-
-function applyAtmospherePreset(atmosphere) {
-  if (!ROOM_VIEW_STATE.handle) return;
-  if (atmosphere === 'morning') ROOM_VIEW_STATE.skinId = 'mist-morning';
-  else if (atmosphere === 'night') ROOM_VIEW_STATE.skinId = 'night-lamp';
-  else ROOM_VIEW_STATE.skinId = 'warm-study';
-  ROOM_VIEW_STATE.handle.setSkin(ROOM_VIEW_STATE.skinId);
 }
 
 function openPanel(panelId, params = {}) {

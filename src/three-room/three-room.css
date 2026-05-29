@@ -363,6 +363,14 @@ body[data-view='room'] {
   font-weight: var(--weight-service-ui-label);
 }
 
+#view-room .room-atmosphere-note {
+  margin: 8px 0 0;
+  color: rgba(244, 228, 205, 0.72);
+  font-family: var(--font-service-ui);
+  font-size: 10px;
+  letter-spacing: var(--track-service-ui);
+}
+
 #view-room .room-chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -408,6 +416,8 @@ body[data-view='room'] {
 #view-room .room-music-meta {
   display: grid;
   gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 #view-room .room-music-meta strong {
@@ -415,9 +425,123 @@ body[data-view='room'] {
   font-family: var(--font-serif);
   font-size: 14px;
   font-weight: 560;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #view-room .room-music-meta span {
+  color: rgba(244, 228, 205, 0.72);
+  font-family: var(--font-service-ui);
+  font-size: 10px;
+  letter-spacing: var(--track-service-ui);
+}
+
+#view-room .room-music-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+#view-room .room-icon-pill {
+  min-height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 228, 205, 0.24);
+  background: rgba(244, 228, 205, 0.06);
+  color: rgba(249, 235, 213, 0.9);
+  padding: 0 10px;
+  cursor: pointer;
+  font-family: var(--font-service-ui);
+  font-size: 10px;
+  letter-spacing: var(--track-service-ui);
+}
+
+#view-room .room-icon-pill:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#view-room .room-audio-track-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+#view-room .room-track-row {
+  border: 1px solid rgba(244, 228, 205, 0.16);
+  border-radius: 14px;
+  background: rgba(244, 228, 205, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 11px;
+}
+
+#view-room .room-track-row.is-active {
+  border-color: rgba(255, 214, 150, 0.46);
+  background: rgba(219, 166, 89, 0.12);
+}
+
+#view-room .room-track-select {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: none;
+  background: transparent;
+  color: rgba(249, 235, 213, 0.92);
+  padding: 2px 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+#view-room .room-track-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+#view-room .room-track-copy strong {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 560;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#view-room .room-track-copy span {
+  color: rgba(244, 228, 205, 0.7);
+  font-family: var(--font-service-ui);
+  font-size: 10px;
+  letter-spacing: var(--track-service-ui);
+}
+
+#view-room .room-track-side {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+#view-room .room-track-kind,
+#view-room .room-track-remove {
+  color: rgba(244, 228, 205, 0.7);
+  font-family: var(--font-service-ui);
+  font-size: 9px;
+  letter-spacing: var(--track-service-ui);
+}
+
+#view-room .room-track-remove {
+  border: none;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+#view-room .room-audio-status,
+#view-room .room-audio-note {
+  margin: 8px 0 0;
   color: rgba(244, 228, 205, 0.72);
   font-family: var(--font-service-ui);
   font-size: 10px;
@@ -437,6 +561,12 @@ body[data-view='room'] {
 #view-room #roomMusicVolume {
   width: 100%;
   accent-color: rgba(244, 228, 205, 0.72);
+}
+
+#view-room .room-audio-upload {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
 }
 
 #view-room .room-camera-toolbar {

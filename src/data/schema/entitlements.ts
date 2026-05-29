@@ -9,6 +9,7 @@ export type Entitlement =
   | 'profile.customDomain'
   | 'sync.notion'
   | 'library.3d'
+  | 'room.customAudio'
   | 'reader.builtin';
 
 export type Plan = 'free' | 'pro' | 'lifetime';
@@ -22,6 +23,7 @@ const PRO: Entitlement[] = [
   'profile.customDomain',
   'sync.notion',
   'library.3d',
+  'room.customAudio',
 ];
 
 export const PLAN_ENTITLEMENTS: Record<Plan, Entitlement[]> = {

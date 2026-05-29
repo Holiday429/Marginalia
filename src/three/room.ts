@@ -75,6 +75,16 @@ interface SurfaceTextureSetSpec {
   bumpScale?: number;
 }
 
+type WindowBackdropPhase = 'morning' | 'afternoon' | 'dusk' | 'night';
+type BlindPreset = 'open' | 'half' | 'closed';
+
+interface WindowSceneManifest {
+  morning?: string;
+  afternoon?: string;
+  dusk?: string;
+  night?: string;
+}
+
 
 // Room geometry constants — positions derived from these, not magic numbers.
 const ROOM = {
@@ -278,6 +288,8 @@ const DESK_TEXTURE_SET: SurfaceTextureSetSpec = {
   normalScale: 0.42,
 };
 
+const WINDOW_SCENE_MANIFEST_URL = '/window-scenes/manifest.json';
+
 export class RoomScene {
   private host: HTMLElement;
   private scene: THREE.Scene;
@@ -294,6 +306,9 @@ export class RoomScene {
   private rimLight: THREE.DirectionalLight;
   private fillLight: THREE.DirectionalLight;
   private skyLight: THREE.HemisphereLight;
+  private pendantLight: THREE.PointLight;
+  private readingLampLight: THREE.SpotLight;
+  private readingLampTarget: THREE.Object3D;
 
   private materials: {
     floor: THREE.MeshStandardMaterial;
@@ -307,7 +322,9 @@ export class RoomScene {
     desk: THREE.MeshStandardMaterial;
     trim: THREE.MeshStandardMaterial;
     blind: THREE.MeshStandardMaterial;
-    exterior: THREE.MeshStandardMaterial;
+    exterior: THREE.MeshBasicMaterial;
+    exteriorTreesFar: THREE.MeshBasicMaterial;
+    exteriorTreesNear: THREE.MeshBasicMaterial;
     shadowCatcher: THREE.MeshBasicMaterial;
     windowGlow: THREE.MeshStandardMaterial;
   };
@@ -316,6 +333,20 @@ export class RoomScene {
   private slotMounts = new Map<RoomSlotId, SlotMount>();
   private decorRoot = new THREE.Group();
   private namedModels = new Map<string, THREE.Object3D>();
+  private practicalGlowMaterials = new Map<string, THREE.MeshStandardMaterial[]>();
+  private windowBackdropTextures = {
+    sky: new Map<WindowBackdropPhase, THREE.CanvasTexture>(),
+    treesFar: new Map<WindowBackdropPhase, THREE.CanvasTexture>(),
+    treesNear: new Map<WindowBackdropPhase, THREE.CanvasTexture>(),
+  };
+  private windowSceneManifest: WindowSceneManifest = {};
+  private windowSceneTextures = new Map<WindowBackdropPhase, THREE.Texture | null>();
+  private blindSlats: THREE.Mesh[] = [];
+  private blindSlatBaseY: number[] = [];
+  private blindTopY = 0;
+  private blindCollapsedGap = 0.02;
+  private blindSlatHeight = 0.026;
+  private currentBlindPreset: BlindPreset = 'half';
   private pullTween: { model: THREE.Object3D; startX: number; targetX: number; startedAt: number; durationMs: number; onComplete: () => void } | null = null;
   private gltfLoader = new GLTFLoader();
   private dracoLoader = new DRACOLoader();
@@ -343,6 +374,7 @@ export class RoomScene {
   private hasBoardSurfaceTexture = false;
   private resizeObserver: ResizeObserver;
   private currentPoseId: RoomPoseId = 'front';
+  private currentSkinId = 'warm-study';
   private cameraSpeedPreset: CameraSpeedPreset = 'default';
   private poseZoomOffset: Record<RoomPoseId, number> = {
     front: 0,
@@ -418,7 +450,9 @@ export class RoomScene {
       desk: new THREE.MeshStandardMaterial({ roughness: 0.72, metalness: 0.05 }),
       trim: new THREE.MeshStandardMaterial({ roughness: 0.82, metalness: 0.03 }),
       blind: new THREE.MeshStandardMaterial({ roughness: 0.58, metalness: 0.04 }),
-      exterior: new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0, toneMapped: false }),
+      exterior: new THREE.MeshBasicMaterial({ toneMapped: false }),
+      exteriorTreesFar: new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false, depthWrite: false }),
+      exteriorTreesNear: new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false, depthWrite: false }),
       shadowCatcher: new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false }),
       windowGlow: new THREE.MeshStandardMaterial({ emissiveIntensity: 0.35, toneMapped: false }),
     };
@@ -428,13 +462,18 @@ export class RoomScene {
     this.keyLight = new THREE.DirectionalLight('#fff4db', 1.7);
     this.fillLight = new THREE.DirectionalLight('#e9d4bc', 0.5);
     this.rimLight = new THREE.DirectionalLight('#adc7ff', 0.34);
+    this.pendantLight = new THREE.PointLight('#ffd6a1', 0.22, 8.5, 2);
+    this.readingLampLight = new THREE.SpotLight('#ffe0b7', 0.18, 8.2, Math.PI / 5.8, 0.62, 2);
+    this.readingLampTarget = new THREE.Object3D();
 
     this.setupImageBasedLighting();
     this.setupHost();
     this.buildRoom();
     this.setupSurfaceTextures();
     this.mountDecorAssets();
+    this.loadWindowSceneManifest();
     this.applySkin(options.skinId || 'warm-study');
+    this.setBlindPreset('half');
     this.applyPoseImmediately('front');
     this.enterCameraAnimation();
 
@@ -536,8 +575,14 @@ export class RoomScene {
     if (!this.cameraTween.active) this.idleStartedAt = performance.now();
   }
 
+  setBlindPreset(preset: BlindPreset): void {
+    this.currentBlindPreset = preset === 'open' || preset === 'closed' ? preset : 'half';
+    this.applyBlindState();
+  }
+
   applySkin(skinId: string): void {
     const skin = getRoomSkinById(skinId);
+    this.currentSkinId = skin.id;
 
     this.scene.background = new THREE.Color(skin.colors.background);
 
@@ -554,7 +599,7 @@ export class RoomScene {
     this.materials.desk.color.set(this.hasDeskSurfaceTexture ? '#ffffff' : skin.colors.desk);
     this.materials.trim.color.set('#b7a791');
     this.materials.blind.color.set('#c9b9a2');
-    this.materials.exterior.color.set('#edf3fb');
+    this.materials.exterior.color.set('#ffffff');
     this.materials.shadowCatcher.color.set('#000000');
     this.materials.shadowCatcher.opacity = 0.18;
     this.materials.windowGlow.color.set(skin.colors.windowGlow);
@@ -565,6 +610,38 @@ export class RoomScene {
     this.fillLight.intensity = skin.lighting.key * 0.34;
     this.rimLight.intensity = skin.lighting.rim * 0.72;
     this.skyLight.intensity = 0.58;
+    this.pendantLight.intensity = skin.lighting.pendant;
+    this.readingLampLight.intensity = skin.lighting.lamp;
+
+    const practicalGlow = skin.lighting.practicalGlow;
+    const backdropPhase = this.resolveWindowBackdropPhase(skin.id);
+    this.pendantLight.color.set(skin.id === 'night-lamp' ? '#ffc68e' : skin.id === 'amber-dusk' ? '#ffc08c' : '#ffe5c5');
+    this.readingLampLight.color.set(skin.id === 'night-lamp' ? '#ffd7ad' : skin.id === 'amber-dusk' ? '#ffd5ae' : '#fff1de');
+    this.applyWindowBackdrop(backdropPhase);
+    this.materials.windowGlow.emissiveIntensity = backdropPhase === 'night'
+      ? 0.42
+      : backdropPhase === 'dusk'
+        ? 0.31
+        : backdropPhase === 'morning'
+          ? 0.2
+          : 0.16;
+    this.materials.blind.opacity = this.currentBlindPreset === 'closed'
+      ? 1
+      : this.currentBlindPreset === 'half'
+        ? 0.96
+        : 0.92;
+    this.materials.blind.transparent = this.materials.blind.opacity < 1;
+
+    this.practicalGlowMaterials.forEach((materials, key) => {
+      const glowColor = key === 'ceiling-light'
+        ? this.pendantLight.color
+        : this.readingLampLight.color;
+      materials.forEach((material) => {
+        material.emissive.copy(glowColor);
+        material.emissiveIntensity = practicalGlow;
+        material.needsUpdate = true;
+      });
+    });
   }
 
   animateHeroBookPull(onComplete: () => void, durationMs = 600): void {
@@ -657,6 +734,14 @@ export class RoomScene {
       this.envRenderTarget.dispose();
       this.envRenderTarget = null;
     }
+    this.windowBackdropTextures.sky.forEach((texture) => texture.dispose());
+    this.windowBackdropTextures.treesFar.forEach((texture) => texture.dispose());
+    this.windowBackdropTextures.treesNear.forEach((texture) => texture.dispose());
+    this.windowSceneTextures.forEach((texture) => texture?.dispose());
+    this.windowBackdropTextures.sky.clear();
+    this.windowBackdropTextures.treesFar.clear();
+    this.windowBackdropTextures.treesNear.clear();
+    this.windowSceneTextures.clear();
 
     window.removeEventListener('resize', this.resize);
     this.resizeObserver.disconnect();
@@ -1002,6 +1087,12 @@ export class RoomScene {
     this.rimLight.position.set(-3.6, 3.0, -2.2);
     this.rimLight.target.position.set(2.3, 1.3, -0.4);
 
+    this.pendantLight.position.set(0, 2.84, -0.18);
+
+    this.readingLampLight.position.set(-3.56, 2.24, -2.84);
+    this.readingLampLight.target = this.readingLampTarget;
+    this.readingLampTarget.position.set(-1.05, 1.12, -1.86);
+
     this.scene.add(
       this.ambientLight,
       this.skyLight,
@@ -1011,6 +1102,9 @@ export class RoomScene {
       this.fillLight.target,
       this.rimLight,
       this.rimLight.target,
+      this.pendantLight,
+      this.readingLampLight,
+      this.readingLampTarget,
     );
     this.scene.add(this.decorRoot);
 
@@ -1063,6 +1157,9 @@ export class RoomScene {
     const revealDepth = spec.frameDepth;
     const frameThickness = 0.11;
     const slatCount = 18;
+    this.blindSlats = [];
+    this.blindSlatBaseY = [];
+    this.blindSlatHeight = 0.026;
 
     group.position.set(0, spec.centerY, spec.z);
 
@@ -1087,23 +1184,44 @@ export class RoomScene {
     exterior.position.set(0, 0, -revealDepth - 0.05);
     group.add(exterior);
 
+    const treesFar = new THREE.Mesh(
+      new THREE.PlaneGeometry(spec.width + 0.08, spec.height),
+      this.materials.exteriorTreesFar,
+    );
+    treesFar.position.set(0, -0.02, -revealDepth - 0.038);
+    treesFar.renderOrder = 0.5;
+    group.add(treesFar);
+
+    const treesNear = new THREE.Mesh(
+      new THREE.PlaneGeometry(spec.width + 0.12, spec.height + 0.02),
+      this.materials.exteriorTreesNear,
+    );
+    treesNear.position.set(0, -0.05, -revealDepth - 0.024);
+    treesNear.renderOrder = 0.75;
+    group.add(treesNear);
+
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(spec.width - 0.06, spec.height - 0.06), this.materials.windowGlow);
     glow.position.set(0, 0, -revealDepth + 0.014);
     glow.renderOrder = 1;
     group.add(glow);
 
     const slatWidth = spec.width - 0.12;
-    const slatHeight = 0.026;
+    const slatHeight = this.blindSlatHeight;
     const slatGap = spec.height / (slatCount + 1);
+    this.blindTopY = (spec.height / 2) - (slatHeight * 0.9);
+    this.blindCollapsedGap = slatHeight * 0.34;
     for (let index = 0; index < slatCount; index += 1) {
       const slat = new THREE.Mesh(
         new THREE.BoxGeometry(slatWidth, slatHeight, 0.028),
         this.materials.blind,
       );
-      slat.position.set(0, (spec.height / 2) - ((index + 1) * slatGap), -revealDepth + 0.034);
+      const baseY = (spec.height / 2) - ((index + 1) * slatGap);
+      slat.position.set(0, baseY, -revealDepth + 0.034);
       slat.rotation.x = -0.07;
       slat.castShadow = true;
       slat.receiveShadow = true;
+      this.blindSlats.push(slat);
+      this.blindSlatBaseY.push(baseY);
       group.add(slat);
     }
 
@@ -1243,6 +1361,10 @@ export class RoomScene {
 
     if (asset.photoTextureUrl) {
       this.applyDecorPhotoTexture(model, asset.photoTextureUrl, asset.photoMaterialNameIncludes || 'Image');
+    }
+
+    if (asset.id === 'ceiling-light' || asset.id === 'floor-lamp') {
+      this.capturePracticalGlowMaterials(model, asset.id);
     }
 
     if (asset.id) this.namedModels.set(asset.id, model);
@@ -1403,6 +1525,234 @@ export class RoomScene {
       });
     });
     return Array.from(bag);
+  }
+
+  private capturePracticalGlowMaterials(model: THREE.Object3D, assetId: string): void {
+    const glowCandidates = this.collectMeshStandardMaterials(model).filter((material) => {
+      const name = String(material.name || '').toLowerCase();
+      if (name.includes('bulb') || name.includes('light') || name.includes('lamp') || name.includes('shade')) {
+        return true;
+      }
+      const color = material.color;
+      const luma = (color.r * 0.2126) + (color.g * 0.7152) + (color.b * 0.0722);
+      return luma > 0.6 && material.metalness < 0.45;
+    });
+
+    if (!glowCandidates.length) return;
+    this.practicalGlowMaterials.set(assetId, glowCandidates);
+    this.applySkin(this.currentSkinId);
+  }
+
+  private resolveWindowBackdropPhase(skinId: string): WindowBackdropPhase {
+    if (skinId === 'mist-morning') return 'morning';
+    if (skinId === 'amber-dusk') return 'dusk';
+    if (skinId === 'night-lamp') return 'night';
+    return 'afternoon';
+  }
+
+  private applyBlindState(): void {
+    if (!this.blindSlats.length) return;
+
+    const openness = this.currentBlindPreset === 'open'
+      ? 1
+      : this.currentBlindPreset === 'half'
+        ? 0.56
+        : 0;
+    const rotation = THREE.MathUtils.lerp(-0.07, -0.22, openness * 0.7);
+    this.materials.blind.opacity = this.currentBlindPreset === 'closed'
+      ? 1
+      : this.currentBlindPreset === 'half'
+        ? 0.96
+        : 0.92;
+    this.materials.blind.transparent = this.materials.blind.opacity < 1;
+
+    this.blindSlats.forEach((slat, index) => {
+      const baseY = this.blindSlatBaseY[index] ?? 0;
+      const stackedY = this.blindTopY - (index * this.blindCollapsedGap);
+      slat.position.y = THREE.MathUtils.lerp(baseY, stackedY, openness);
+      slat.rotation.x = rotation;
+      slat.visible = !(this.currentBlindPreset === 'open' && index > 8);
+    });
+  }
+
+  private applyWindowBackdrop(phase: WindowBackdropPhase): void {
+    const customSceneTexture = this.windowSceneTextures.get(phase) || null;
+    this.materials.exterior.map = customSceneTexture || this.getWindowSkyTexture(phase);
+    this.materials.exterior.needsUpdate = true;
+
+    if (customSceneTexture) {
+      this.materials.exteriorTreesFar.opacity = 0;
+      this.materials.exteriorTreesNear.opacity = 0;
+      this.materials.exteriorTreesFar.needsUpdate = true;
+      this.materials.exteriorTreesNear.needsUpdate = true;
+      return;
+    }
+
+    this.materials.exteriorTreesFar.map = this.getWindowTreeTexture(phase, 'far');
+    this.materials.exteriorTreesFar.opacity = phase === 'night' ? 0.9 : phase === 'dusk' ? 0.82 : 0.72;
+    this.materials.exteriorTreesFar.needsUpdate = true;
+
+    this.materials.exteriorTreesNear.map = this.getWindowTreeTexture(phase, 'near');
+    this.materials.exteriorTreesNear.opacity = phase === 'night' ? 0.98 : phase === 'dusk' ? 0.88 : 0.78;
+    this.materials.exteriorTreesNear.needsUpdate = true;
+  }
+
+  private loadWindowSceneManifest(): void {
+    fetch(WINDOW_SCENE_MANIFEST_URL, { cache: 'no-store' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (this.disposed || !payload || typeof payload !== 'object') return;
+        const manifest = payload as WindowSceneManifest;
+        this.windowSceneManifest = manifest;
+        (['morning', 'afternoon', 'dusk', 'night'] as WindowBackdropPhase[]).forEach((phase) => {
+          const url = String(manifest[phase] || '').trim();
+          if (!url) {
+            this.windowSceneTextures.set(phase, null);
+            return;
+          }
+          this.loadWindowSceneTexture(phase, url);
+        });
+      })
+      .catch(() => {
+        // Optional local asset manifest; fallback stays active.
+      });
+  }
+
+  private loadWindowSceneTexture(phase: WindowBackdropPhase, url: string): void {
+    const resolvedUrl = url.startsWith('/') ? url : `/${url.replace(/^\/+/, '')}`;
+    this.textureLoader.load(
+      resolvedUrl,
+      (texture) => {
+        if (this.disposed) return;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
+        this.windowSceneTextures.set(phase, texture);
+        if (this.resolveWindowBackdropPhase(this.currentSkinId) === phase) {
+          this.applyWindowBackdrop(phase);
+        }
+      },
+      undefined,
+      () => {
+        this.windowSceneTextures.set(phase, null);
+      },
+    );
+  }
+
+  private getWindowSkyTexture(phase: WindowBackdropPhase): THREE.CanvasTexture {
+    const cached = this.windowBackdropTextures.sky.get(phase);
+    if (cached) return cached;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      const fallback = new THREE.CanvasTexture(canvas);
+      this.windowBackdropTextures.sky.set(phase, fallback);
+      return fallback;
+    }
+
+    const colors = phase === 'morning'
+      ? { top: '#e7effb', bottom: '#f4ead4', glow: '#fff4db' }
+      : phase === 'dusk'
+        ? { top: '#6e86b3', bottom: '#f0b079', glow: '#ffd8b4' }
+        : phase === 'night'
+          ? { top: '#16233e', bottom: '#3f4e69', glow: '#d9e7ff' }
+          : { top: '#cfe5fb', bottom: '#efe4cc', glow: '#fff2dd' };
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, colors.top);
+    gradient.addColorStop(1, colors.bottom);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const wash = ctx.createRadialGradient(
+      canvas.width * 0.58,
+      canvas.height * 0.34,
+      20,
+      canvas.width * 0.58,
+      canvas.height * 0.34,
+      canvas.width * 0.46,
+    );
+    wash.addColorStop(0, `${colors.glow}dd`);
+    wash.addColorStop(1, `${colors.glow}00`);
+    ctx.fillStyle = wash;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (phase === 'night') {
+      ctx.fillStyle = 'rgba(255,244,220,0.68)';
+      for (let i = 0; i < 18; i += 1) {
+        const x = 46 + ((i * 53) % 920);
+        const y = 34 + ((i * 37) % 180);
+        const r = 1 + (i % 2);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
+    this.windowBackdropTextures.sky.set(phase, texture);
+    return texture;
+  }
+
+  private getWindowTreeTexture(phase: WindowBackdropPhase, layer: 'far' | 'near'): THREE.CanvasTexture {
+    const cache = layer === 'far' ? this.windowBackdropTextures.treesFar : this.windowBackdropTextures.treesNear;
+    const cached = cache.get(phase);
+    if (cached) return cached;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      const fallback = new THREE.CanvasTexture(canvas);
+      cache.set(phase, fallback);
+      return fallback;
+    }
+
+    const baseY = layer === 'far' ? 310 : 344;
+    const canopyRadius = layer === 'far' ? 42 : 56;
+    const step = layer === 'far' ? 72 : 88;
+    const color = phase === 'morning'
+      ? (layer === 'far' ? 'rgba(132,157,141,0.42)' : 'rgba(118,141,122,0.62)')
+      : phase === 'dusk'
+        ? (layer === 'far' ? 'rgba(86,91,97,0.52)' : 'rgba(58,64,72,0.74)')
+        : phase === 'night'
+          ? (layer === 'far' ? 'rgba(28,37,48,0.78)' : 'rgba(20,28,38,0.92)')
+          : (layer === 'far' ? 'rgba(121,145,127,0.46)' : 'rgba(95,122,103,0.68)');
+
+    ctx.fillStyle = color;
+    for (let x = -80, i = 0; x < canvas.width + 120; x += step, i += 1) {
+      const yOffset = Math.sin(i * 0.92) * (layer === 'far' ? 12 : 18);
+      const radius = canopyRadius + ((i % 3) * (layer === 'far' ? 8 : 12));
+      ctx.beginPath();
+      ctx.arc(x, baseY + yOffset, radius, Math.PI, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + (step * 0.45), baseY - 10 + (yOffset * 0.7), radius * 0.86, Math.PI, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillRect(0, baseY, canvas.width, canvas.height - baseY);
+
+    if (phase === 'night' && layer === 'far') {
+      ctx.fillStyle = 'rgba(255,217,176,0.22)';
+      for (let i = 0; i < 7; i += 1) {
+        const x = 84 + (i * 136);
+        const y = 268 + ((i % 2) * 22);
+        ctx.fillRect(x, y, 10, 10);
+        ctx.fillRect(x + 14, y, 10, 10);
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
+    cache.set(phase, texture);
+    return texture;
   }
 
   private renderLoop = (): void => {

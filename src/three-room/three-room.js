@@ -42,6 +42,10 @@ export function createThreeRoomPreview(host, options = {}) {
       scene.applySkin(skinId);
     },
 
+    setBlindPreset(preset) {
+      scene.setBlindPreset(preset);
+    },
+
     replayIntro() {
       scene.replayIntro();
     },
