@@ -236,7 +236,7 @@ export class ProfileAnnualShelf {
                 <div class="booklist-section-head booklist-section-head--source">
                   <h3 class="booklist-subheading">Shelf spread</h3>
                 </div>
-                <div class="booklist-source-track" id="profAnnualSourceShelf"></div>
+                <div class="booklist-source-rows" id="profAnnualSourceShelf"></div>
               </section>
             ` : `<p class="prof-year__empty">No shelf books available for ${year}.</p>`}
           </div>
@@ -332,13 +332,13 @@ export class ProfileAnnualShelf {
     if (!host) return;
     host.innerHTML = '';
     const selectedIds = new Set(selectedBooks.map((book) => book.id));
-    sourceBooks.forEach((book, i) => {
+
+    const buildSpine = (book: ProfileBook, i: number, total: number): HTMLElement => {
       const size = getSpineSize(book);
       const inCurated = this.state.curateMode && this.state.curatedOrder.includes(book.id);
-      // Last two spines lean, as if they've fallen against the others.
-      const tilt = !this.state.curateMode && i === sourceBooks.length - 1
+      const tilt = !this.state.curateMode && i === total - 1
         ? -3
-        : !this.state.curateMode && i === sourceBooks.length - 2
+        : !this.state.curateMode && i === total - 2
           ? -1
           : 0;
       const spine = SpineCard.create({
@@ -362,14 +362,28 @@ export class ProfileAnnualShelf {
         authorClass: `booklist-spine-author${containsCJK(book.author) ? ' is-cjk' : ''}`,
       });
       if (this.state.curateMode) {
-        // Curate mode: flat draggable spines, no tilt/tooltip wrapper.
         spine.setAttribute('draggable', 'true');
-        host.appendChild(spine);
-        return;
+      } else {
+        if (tilt) spine.style.setProperty('--spine-tilt', `${tilt}deg`);
+        spine.classList.add('booklist-spine--leanable');
       }
-      if (tilt) spine.style.setProperty('--spine-tilt', `${tilt}deg`);
-      spine.classList.add('booklist-spine--leanable');
-      host.appendChild(spine);
+      return spine;
+    };
+
+    if (this.state.curateMode) {
+      // Curate mode: flat single track, no row wrapping.
+      sourceBooks.forEach((book, i) => host.appendChild(buildSpine(book, i, sourceBooks.length)));
+      return;
+    }
+
+    // Responsive: wrap into rows based on the host's available width.
+    const availableWidth = Math.round(host.getBoundingClientRect().width) || window.innerWidth;
+    const rows = layoutSourceRows(sourceBooks, availableWidth);
+    rows.forEach((row) => {
+      const track = document.createElement('div');
+      track.className = 'booklist-source-track';
+      row.forEach((book, i) => track.appendChild(buildSpine(book, i, row.length)));
+      host.appendChild(track);
     });
   }
 
@@ -880,6 +894,29 @@ function splitRows(books: ProfileBook[]): ProfileBook[][] {
   return [books.slice(0, firstCount), books.slice(firstCount)];
 }
 
+function layoutSourceRows(books: ProfileBook[], availableWidth: number): ProfileBook[][] {
+  const maxWidth = Math.max(260, availableWidth - 16); // 16px for padding
+  const gap = 7;
+  const rows: ProfileBook[][] = [];
+  let currentRow: ProfileBook[] = [];
+  let currentWidth = 0;
+
+  books.forEach((book) => {
+    const { width } = getSpineSize(book);
+    const nextWidth = currentRow.length ? currentWidth + gap + width : width;
+    if (currentRow.length && nextWidth > maxWidth) {
+      rows.push(currentRow);
+      currentRow = [book];
+      currentWidth = width;
+    } else {
+      currentRow.push(book);
+      currentWidth = nextWidth;
+    }
+  });
+  if (currentRow.length) rows.push(currentRow);
+  return rows;
+}
+
 function buildPreviewFrame(book: ProfileBook): HTMLElement {
   const frame = document.createElement('div');
   frame.className = 'booklist-preview-cover is-cover-only';
@@ -1216,13 +1253,6 @@ function isFinishedStatus(status: unknown): boolean {
   return status === 'read' || status === 'finished';
 }
 
-function describeYearActivity(year: number, finishedBooks: ProfileBook[], sourceBooks: ProfileBook[], sessionDays: SessionDay[]): string {
-  const sessionCount = sessionDays.filter((d) => d.date.startsWith(`${year}-`)).reduce((sum, d) => sum + d.sessions, 0);
-  if (!sessionCount && !finishedBooks.length && sourceBooks.length) return `Previewing ${sourceBooks.length} shelf books`;
-  if (!sessionCount && !finishedBooks.length) return `No reading data for ${year}`;
-  if (!sessionCount) return `${finishedBooks.length} finished ${finishedBooks.length === 1 ? 'book' : 'books'}`;
-  return `${sessionCount} sessions · ${finishedBooks.length} ${finishedBooks.length === 1 ? 'book' : 'books'}`;
-}
 
 function describeRhythmInsight(year: number, sessionDays: SessionDay[]): string {
   const yearDays = sessionDays.filter((day) => day.date.startsWith(`${year}-`));

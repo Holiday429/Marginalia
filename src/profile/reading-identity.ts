@@ -1,13 +1,3 @@
-/**
- * Reading Identity — AI-generated reader portrait.
- *
- * Flow: a closed book sits on the desk surface → clicking "Generate" opens the
- * cover → a postcard slides out → the section resolves into the identity card
- * and behavior notes.
- *
- * The UI renders against mock data for now, but uses the same schema that the
- * long-term AI result will return.
- */
 import { cycleReadingIdentityVariant } from './reading-identity-adapter.ts';
 import { READING_IDENTITY_MOCK } from './reading-identity-mock.ts';
 import { getReadingIdentityResult } from './reading-identity-service.ts';
@@ -23,6 +13,20 @@ export interface IdentityGenre {
   label: string;
   pct: number;
   count: number;
+}
+
+export interface IdentityBook {
+  title: string;
+  author: string;
+  genre?: string;
+  language?: string;
+  year?: number;
+  status?: string;
+}
+
+export interface IdentityHighlight {
+  quote: string;
+  bookTitle?: string;
 }
 
 interface RidRenderOptions {
@@ -153,16 +157,20 @@ function radarHTML(axes: ReadingIdentityAxis[]): string {
 
 // Outline icons keyed by genre family — falls back to a generic "stack" mark.
 const GENRE_ICONS: Record<string, string> = {
-  fiction: '<path d="M4 5a2 2 0 012-2h12v18H6a2 2 0 01-2-2V5z"/><path d="M8 7h8"/>',
+  fiction: '<path d="M4 5a2 2 0 012-2h12v18H6a2 2 0 01-2-2V5z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  nonfiction: '<path d="M12 3l9 4-9 4-9-4 9-4zM3 12l9 4 9-4M3 17l9 4 9-4"/>',
   history: '<path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6"/>',
   philosophy: '<circle cx="12" cy="12" r="9"/><path d="M12 3a14 14 0 000 18M3 12h18"/>',
   science: '<path d="M9 3v6l-5 9a2 2 0 002 3h12a2 2 0 002-3l-5-9V3"/><path d="M8 3h8"/>',
   biography: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
-  memoir: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+  memoir: '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>',
   poetry: '<path d="M6 3v14a3 3 0 003 3M6 7h6M6 11h4"/><circle cx="17" cy="17" r="3"/>',
   travel: '<circle cx="12" cy="11" r="3"/><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z"/>',
-  essay: '<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
-  default: '<path d="M12 3l9 4-9 4-9-4 9-4zM3 12l9 4 9-4M3 17l9 4 9-4"/>',
+  essay: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
+  'social science': '<circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="3"/><path d="M3 21c0-3.6 2.7-6 6-6h5.2M14 19l2 2 4-4"/>',
+  psychology: '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10"/><path d="M12 8v4l3 3"/>',
+  economics: '<path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-8"/>',
+  default: '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>',
 };
 
 function genreIcon(label: string): string {
@@ -523,10 +531,70 @@ function runReveal(host: HTMLElement, data: ReadingIdentityResult, options: RidR
   }, GENERATE_REVEAL_MS);
 }
 
+function buildLibraryPayload(
+  books: IdentityBook[],
+  highlights: IdentityHighlight[],
+  sessionDays: Array<{ date: string; sessions: number; minutes: number }> = [],
+): Record<string, unknown> {
+  const totalSessions = sessionDays.reduce((s, d) => s + d.sessions, 0);
+  const totalMinutes = sessionDays.reduce((s, d) => s + d.minutes, 0);
+  const activeDays = sessionDays.filter((d) => d.sessions > 0);
+  const avgMinutes = activeDays.length ? Math.round(totalMinutes / activeDays.length) : 0;
+
+  const hourBuckets: Record<string, number> = {};
+  sessionDays.forEach((d) => {
+    const h = new Date(d.date).getHours();
+    const bucket = h < 6 ? 'night' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'late-night';
+    hourBuckets[bucket] = (hourBuckets[bucket] ?? 0) + d.sessions;
+  });
+  const peakHour = Object.entries(hourBuckets).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'evening';
+  const rhythmNote = totalSessions
+    ? `${totalSessions} sessions · ${activeDays.length} active days · ~${avgMinutes} min/session · peak: ${peakHour}`
+    : '';
+
+  return {
+    books,
+    highlightSample: highlights.slice(0, 20).map((h) => ({ quote: h.quote })),
+    rhythmNote,
+  };
+}
+
+async function generateIdentityFromAI(
+  books: IdentityBook[],
+  highlights: IdentityHighlight[],
+  sessionDays: Array<{ date: string; sessions: number; minutes: number }> = [],
+): Promise<ReadingIdentityResult | null> {
+  try {
+    const { MarginaliaAI } = await import('../services/ai-gateway.ts');
+    const { AIFeatureRegistry } = await import('../ai/features/registry.js');
+    await import('../ai/features/prompts/reader-identity.js');
+
+    const library = buildLibraryPayload(books, highlights, sessionDays);
+    const prompt = AIFeatureRegistry.buildPrompt('reader-identity', library);
+    if (!prompt) return null;
+
+    const result = await (MarginaliaAI as any).generateJSON({
+      featureId: 'reader-identity',
+      prompt,
+    }) as ReadingIdentityResult | null;
+
+    if (!result?.archetype?.title || !Array.isArray(result?.axes)) return null;
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 export function mountReadingIdentity(
   host: HTMLElement,
   data: ReadingIdentityResult = READING_IDENTITY_MOCK,
-  options: { revealImmediately?: boolean; genres?: IdentityGenre[] } = {},
+  options: {
+    revealImmediately?: boolean;
+    genres?: IdentityGenre[];
+    books?: IdentityBook[];
+    highlights?: IdentityHighlight[];
+    sessionDays?: Array<{ date: string; sessions: number; minutes: number }>;
+  } = {},
 ): void {
   const currentData = getReadingIdentityResult(data);
   const genres = options.genres ?? [];
@@ -537,6 +605,37 @@ export function mountReadingIdentity(
   host.innerHTML = `<div class="prof-rid prof-rid--gate">${ctaStateHTML(currentData)}</div>`;
   mountGateHeroBook(host);
   host.querySelector<HTMLButtonElement>('#profRidGenerate')?.addEventListener('click', () => {
-    runReveal(host, currentData, { genres });
+    const books = options.books ?? [];
+    const highlights = options.highlights ?? [];
+    const sessionDays = options.sessionDays ?? [];
+    if (books.length >= 3) {
+      // Real AI path: animate the book opening, then call AI, then reveal
+      const generateBtn = host.querySelector<HTMLButtonElement>('#profRidGenerate');
+      if (generateBtn?.disabled) return;
+      if (generateBtn) { generateBtn.disabled = true; generateBtn.textContent = 'Generating...'; }
+
+      const bookEl = host.querySelector<HTMLElement>('.prof-rid-book');
+      const stage = host.querySelector<HTMLElement>('.prof-rid-stage');
+      if (bookEl && stage) {
+        const stageRect = stage.getBoundingClientRect();
+        const bookRect = bookEl.getBoundingClientRect();
+        const deltaX = stageRect.left + stageRect.width / 2 - (bookRect.left + bookRect.width / 2);
+        stage.style.setProperty('--prof-rid-book-shift-x', `${Math.round(deltaX)}px`);
+      }
+      stage?.classList.add('is-generating');
+      host.querySelector<HTMLElement>('.prof-rid-cta')?.classList.add('is-leaving');
+      window.setTimeout(() => { heroBookByHost.get(host)?.open(); }, BOOK_CENTERING_MS);
+
+      generateIdentityFromAI(books, highlights, sessionDays).then((aiResult) => {
+        const finalData = aiResult ?? currentData;
+        window.setTimeout(() => {
+          heroBookByHost.get(host)?.unmount();
+          heroBookByHost.delete(host);
+          renderResult(host, finalData, { genres });
+        }, GENERATE_REVEAL_MS);
+      });
+    } else {
+      runReveal(host, currentData, { genres });
+    }
   });
 }
