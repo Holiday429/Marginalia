@@ -119,15 +119,18 @@ function radarPolygonPoints(axes: ReadingIdentityAxis[], scale: (score: number) 
 function radarHTML(axes: ReadingIdentityAxis[]): string {
   const angles = radarAngles(axes.length);
 
+  // Inline presentation attributes (fill/stroke) so the radar renders correctly
+  // both live and when cloned by html-to-image, which doesn't reliably apply
+  // class-based CSS to SVG child elements during snapshot capture.
   const rings = Array.from({ length: RADAR_RINGS }, (_, ringIdx) => {
     const r = (RADAR_RADIUS * (ringIdx + 1)) / RADAR_RINGS;
     const pts = angles.map((a) => { const p = radarPoint(a, r); return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; }).join(' ');
-    return `<polygon class="prof-rid-radar__ring" points="${pts}"></polygon>`;
+    return `<polygon class="prof-rid-radar__ring" points="${pts}" fill="none" stroke="rgba(232,223,200,0.09)" stroke-width="1"></polygon>`;
   }).join('');
 
   const spokes = angles.map((a) => {
     const p = radarPoint(a, RADAR_RADIUS);
-    return `<line class="prof-rid-radar__spoke" x1="${RADAR_CENTER}" y1="${RADAR_CENTER}" x2="${p.x.toFixed(1)}" y2="${p.y.toFixed(1)}"></line>`;
+    return `<line class="prof-rid-radar__spoke" x1="${RADAR_CENTER}" y1="${RADAR_CENTER}" x2="${p.x.toFixed(1)}" y2="${p.y.toFixed(1)}" stroke="rgba(232,223,200,0.1)" stroke-width="1"></line>`;
   }).join('');
 
   const labels = axes.map((axis, i) => {
@@ -135,7 +138,7 @@ function radarHTML(axes: ReadingIdentityAxis[]): string {
     const isTop = Math.abs(p.y - (RADAR_CENTER - RADAR_RADIUS - 22)) < 1;
     const anchor = Math.abs(p.x - RADAR_CENTER) < 4 ? 'middle' : (p.x > RADAR_CENTER ? 'start' : 'end');
     const dy = isTop ? '-2' : (p.y > RADAR_CENTER ? '10' : '0');
-    return `<text class="prof-rid-radar__label" x="${p.x.toFixed(1)}" y="${p.y.toFixed(1)}" dy="${dy}" text-anchor="${anchor}">${escapeHtml(axis.label)}</text>`;
+    return `<text class="prof-rid-radar__label" x="${p.x.toFixed(1)}" y="${p.y.toFixed(1)}" dy="${dy}" text-anchor="${anchor}" fill="rgba(237,224,200,0.66)">${escapeHtml(axis.label)}</text>`;
   }).join('');
 
   // Vertex dots use the data layer so animateAxes can grow them from center.
@@ -145,9 +148,9 @@ function radarHTML(axes: ReadingIdentityAxis[]): string {
     <div class="prof-rid-radar" data-axes='${escapeHtml(JSON.stringify(axes.map((a) => a.score)))}'>
       <svg class="prof-rid-radar__svg" viewBox="0 0 ${RADAR_SIZE} ${RADAR_SIZE}" role="img" aria-label="Reading identity radar">
         <g class="prof-rid-radar__grid">${rings}${spokes}</g>
-        <polygon class="prof-rid-radar__shape" points="${collapsed}"></polygon>
+        <polygon class="prof-rid-radar__shape" points="${collapsed}" fill="rgba(196,154,82,0.2)" stroke="#e8c98c" stroke-width="1.6" stroke-linejoin="round"></polygon>
         <g class="prof-rid-radar__dots">
-          ${axes.map(() => `<circle class="prof-rid-radar__dot" cx="${RADAR_CENTER}" cy="${RADAR_CENTER}" r="2.6"></circle>`).join('')}
+          ${axes.map(() => `<circle class="prof-rid-radar__dot" cx="${RADAR_CENTER}" cy="${RADAR_CENTER}" r="2.6" fill="#e8c98c"></circle>`).join('')}
         </g>
         <g class="prof-rid-radar__labels">${labels}</g>
       </svg>

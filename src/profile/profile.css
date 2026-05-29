@@ -4676,10 +4676,14 @@
   flex: 1;
   overflow-y: auto;
   display: flex;
-  align-items: center;
+  align-items: flex-start;   /* top-anchored so the banner (image top) is reachable */
   justify-content: center;
   min-height: 160px;
   background: rgba(0,0,0,0.2);
+}
+/* Center only while empty (spinner / error) — once an image lands, top-align. */
+.prof-snapshot-modal__preview:not(:has(.prof-snapshot-modal__img)) {
+  align-items: center;
 }
 
 .prof-snapshot-modal__img {

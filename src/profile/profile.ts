@@ -586,6 +586,14 @@ function openSnapshotModal(
 
   heroBook.open();
 
+  // The profile panel (.room-panel) sets transform + filter, which makes it a
+  // containing block for position:fixed children — that pins the sheet to the
+  // panel's scrolled content box instead of the viewport. Re-parent the modal
+  // to <body> so it anchors to the viewport bottom where the user just clicked.
+  const homeParent = modal.parentElement;
+  const homeNext = modal.nextElementSibling;
+  document.body.appendChild(modal);
+
   modal.hidden = false;
   requestAnimationFrame(() => modal.classList.add('is-open'));
 
@@ -598,16 +606,23 @@ function openSnapshotModal(
 
   const close = () => {
     modal.classList.remove('is-open');
-    window.setTimeout(() => { modal.hidden = true; }, 400);
+    window.setTimeout(() => {
+      modal.hidden = true;
+      // Return the modal to its original spot in the profile DOM.
+      if (homeParent) homeParent.insertBefore(modal, homeNext);
+    }, 400);
     heroBook.close();
   };
 
   closeBtn?.addEventListener('click', close, { once: true });
   backdrop?.addEventListener('click', close, { once: true });
 
+  const shareUrl = container.querySelector<HTMLElement>('#profileHeaderShareBtn')
+    ?.getAttribute('data-share-url') || window.location.href;
+
   void import('./profile-snapshot.ts').then(async ({ captureProfileSnapshot, downloadSnapshot, shareSnapshot }) => {
     try {
-      const result = await captureProfileSnapshot(container);
+      const result = await captureProfileSnapshot(container, { shareUrl });
       snapshotBlob = result.blob;
 
       const img = document.createElement('img');
