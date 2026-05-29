@@ -473,14 +473,39 @@ function profileHTML(
         ${annualSection}
         ${deskSection}
         ${portraitSection}
-        <section class="prof-share-cta" aria-label="Share your profile">
+        <section class="prof-share-cta" aria-label="Export reading card">
           <div class="prof-share-cta__stage">
-            <div class="prof-share-cta__book book cta" id="profShareBook" role="button" tabindex="0" aria-label="Generate share link">
+            <div class="prof-share-cta__book book cta" id="profShareBook" role="button" tabindex="0" aria-label="Export reading card">
               <div class="prof-share-cta__book-mount" id="profShareBookMount"></div>
-              <div class="cta-label" id="profShareCtaLabel">Generate share link</div>
+              <div class="cta-label" id="profShareCtaLabel">Export reading card</div>
             </div>
           </div>
         </section>
+
+        <div class="prof-snapshot-modal" id="profSnapshotModal" role="dialog" aria-modal="true" aria-label="Reading card preview" hidden>
+          <div class="prof-snapshot-modal__backdrop" id="profSnapshotBackdrop"></div>
+          <div class="prof-snapshot-modal__panel">
+            <div class="prof-snapshot-modal__head">
+              <span class="prof-snapshot-modal__title">Reading card</span>
+              <button class="prof-snapshot-modal__close" id="profSnapshotClose" type="button" aria-label="Close">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
+              </button>
+            </div>
+            <div class="prof-snapshot-modal__preview" id="profSnapshotPreview">
+              <div class="prof-snapshot-modal__spinner" aria-label="Generating…"></div>
+            </div>
+            <div class="prof-snapshot-modal__actions">
+              <button class="prof-snapshot-btn prof-snapshot-btn--primary" id="profSnapshotDownload" type="button" disabled>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M5 7l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
+                Save image
+              </button>
+              <button class="prof-snapshot-btn prof-snapshot-btn--ghost" id="profSnapshotShare" type="button" disabled hidden>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="3" r="1.5"/><circle cx="12" cy="13" r="1.5"/><circle cx="4" cy="8" r="1.5"/><path d="M5.4 7.3l5.2-3M5.4 8.7l5.2 3"/></svg>
+                Share
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -529,43 +554,92 @@ function bindProfileChrome(container: HTMLElement, settingsOnly: boolean): void 
     }, true);
   }
 
-  // Bottom share section — GLB hero book + preloader "Enter Library"-style CTA.
+  // Bottom export card — GLB hero book CTA → snapshot preview modal.
   const shareBook = container.querySelector<HTMLElement>('#profShareBook');
   const shareMount = container.querySelector<HTMLElement>('#profShareBookMount');
   const shareLabel = container.querySelector<HTMLElement>('#profShareCtaLabel');
   if (shareBook && shareMount) {
     const heroBook = new HeroBook({ height: 240 });
     heroBook.mount(shareMount);
-    // Dock the book and reveal the label, mirroring the preloader CTA state.
     window.setTimeout(() => shareBook.classList.add('docked'), 16);
 
-    let sharing = false;
-    const doShare = async () => {
-      if (sharing) return;
-      sharing = true;
-      const shareTarget = container.querySelector<HTMLElement>('#profileHeaderShareBtn')?.getAttribute('data-share-url') || window.location.href;
-      // Open the book — preloader's final cover flip.
-      heroBook.open();
-      try {
-        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(shareTarget);
-        else throw new Error('Clipboard unavailable');
-        if (shareLabel) shareLabel.textContent = 'Link copied';
-      } catch {
-        window.open(shareTarget, '_blank', 'noopener,noreferrer');
-        if (shareLabel) shareLabel.textContent = 'Opening…';
-      }
-      window.setTimeout(() => {
-        heroBook.close();
-        if (shareLabel) shareLabel.textContent = 'Generate share link';
-        sharing = false;
-      }, 1800);
-    };
-
-    shareBook.addEventListener('click', doShare);
+    const openExportModal = () => { openSnapshotModal(container, heroBook, shareLabel); };
+    shareBook.addEventListener('click', openExportModal);
     shareBook.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doShare(); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openExportModal(); }
     });
   }
+}
+
+function openSnapshotModal(
+  container: HTMLElement,
+  heroBook: InstanceType<typeof HeroBook>,
+  shareLabel: HTMLElement | null,
+): void {
+  const modal = container.querySelector<HTMLElement>('#profSnapshotModal');
+  const preview = container.querySelector<HTMLElement>('#profSnapshotPreview');
+  const downloadBtn = container.querySelector<HTMLButtonElement>('#profSnapshotDownload');
+  const shareBtn = container.querySelector<HTMLButtonElement>('#profSnapshotShare');
+  const closeBtn = container.querySelector<HTMLButtonElement>('#profSnapshotClose');
+  const backdrop = container.querySelector<HTMLElement>('#profSnapshotBackdrop');
+  if (!modal || !preview || !downloadBtn) return;
+
+  if (shareLabel) shareLabel.textContent = 'Generating…';
+  heroBook.open();
+
+  modal.hidden = false;
+  requestAnimationFrame(() => modal.classList.add('is-open'));
+
+  // Reset to spinner state.
+  preview.innerHTML = '<div class="prof-snapshot-modal__spinner" aria-label="Generating…"></div>';
+  downloadBtn.disabled = true;
+  if (shareBtn) shareBtn.disabled = true;
+
+  let snapshotBlob: Blob | null = null;
+
+  const close = () => {
+    modal.classList.remove('is-open');
+    window.setTimeout(() => { modal.hidden = true; }, 300);
+    heroBook.close();
+    if (shareLabel) shareLabel.textContent = 'Export reading card';
+  };
+
+  closeBtn?.addEventListener('click', close, { once: true });
+  backdrop?.addEventListener('click', close, { once: true });
+
+  void import('./profile-snapshot.ts').then(async ({ captureProfileSnapshot, downloadSnapshot, shareSnapshot }) => {
+    try {
+      const result = await captureProfileSnapshot(container);
+      snapshotBlob = result.blob;
+
+      const img = document.createElement('img');
+      img.src = result.dataUrl;
+      img.alt = 'Reading card preview';
+      img.className = 'prof-snapshot-modal__img';
+      preview.innerHTML = '';
+      preview.appendChild(img);
+
+      downloadBtn.disabled = false;
+      downloadBtn.addEventListener('click', () => {
+        if (snapshotBlob) void downloadSnapshot(snapshotBlob);
+      }, { once: true });
+
+      // Show Share button only when Web Share API supports files.
+      const canShareFile = navigator.canShare?.({
+        files: [new File([result.blob], 'profile.png', { type: 'image/png' })],
+      });
+      if (shareBtn && canShareFile) {
+        shareBtn.hidden = false;
+        shareBtn.disabled = false;
+        shareBtn.addEventListener('click', () => {
+          if (snapshotBlob) void shareSnapshot(snapshotBlob);
+        }, { once: true });
+      }
+    } catch (err) {
+      preview.innerHTML = '<p class="prof-snapshot-modal__error">Could not generate image. Try scrolling to the top first.</p>';
+      logError(err instanceof Error ? err : new Error(String(err)), { context: 'openSnapshotModal' });
+    }
+  });
 }
 
 function bindProfileEvents(

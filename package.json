@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@sentry/browser": "^10.51.0",
+    "html-to-image": "^1.11.13",
     "posthog-js": "^1.372.6",
     "qrcode": "^1.5.4",
     "three": "^0.160.1",

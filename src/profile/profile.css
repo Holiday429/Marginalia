@@ -4586,3 +4586,166 @@
   .prof-rid-ref__main { grid-template-columns: 1fr; }
   .prof-rid-ref__archetype { border-right: none; border-bottom: 1px solid var(--glass-border); }
 }
+
+/* ── Snapshot preview modal ──────────────────────────────────────────────── */
+
+.prof-snapshot-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.prof-snapshot-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.prof-snapshot-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 8, 5, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.prof-snapshot-modal__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: 90dvh;
+  background: var(--surface, #1e1a14);
+  border: 1px solid var(--glass-border, rgba(232,223,200,0.12));
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+  transform: translateY(12px);
+  transition: transform 0.28s cubic-bezier(.2,.8,.2,1);
+}
+.prof-snapshot-modal.is-open .prof-snapshot-modal__panel {
+  transform: translateY(0);
+}
+
+.prof-snapshot-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--glass-border, rgba(232,223,200,0.1));
+  flex-shrink: 0;
+}
+
+.prof-snapshot-modal__title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--muted, rgba(232,223,200,0.55));
+  text-transform: uppercase;
+}
+
+.prof-snapshot-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--muted, rgba(232,223,200,0.55));
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.prof-snapshot-modal__close:hover {
+  color: var(--ink, #e8dfc8);
+  background: rgba(232,223,200,0.08);
+}
+.prof-snapshot-modal__close svg { width: 14px; height: 14px; }
+
+.prof-snapshot-modal__preview {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  background: rgba(0,0,0,0.2);
+}
+
+.prof-snapshot-modal__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.prof-snapshot-modal__spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(232,223,200,0.15);
+  border-top-color: var(--gold, #c49a52);
+  border-radius: 50%;
+  animation: prof-snapshot-spin 0.7s linear infinite;
+}
+@keyframes prof-snapshot-spin {
+  to { transform: rotate(360deg); }
+}
+
+.prof-snapshot-modal__error {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted, rgba(232,223,200,0.5));
+  padding: 24px;
+  text-align: center;
+}
+
+.prof-snapshot-modal__actions {
+  display: flex;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--glass-border, rgba(232,223,200,0.1));
+  flex-shrink: 0;
+}
+
+.prof-snapshot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: 5px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
+  border: 1px solid transparent;
+}
+.prof-snapshot-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.prof-snapshot-btn:disabled { opacity: 0.4; cursor: default; }
+
+.prof-snapshot-btn--primary {
+  background: var(--gold, #c49a52);
+  color: #1a1510;
+  border-color: var(--gold, #c49a52);
+}
+.prof-snapshot-btn--primary:not(:disabled):hover {
+  background: #d4aa62;
+  border-color: #d4aa62;
+}
+
+.prof-snapshot-btn--ghost {
+  background: transparent;
+  color: var(--ink, #e8dfc8);
+  border-color: var(--glass-border, rgba(232,223,200,0.18));
+}
+.prof-snapshot-btn--ghost:not(:disabled):hover {
+  background: rgba(232,223,200,0.07);
+  border-color: rgba(232,223,200,0.3);
+}
