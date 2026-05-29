@@ -584,7 +584,6 @@ function openSnapshotModal(
   const backdrop = container.querySelector<HTMLElement>('#profSnapshotBackdrop');
   if (!modal || !preview || !downloadBtn) return;
 
-  if (shareLabel) shareLabel.textContent = 'Generating…';
   heroBook.open();
 
   modal.hidden = false;
@@ -599,9 +598,8 @@ function openSnapshotModal(
 
   const close = () => {
     modal.classList.remove('is-open');
-    window.setTimeout(() => { modal.hidden = true; }, 300);
+    window.setTimeout(() => { modal.hidden = true; }, 400);
     heroBook.close();
-    if (shareLabel) shareLabel.textContent = 'Export reading card';
   };
 
   closeBtn?.addEventListener('click', close, { once: true });
