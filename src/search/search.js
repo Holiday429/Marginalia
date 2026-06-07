@@ -244,15 +244,18 @@ function buildShelfRecords() {
     }
     const resolvedStatus = detailId === 'sapiens'
       ? 'finished'
-      : (b.status || 'want');
+      : normalizeShelfStatus(b.status);
     const key = `${slugify(b.title)}-${index}`;
     const title = detailId === 'sapiens'
       ? (detail?.title || 'Sapiens: A Brief History of Humankind')
       : toTitleCase(b.title);
     const statusText = statusToLabel(resolvedStatus);
+    const rawTags = Array.isArray(detail?.tags) && detail.tags.length
+      ? detail.tags
+      : (Array.isArray(b.tags) ? b.tags : []);
     const translatedTags = detailId === 'sapiens'
       ? ['Anthropology', 'Macro History', 'Cognitive Revolution', 'Narrative']
-      : (detail?.tags?.map(toEnglishTag) || [statusText, 'Global shelf']);
+      : (rawTags.length ? rawTags.map(toEnglishTag) : [statusText, 'Global shelf']);
     const preview = {
       title: detail?.titleZh || title,
       subtitle: detail?.titleZh ? detail.title : statusText,
@@ -338,7 +341,8 @@ function deepClone(value) {
 }
 
 function resolveCoverSrc(book, detailId) {
-  void book;
+  if (book?.coverImage) return book.coverImage;
+  if (book?.cover?.image) return book.cover.image;
   const detail = getBookDetail(detailId);
   if (detail?.cover?.image) return detail.cover.image;
   return '';
@@ -787,10 +791,19 @@ function toTitleCase(str) {
 }
 
 function statusToLabel(status) {
+  status = normalizeShelfStatus(status);
   if (status === 'finished') return 'Finished';
   if (status === 'reading') return 'Reading';
   if (status === 'want') return 'To read';
   return 'Shelf';
+}
+
+function normalizeShelfStatus(status) {
+  const raw = String(status || '').trim();
+  if (raw === 'read' || raw === 'finished') return 'finished';
+  if (raw === 'reading') return 'reading';
+  if (raw === 'want' || raw === 'wishlist' || raw === 'unread' || raw === 'confirmed-later') return 'want';
+  return 'want';
 }
 
 function toEnglishTag(tag) {

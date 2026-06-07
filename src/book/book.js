@@ -28,6 +28,7 @@ import { generateReadingCardBlob, fetchReadingCardAI } from './reading-card.ts';
 import { ENV } from '../core/env.ts';
 import { HeroBook } from '../components/hero-book/hero-book.js';
 import '../components/hero-book/hero-book.css';
+import { NewEntry } from '../new-entry/new-entry.js';
 
 let __currentBookId = null;
 
@@ -256,23 +257,38 @@ async function enterBook(params = {}) {
     uploadInput.addEventListener('change', async () => {
       const file = uploadInput.files?.[0];
       if (!file) return;
-      if (!MarginaliaStorage?.isEnabled?.()) {
-        if (uploadStatus) uploadStatus.textContent = 'Storage not enabled';
-        return;
-      }
       if (uploadStatus) uploadStatus.textContent = 'Uploading...';
       try {
-        const uploaded = await MarginaliaStorage.uploadCoverImage({ file, bookId: id });
-        await MarginaliaBooksCloud?.setBookCover({
-          bookId: id,
-          imageUrl: uploaded.downloadURL,
-          storagePath: uploaded.path,
-        });
-        if (uploadStatus) uploadStatus.textContent = 'Synced';
+        let imageUrl = '';
+        let storagePath = '';
+
+        if (MarginaliaStorage?.isEnabled?.()) {
+          // Firebase Storage path
+          const uploaded = await MarginaliaStorage.uploadCoverImage({ file, bookId: id });
+          imageUrl = uploaded.downloadURL;
+          storagePath = uploaded.path;
+        } else {
+          // Fallback: encode as data URL and save inline
+          imageUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        }
+
+        // Update BooksStore optimistically
+        const currentBook = BooksStore.getById(id);
+        if (currentBook) {
+          BooksStore.addOptimisticBook({ ...currentBook, cover: { ...(currentBook.cover || {}), image: imageUrl } });
+        }
+
+        await MarginaliaBooksCloud?.setBookCover({ bookId: id, imageUrl, storagePath });
+        if (uploadStatus) uploadStatus.textContent = 'Saved';
         enterBook({ id });
       } catch (error) {
         logError(error, { context: 'book cover upload', bookId: id });
-        if (uploadStatus) uploadStatus.textContent = 'Upload Failed';
+        if (uploadStatus) uploadStatus.textContent = 'Upload failed';
       } finally {
         uploadInput.value = '';
       }
@@ -327,46 +343,36 @@ async function enterBook(params = {}) {
     });
   });
 
-  // ── Overview: rating ──────────────────────────────────────────────────
-  root.querySelectorAll('[data-star]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const val = parseInt(btn.dataset.star, 10);
-      root.querySelectorAll('[data-star]').forEach((s, i) => {
-        const filled = i < val;
-        s.classList.toggle('is-filled', filled);
-        s.querySelector('svg')?.setAttribute('fill', filled ? 'currentColor' : 'none');
-      });
-      const ratingPrompt = root.querySelector('.ov-rating-prompt');
-      const ratingValEl  = root.querySelector('.ov-rating-val');
-      if (ratingPrompt) ratingPrompt.remove();
-      if (ratingValEl) ratingValEl.textContent = `${val}/5`;
-      else {
-        const span = document.createElement('span');
-        span.className = 'ov-rating-val';
-        span.textContent = `${val}/5`;
-        root.querySelector('[data-ov-rating]')?.appendChild(span);
-      }
-      try {
-        await MarginaliaBooksCloud?.setBookRating?.({ bookId: id, rating: val });
-      } catch (err) { logError(err, { context: 'book rating save', bookId: id }); }
-    });
+  // ── Overview: rating (half-star support) ─────────────────────────────
+  root.querySelector('[data-ov-rating]')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-star]');
+    if (!btn) return;
+    const val = parseFloat(btn.dataset.star);
+    if (isNaN(val)) return;
+
+    // Re-render star row in place with new value
+    const ratingRoot = root.querySelector('[data-ov-rating]');
+    if (ratingRoot) ratingRoot.innerHTML = renderStarRow(val, false);
+
+    // Update numeric display
+    const numEl = root.querySelector('[data-rating-num]');
+    if (numEl) numEl.innerHTML = `${val}/5<sup>/5</sup>`;
+
+    // Remove "Tap to rate" hint once rated
+    root.querySelector('.rating-note')?.remove();
+
+    // Optimistic update in BooksStore
+    const currentBook = BooksStore.getById(id);
+    if (currentBook) BooksStore.addOptimisticBook({ ...currentBook, rating: val });
+
+    try {
+      await MarginaliaBooksCloud?.setBookRating?.({ bookId: id, rating: val });
+    } catch (err) { logError(err, { context: 'book rating save', bookId: id }); }
   });
 
   // ── Overview: reading progress ────────────────────────────────────────
-  root.querySelector('[data-edit-progress]')?.addEventListener('click', () => {
-    root.querySelector('[data-ov-progress-display]').hidden = true;
-    root.querySelector('[data-progress-select]').hidden = false;
-    root.querySelector('[data-progress-select]')?.focus();
-  });
   root.querySelector('[data-progress-select]')?.addEventListener('change', async (e) => {
     const val = e.target.value;
-    const labels = { 'not-started': 'Not started', 'in-progress': 'In progress', 'done': 'Done' };
-    const textEl = root.querySelector('[data-ov-progress-text]');
-    const dotEl  = root.querySelector('.ov-progress-dot');
-    if (textEl) textEl.textContent = labels[val] || val;
-    if (dotEl) dotEl.className = `ov-progress-dot ov-progress-dot--${val}`;
-    e.target.hidden = true;
-    root.querySelector('[data-ov-progress-display]').hidden = false;
     try {
       await MarginaliaBooksCloud?.setBookProgress?.({ bookId: id, readingProgress: val });
     } catch (err) { logError(err, { context: 'book progress save', bookId: id }); }
@@ -722,6 +728,12 @@ async function enterBook(params = {}) {
     }
   });
 
+  // Edit book info
+  root.querySelector('[data-edit-book-info]')?.addEventListener('click', () => {
+    const currentBook = BooksStore.getById(id) || book;
+    NewEntry.mountForEdit(currentBook);
+  });
+
   // Delete book (user-created books only)
   const deleteBtn = root.querySelector('[data-delete-book]');
   if (deleteBtn) {
@@ -886,6 +898,48 @@ function renderReadingCardModal() {
 }
 
 
+// Build 5 stars, each split into left-half (0.5) and right-half (1.0) hit targets.
+function renderStarRow(rating, readOnly) {
+  return Array.from({ length: 5 }, (_, i) => {
+    const halfVal  = i + 0.5;
+    const fullVal  = i + 1;
+    const isFull   = rating >= fullVal;
+    const isHalf   = !isFull && rating >= halfVal;
+    const starPath = 'M8 2l1.8 3.6 4 .6-2.9 2.8.7 4L8 11l-3.6 1.9.7-4L2.1 6.2l4-.6z';
+
+    if (readOnly) {
+      const halfClipId = `hc-${i}`;
+      if (isHalf) {
+        return `<span class="ov-star is-half" aria-hidden="true">
+          <svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+            <defs><clipPath id="${halfClipId}"><rect x="0" y="0" width="8" height="16"/></clipPath></defs>
+            <path d="${starPath}" fill="none"/>
+            <path d="${starPath}" fill="currentColor" clip-path="url(#${halfClipId})"/>
+          </svg>
+        </span>`;
+      }
+      return `<span class="ov-star${isFull ? ' is-filled' : ''}" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="${isFull ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="${starPath}"/></svg>
+      </span>`;
+    }
+
+    const halfClipId = `hc-${i}`;
+    const starSvg = isHalf
+      ? `<svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+          <defs><clipPath id="${halfClipId}"><rect x="0" y="0" width="8" height="16"/></clipPath></defs>
+          <path d="${starPath}" fill="none"/>
+          <path d="${starPath}" fill="currentColor" clip-path="url(#${halfClipId})"/>
+        </svg>`
+      : `<svg viewBox="0 0 16 16" fill="${isFull ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="${starPath}"/></svg>`;
+
+    return `<span class="ov-star-wrap${isFull ? ' is-filled' : isHalf ? ' is-half' : ''}" data-star-pos="${i}">
+      ${starSvg}
+      <button class="ov-star-half ov-star-half--left" type="button" data-star="${halfVal}" aria-label="${halfVal} stars"></button>
+      <button class="ov-star-half ov-star-half--right" type="button" data-star="${fullVal}" aria-label="${fullVal} stars"></button>
+    </span>`;
+  }).join('');
+}
+
 function renderOverview(b) {
   const isReadOnly = Boolean(b.isReadOnly);
   const cv = b.cover || {};
@@ -967,32 +1021,24 @@ function renderOverview(b) {
       </div>
       <span class="ov-field-label">Progress</span>
       <div class="ov-field-val">
-        <div class="ov-progress-display" data-ov-progress-display>
-          <span class="ov-progress-dot ov-progress-dot--${esc(currentProgress)}"></span>
-          <span class="ov-progress-text" data-ov-progress-text>${esc(PROGRESS_OPTIONS.find(o => o.value === currentProgress)?.label || 'Not started')}</span>
-          ${isReadOnly ? '' : '<button class="ov-field-edit-btn" type="button" data-edit-progress aria-label="Edit progress">Edit</button>'}
-        </div>
-        ${isReadOnly ? '' : `
-          <select class="ov-progress-select" data-progress-select hidden>
-            ${PROGRESS_OPTIONS.map(o => `<option value="${o.value}"${o.value === currentProgress ? ' selected' : ''}>${o.label}</option>`).join('')}
-          </select>`}
+        ${isReadOnly
+          ? `<span class="ov-progress-dot ov-progress-dot--${esc(currentProgress)}"></span>
+             <span>${esc(PROGRESS_OPTIONS.find(o => o.value === currentProgress)?.label || 'Not started')}</span>`
+          : `<select class="ov-progress-select" data-progress-select>
+               ${PROGRESS_OPTIONS.map(o => `<option value="${o.value}"${o.value === currentProgress ? ' selected' : ''}>${o.label}</option>`).join('')}
+             </select>`}
       </div>
     </div>`;
 
   // ── Rating (standalone block, rendered separately in right column) ───
   const ratingVal = b.rating || 0;
+  const ratingDisplay = ratingVal ? `${ratingVal}/5` : '—';
   const ratingBlockHtml = `
     <div class="rating-block">
       <div class="rating-label">Rating</div>
-      <div class="rating-num">${ratingVal || '—'}<sup>/5</sup></div>
+      <div class="rating-num" data-rating-num>${ratingDisplay}<sup>/5</sup></div>
       <div class="ov-rating" data-ov-rating>
-        ${Array.from({ length: 5 }, (_, i) => isReadOnly
-          ? `<span class="ov-star${i < ratingVal ? ' is-filled' : ''}" aria-hidden="true">
-              <svg viewBox="0 0 16 16" fill="${i < ratingVal ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.8 3.6 4 .6-2.9 2.8.7 4L8 11l-3.6 1.9.7-4L2.1 6.2l4-.6z"/></svg>
-            </span>`
-          : `<button class="ov-star${i < ratingVal ? ' is-filled' : ''}" type="button" data-star="${i + 1}" aria-label="${i + 1} stars">
-              <svg viewBox="0 0 16 16" fill="${i < ratingVal ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.8 3.6 4 .6-2.9 2.8.7 4L8 11l-3.6 1.9.7-4L2.1 6.2l4-.6z"/></svg>
-            </button>`).join('')}
+        ${renderStarRow(ratingVal, isReadOnly)}
       </div>
       ${!ratingVal && !isReadOnly ? '<div class="rating-note">Tap to rate</div>' : ''}
     </div>`;
@@ -1076,7 +1122,11 @@ function renderOverview(b) {
             ${doubanHtml}
           </div>
 
-          ${!isReadOnly && isUserBook(b) ? `<button class="book-delete-btn" type="button" data-delete-book="${esc(b.id)}">Remove book</button>` : ''}
+          ${!isReadOnly ? `
+            <div class="book-edit-actions">
+              <button class="book-edit-info-btn" type="button" data-edit-book-info="${esc(b.id)}">Edit book info</button>
+              ${isUserBook(b) ? `<button class="book-delete-btn" type="button" data-delete-book="${esc(b.id)}">Remove book</button>` : ''}
+            </div>` : ''}
         </div>
 
         <!-- Col 3: rating -->

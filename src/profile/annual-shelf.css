@@ -325,20 +325,7 @@
 }
 
 .booklist-spine-author {
-  position: absolute;
-  left: 50%;
-  bottom: 7px;
-  transform: translateX(-50%) rotate(180deg);
-  writing-mode: vertical-rl;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 6px;
-  letter-spacing: 0.08em;
-  opacity: 0.72;
-  white-space: nowrap;
-}
-
-.booklist-spine-author.is-cjk {
-  transform: translateX(-50%);
+  display: none;
 }
 
 .booklist-spine.is-picked {

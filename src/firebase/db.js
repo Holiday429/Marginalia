@@ -24,10 +24,16 @@ import { NotesStore } from '../store/notes-store.js';
 
 export const MarginaliaBooksCloud = (() => {
   if (!MarginaliaAuth?.enabled) {
+    const _noop = async () => {};
     return {
       enabled: false,
-      async setBookCover() { throw new Error('Firebase auth is not enabled.'); },
-      async setUserNote()  { throw new Error('Firebase auth is not enabled.'); },
+      setBookCover: _noop,
+      setUserNote: _noop,
+      setBookRating: _noop,
+      setBookProgress: _noop,
+      setBookTags: _noop,
+      setBookDouban: _noop,
+      updateBook: _noop,
     };
   }
 
@@ -77,11 +83,46 @@ export const MarginaliaBooksCloud = (() => {
     await docRef.set(payload, { merge: true });
   }
 
+  async function setBookRating({ bookId, rating }) {
+    if (!state.uid) throw new Error('User is not signed in.');
+    if (!bookId) throw new Error('bookId is required.');
+    const docRef = booksCollectionRef().doc(bookId);
+    await docRef.set(withMeta({ rating: Number(rating) }), { merge: true });
+  }
+
+  async function setBookProgress({ bookId, readingProgress }) {
+    if (!state.uid) throw new Error('User is not signed in.');
+    if (!bookId) throw new Error('bookId is required.');
+    const docRef = booksCollectionRef().doc(bookId);
+    await docRef.set(withMeta({ meta: { readingProgress: String(readingProgress) } }), { merge: true });
+  }
+
+  async function setBookTags({ bookId, tags }) {
+    if (!state.uid) throw new Error('User is not signed in.');
+    if (!bookId) throw new Error('bookId is required.');
+    const docRef = booksCollectionRef().doc(bookId);
+    await docRef.set(withMeta({ tags: Array.isArray(tags) ? tags : [] }), { merge: true });
+  }
+
+  async function setBookDouban({ bookId, douban }) {
+    if (!state.uid) throw new Error('User is not signed in.');
+    if (!bookId) throw new Error('bookId is required.');
+    const docRef = booksCollectionRef().doc(bookId);
+    await docRef.set(withMeta({ meta: { douban: String(douban || '') } }), { merge: true });
+  }
+
+  async function updateBook({ bookId, patch }) {
+    if (!state.uid) throw new Error('User is not signed in.');
+    if (!bookId) throw new Error('bookId is required.');
+    const docRef = booksCollectionRef().doc(bookId);
+    await docRef.set(withMeta(patch), { merge: true });
+  }
+
   function applyBookOverride(bookId, data) {
+    // Update seed data if this is a seed book
     const detail = SEED_BOOK_BY_ID[bookId];
-    if (!detail) return;
-    if (!detail.cover) detail.cover = {};
-    if (data.cover?.image) {
+    if (detail && data.cover?.image) {
+      if (!detail.cover) detail.cover = {};
       detail.cover.image = data.cover.image;
       const item = SEED_BOOK_DETAILS.find((b) => b.id === bookId);
       if (item) { if (!item.cover) item.cover = {}; item.cover.image = data.cover.image; }
@@ -99,7 +140,16 @@ export const MarginaliaBooksCloud = (() => {
     if (typeof state.unsubscribe === 'function') { state.unsubscribe(); state.unsubscribe = null; }
   }
 
-  return { get enabled() { return state.enabled; }, setBookCover, setUserNote };
+  return {
+    get enabled() { return state.enabled; },
+    setBookCover,
+    setUserNote,
+    setBookRating,
+    setBookProgress,
+    setBookTags,
+    setBookDouban,
+    updateBook,
+  };
 })();
 
 

@@ -3,7 +3,7 @@
    ========================================================================== */
 
 import { logEvent, logError } from '../services/analytics.ts';
-import { withMetaCreate, validateWrite } from '../services/db.ts';
+import { withMeta, withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { enterLibrary } from '../library-2d/library-2d.js';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
@@ -171,17 +171,84 @@ export const NewEntry = (() => {
 
   /* ── Mount / unmount ─────────────────────────────────────────────────────── */
 
+  // Tracks the book being edited (null = new book mode)
+  let _editBookId = null;
+
   function mount() {
-    if (document.getElementById('newEntryDialog')) {
-      open();
-      return;
-    }
+    document.getElementById('newEntryDialog')?.remove();
+    resetState();
+    _editBookId = null;
 
     const dialog = document.createElement('dialog');
     dialog.id = 'newEntryDialog';
     dialog.className = 'ne-dialog';
     dialog.innerHTML = buildHTML();
     document.body.appendChild(dialog);
+
+    bindEvents(dialog);
+    open();
+  }
+
+  function mountForEdit(book) {
+    _editBookId = book.id;
+    const existing = document.getElementById('newEntryDialog');
+    if (existing) {
+      existing.remove();
+    }
+
+    const dialog = document.createElement('dialog');
+    dialog.id = 'newEntryDialog';
+    dialog.className = 'ne-dialog';
+
+    // Pre-populate state from book
+    state.spineColor = book.cover?.bg || '#14263e';
+    state.textColor  = book.cover?.text || '#e8dfc8';
+    state.styleId    = 'classic';
+    state.title      = book.title || '';
+    state.author     = book.author || '';
+    state.thickness  = 34;
+    state.coverFile  = null;
+    state.coverPreview = book.cover?.image || null;
+
+    dialog.innerHTML = buildHTML();
+    document.body.appendChild(dialog);
+
+    // Update form title to indicate edit mode
+    const formTitle = dialog.querySelector('.ne-form-title');
+    if (formTitle) formTitle.textContent = 'Edit Book';
+    const submitBtn = dialog.querySelector('#neSubmitBtn');
+    if (submitBtn) submitBtn.textContent = 'Save changes';
+
+    // Pre-fill form fields
+    const set = (sel, val) => { const el = dialog.querySelector(sel); if (el && val != null) el.value = val; };
+    set('#neTitle',    book.title);
+    set('#neAuthor',   book.author);
+    set('#neStatus',   toEntryStatus(book.status));
+    set('#neLanguage', book.language);
+    set('#neBookType', book.bookType);
+    set('#neTags',     Array.isArray(book.tags) ? book.tags.join(', ') : (book.tags || ''));
+    set('#neExternalLink', book.externalLink || '');
+
+    // Pre-fill country from geo or location
+    const country = book.geo?.authorOrigin?.country || book.location?.country || '';
+    if (country) {
+      const originInput = dialog.querySelector('#neOrigin');
+      if (originInput) {
+        // Try to reverse-map ISO code to country name
+        const name = Object.entries(COUNTRY_TO_ISO).find(([, iso]) => iso === country)?.[0] || country;
+        originInput.value = name;
+      }
+    }
+
+    // Pre-fill cover image if available
+    if (book.cover?.image) {
+      const img = dialog.querySelector('#neCoverImg');
+      const placeholder = dialog.querySelector('#neCoverPlaceholder');
+      const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
+      if (img) { img.src = book.cover.image; img.hidden = false; }
+      if (placeholder) placeholder.hidden = true;
+      if (uploadBtn) uploadBtn.textContent = 'Change Cover';
+    }
 
     bindEvents(dialog);
     open();
@@ -196,6 +263,19 @@ export const NewEntry = (() => {
 
   function close() {
     document.getElementById('newEntryDialog')?.close();
+  }
+
+  function resetState() {
+    state.spineColor = '#14263e';
+    state.textColor = '#e8dfc8';
+    state.styleId = 'classic';
+    state.title = '';
+    state.author = '';
+    state.thickness = 34;
+    state.height = 0.88;
+    state.status = 'confirmed-later';
+    state.coverFile = null;
+    state.coverPreview = null;
   }
 
   /* ── HTML ────────────────────────────────────────────────────────────────── */
@@ -403,15 +483,8 @@ export const NewEntry = (() => {
     titleEl.style.writingMode = isChinese ? 'vertical-rl' : 'horizontal-tb';
     titleEl.style.textOrientation = isChinese ? 'upright' : 'mixed';
 
-    // Author text
-    let authorEl = wrap.querySelector('.ne-spine-author');
-    if (!authorEl) {
-      authorEl = document.createElement('div');
-      authorEl.className = 'ne-spine-author';
-      wrap.appendChild(authorEl);
-    }
-    authorEl.textContent = author;
-    authorEl.style.writingMode = isChinese ? 'vertical-rl' : 'horizontal-tb';
+    // Remove any existing author element (author no longer shown on spine)
+    wrap.querySelector('.ne-spine-author')?.remove();
 
     // Cover preview bg color sync
     const coverPlaceholder = document.getElementById('neCoverPlaceholder');
@@ -490,6 +563,11 @@ export const NewEntry = (() => {
       });
     });
 
+    // Tags input: Enter confirms the current token and keeps editing.
+    dialog.querySelector('#neTags')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleTagsEnter(e);
+    });
+
     // Country autocomplete
     bindCountryAutocomplete(dialog);
 
@@ -512,15 +590,33 @@ export const NewEntry = (() => {
     dialog.querySelector('#neIsbn')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); lookupIsbn(dialog); }
     });
+    dialog.querySelector('#neIsbn')?.addEventListener('paste', () => {
+      // auto-lookup after paste settles
+      setTimeout(() => lookupIsbn(dialog), 100);
+    });
     dialog.querySelector('#neExternalOpenBtn')?.addEventListener('click', () => openExternalLink(dialog));
     dialog.querySelector('#neExternalLink')?.addEventListener('input', () => syncExternalLinkButton(dialog));
     syncExternalLinkButton(dialog);
 
     // Form submit
+    dialog.querySelector('#neForm')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target?.id === 'neTags') handleTagsEnter(e);
+    }, true);
     dialog.querySelector('#neForm')?.addEventListener('submit', e => {
       e.preventDefault();
       submitNewEntry(dialog);
     });
+  }
+
+  function handleTagsEnter(event) {
+    if (event.defaultPrevented) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const input = event.target;
+    if (!input) return;
+    const value = String(input.value || '').trim();
+    if (!value || /[,，]$/.test(value)) return;
+    input.value = `${value}, `;
   }
 
   /* ── Country autocomplete ────────────────────────────────────────────────── */
@@ -590,9 +686,9 @@ export const NewEntry = (() => {
   async function lookupIsbn(dialog) {
     const status = dialog.querySelector('#neIsbnStatus');
     const rawIsbn = dialog.querySelector('#neIsbn')?.value || '';
-    const isbn = rawIsbn.replace(/[^0-9X]/gi, '');
-    if (isbn.length < 10) {
-      showLookupStatus(status, 'Enter a valid ISBN-10 or ISBN-13.', 'error');
+    const isbn = normalizeIsbn(rawIsbn);
+    if (isbn.length !== 10 && isbn.length !== 13) {
+      showLookupStatus(status, `ISBN must be 10 or 13 digits (got ${isbn.length}). Remove hyphens and spaces.`, 'error');
       return;
     }
     showLookupStatus(status, 'Looking up by ISBN…', 'loading');
@@ -604,7 +700,8 @@ export const NewEntry = (() => {
       }
       applyLookupData(dialog, lookupData);
       showLookupStatus(status, `Auto-filled from ISBN: ${lookupData.title || 'book record found'}`, 'ok');
-    } catch {
+    } catch (err) {
+      logError(err instanceof Error ? err : new Error(String(err)), { context: 'NewEntry ISBN lookup', isbn });
       showLookupStatus(status, 'Lookup failed. Check your connection.', 'error');
     }
   }
@@ -623,16 +720,62 @@ export const NewEntry = (() => {
   }
 
   async function fetchBookByIsbn(isbn) {
-    const gbRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`);
-    const gbJson = await gbRes.json();
-    const gbInfo = gbJson.items?.[0]?.volumeInfo;
-    if (gbInfo) return mapGoogleBookToLookup(gbInfo);
+    const isbnVariants = getIsbnVariants(isbn);
 
-    const olRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&format=json&jscmd=data`);
-    const olJson = await olRes.json();
-    const olBook = olJson[`ISBN:${isbn}`];
-    if (!olBook) return null;
-    return mapOpenLibraryBookToLookup(olBook);
+    for (const v of isbnVariants) {
+      try {
+        const query = encodeURIComponent(`isbn:${v}`);
+        const gbRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5`);
+        if (gbRes.ok) {
+          const gbJson = await gbRes.json();
+          const gbInfo = (gbJson.items || []).find(item => item?.volumeInfo?.title)?.volumeInfo;
+          if (gbInfo) return mapGoogleBookToLookup(gbInfo);
+        }
+      } catch { /* try OpenLibrary */ }
+    }
+
+    for (const v of isbnVariants) {
+      try {
+        const olRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${v}&format=json&jscmd=data`);
+        if (olRes.ok) {
+          const olJson = await olRes.json();
+          const olBook = olJson[`ISBN:${v}`];
+          if (olBook) return mapOpenLibraryBookToLookup(olBook);
+        }
+      } catch { /* try next variant */ }
+    }
+    return null;
+  }
+
+  function normalizeIsbn(raw) {
+    return String(raw || '').replace(/[^0-9X]/gi, '').toUpperCase();
+  }
+
+  function getIsbnVariants(isbn) {
+    const variants = new Set([isbn]);
+    if (isbn.length === 13 && isbn.startsWith('978')) {
+      const isbn10 = toIsbn10(isbn);
+      if (isbn10) variants.add(isbn10);
+    }
+    if (isbn.length === 10) {
+      const isbn13 = toIsbn13(isbn);
+      if (isbn13) variants.add(isbn13);
+    }
+    return [...variants];
+  }
+
+  function toIsbn10(isbn13) {
+    const core = isbn13.slice(3, 12);
+    if (!/^\d{9}$/.test(core)) return '';
+    const check = (11 - (core.split('').reduce((s, d, i) => s + (10 - i) * Number(d), 0) % 11)) % 11;
+    return core + (check === 10 ? 'X' : String(check));
+  }
+
+  function toIsbn13(isbn10) {
+    const core = `978${isbn10.slice(0, 9)}`;
+    if (!/^\d{12}$/.test(core)) return '';
+    const sum = core.split('').reduce((s, d, i) => s + Number(d) * (i % 2 ? 3 : 1), 0);
+    return core + String((10 - (sum % 10)) % 10);
   }
 
   function mapGoogleBookToLookup(info) {
@@ -711,6 +854,14 @@ export const NewEntry = (() => {
     return 'other';
   }
 
+  function toEntryStatus(status) {
+    const raw = String(status || '').trim();
+    if (raw === 'read') return 'finished';
+    if (raw === 'unread' || raw === 'wishlist') return 'want';
+    if (raw === 'reading' || raw === 'finished' || raw === 'want' || raw === 'confirmed-later') return raw;
+    return 'confirmed-later';
+  }
+
   function normalizeUrl(raw) {
     try {
       const maybePrefixed = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
@@ -758,72 +909,105 @@ export const NewEntry = (() => {
     const tags     = (dialog.querySelector('#neTags')?.value || '')
       .split(',').map(t => t.trim()).filter(Boolean);
 
-    const id = 'book-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32)
-      + '-' + Date.now().toString(36);
+    // Resolve cover image: prefer already-converted data URL, then convert blob
+    let coverImageUrl = null;
+    const coverImg = dialog.querySelector('#neCoverImg');
+    if (coverImg && !coverImg.hidden && coverImg.src) {
+      if (coverImg.src.startsWith('blob:')) {
+        // Convert blob URL to data URL so it persists after the dialog closes
+        try {
+          const resp = await fetch(coverImg.src);
+          const blob = await resp.blob();
+          coverImageUrl = await new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result);
+            reader.onerror = rej;
+            reader.readAsDataURL(blob);
+          });
+        } catch { /* fall back to null */ }
+      } else if (coverImg.src.startsWith('data:') || coverImg.src.startsWith('http')) {
+        coverImageUrl = coverImg.src;
+      }
+    }
+    const isoCode = originRaw ? resolveIso(originRaw) : null;
 
-    const coverImgSrc = dialog.querySelector('#neCoverImg')?.src || null;
-    const coverIsBlob = coverImgSrc?.startsWith('blob:');
+    const isEditing = Boolean(_editBookId);
+    const existingBook = isEditing ? BooksStore.getById(_editBookId) : null;
+    const id = isEditing ? _editBookId : (
+      'book-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32)
+        + '-' + Date.now().toString(36)
+    );
 
     const typeConfig    = BOOK_TYPES?.[bookType] || {};
     const defaultPanels = typeConfig.defaultPanels || ['overview', 'highlights', 'notes', 'actions'];
     const aiFeatures    = typeConfig.defaultAiFeatures || [];
 
-    // Resolve ISO country code from typed name
-    const isoCode = originRaw ? resolveIso(originRaw) : null;
-
     const fullBook = {
+      ...(existingBook || {}),
       id, title, author, status, tags,
       language: lang, bookType,
       panels: defaultPanels, aiFeatures,
-      year: new Date().getFullYear(),
-      summary: '',
+      year: existingBook?.year || new Date().getFullYear(),
+      summary: existingBook?.summary || '',
       cover: {
+        ...(existingBook?.cover || {}),
         bg: state.spineColor, text: state.textColor,
         font: style.font, weight: style.weight,
-        image: (coverImgSrc && !coverIsBlob) ? coverImgSrc : null,
+        ...(coverImageUrl ? { image: coverImageUrl } : {}),
       },
-      location: isoCode ? { country: isoCode, city: originRaw } : null,
-      externalLink: externalLink || null,
+      location: isoCode ? { country: isoCode, city: originRaw } : (existingBook?.location || null),
+      externalLink: externalLink || existingBook?.externalLink || null,
       geo: isoCode ? {
         authorOrigin:    { country: isoCode, city: originRaw },
         contentLocation: { country: isoCode, city: originRaw },
         readerLocation:  null,
-      } : null,
-      meta: { startedAt: new Date().toISOString().slice(0, 10) },
-      highlights: [], actions: [],
+      } : (existingBook?.geo || null),
+      meta: existingBook?.meta || { startedAt: new Date().toISOString().slice(0, 10) },
+      highlights: existingBook?.highlights || [],
+      actions: existingBook?.actions || [],
     };
 
-    logEvent('book_added', { bookId: id, status });
+    logEvent(isEditing ? 'book_edited' : 'book_added', { bookId: id, status });
 
     const auth = MarginaliaAuth;
     const uid  = auth?.user?.uid;
     const db   = auth?.db;
 
     if (uid && db) {
-      // Authenticated: write to Firestore. onSnapshot will update BooksStore.
       try {
-        const validated = validateWrite(BookSchema, fullBook);
-        const payload   = withMetaCreate(validated);
         const wsId = (window.MARGINALIA_FIREBASE?.workspaceId) || 'default';
-        await db
+        const docRef = db
           .collection('workspaces').doc(wsId)
           .collection('users').doc(uid)
-          .collection('books').doc(id)
-          .set(payload);
+          .collection('books').doc(id);
+        if (isEditing) {
+          // Patch only the fields that changed
+          const patch = {
+            title, author, status, tags, language: lang, bookType,
+            panels: defaultPanels, aiFeatures,
+            cover: fullBook.cover,
+            location: fullBook.location,
+            externalLink: fullBook.externalLink,
+            geo: fullBook.geo,
+          };
+          const validated = validateWrite(BookSchema, patch);
+          await docRef.set(withMeta(validated), { merge: true });
+        } else {
+          const validated = validateWrite(BookSchema, fullBook);
+          const payload   = withMetaCreate(validated);
+          await docRef.set(payload);
+        }
         BooksStore.addOptimisticBook(fullBook);
       } catch (err) {
-        logError(err instanceof Error ? err : new Error(String(err)), { context: 'NewEntry Firestore write' });
+        logError(err instanceof Error ? err : new Error(String(err)), { context: `NewEntry Firestore ${isEditing ? 'edit' : 'write'}` });
       }
     } else {
-      // Unauthenticated demo path: mutate seed arrays so views update.
       SEED_BOOK_DETAILS.unshift(fullBook);
       SEED_BOOK_BY_ID[id] = fullBook;
       NotesStore?.saveBook(fullBook);
       BooksStore.addOptimisticBook(fullBook);
     }
     renderSearchSection();
-
-    // Sync to Library (arrival pool)
     enterLibrary();
 
     close();
@@ -845,6 +1029,6 @@ export const NewEntry = (() => {
 
   /* ── Public ──────────────────────────────────────────────────────────────── */
 
-  return { mount, open, close };
+  return { mount, open, close, mountForEdit };
 
 })();

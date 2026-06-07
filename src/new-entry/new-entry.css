@@ -132,12 +132,7 @@
 }
 
 .ne-spine-author {
-  font-size: 8px;
-  opacity: 0.65;
-  overflow: hidden;
-  max-height: 50px;
-  z-index: 1;
-  text-align: center;
+  display: none;
 }
 
 /* Cover preview */

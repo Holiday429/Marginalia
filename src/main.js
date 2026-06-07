@@ -70,6 +70,12 @@ import { NewEntry } from './new-entry/new-entry.js';
 // 6a. AI layer
 import { MarginaliaAI } from './services/ai-gateway.ts';
 import { AIGenerateUI } from './ai/client/generate-ui.ts';
+
+// Expose required globals for generate-ui.ts (reads via window.* for legacy compat)
+window.AIFeatureRegistry = AIFeatureRegistry;
+window.BookTypes = BookTypes;
+window.MarginaliaAI = MarginaliaAI;
+window.MarginaliaGraph = MarginaliaGraph;
 import './ai/features/prompts/mindmap-gen.js';
 import './ai/features/prompts/concept-cards.js';
 import './ai/features/prompts/argument-breakdown.js';

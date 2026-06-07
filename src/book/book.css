@@ -439,19 +439,48 @@
 .ov-rating {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
 }
+
+/* Read-only stars */
 .ov-star {
   color: var(--accent);
-  background: none;
-  border: none;
-  cursor: pointer;
+  display: inline-block;
   padding: 2px;
-  transition: transform 0.1s;
 }
 .ov-star svg { width: 16px; height: 16px; display: block; }
-.ov-star:hover { transform: scale(1.2); }
-.ov-star:not(.is-filled) { color: var(--muted); }
+.ov-star:not(.is-filled):not(.is-half) { color: var(--muted); }
+
+/* Interactive star wrapper: contains the SVG + two invisible half-click zones */
+.ov-star-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  padding: 2px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.ov-star-wrap svg { width: 16px; height: 16px; display: block; }
+.ov-star-wrap.is-filled,
+.ov-star-wrap.is-half { color: var(--accent); }
+.ov-star-wrap:hover { transform: scale(1.15); }
+
+/* Left and right invisible hit zones over each star */
+.ov-star-half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+.ov-star-half--left  { left: 0; }
+.ov-star-half--right { right: 0; }
+
 .ov-rating-val,
 .ov-rating-prompt {
   font-family: var(--font-mono);
@@ -722,8 +751,29 @@
 
 /* Delete book (user-created only) */
 
-.book-delete-btn {
+.book-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-top: 20px;
+  flex-wrap: wrap;
+}
+.book-edit-info-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.book-edit-info-btn:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+.book-delete-btn {
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.05em;

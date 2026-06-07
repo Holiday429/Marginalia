@@ -26,7 +26,16 @@ export const BookGeoSchema = z.object({
 
 export const BookSchema = z.object({
   cover:          BookCoverSchema.optional(),
-  status:         z.enum(['unread', 'reading', 'read', 'abandoned']).optional(),
+  status:         z.enum([
+    'unread',
+    'reading',
+    'read',
+    'abandoned',
+    'want',
+    'finished',
+    'wishlist',
+    'confirmed-later',
+  ]).optional(),
   startedAt:      z.number().nullable().optional(),
   finishedAt:     z.number().nullable().optional(),
   updatedAt:      z.unknown().optional(), // FieldValue or number

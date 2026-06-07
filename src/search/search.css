@@ -927,21 +927,7 @@ body[data-view="search"] {
 }
 
 .shelf-spine-author {
-  position: absolute;
-  left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%) rotate(180deg);
-  z-index: 2;
-  writing-mode: vertical-rl;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 7px;
-  letter-spacing: 0.08em;
-  opacity: 0.72;
-  white-space: nowrap;
-}
-
-.shelf-spine-author.is-cjk {
-  transform: translateX(-50%);
+  display: none;
 }
 
 .shelf-spine-ghost {
