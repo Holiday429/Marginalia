@@ -8,7 +8,6 @@ import { PanelManager } from '../core/panel-manager.js';
 import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
-import { initSearchDecor3d } from './search-decor-3d.js';
 import { maybeSettleLaptopFlyIn } from './laptop-fly.js';
 
 const SHELF_STATE = {
@@ -39,7 +38,6 @@ function initSearch() {
 
   bindShelfEvents();
   refreshShelfFromSource();
-  initSearchDecor3d();
   // If we arrived via the room's laptop fly-in, glide the search bar into place.
   maybeSettleLaptopFlyIn(document);
 }
@@ -157,39 +155,6 @@ function bindShelfEvents() {
       SHELF_STATE.query = searchInput.value.trim().toLowerCase();
       renderShelfSectionInternal();
     });
-  }
-
-  // AI "what to read next" — UI only for now. The real call (featureId
-  // 'reading-recommend') will be wired through the AI gateway later.
-  const aiRecBtn = document.getElementById('shelfAiRecBtn');
-  if (aiRecBtn) {
-    aiRecBtn.addEventListener('click', () => {
-      const card = document.getElementById('shelfAiRec');
-      const note = document.getElementById('shelfAiRecNote');
-      if (note) {
-        note.hidden = false;
-        note.textContent = 'Personalized recommendations are coming soon.';
-      }
-      if (card) card.dataset.state = 'idle';
-    });
-  }
-
-  const quickRows = document.getElementById('shelfQuickRows');
-  if (quickRows) {
-    quickRows.addEventListener('click', (event) => {
-      const card = event.target.closest('.shelf-quick-card');
-      if (!card) return;
-      const key = card.dataset.key;
-      const record = SHELF_RECORDS.find((b) => b.key === key);
-      if (record?.detailId && record.preview?.canOpen) {
-        PanelManager.open('book', { id: record.detailId });
-      }
-    });
-    // error doesn't bubble — listen in capture phase to hide broken covers.
-    quickRows.addEventListener('error', (event) => {
-      const img = event.target;
-      if (img?.classList?.contains('shelf-quick-cover-img')) img.style.display = 'none';
-    }, true);
   }
 
   const previewPanel = document.getElementById('shelfPreviewPanel');
@@ -367,8 +332,6 @@ function getBookDetail(detailId) {
 function renderShelfSectionInternal() {
   const shelfHost = document.getElementById('shelfStack');
   if (!shelfHost) return;
-
-  renderQuickRows();
 
   const visible = getFilteredBooks();
   renderShelfSummary(visible.length);
@@ -664,59 +627,6 @@ function renderTagChips() {
   }).join('');
 }
 
-function renderQuickRows() {
-  const wrap = document.getElementById('shelfQuickRows');
-  if (!wrap) return;
-
-  // Quick rows are a fast path to the user's own books; hide them once the user
-  // starts narrowing the wall (search / status / tag), so results take over.
-  const narrowing = Boolean(SHELF_STATE.query) || SHELF_STATE.filter !== 'all' || Boolean(SHELF_STATE.tag);
-  const realBooks = SHELF_RECORDS.filter((b) => !b._isMock);
-
-  const reading = realBooks.filter((b) => b.status === 'reading').slice(0, 6);
-  const recent = realBooks.slice(0, 6); // source order: newest user books first
-
-  const continueRendered = renderQuickRow('shelfContinueRow', 'shelfContinueTrack', reading);
-  const recentRendered = renderQuickRow('shelfRecentRow', 'shelfRecentTrack', recent);
-
-  wrap.hidden = narrowing || (!continueRendered && !recentRendered);
-}
-
-function renderQuickRow(rowId, trackId, records) {
-  const row = document.getElementById(rowId);
-  const track = document.getElementById(trackId);
-  if (!row || !track) return false;
-  if (!records.length) {
-    row.hidden = true;
-    track.innerHTML = '';
-    return false;
-  }
-  row.hidden = false;
-  track.innerHTML = records.map(buildQuickCard).join('');
-  return true;
-}
-
-function buildQuickCard(record) {
-  const p = record.preview || {};
-  const title = escapeHTML(p.title || record.titleDisplay || '');
-  const hasCover = Boolean(p.coverSrc);
-  const tone = p.tone || record.spine || '#202020';
-  const textColor = record.text || '#f4ead6';
-  const cjkClass = containsCJK(p.title || record.titleDisplay) ? ' is-cjk' : '';
-
-  const fallback = `<span class="shelf-quick-cover-fallback${cjkClass}" style="background:linear-gradient(150deg, ${escapeHTML(tone)}, #111); color:${escapeHTML(textColor)};">${title}</span>`;
-  const coverInner = hasCover
-    // Keep the fallback in the DOM so a broken cover URL can reveal it via the delegated error handler.
-    ? `<img class="shelf-quick-cover-img" src="${escapeHTML(p.coverSrc)}" alt="" loading="lazy">${fallback}`
-    : fallback;
-
-  return `
-    <button class="shelf-quick-card" type="button" data-key="${escapeHTML(record.key)}" title="${title}">
-      <span class="shelf-quick-cover">${coverInner}</span>
-      <span class="shelf-quick-card-title${cjkClass}">${title}</span>
-    </button>
-  `;
-}
 
 function getFilteredBooks() {
   const tag = SHELF_STATE.tag ? SHELF_STATE.tag.toLowerCase() : null;
