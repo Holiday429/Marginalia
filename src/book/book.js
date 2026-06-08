@@ -54,10 +54,12 @@ async function enterBook(params = {}) {
     noteContent = publicBook.noteContent;
   } else {
     const storeBook = BooksStore.getById(id);
-    const seedBook = SEED_BOOK_BY_ID[id];
-    book = id === 'sapiens'
-      ? (seedBook || storeBook)
-      : (storeBook || seedBook);
+    if (MarginaliaAuth.user) {
+      book = storeBook || null;
+    } else {
+      const seedBook = SEED_BOOK_BY_ID[id];
+      book = storeBook || seedBook || null;
+    }
   }
 
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }

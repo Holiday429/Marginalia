@@ -117,7 +117,6 @@
   font-family: var(--font-mono);
   font-size: var(--fs-10);
   color: var(--muted-soft);
-  text-transform: uppercase;
   letter-spacing: 0.06em;
   flex-shrink: 0;
   align-self: center;

@@ -14,7 +14,6 @@ import { validateWrite, withMeta, withMetaCreate } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { GraphLinkStatusSchema } from '../data/schema/graph-link-status.ts';
 import { logError } from '../services/analytics.ts';
-import { SEED_BOOK_BY_ID, SEED_BOOK_DETAILS } from '../data/seed/index.js';
 import { MarginaliaAuth } from './auth.js';
 import { MARGINALIA_FIREBASE } from './config.js';
 import { MarginaliaGraph } from '../core/graph-data.js';
@@ -53,13 +52,8 @@ export const MarginaliaBooksCloud = (() => {
   });
 
   function attachListener() {
-    state.unsubscribe = booksCollectionRef().onSnapshot((snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        const bookId = change.doc.id;
-        const data   = change.doc.data() || {};
-        applyBookOverride(bookId, change.type === 'removed' ? {} : data);
-      });
-      window.dispatchEvent(new CustomEvent('marginalia:books-overrides-changed'));
+    state.unsubscribe = booksCollectionRef().onSnapshot((_snapshot) => {
+      // No-op snapshot kept to maintain subscription lifecycle.
     }, (err) => logError(err, { context: 'db:books snapshot' }));
   }
 
@@ -70,8 +64,6 @@ export const MarginaliaBooksCloud = (() => {
     const raw = { cover: { image: imageUrl, storagePath: storagePath || '' } };
     const payload = withMeta(validateWrite(BookSchema, raw));
     await docRef.set(payload, { merge: true });
-    applyBookOverride(bookId, { cover: { image: imageUrl, storagePath: storagePath || '' } });
-    window.dispatchEvent(new CustomEvent('marginalia:books-overrides-changed'));
   }
 
   async function setUserNote({ bookId, userNote }) {
@@ -124,17 +116,6 @@ export const MarginaliaBooksCloud = (() => {
     if (!state.uid) throw new Error('User is not signed in.');
     if (!bookId) throw new Error('bookId is required.');
     await booksCollectionRef().doc(bookId).delete();
-  }
-
-  function applyBookOverride(bookId, data) {
-    // Update seed data if this is a seed book
-    const detail = SEED_BOOK_BY_ID[bookId];
-    if (detail && data.cover?.image) {
-      if (!detail.cover) detail.cover = {};
-      detail.cover.image = data.cover.image;
-      const item = SEED_BOOK_DETAILS.find((b) => b.id === bookId);
-      if (item) { if (!item.cover) item.cover = {}; item.cover.image = data.cover.image; }
-    }
   }
 
   function booksCollectionRef() {

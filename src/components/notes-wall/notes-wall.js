@@ -236,7 +236,7 @@ export function createNotesWallComponent() {
               }
             </ul>
           </button>
-          <button class="todo-paper__add" type="button" data-add-todo>+ Add line</button>
+          <button class="todo-paper__add" type="button" data-add-todo>+ Add Line</button>
         </div>
       </section>
     `;
@@ -344,7 +344,7 @@ export function createNotesWallComponent() {
                 `
             }
           </ul>
-          <button class="todo-detail__add" type="button" data-add-todo>+ Add line</button>
+          <button class="todo-detail__add" type="button" data-add-todo>+ Add Line</button>
         </div>
       </article>
     `;
@@ -386,8 +386,8 @@ export function createNotesWallComponent() {
             <button class="followup-detail__done" type="button" data-complete-followup="${esc(item.id)}">Mark Complete</button>
             ${
               item.source === 'todo'
-                ? '<span class="followup-detail__hint">Editable note</span>'
-                : '<span class="followup-detail__hint">Seeded action</span>'
+                ? '<span class="followup-detail__hint">Editable Note</span>'
+                : '<span class="followup-detail__hint">Saved action</span>'
             }
           </div>
         </div>

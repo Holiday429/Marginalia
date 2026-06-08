@@ -109,7 +109,7 @@ body[data-view="web"] {
 .web-filter-toggle:hover,
 .web-filter-toggle.open {
   opacity: 1;
-  color: #e8dfc8;
+  color: var(--color-paper);
   border-color: rgba(196,144,58,0.72);
   background: rgba(196,144,58,0.12);
 }
@@ -182,7 +182,7 @@ body[data-view="web"] {
 }
 
 .web-mode-btn.active {
-  color: #e8dfc8;
+  color: var(--color-paper);
   border-color: rgba(196,144,58,0.72);
   background: rgba(196,144,58,0.12);
 }
@@ -267,7 +267,7 @@ body[data-view="web"] {
 .web-ctrl-btn:hover {
   opacity: 1;
   background: rgba(232,223,200,0.08);
-  color: #e8dfc8;
+  color: var(--color-paper);
 }
 .web-ctrl-btn:last-child { border-bottom: none; }
 
@@ -281,7 +281,7 @@ body[data-view="web"] {
   letter-spacing: 0.04em;
   color: rgba(232,223,200,0.72);
 }
-.web-ctrl-fit:hover { color: #c4903a; }
+.web-ctrl-fit:hover { color: var(--color-accent-gold); }
 
 /* ── Legend ─────────────────────────────────────────────────────────────── */
 .web-legend {

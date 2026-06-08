@@ -441,10 +441,10 @@ function matchCanonicalBookId(book) {
 
 function getLibraryDetail(detailId) {
   if (!detailId) return null;
-  if (detailId === 'sapiens') {
-    return SEED_BOOK_BY_ID.sapiens || BooksStore.getById(detailId) || null;
-  }
-  return BooksStore.getById(detailId) || SEED_BOOK_BY_ID[detailId] || null;
+  const storeBook = BooksStore.getById(detailId);
+  if (storeBook) return storeBook;
+  if (!MarginaliaAuth.user) return SEED_BOOK_BY_ID[detailId] || null;
+  return null;
 }
 
 function syncLibraryRecords() {

@@ -122,7 +122,6 @@
 .an-tier-label {
   font-family: var(--font-mono);
   font-size: var(--fs-10);
-  text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--muted);
   margin: 0 0 8px;
@@ -203,7 +202,6 @@
   font-family: var(--font-mono);
   font-size: var(--fs-11);
   color: var(--muted);
-  text-transform: uppercase;
   letter-spacing: 0.06em;
   cursor: pointer;
   transition: background 100ms ease, color 100ms ease;

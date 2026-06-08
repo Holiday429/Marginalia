@@ -8,6 +8,7 @@
 
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
+import { MarginaliaAuth } from '../firebase/auth.js';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { NotesStore } from '../store/notes-store.js';
 
@@ -35,7 +36,11 @@ export const MarginaliaGraph = (() => {
   let graphState = buildGraphState();
 
   function buildGraphState() {
-    const books = BooksStore.getAll().length ? BooksStore.getAll() : SEED_BOOK_DETAILS;
+    const auth = MarginaliaAuth;
+    const isAuthenticated = Boolean(auth?.user);
+    const books = isAuthenticated
+      ? BooksStore.getAll()
+      : (BooksStore.getAll().length ? BooksStore.getAll() : SEED_BOOK_DETAILS);
     const statusOverrides = getStatusOverrides();
     const conceptsById = new Map();
     const contextsById = new Map();
@@ -337,7 +342,9 @@ export const MarginaliaGraph = (() => {
    * contextTag, relationType, strength, description, readerUnderstanding.
    */
   function addConceptsFromAI(bookId, concepts) {
-    const book = graphState.booksById[bookId] || BooksStore.getById(bookId) || SEED_BOOK_BY_ID[bookId];
+    const auth = MarginaliaAuth;
+    const book = graphState.booksById[bookId] || BooksStore.getById(bookId)
+      || (!auth?.user ? SEED_BOOK_BY_ID[bookId] : null);
     if (!book) return false;
 
     if (!book.graph) book.graph = {};

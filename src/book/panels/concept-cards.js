@@ -51,7 +51,7 @@ function renderConceptCards(book, container) {
         ${concept.description ? `<p class="concept-card__description">${esc(concept.description)}</p>` : ''}
         ${concept.readerUnderstanding ? `
           <div class="concept-card__reader">
-            <span class="concept-card__reader-label">My understanding</span>
+            <span class="concept-card__reader-label">My Understanding</span>
             <p class="concept-card__reader-text">${esc(concept.readerUnderstanding)}</p>
           </div>
         ` : ''}

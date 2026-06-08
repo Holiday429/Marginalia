@@ -439,7 +439,6 @@
   font-family: var(--font-mono);
   font-size: var(--fs-10);
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: rgba(237, 224, 200, 0.56);
 }
 
@@ -555,7 +554,6 @@
   font-family: var(--font-mono);
   font-size: var(--fs-10);
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: #f7ecd2;
   background: rgba(20, 16, 12, 0.5);
   border: 1px solid rgba(232, 223, 200, 0.28);
@@ -752,7 +750,6 @@
   font-family: var(--font-mono);
   font-size: var(--fs-10);
   letter-spacing: 0.16em;
-  text-transform: uppercase;
   color: rgba(232, 201, 140, 0.86);
 }
 
@@ -4650,7 +4647,6 @@
   font-size: 11px;
   letter-spacing: 0.14em;
   color: var(--muted, rgba(232,223,200,0.55));
-  text-transform: uppercase;
 }
 
 .prof-snapshot-modal__close {

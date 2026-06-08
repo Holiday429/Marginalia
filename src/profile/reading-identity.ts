@@ -1,5 +1,4 @@
 import { cycleReadingIdentityVariant } from './reading-identity-adapter.ts';
-import { READING_IDENTITY_MOCK } from './reading-identity-mock.ts';
 import { getReadingIdentityResult } from './reading-identity-service.ts';
 import { PixelReader } from '../components/pixel-avatar/pixel-avatar.js';
 import { HeroBook } from '../components/hero-book/hero-book.js';
@@ -69,7 +68,7 @@ function bookSceneHTML(): string {
   `;
 }
 
-function ctaStateHTML(data: ReadingIdentityResult): string {
+function ctaStateHTML(): string {
   return `
     <section class="prof-rid-stage prof-rid-stage--cta" aria-label="Reading Identity">
       <div class="prof-rid-stage__room" style="background-image:url('${SCENE_IMAGE_URL}')">
@@ -590,7 +589,7 @@ async function generateIdentityFromAI(
 
 export function mountReadingIdentity(
   host: HTMLElement,
-  data: ReadingIdentityResult = READING_IDENTITY_MOCK,
+  data: ReadingIdentityResult | null | undefined,
   options: {
     revealImmediately?: boolean;
     genres?: IdentityGenre[];
@@ -599,13 +598,13 @@ export function mountReadingIdentity(
     sessionDays?: Array<{ date: string; sessions: number; minutes: number }>;
   } = {},
 ): void {
-  const currentData = getReadingIdentityResult(data);
   const genres = options.genres ?? [];
-  if (options.revealImmediately) {
+  if (options.revealImmediately && data) {
+    const currentData = getReadingIdentityResult(data);
     renderResult(host, currentData, { allowRegenerate: false, genres });
     return;
   }
-  host.innerHTML = `<div class="prof-rid prof-rid--gate">${ctaStateHTML(currentData)}</div>`;
+  host.innerHTML = `<div class="prof-rid prof-rid--gate">${ctaStateHTML()}</div>`;
   mountGateHeroBook(host);
   host.querySelector<HTMLButtonElement>('#profRidGenerate')?.addEventListener('click', () => {
     const books = options.books ?? [];
@@ -630,15 +629,21 @@ export function mountReadingIdentity(
       window.setTimeout(() => { heroBookByHost.get(host)?.open(); }, BOOK_CENTERING_MS);
 
       generateIdentityFromAI(books, highlights, sessionDays).then((aiResult) => {
-        const finalData = aiResult ?? currentData;
         window.setTimeout(() => {
           heroBookByHost.get(host)?.unmount();
           heroBookByHost.delete(host);
-          renderResult(host, finalData, { genres });
+          if (aiResult) {
+            renderResult(host, aiResult, { genres });
+          } else {
+            host.innerHTML = `<p class="prof-rid-error">Could not generate your reading identity. Try again after adding more books.</p>`;
+          }
         }, GENERATE_REVEAL_MS);
       });
     } else {
-      runReveal(host, currentData, { genres });
+      host.querySelector<HTMLElement>('.prof-rid-cta__hint')?.insertAdjacentHTML(
+        'beforebegin',
+        `<p class="prof-rid-cta__notice">Add at least 3 books to generate your reading identity.</p>`,
+      );
     }
   });
 }

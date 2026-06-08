@@ -341,7 +341,7 @@ function stateShellHTML(title: string, body: string, showSettingsAction: boolean
 
 function settingsShellHTML(): string {
   return renderProfilePageShell(`
-    ${renderProfileHeader('profile', {
+    ${(renderUnifiedPanelHeader as any)('profile', {
       rightHTML: '<button class="panel-header-action" id="profileBackToProfileBtn">Back to Profile</button>',
     })}
     <div class="prof-shell prof-shell--settings">
@@ -957,7 +957,7 @@ function profileHeaderHTML(showSettingsAction: boolean, profile: PublicProfileDa
     `);
   }
   if (!actions.length) actions.push('<span class="panel-header-spacer" aria-hidden="true"></span>');
-  return renderProfileHeader('profile', { rightHTML: `<div class="prof-header-actions">${actions.join('')}</div>` });
+  return (renderUnifiedPanelHeader as any)('profile', { rightHTML: `<div class="prof-header-actions">${actions.join('')}</div>` });
 }
 
 function buildProfileShareUrl(profile: PublicProfileData): string {
@@ -1006,12 +1006,6 @@ function mapStoreBookToPublicBook(record: any): PublicBook | null {
   };
 }
 
-
-function renderProfileHeader(activeView: string, options: { actionLabel?: string; actionId?: string; rightHTML?: string } = {}): string {
-  if (!renderUnifiedPanelHeader) throw new Error('renderUnifiedPanelHeader is not available.');
-  const headerRenderer = renderUnifiedPanelHeader as unknown as (view: string, opts?: { actionLabel?: string; actionId?: string; rightHTML?: string }) => string;
-  return headerRenderer(activeView, options);
-}
 
 function renderProfilePageShell(content: string): string {
   if (!renderToolPageShell) throw new Error('renderToolPageShell is not available.');

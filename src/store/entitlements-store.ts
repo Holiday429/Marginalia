@@ -8,6 +8,7 @@
 
 import type { Entitlement, Plan } from '../data/schema/entitlements.js';
 import { PLAN_ENTITLEMENTS } from '../data/schema/entitlements.js';
+import { logError } from '../services/analytics.ts';
 
 type ChangeListener = () => void;
 
@@ -61,9 +62,8 @@ function subscribeForUser(uid: string, db: any): void {
       state.ready = true;
       emit();
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (err: any) => {
-      console.error('[EntitlementsStore] snapshot error', err);
+    (err: unknown) => {
+      logError(err instanceof Error ? err : new Error('[EntitlementsStore] snapshot error'), { context: 'entitlements-store:snapshot' });
     }
   );
 }

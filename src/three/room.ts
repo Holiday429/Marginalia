@@ -10,6 +10,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { getRoomPose, type RoomPoseId } from './camera-paths.ts';
 import { getRoomSkinById } from './skins.ts';
 import type { RoomSlotId, SlotComponent } from './slots.ts';
+import { logError } from '../services/analytics.ts';
 
 interface RoomSceneOptions {
   host: HTMLElement;
@@ -877,7 +878,7 @@ export class RoomScene {
       if (remaining === 0) onReady?.();
     };
     const onError = (kind: string, url: string, error: unknown) => {
-      console.warn(`[room] Failed to load ${kind}:`, url, error);
+      logError(error instanceof Error ? error : new Error(`[room] Failed to load ${kind}: ${url}`), { context: 'room:asset-load', kind, url });
       done();
     };
 
@@ -1303,7 +1304,7 @@ export class RoomScene {
       },
       undefined,
       (error) => {
-        console.warn('[room] Failed to load decor model:', asset.url, error);
+        logError(error instanceof Error ? error : new Error(`[room] Failed to load decor model: ${asset.url}`), { context: 'room:decor-load', url: asset.url });
       },
     );
   }
@@ -1493,7 +1494,7 @@ export class RoomScene {
       },
       undefined,
       (error) => {
-        console.warn('[room] Failed to load frame photo texture:', textureUrl, error);
+        logError(error instanceof Error ? error : new Error(`[room] Failed to load frame photo texture: ${textureUrl}`), { context: 'room:texture-load', url: textureUrl });
       },
     );
   }

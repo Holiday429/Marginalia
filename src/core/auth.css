@@ -34,7 +34,7 @@ body.auth-locked {
   font-size: 13px;
   letter-spacing: 0;
   background: rgba(232, 223, 200, 0.14);
-  color: #e8dfc8;
+  color: var(--color-paper);
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -56,7 +56,7 @@ body.auth-locked {
   width: min(340px, 92vw);
   height: 100vh;
   border-left: 1px solid rgba(232, 223, 200, 0.16);
-  background: #0b1422;
+  background: var(--color-navy);
   box-shadow: -16px 0 34px rgba(0, 0, 0, 0.45);
   padding: 18px 18px 22px;
   overflow-y: auto;
@@ -95,7 +95,7 @@ body.auth-locked {
   border-radius: 999px;
   border: 1px solid rgba(232, 223, 200, 0.42);
   background: rgba(232, 223, 200, 0.1);
-  color: #e8dfc8;
+  color: var(--color-paper);
   font-family: var(--font-mono);
   font-size: 20px;
   display: inline-flex;
@@ -111,7 +111,7 @@ body.auth-locked {
 }
 
 .auth-dock-name {
-  color: #e8dfc8;
+  color: var(--color-paper);
   font-family: var(--font-serif);
   font-size: 16px;
   line-height: 1.15;
@@ -154,7 +154,7 @@ body.auth-locked {
 }
 
 .auth-dock-item.is-logout {
-  color: #e1a6a6;
+  color: var(--color-rose);
   border-color: rgba(214, 118, 118, 0.34);
 }
 
@@ -208,7 +208,7 @@ body[data-view="preloader"] .auth-gate {
 }
 
 .auth-kicker {
-  color: #d5aa64;
+  color: var(--color-gold-warm);
   margin-bottom: 10px;
 }
 
@@ -217,7 +217,7 @@ body[data-view="preloader"] .auth-gate {
   font-family: var(--font-serif);
   font-size: 46px;
   line-height: 1;
-  color: #e8dfc8;
+  color: var(--color-paper);
 }
 
 .auth-copy {
@@ -264,7 +264,7 @@ body[data-view="preloader"] .auth-gate {
 }
 
 .auth-tabs button.active {
-  color: #d5aa64;
+  color: var(--color-gold-warm);
   border-color: rgba(213, 170, 100, 0.58);
   background: rgba(213, 170, 100, 0.08);
 }
@@ -283,7 +283,7 @@ body[data-view="preloader"] .auth-gate {
 .auth-form input {
   border: 1px solid rgba(232, 223, 200, 0.26);
   background: rgba(15, 21, 31, 0.9);
-  color: #e8dfc8;
+  color: var(--color-paper);
   padding: 12px 13px;
   font-family: var(--font-serif);
   font-size: 16px;
@@ -304,7 +304,7 @@ body[data-view="preloader"] .auth-gate {
 .auth-submit {
   border: 1px solid rgba(213, 170, 100, 0.5);
   background: linear-gradient(180deg, rgba(213, 170, 100, 0.24), rgba(213, 170, 100, 0.14));
-  color: #efd0a2;
+  color: var(--color-ivory-text);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -341,7 +341,7 @@ body[data-view="preloader"] .auth-gate {
 }
 
 .auth-error {
-  color: #d67676;
+  color: var(--color-rose);
   min-height: 18px;
   line-height: 1.35;
 }

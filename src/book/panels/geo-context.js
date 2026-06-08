@@ -28,7 +28,7 @@ function renderGeoContext(book, container) {
       ${place.culturalContext ? `<p class="geo-card__context">${esc(place.culturalContext)}</p>` : ''}
       ${place.readingNote ? `
         <div class="geo-card__note">
-          <span class="geo-card__note-label">Reading note</span>
+          <span class="geo-card__note-label">Reading Note</span>
           <p>${esc(place.readingNote)}</p>
         </div>
       ` : ''}

@@ -34,6 +34,11 @@
   --color-brass-border: #b89a52;
   --color-ivory-text:   #ede0c8;
 
+  /* Status / semantic colours */
+  --color-sage:         #87b6a7;   /* confirm / positive */
+  --color-rose:         #d67676;   /* error / reject / destructive */
+  --color-gold-warm:    #d5aa64;   /* warning / highlight / accent-warm */
+
   /* Rules & muted tones (alpha on ink) */
   --rule-strong:        rgba(26,23,20,0.28);
   --rule:               rgba(26,23,20,0.18);

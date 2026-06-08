@@ -1,5 +1,4 @@
 import {
-  READING_IDENTITY_MOCK,
   READING_IDENTITY_VARIANTS,
 } from './reading-identity-mock.ts';
 import type {
@@ -15,7 +14,7 @@ function formatIdentityDate(date: Date): string {
 }
 
 export function resolveReadingIdentityResult(
-  result: ReadingIdentityResult = READING_IDENTITY_MOCK,
+  result: ReadingIdentityResult,
   now: Date = new Date(),
 ): ReadingIdentityResult {
   return {

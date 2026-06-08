@@ -671,10 +671,10 @@ export function buildPixelReaderDemo(): HTMLElement {
   const host = document.createElement('div');
   host.className = 'pixel-reader-demo';
   const demos: Array<{ state: PixelReaderState; direction: PixelReaderDirection; label: string }> = [
-    { state: 'traveling', direction: 'left', label: 'traveling left' },
-    { state: 'traveling', direction: 'right', label: 'traveling right' },
-    { state: 'reading', direction: 'right', label: 'reading' },
-    { state: 'idle', direction: 'right', label: 'idle' },
+    { state: 'traveling', direction: 'left', label: 'Traveling Left' },
+    { state: 'traveling', direction: 'right', label: 'Traveling Right' },
+    { state: 'reading', direction: 'right', label: 'Reading' },
+    { state: 'idle', direction: 'right', label: 'Idle' },
   ];
 
   demos.forEach(({ state, direction, label }) => {

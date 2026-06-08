@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { logError } from '../services/analytics.ts';
 
 const MODEL_URL = '/book.glb';
 
@@ -246,7 +247,7 @@ export function mountHeroGLB(bookEl) {
     bookEl.classList.remove('hero-fallback');
     bookEl.classList.add('hero-glb');
   }).catch((err) => {
-    console.error('[hero-glb] load failed, falling back to CSS:', err);
+    logError(err instanceof Error ? err : new Error('[hero-glb] load failed'), { context: 'hero-glb:load' });
     if (!mounted) return;
     mounted = false;
     obs.disconnect();

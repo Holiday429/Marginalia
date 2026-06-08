@@ -197,8 +197,8 @@
   font-size: 10px;
   color: var(--muted);
 }
-.ai-status-error { color: #c0392b; }
-.ai-status-ok    { color: #5a9a6a; }
+.ai-status-error { color: var(--color-rose); }
+.ai-status-ok    { color: var(--color-sage); }
 
 /* ── AI generated block ──────────────────────────────────────────────────── */
 .ai-generated-block {
@@ -231,7 +231,7 @@
   letter-spacing: 0.04em;
   background: none;
   border: 1px solid rgba(135,182,167,0.4);
-  color: #87b6a7;
+  color: var(--color-sage);
   padding: 3px 10px;
   cursor: pointer;
   margin-left: auto;
@@ -435,7 +435,7 @@
   outline: none;
 }
 .ai-edit-textarea:focus { border-color: var(--accent); }
-.ai-edit-textarea.ai-edit-error { border-color: #c0392b; }
+.ai-edit-textarea.ai-edit-error { border-color: var(--color-rose); }
 
 .ai-edit-actions {
   display: flex;

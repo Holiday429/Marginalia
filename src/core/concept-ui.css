@@ -22,8 +22,8 @@ body.concept-drawer-open {
   right: 0;
   width: min(560px, 100vw);
   height: 100vh;
-  background: #11161f;
-  color: #e8dfc8;
+  background: var(--color-smoke-bg);
+  color: var(--color-paper);
   border-left: 1px solid rgba(232,223,200,0.14);
   z-index: 71;
   transform: translateX(100%);
@@ -59,7 +59,7 @@ body.concept-drawer-open {
 }
 
 .concept-drawer-kicker {
-  color: #d5aa64;
+  color: var(--color-gold-warm);
   margin-bottom: 8px;
 }
 
@@ -164,7 +164,7 @@ body.concept-drawer-open {
   border: 0;
   padding: 0;
   background: transparent;
-  color: #e8dfc8;
+  color: var(--color-paper);
   cursor: pointer;
   text-align: left;
   font-family: var(--font-serif);
@@ -209,19 +209,19 @@ body.concept-drawer-open {
 .concept-status-btn {
   border: 1px solid rgba(232,223,200,0.18);
   background: transparent;
-  color: #e8dfc8;
+  color: var(--color-paper);
   padding: 8px 10px;
   cursor: pointer;
 }
 
 .concept-status-btn.is-confirm {
   border-color: rgba(135,182,167,0.4);
-  color: #87b6a7;
+  color: var(--color-sage);
 }
 
 .concept-status-btn.is-reject {
   border-color: rgba(214,118,118,0.4);
-  color: #d67676;
+  color: var(--color-rose);
 }
 
 @media (max-width: 720px) {
