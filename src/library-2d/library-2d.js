@@ -6,6 +6,7 @@ import { renderLibraryShell } from './library-2d-template.js';
 import { PanelManager } from '../core/panel-manager.js';
 import { BooksStore } from '../store/books-store.ts';
 import { MarginaliaAuth } from '../firebase/auth.js';
+import { MarginaliaBooksCloud } from '../firebase/db.js';
 import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
 import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
@@ -234,6 +235,16 @@ function bindLibraryEvents() {
       if (record?.id) {
         closeBookInspector({ immediate: true });
         PanelManager.open('book', { id: record.id });
+      }
+      return;
+    }
+
+    const deleteBookBtn = event.target.closest('[data-delete-book]');
+    if (deleteBookBtn) {
+      const bookKey = deleteBookBtn.dataset.deleteBook || '';
+      const record = LIBRARY_STATE.recordByKey.get(bookKey);
+      if (record?.id) {
+        handleDeleteBook(record);
       }
       return;
     }
@@ -1565,7 +1576,47 @@ function buildOverlayActions(record, sourceShelfId) {
   if (!record.id) {
     return '<button type="button" class="library-overlay-readmore" data-overlay-close="true">Close</button>';
   }
-  return `<button type="button" class="library-overlay-readmore" data-open-book="${escapeHTML(record.key)}">Read More <span aria-hidden="true">→</span></button>`;
+  const isSeed = record.id === 'sapiens';
+  const deleteBtn = !isSeed
+    ? `<button type="button" class="library-overlay-delete" data-delete-book="${escapeHTML(record.key)}" aria-label="Remove book from library">Remove</button>`
+    : '';
+  return `
+    <button type="button" class="library-overlay-readmore" data-open-book="${escapeHTML(record.key)}">Read More <span aria-hidden="true">→</span></button>
+    ${deleteBtn}
+  `.trim();
+}
+
+async function handleDeleteBook(record) {
+  const confirmEl = document.getElementById('libraryDeleteConfirm');
+  if (confirmEl) return; // already showing
+
+  const shell = document.getElementById('libraryOverlayShell');
+  if (!shell) return;
+
+  const frag = document.createElement('div');
+  frag.id = 'libraryDeleteConfirm';
+  frag.className = 'library-delete-confirm';
+  frag.innerHTML = `
+    <p class="library-delete-confirm__msg">Remove <strong>${escapeHTML(record.title)}</strong> from your library?</p>
+    <div class="library-delete-confirm__actions">
+      <button type="button" class="library-delete-confirm__cancel">Cancel</button>
+      <button type="button" class="library-delete-confirm__ok">Remove</button>
+    </div>
+  `;
+
+  frag.querySelector('.library-delete-confirm__cancel').addEventListener('click', () => frag.remove());
+  frag.querySelector('.library-delete-confirm__ok').addEventListener('click', async () => {
+    frag.remove();
+    closeBookInspector({ immediate: true });
+    BooksStore.removeBook(record.id);
+    try {
+      await MarginaliaBooksCloud.deleteBook({ bookId: record.id });
+    } catch (err) {
+      logError(err, { context: 'library:deleteBook', bookId: record.id });
+    }
+  });
+
+  shell.appendChild(frag);
 }
 
 function firstOverlaySentence(value) {
@@ -1587,6 +1638,7 @@ function closeBookInspector({ immediate = false } = {}) {
   const overlay = document.getElementById('libraryBookOverlay');
   if (!overlay || overlay.hidden) return;
 
+  document.getElementById('libraryDeleteConfirm')?.remove();
   clearOverlayTimers();
   const finalize = () => {
     overlay.hidden = true;

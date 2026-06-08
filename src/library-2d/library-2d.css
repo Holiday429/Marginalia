@@ -1224,6 +1224,84 @@ body[data-view='studio'] {
   color: rgba(231, 164, 135, 0.98);
 }
 
+#panel-library .library-overlay-delete {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, rgba(255,255,255,0.3));
+  cursor: pointer;
+  transition: color 0.18s ease;
+  text-transform: uppercase;
+}
+
+#panel-library .library-overlay-delete:hover {
+  color: rgba(220, 90, 80, 0.85);
+}
+
+#panel-library .library-delete-confirm {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: rgba(20, 18, 15, 0.88);
+  backdrop-filter: blur(6px);
+  border-radius: inherit;
+  z-index: 10;
+  padding: 24px;
+}
+
+#panel-library .library-delete-confirm__msg {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--color-text, rgba(232, 223, 200, 0.9));
+  text-align: center;
+  line-height: 1.5;
+}
+
+#panel-library .library-delete-confirm__actions {
+  display: flex;
+  gap: 12px;
+}
+
+#panel-library .library-delete-confirm__cancel,
+#panel-library .library-delete-confirm__ok {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+#panel-library .library-delete-confirm__cancel {
+  background: none;
+  border: 1px solid rgba(232, 223, 200, 0.2);
+  color: rgba(232, 223, 200, 0.6);
+}
+
+#panel-library .library-delete-confirm__cancel:hover {
+  border-color: rgba(232, 223, 200, 0.4);
+  color: rgba(232, 223, 200, 0.9);
+}
+
+#panel-library .library-delete-confirm__ok {
+  background: rgba(180, 60, 50, 0.75);
+  border: 1px solid rgba(220, 90, 80, 0.4);
+  color: rgba(255, 220, 215, 0.95);
+}
+
+#panel-library .library-delete-confirm__ok:hover {
+  background: rgba(210, 70, 60, 0.9);
+}
+
 /* is-start: book at shelf position, spine facing viewer */
 #panel-library .library-book-overlay.is-start .library-overlay-book {
   transform:

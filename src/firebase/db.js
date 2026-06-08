@@ -118,6 +118,12 @@ export const MarginaliaBooksCloud = (() => {
     await docRef.set(withMeta(patch), { merge: true });
   }
 
+  async function deleteBook({ bookId }) {
+    if (!state.uid) throw new Error('User is not signed in.');
+    if (!bookId) throw new Error('bookId is required.');
+    await booksCollectionRef().doc(bookId).delete();
+  }
+
   function applyBookOverride(bookId, data) {
     // Update seed data if this is a seed book
     const detail = SEED_BOOK_BY_ID[bookId];
@@ -149,6 +155,7 @@ export const MarginaliaBooksCloud = (() => {
     setBookTags,
     setBookDouban,
     updateBook,
+    deleteBook,
   };
 })();
 

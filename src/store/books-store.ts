@@ -204,6 +204,17 @@ function addOptimisticBook(book: BookRecord): void {
   _emit();
 }
 
+function removeBook(bookId: string): void {
+  const next = _books.filter((b) => b.id !== bookId);
+  if (next.length === _books.length) return;
+  if (next.length === 0) {
+    _loadSeed();
+  } else {
+    _setVisibleBooks(next, { hasOwnBooks: true, usingDemoData: false });
+  }
+  _emit();
+}
+
 export const BooksStore = {
   initWithUser,
   teardown,
@@ -212,6 +223,7 @@ export const BooksStore = {
   hasOwnBooks,
   isUsingDemoData,
   addOptimisticBook,
+  removeBook,
   getAll():                  BookRecord[]         { return _books; },
   getById(id: string):       BookRecord | undefined { return _byId[id]; },
   getByStatus(status: string): BookRecord[]        { return _books.filter((b) => b.status === status); },
