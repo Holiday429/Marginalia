@@ -26,7 +26,7 @@ import {
   buildProfileContext,
   buildClosingQuote,
 } from './profile-stats.ts';
-import type { PublicProfileData, PublicBook, PublicHighlight, SessionDay, DemoPayload } from './profile-types.ts';
+import type { PublicProfileData, PublicBook, PublicHighlight, SessionDay, ActivityDay, DemoPayload } from './profile-types.ts';
 import './profile.css';
 import '../components/hero-book/hero-book.css';
 
@@ -58,7 +58,7 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
     if (db && uid) return enterProfile({ _uid: uid, _preview: true });
     // Unauthenticated: render demo immediately, no loading screen
     const demo = buildDemoPayload();
-    renderResolvedProfile(container, demo.profile, demo.books, demo.highlights, demo.sessionDays, false, true);
+    renderResolvedProfile(container, demo.profile, demo.books, demo.highlights, [], 0, 0, false, true);
     logEvent('profile_viewed', { slug: 'demo-preview' });
     return;
   }
@@ -81,7 +81,7 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
       showRhythm: true,
       showDesk: true,
     };
-    renderResolvedProfile(container, tentativeProfile, [], [], [], true, true);
+    renderResolvedProfile(container, tentativeProfile, [], [], [], 0, 0, true, true);
   }
 
   const db = getDb();
@@ -111,18 +111,19 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
       return;
     }
 
-    const [realBooks, highlights0, sessionDays0] = await Promise.all([
+    const [realBooks, highlights0, notesCount, actionsDoneCount, activityDays] = await Promise.all([
       fetchPublicBooks(db, profileData.uid, ownerPreview),
       fetchPublicHighlights(db, profileData.uid, ownerPreview),
-      fetchSessions(db, profileData.uid),
+      fetchNotesCount(db, profileData.uid),
+      fetchActionsDoneCount(db, profileData.uid),
+      fetchActivityDays(db, profileData.uid),
     ]);
 
     const books = realBooks;
     const highlights = highlights0;
-    const sessionDays = sessionDays0;
 
     const isOwner = ownerPreview;
-    renderResolvedProfile(container, profileData, books, highlights, sessionDays, isOwner, showSettingsAction);
+    renderResolvedProfile(container, profileData, books, highlights, activityDays, notesCount, actionsDoneCount, isOwner, showSettingsAction);
     logEvent('profile_viewed', { slug: profileData.slug || 'owner-preview' });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -242,34 +243,79 @@ async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview 
   }
 }
 
-async function fetchSessions(db: FirestoreDB, uid: string): Promise<SessionDay[]> {
+async function fetchNotesCount(db: FirestoreDB, uid: string): Promise<number> {
   const wsId: string = ENV.WORKSPACE_ID || 'default';
-  const cutoff = Date.now() - 365 * 4 * 24 * 60 * 60 * 1000;
+  try {
+    const booksSnap = await db
+      .collection('workspaces').doc(wsId)
+      .collection('users').doc(uid)
+      .collection('books')
+      .limit(200)
+      .get();
+    const checks = booksSnap.docs.map((bookDoc: any) =>
+      db.collection('workspaces').doc(wsId)
+        .collection('users').doc(uid)
+        .collection('books').doc(bookDoc.id)
+        .collection('notes').doc('main')
+        .get()
+    );
+    const noteSnaps = await Promise.all(checks);
+    return noteSnaps.filter((s: any) => s.exists).length;
+  } catch {
+    return 0;
+  }
+}
+
+async function fetchActionsDoneCount(db: FirestoreDB, uid: string): Promise<number> {
+  const wsId: string = ENV.WORKSPACE_ID || 'default';
   try {
     const snap = await db
       .collection('workspaces').doc(wsId)
       .collection('users').doc(uid)
-      .collection('sessions')
-      .where('startedAt', '>=', cutoff)
-      .orderBy('startedAt', 'asc')
-      .limit(4000)
+      .collection('actions')
+      .where('status', '==', 'done')
       .get();
-
-    const dayMap = new Map<string, SessionDay>();
-    snap.docs.forEach((doc: any) => {
-      const session = doc.data() as Record<string, any>;
-      const date = new Date(session.startedAt).toISOString().slice(0, 10);
-      const entry = dayMap.get(date) ?? { date, sessions: 0, minutes: 0, highlights: 0 };
-      entry.sessions += 1;
-      entry.minutes += Math.round((session.duration ?? 0) / 60);
-      entry.highlights += session.highlightCount ?? 0;
-      dayMap.set(date, entry);
-    });
-
-    return Array.from(dayMap.values());
+    return snap.size;
   } catch {
-    return [];
+    return 0;
   }
+}
+
+async function fetchActivityDays(db: FirestoreDB, uid: string): Promise<ActivityDay[]> {
+  const wsId: string = ENV.WORKSPACE_ID || 'default';
+  const cutoff = Date.now() - 365 * 2 * 24 * 60 * 60 * 1000;
+  const toDate = (ts: unknown): string | null => {
+    const ms = typeof ts === 'number' ? ts
+      : (ts as any)?.seconds ? (ts as any).seconds * 1000
+      : null;
+    if (!ms || ms < cutoff) return null;
+    return new Date(ms).toISOString().slice(0, 10);
+  };
+  const dateSet = new Set<string>();
+  try {
+    const base = db.collection('workspaces').doc(wsId).collection('users').doc(uid);
+    const [booksSnap, highlightsSnap, actionsSnap] = await Promise.all([
+      base.collection('books').limit(500).get(),
+      base.collection('highlights').where('_createdAt', '>=', cutoff).limit(2000).get(),
+      base.collection('actions').where('createdAt', '>=', cutoff).limit(2000).get(),
+    ]);
+    booksSnap.docs.forEach((doc: any) => {
+      const d = doc.data();
+      const date = toDate(d._createdAt) ?? toDate(d.finishedAt);
+      if (date) dateSet.add(date);
+    });
+    highlightsSnap.docs.forEach((doc: any) => {
+      const date = toDate(doc.data()._createdAt);
+      if (date) dateSet.add(date);
+    });
+    actionsSnap.docs.forEach((doc: any) => {
+      const date = toDate(doc.data().createdAt);
+      if (date) dateSet.add(date);
+    });
+  } catch {
+    // return whatever we collected so far
+  }
+  return [...dateSet].map((date) => ({ date }));
 }
 
 function loadingShellHTML(showSettingsAction: boolean): string {
@@ -314,7 +360,9 @@ function profileHTML(
   profile: PublicProfileData,
   books: PublicBook[],
   highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
+  activityDays: ActivityDay[],
+  notesCount: number,
+  actionsDoneCount: number,
   isOwner: boolean,
   showSettingsAction: boolean,
 ): string {
@@ -322,7 +370,7 @@ function profileHTML(
   const authPhotoURL: string = auth.user?.photoURL ?? '';
   const avatarSrc = profile.avatarUrl || authPhotoURL;
   const displayName = capitalizeWords(profile.displayName);
-  const overview = buildProfileOverview(profile, books, highlights, sessionDays, isOwner);
+  const overview = buildProfileOverview(profile, books, highlights, activityDays, notesCount, actionsDoneCount, isOwner);
   const journey = buildJourneyOverview(books);
   const closingQuote = buildClosingQuote(highlights, books);
   const profileContext = buildProfileContext(profile);
@@ -721,7 +769,7 @@ function mountSections(
   container: HTMLElement,
   books: PublicBook[],
   highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
+  _activityDays: ActivityDay[],
   profile: PublicProfileData,
   isOwner: boolean,
 ): void {
@@ -748,7 +796,7 @@ function mountSections(
       const annual = new ProfileAnnualShelf({
         host: annualEl,
         books,
-        sessionDays,
+        sessionDays: [],
         allowOpenDetails: isOwner,
         showRhythm: profile.showRhythm ?? true,
         isOwner,
@@ -762,7 +810,7 @@ function mountSections(
       const annual = new ProfileAnnualShelf({
         host: annualEl,
         books,
-        sessionDays,
+        sessionDays: [],
         allowOpenDetails: isOwner,
         showRhythm: profile.showRhythm ?? true,
       });
@@ -788,7 +836,7 @@ function mountSections(
       status: b.status,
     })),
     highlights: highlights.map((h) => ({ quote: h.quote, bookTitle: h.bookTitle })),
-    sessionDays,
+    sessionDays: [],
   });
 }
 
@@ -877,14 +925,16 @@ function renderResolvedProfile(
   profileData: PublicProfileData,
   books: PublicBook[],
   highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
+  activityDays: ActivityDay[],
+  notesCount: number,
+  actionsDoneCount: number,
   isOwner: boolean,
   showSettingsAction: boolean,
 ): void {
-  container.innerHTML = renderProfilePageShell(profileHTML(profileData, books, highlights, sessionDays, isOwner, showSettingsAction));
+  container.innerHTML = renderProfilePageShell(profileHTML(profileData, books, highlights, activityDays, notesCount, actionsDoneCount, isOwner, showSettingsAction));
   bindProfileChrome(container, false);
   bindProfileEvents(container, highlights, books);
-  mountSections(container, books, highlights, sessionDays, profileData, isOwner);
+  mountSections(container, books, highlights, activityDays, profileData, isOwner);
   maybeSettleFrameFlyIn(container);
 }
 

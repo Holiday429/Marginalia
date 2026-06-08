@@ -1,4 +1,4 @@
-import type { PublicBook, PublicHighlight, SessionDay } from './profile-types.ts';
+import type { PublicBook, PublicHighlight, SessionDay, ActivityDay } from './profile-types.ts';
 import type { PublicProfileData } from './profile-types.ts';
 
 const REGION_NAMES = typeof Intl !== 'undefined' && Intl.DisplayNames
@@ -79,28 +79,33 @@ export function countryContinent(code: string): string | null {
   return continentMap[code] ?? null;
 }
 
-export function computeCurrentStreak(sessionDays: SessionDay[]): number {
-  const activeDays = [...new Set(sessionDays.filter((day) => day.sessions > 0).map((day) => day.date))].sort();
-  if (!activeDays.length) return 0;
+export function computeCurrentStreak(activityDays: ActivityDay[]): number {
+  const sorted = [...new Set(activityDays.map((d) => d.date))].sort();
+  if (!sorted.length) return 0;
+  // Check if the most recent day is today or yesterday (streak still live)
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const last = sorted[sorted.length - 1];
+  if (last !== todayStr && last !== yesterdayStr) return 0;
   let streak = 1;
-  for (let index = activeDays.length - 1; index > 0; index--) {
-    const current = new Date(`${activeDays[index]}T00:00:00Z`).getTime();
-    const previous = new Date(`${activeDays[index - 1]}T00:00:00Z`).getTime();
-    if (current - previous === 86400000) streak += 1;
+  for (let i = sorted.length - 1; i > 0; i--) {
+    const curr = new Date(`${sorted[i]}T00:00:00Z`).getTime();
+    const prev = new Date(`${sorted[i - 1]}T00:00:00Z`).getTime();
+    if (curr - prev === 86400000) streak += 1;
     else break;
   }
   return streak;
 }
 
-export function computeLongestStreak(sessionDays: SessionDay[]): number {
-  const activeDays = [...new Set(sessionDays.filter((day) => day.sessions > 0).map((day) => day.date))].sort();
-  if (!activeDays.length) return 0;
+export function computeLongestStreak(activityDays: ActivityDay[]): number {
+  const sorted = [...new Set(activityDays.map((d) => d.date))].sort();
+  if (!sorted.length) return 0;
   let best = 1;
   let current = 1;
-  for (let index = 1; index < activeDays.length; index++) {
-    const previous = new Date(`${activeDays[index - 1]}T00:00:00Z`).getTime();
-    const next = new Date(`${activeDays[index]}T00:00:00Z`).getTime();
-    if (next - previous === 86400000) current += 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = new Date(`${sorted[i - 1]}T00:00:00Z`).getTime();
+    const next = new Date(`${sorted[i]}T00:00:00Z`).getTime();
+    if (next - prev === 86400000) current += 1;
     else current = 1;
     if (current > best) best = current;
   }
@@ -170,13 +175,14 @@ export function buildProfileOverview(
   profile: PublicProfileData,
   books: PublicBook[],
   highlights: PublicHighlight[],
-  sessionDays: SessionDay[],
+  activityDays: ActivityDay[],
+  notesCount: number,
+  actionsDoneCount: number,
   isOwner: boolean,
 ): ProfileOverview {
   const finishedBooks = books.filter((book) => isFinishedStatus(book.status));
-  const readingDays = sessionDays.filter((day) => day.sessions > 0).length;
-  const currentStreak = computeCurrentStreak(sessionDays);
-  const longestStreak = computeLongestStreak(sessionDays);
+  const currentStreak = computeCurrentStreak(activityDays);
+  const longestStreak = computeLongestStreak(activityDays);
   const firstFinishedAt = finishedBooks
     .map((book) => book.finishedAt ?? 0)
     .filter((stamp) => stamp > 0)
@@ -187,11 +193,13 @@ export function buildProfileOverview(
   const hasIdentity = finishedBooks.length >= 3;
   const hasQuote = highlights.length > 0;
   const fmt = (n: number): string => (n > 0 ? formatInt(n) : '–');
+  const streakValue = currentStreak > 0 ? currentStreak : longestStreak;
+  const streakLabel = currentStreak > 0 ? 'Current Streak' : 'Longest Streak';
   const stats: ProfileOverviewStat[] = [
     { label: 'Books Finished', value: fmt(finishedBooks.length) },
-    { label: 'Reading Days', value: fmt(readingDays) },
-    { label: 'Highlights Saved', value: fmt(highlights.length) },
-    { label: currentStreak > 0 ? 'Current Streak' : 'Longest Streak', value: fmt(currentStreak > 0 ? currentStreak : longestStreak) },
+    { label: 'Notes Created', value: fmt(notesCount) },
+    { label: 'Actions Done', value: fmt(actionsDoneCount) },
+    { label: streakLabel, value: fmt(streakValue) },
   ];
   const statusEyebrow = isOwner ? 'Profile Studio' : 'Public Profile';
   let statusTitle = 'Reading portrait in progress';
@@ -210,7 +218,7 @@ export function buildProfileOverview(
     stats,
     journeySummary: buildIdentityLine(books),
     firstFinishedLabel,
-    streakLabel: currentStreak > 0 ? 'Current Streak' : 'Longest Stretch',
+    streakLabel: streakLabel,
     streakNote: currentStreak > 0 ? `${currentStreak} days and still going` : `${Math.max(1, longestStreak)} days at full glow`,
     statusEyebrow,
     statusTitle,

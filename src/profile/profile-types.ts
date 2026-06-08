@@ -46,6 +46,11 @@ export interface SessionDay {
   highlights: number;
 }
 
+/** One calendar date on which any recording activity occurred. */
+export interface ActivityDay {
+  date: string; // YYYY-MM-DD
+}
+
 export interface DemoPayload {
   profile: PublicProfileData;
   books: PublicBook[];
