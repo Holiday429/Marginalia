@@ -157,6 +157,23 @@ function bindShelfEvents() {
     });
   }
 
+  const quickRows = document.getElementById('shelfQuickRows');
+  if (quickRows) {
+    quickRows.addEventListener('click', (event) => {
+      const card = event.target.closest('.shelf-quick-card');
+      if (!card) return;
+      const key = card.dataset.key;
+      const record = SHELF_RECORDS.find((b) => b.key === key);
+      if (record?.detailId && record.preview?.canOpen) {
+        PanelManager.open('book', { id: record.detailId });
+      }
+    });
+    quickRows.addEventListener('error', (event) => {
+      const img = event.target;
+      if (img?.classList?.contains('shelf-quick-cover-img')) img.style.display = 'none';
+    }, true);
+  }
+
   const previewPanel = document.getElementById('shelfPreviewPanel');
   const closeBtn = document.getElementById('shelfPreviewCloseBtn');
   if (previewPanel) {
@@ -332,6 +349,8 @@ function getBookDetail(detailId) {
 function renderShelfSectionInternal() {
   const shelfHost = document.getElementById('shelfStack');
   if (!shelfHost) return;
+
+  renderQuickRows();
 
   const visible = getFilteredBooks();
   renderShelfSummary(visible.length);
@@ -627,6 +646,56 @@ function renderTagChips() {
   }).join('');
 }
 
+function renderQuickRows() {
+  const wrap = document.getElementById('shelfQuickRows');
+  if (!wrap) return;
+
+  const narrowing = Boolean(SHELF_STATE.query) || SHELF_STATE.filter !== 'all' || Boolean(SHELF_STATE.tag);
+  const realBooks = SHELF_RECORDS.filter((b) => !b._isMock);
+
+  const reading = realBooks.filter((b) => b.status === 'reading').slice(0, 6);
+  const recent = realBooks.slice(0, 6);
+
+  const continueRendered = renderQuickRow('shelfContinueRow', 'shelfContinueTrack', reading);
+  const recentRendered = renderQuickRow('shelfRecentRow', 'shelfRecentTrack', recent);
+
+  wrap.hidden = narrowing || (!continueRendered && !recentRendered);
+}
+
+function renderQuickRow(rowId, trackId, records) {
+  const row = document.getElementById(rowId);
+  const track = document.getElementById(trackId);
+  if (!row || !track) return false;
+  if (!records.length) {
+    row.hidden = true;
+    track.innerHTML = '';
+    return false;
+  }
+  row.hidden = false;
+  track.innerHTML = records.map(buildQuickCard).join('');
+  return true;
+}
+
+function buildQuickCard(record) {
+  const p = record.preview || {};
+  const title = escapeHTML(p.title || record.titleDisplay || '');
+  const hasCover = Boolean(p.coverSrc);
+  const tone = p.tone || record.spine || '#202020';
+  const textColor = record.text || '#f4ead6';
+  const cjkClass = containsCJK(p.title || record.titleDisplay) ? ' is-cjk' : '';
+
+  const fallback = `<span class="shelf-quick-cover-fallback${cjkClass}" style="background:linear-gradient(150deg, ${escapeHTML(tone)}, #111); color:${escapeHTML(textColor)};">${title}</span>`;
+  const coverInner = hasCover
+    ? `<img class="shelf-quick-cover-img" src="${escapeHTML(p.coverSrc)}" alt="" loading="lazy">${fallback}`
+    : fallback;
+
+  return `
+    <button class="shelf-quick-card" type="button" data-key="${escapeHTML(record.key)}" title="${title}">
+      <span class="shelf-quick-cover">${coverInner}</span>
+      <span class="shelf-quick-card-title${cjkClass}">${title}</span>
+    </button>
+  `;
+}
 
 function getFilteredBooks() {
   const tag = SHELF_STATE.tag ? SHELF_STATE.tag.toLowerCase() : null;
