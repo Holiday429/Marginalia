@@ -186,11 +186,12 @@ export function buildProfileOverview(
     : null;
   const hasIdentity = finishedBooks.length >= 3;
   const hasQuote = highlights.length > 0;
+  const fmt = (n: number): string => (n > 0 ? formatInt(n) : '–');
   const stats: ProfileOverviewStat[] = [
-    { label: 'Books Finished', value: formatInt(finishedBooks.length) },
-    { label: 'Reading Days', value: formatInt(readingDays) },
-    { label: 'Highlights Saved', value: formatInt(highlights.length) },
-    { label: currentStreak > 0 ? 'Current Streak' : 'Longest Streak', value: formatInt(currentStreak > 0 ? currentStreak : longestStreak) },
+    { label: 'Books Finished', value: fmt(finishedBooks.length) },
+    { label: 'Reading Days', value: fmt(readingDays) },
+    { label: 'Highlights Saved', value: fmt(highlights.length) },
+    { label: currentStreak > 0 ? 'Current Streak' : 'Longest Streak', value: fmt(currentStreak > 0 ? currentStreak : longestStreak) },
   ];
   const statusEyebrow = isOwner ? 'Profile Studio' : 'Public Profile';
   let statusTitle = 'Reading portrait in progress';
@@ -235,20 +236,10 @@ export function buildClosingQuote(highlights: PublicHighlight[], books: PublicBo
   };
 }
 
-export function buildProfileContext(books: PublicBook[]): { location: string | null; joinedLabel: string | null } {
-  const finishedBooks = books.filter((book) => isFinishedStatus(book.status));
-  const countryCounts = new Map<string, number>();
-  let earliestStamp = 0;
-  finishedBooks.forEach((book) => {
-    const country = book.geo?.readerLocation?.country || book.geo?.contentLocation?.country || book.geo?.authorOrigin?.country;
-    if (country) countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
-    const stamp = book.finishedAt ?? 0;
-    if (stamp > 0 && (earliestStamp === 0 || stamp < earliestStamp)) earliestStamp = stamp;
-  });
-  const topCountry = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-  const location = topCountry ? countryName(topCountry) : null;
-  const joinedLabel = earliestStamp
-    ? new Date(earliestStamp).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+export function buildProfileContext(profile: PublicProfileData): { location: string | null; joinedLabel: string | null } {
+  const location = profile.location ?? null;
+  const joinedLabel = profile.joinedAt
+    ? new Date(profile.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : null;
   return { location, joinedLabel };
 }

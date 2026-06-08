@@ -5,6 +5,8 @@ export interface PublicProfileData {
   profilePublic: boolean;
   avatarUrl?: string;
   bio?: string;
+  location?: string;
+  joinedAt?: number;
   showMap?: boolean;
   showPortrait?: boolean;
   showRhythm?: boolean;

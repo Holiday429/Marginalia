@@ -8,9 +8,6 @@ import { ENV } from '../core/env.ts';
 import { BooksStore } from '../store/books-store.ts';
 import {
   DEMO_PROFILE,
-  buildDemoHighlights,
-  buildDemoSessionDays,
-  resolveDemoMerge,
   buildDemoPayloadFromBooks,
 } from './profile-demo-resolver.ts';
 import { loadAnnualShelf } from './annual-shelf-store.ts';
@@ -69,8 +66,8 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
   // Owner preview (_uid set): render demo shell immediately so there's no black flash,
   // then swap in real data once the Firestore fetch completes.
   if (params._uid) {
-    const demo = buildDemoPayload();
     const auth = MarginaliaAuth as any;
+    const creationTime: string | undefined = auth.user?.metadata?.creationTime;
     const tentativeProfile: PublicProfileData = {
       uid: params._uid,
       slug: auth.user?.settings?.slug ?? '',
@@ -78,12 +75,13 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
       displayName: capitalizeWords(String(auth.user?.displayName || auth.user?.email || 'Reader').split('@')[0]),
       avatarUrl: undefined,
       bio: undefined,
+      joinedAt: creationTime ? Date.parse(creationTime) : undefined,
       showMap: true,
       showPortrait: false,
       showRhythm: true,
       showDesk: true,
     };
-    renderResolvedProfile(container, tentativeProfile, demo.books, demo.highlights, demo.sessionDays, true, true);
+    renderResolvedProfile(container, tentativeProfile, [], [], [], true, true);
   }
 
   const db = getDb();
@@ -119,15 +117,9 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
       fetchSessions(db, profileData.uid),
     ]);
 
-    const books = resolveDemoMerge(realBooks);
-
-    let highlights = highlights0;
-    let sessionDays = sessionDays0;
-
-    if (ownerPreview) {
-      if (!highlights.length) highlights = buildDemoHighlights();
-      if (!sessionDays.length) sessionDays = buildDemoSessionDays(books);
-    }
+    const books = realBooks;
+    const highlights = highlights0;
+    const sessionDays = sessionDays0;
 
     const isOwner = ownerPreview;
     renderResolvedProfile(container, profileData, books, highlights, sessionDays, isOwner, showSettingsAction);
@@ -150,9 +142,10 @@ function getDb(): FirestoreDB | null {
   return (MarginaliaAuth as any).db ?? null;
 }
 
-function buildProfileData(uid: string, data: Record<string, any>): PublicProfileData {
+function buildProfileData(uid: string, data: Record<string, any>, joinedAt?: number): PublicProfileData {
   const settings = data.settings ?? {};
   const profileSettings = settings.profileSections ?? {};
+  const locationCountry: string | null = settings.location?.country ?? data.location?.country ?? data.loc ?? null;
   return {
     uid,
     slug: settings.slug ?? '',
@@ -160,6 +153,8 @@ function buildProfileData(uid: string, data: Record<string, any>): PublicProfile
     displayName: data.displayName || settings.username || settings.slug || uid,
     avatarUrl: data.avatarUrl ?? undefined,
     bio: settings.bio ?? undefined,
+    location: locationCountry ? countryName(locationCountry) : (settings.location?.city ?? undefined),
+    joinedAt,
     showMap: profileSettings.map !== false,
     showPortrait: profileSettings.portrait === true,
     showRhythm: profileSettings.rhythm !== false,
@@ -168,9 +163,12 @@ function buildProfileData(uid: string, data: Record<string, any>): PublicProfile
 }
 
 async function lookupByUid(db: FirestoreDB, uid: string): Promise<PublicProfileData | null> {
+  const auth = MarginaliaAuth as any;
+  const creationTime: string | undefined = auth.user?.metadata?.creationTime;
+  const joinedAt = creationTime ? Date.parse(creationTime) : undefined;
   const snap = await db.doc(`users/${uid}`).get();
   if (!snap.exists) return null;
-  return buildProfileData(uid, snap.data() as Record<string, any>);
+  return buildProfileData(uid, snap.data() as Record<string, any>, joinedAt);
 }
 
 async function lookupBySlug(db: FirestoreDB, slug: string): Promise<PublicProfileData | null> {
@@ -229,7 +227,7 @@ async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview 
           return { quote: data.quote ?? '', bookTitle: data.bookTitle ?? '', bookId: data.bookId ?? undefined };
         })
         .filter((highlight: PublicHighlight) => highlight.quote.length > 0);
-      return highlights.length ? highlights : buildDemoHighlights();
+      return highlights;
     }
 
     const snap = await db.collectionGroup('highlights').where('uid', '==', uid).where('public', '==', true).limit(24).get();
@@ -327,7 +325,7 @@ function profileHTML(
   const overview = buildProfileOverview(profile, books, highlights, sessionDays, isOwner);
   const journey = buildJourneyOverview(books);
   const closingQuote = buildClosingQuote(highlights, books);
-  const profileContext = buildProfileContext(books);
+  const profileContext = buildProfileContext(profile);
 
   let avatarEl: string;
   if (avatarSrc) {
