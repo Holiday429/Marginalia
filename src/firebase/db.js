@@ -93,8 +93,10 @@ export const MarginaliaBooksCloud = (() => {
   async function setBookProgress({ bookId, readingProgress }) {
     if (!state.uid) throw new Error('User is not signed in.');
     if (!bookId) throw new Error('bookId is required.');
+    const statusMap = { 'done': 'read', 'in-progress': 'reading', 'not-started': 'confirmed-later' };
+    const status = statusMap[readingProgress] || 'confirmed-later';
     const docRef = booksCollectionRef().doc(bookId);
-    await docRef.set(withMeta({ meta: { readingProgress: String(readingProgress) } }), { merge: true });
+    await docRef.set(withMeta({ status, meta: { readingProgress: String(readingProgress) } }), { merge: true });
   }
 
   async function setBookTags({ bookId, tags }) {

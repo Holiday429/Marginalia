@@ -373,6 +373,10 @@ async function enterBook(params = {}) {
   // ── Overview: reading progress ────────────────────────────────────────
   root.querySelector('[data-progress-select]')?.addEventListener('change', async (e) => {
     const val = e.target.value;
+    const statusMap = { 'done': 'read', 'in-progress': 'reading', 'not-started': 'confirmed-later' };
+    const newStatus = statusMap[val] || 'confirmed-later';
+    const currentBook = BooksStore.getById(id) || book;
+    BooksStore.addOptimisticBook({ ...currentBook, status: newStatus, meta: { ...(currentBook.meta || {}), readingProgress: val } });
     try {
       await MarginaliaBooksCloud?.setBookProgress?.({ bookId: id, readingProgress: val });
     } catch (err) { logError(err, { context: 'book progress save', bookId: id }); }
@@ -395,6 +399,26 @@ async function enterBook(params = {}) {
     try {
       await MarginaliaBooksCloud?.setBookDouban?.({ bookId: id, douban: url });
     } catch (err) { logError(err, { context: 'book douban save', bookId: id }); }
+    enterBook({ id });
+  });
+
+  // ── Overview: external link ────────────────────────────────────────────
+  root.querySelector('[data-edit-ext-link]')?.addEventListener('click', () => {
+    root.querySelector('[data-ext-link-field]').querySelector('a, button')?.setAttribute('hidden', '');
+    root.querySelector('[data-edit-ext-link]')?.setAttribute('hidden', '');
+    root.querySelector('[data-ext-link-form]').hidden = false;
+    root.querySelector('[data-ext-link-input]')?.focus();
+  });
+  root.querySelector('[data-cancel-ext-link]')?.addEventListener('click', () => {
+    root.querySelector('[data-ext-link-form]').hidden = true;
+    root.querySelector('[data-edit-ext-link]')?.removeAttribute('hidden');
+  });
+  root.querySelector('[data-ext-link-form]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = root.querySelector('[data-ext-link-input]')?.value.trim() || '';
+    try {
+      await MarginaliaBooksCloud?.updateBook?.({ bookId: id, patch: { externalLink: url || null } });
+    } catch (err) { logError(err, { context: 'book ext-link save', bookId: id }); }
     enterBook({ id });
   });
 
@@ -742,8 +766,11 @@ async function enterBook(params = {}) {
       if (!bookId) return;
       if (!confirm(`Remove "${book.title}" from your library? This cannot be undone.`)) return;
 
-      // Remove from IndexedDB (legacy local store)
-      await NotesStore?.deleteBook(bookId);
+      // Remove from Firestore (primary) and IndexedDB (legacy)
+      await Promise.allSettled([
+        MarginaliaBooksCloud?.deleteBook?.({ bookId }),
+        NotesStore?.deleteBook(bookId),
+      ]);
 
       // Re-render shelf and navigate back
       renderSearchSection();
@@ -1043,6 +1070,29 @@ function renderOverview(b) {
       ${!ratingVal && !isReadOnly ? '<div class="rating-note">Tap to rate</div>' : ''}
     </div>`;
 
+  // ── External link ─────────────────────────────────────────────────────
+  const extUrl = b.externalLink || '';
+  const extHtml = (extUrl || !isReadOnly) ? `
+    <div class="ov-field">
+      <div class="ov-field-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/><path d="M10 2h4v4"/><path d="M14 2 8 8"/></svg>
+      </div>
+      <span class="ov-field-label">Link</span>
+      <div class="ov-field-val" data-ext-link-field>
+        ${extUrl
+          ? `<a class="ov-link" href="${esc(extUrl)}" target="_blank" rel="noopener">${esc(extUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 38))}${extUrl.length > 42 ? '…' : ''}</a>
+             ${isReadOnly ? '' : '<button class="ov-field-edit-btn" type="button" data-edit-ext-link>Edit</button>'}`
+          : (isReadOnly ? '' : '<button class="ov-field-add-btn" type="button" data-edit-ext-link>Add link</button>')
+        }
+        ${isReadOnly ? '' : `
+          <form class="ov-douban-form" data-ext-link-form hidden>
+            <input class="ov-douban-input" type="url" placeholder="https://…" value="${esc(extUrl)}" data-ext-link-input>
+            <button class="ov-tag-form-save" type="submit">Save</button>
+            <button class="ov-tag-form-cancel" type="button" data-cancel-ext-link>Cancel</button>
+          </form>`}
+      </div>
+    </div>` : '';
+
   // ── Douban link ───────────────────────────────────────────────────────
   const doubanUrl = b.meta?.douban || '';
   const doubanHtml = `
@@ -1119,6 +1169,7 @@ function renderOverview(b) {
               </div>`).join('')}
             ${progressHtml}
             ${tagsHtml}
+            ${extHtml}
             ${doubanHtml}
           </div>
 

@@ -492,6 +492,10 @@ export const NewEntry = (() => {
       coverPlaceholder.style.background = state.spineColor;
       coverPlaceholder.style.color = state.textColor;
     }
+    const coverPreview = document.getElementById('neCoverPreview');
+    if (coverPreview) {
+      coverPreview.style.setProperty('--ne-spine-bg', state.spineColor);
+    }
   }
 
   /* ── Event binding ───────────────────────────────────────────────────────── */

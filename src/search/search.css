@@ -595,7 +595,7 @@ body[data-view="search"] {
 }
 
 .shelf-quick-cover-img {
-  object-fit: cover;
+  object-fit: contain;
   z-index: 1;
 }
 
@@ -1019,7 +1019,7 @@ body[data-view="search"] {
 .shelf-preview-cover img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
