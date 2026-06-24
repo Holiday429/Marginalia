@@ -899,10 +899,26 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
     width: auto;
   }
 
+  /* On tablet / foldable, the settings panel becomes a right-edge drawer that
+     starts below the top-tab bar and reads as an opaque sheet (no content
+     bleed-through), with a dimming scrim behind it. */
   #view-room .room-settings-panel {
-    top: 56px;
+    top: 84px;
     right: 12px;
-    width: min(340px, calc(100vw - 24px));
+    bottom: 12px;
+    max-height: none;
+    width: min(360px, calc(100vw - 24px));
+    background:
+      linear-gradient(168deg, rgba(34, 27, 21, 0.97), rgba(52, 42, 32, 0.97));
+  }
+
+  #view-room.is-settings-open::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 16;
+    background: rgba(18, 14, 10, 0.5);
+    backdrop-filter: blur(2px);
   }
 
   #view-room .room-top-tabs {
@@ -911,9 +927,14 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
     gap: 8px;
   }
 
+  /* Lift the camera toolbar above the bottom-left focus dock so the two
+     bottom bars stack instead of overlapping (Fold cover / tablet width). */
   #view-room .room-camera-toolbar {
-    bottom: 12px;
-    width: calc(100vw - 24px);
+    left: 12px;
+    right: 12px;
+    bottom: 72px;
+    width: auto;
+    transform: none;
     justify-content: center;
     flex-wrap: wrap;
     border-radius: 18px;

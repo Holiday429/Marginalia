@@ -488,6 +488,13 @@ function bindRoomEvents() {
       return;
     }
 
+    // Click outside the open settings panel (e.g. on the dimming scrim) closes it.
+    if (ROOM_VIEW_STATE.settingsOpen && !event.target.closest('#roomSettingsPanel')) {
+      ROOM_VIEW_STATE.settingsOpen = false;
+      syncRoomChrome();
+      return;
+    }
+
     const poseBtn = event.target.closest('[data-room-pose]');
     if (poseBtn) {
       applyRoomPose(poseBtn.dataset.roomPose || 'front');

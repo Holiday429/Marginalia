@@ -692,7 +692,12 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
   right: 0;
   width: 540px;
   bottom: 0;
-  background: transparent;
+  /* Opaque glass fill so the live map never bleeds through the detail text.
+     The hero image sits above this; the body reads against a solid backdrop. */
+  background:
+    linear-gradient(180deg, rgba(34, 32, 28, 0.92), rgba(28, 26, 23, 0.96));
+  backdrop-filter: blur(16px) saturate(118%);
+  -webkit-backdrop-filter: blur(16px) saturate(118%);
   border-left: 1px solid rgba(232,223,200,0.28);
   z-index: 40;
   display: flex;
@@ -1173,7 +1178,7 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
   padding: 10px 20px 8px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 900px) {
   .map-page {
     min-height: 100vh;
     padding-top: 10px;
@@ -1215,8 +1220,11 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
     top: 146px;
   }
 
+  /* Full-width sheet on tablet / foldable — covers the map entirely instead of
+     leaving an awkward sliver beside a partial panel. */
   .map-panel {
-    width: min(100vw, 540px);
+    width: 100%;
+    border-left: none;
   }
 
   body.map-panel-open #mapChart {

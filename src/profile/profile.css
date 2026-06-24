@@ -570,13 +570,29 @@
   transform: translateY(0);
 }
 
-@media (max-width: 760px) {
+/* Stack info over a full-width room strip below tablet width. The 2-col grid
+   squeezed the room image into a cropped right-edge sliver in the 760–900px
+   band (foldable cover screen), so the stack now triggers at the md tier. */
+@media (max-width: 900px) {
   .prof-banner {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 180px;
+    grid-template-rows: auto clamp(160px, 24vw, 200px);
+  }
+  /* Room occupies its own full-width row — no leftward bleed / feather seam. */
+  .prof-banner__room { grid-column: 1 / -1; }
+  .prof-banner__room .prof-banner__room-img,
+  .prof-banner__room .prof-banner__room-fade {
+    left: 0;
+  }
+  .prof-banner__room-img {
+    background-position: center center;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
   .prof-banner__room-fade {
     background: linear-gradient(180deg, var(--glass-panel) 0%, transparent 40%);
+    -webkit-mask-image: none;
+    mask-image: none;
   }
   .prof-banner__stats { max-width: none; }
 }
@@ -1870,7 +1886,7 @@
   margin-top: 12px;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .prof-annual__card .booklist-top {
     grid-template-columns: 1fr;
   }
@@ -2652,7 +2668,7 @@
   color: var(--muted);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .prof-identity-section__traits {
     grid-template-columns: 1fr;
   }
@@ -2857,7 +2873,7 @@
   color: var(--muted);
 }
 
-@media (max-width: 980px) {
+@media (max-width: 900px) {
   .prof-hero,
   .prof-streak-card,
   .prof-map-rail {
@@ -2894,7 +2910,7 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .prof-shell {
     padding: 20px 16px 72px;
   }
@@ -3128,7 +3144,7 @@
   margin-right: 0;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .prof-id-dispatch {
     border-right: none;
     padding-right: 0;
@@ -3527,7 +3543,7 @@
   justify-content: center;
 }
 
-@media (min-width: 680px) {
+@media (min-width: 640px) {
   .prof-rid-stage--cta .prof-rid-stage__overlay {
     flex-direction: row;
     /* Top-align so the hero book sits up level with the heading rather than
@@ -4124,7 +4140,7 @@
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 680px) {
+@media (max-width: 640px) {
   .prof-rid-stage--cta { gap: 28px; }
   .prof-rid-postcard__axes { grid-template-columns: 1fr; }
   .prof-rid-stamp { display: none; }

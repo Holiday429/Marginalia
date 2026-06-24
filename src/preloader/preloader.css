@@ -636,7 +636,7 @@ body[data-view="preloader"] {
 #view-preloader.theme-ink   { --bg: #302e2a; --bg-deep: #2b2925; --ink: #ede0c8; --shelf: #3b3833; }
 
 /* ---- Responsive breakpoints ---- */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .masthead { padding: 16px 20px 0; }
   .headline-wrap { padding: 10px 16px 0; }
   .stage { padding-bottom: 24px; }

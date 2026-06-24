@@ -1665,7 +1665,7 @@ body[data-view='studio'] {
   transform: none;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1200px) {
   #panel-library .library-shelf-form {
     grid-template-columns: 1fr;
   }
@@ -1709,7 +1709,7 @@ body[data-view='studio'] {
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   #panel-library .library-scene {
     min-height: 700px;
   }

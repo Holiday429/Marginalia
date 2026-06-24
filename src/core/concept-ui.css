@@ -224,7 +224,7 @@ body.concept-drawer-open {
   color: var(--color-rose);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .concept-drawer {
     width: 100vw;
   }
