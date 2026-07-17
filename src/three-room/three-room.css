@@ -572,7 +572,7 @@ body[data-view='room'] {
 #view-room .room-camera-toolbar {
   position: absolute;
   left: 50%;
-  bottom: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   z-index: 15;
   display: flex;
@@ -662,8 +662,8 @@ body[data-view='room'] {
 
 #view-room .room-focus-dock {
   position: absolute;
-  left: 18px;
-  bottom: 18px;
+  left: calc(18px + env(safe-area-inset-left, 0px));
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   z-index: 16;
   width: min(226px, calc(100vw - 32px));
   border-radius: 24px;
@@ -677,10 +677,12 @@ body[data-view='room'] {
   transition: width 0.24s ease, padding 0.24s ease, border-radius 0.24s ease;
 }
 
-/* Collapsed: shrink to a minimal pill (dot + label + chevron) */
+/* Collapsed: shrink to a minimal pill (dot + label + chevron).
+   Padding matches .room-camera-toolbar so both bottom pills render at the
+   same 52px height (8px padding + 34px inner control + 1px border). */
 #view-room .room-focus-dock.is-collapsed {
   width: auto;
-  padding: 3px;
+  padding: 8px;
   border-radius: 999px;
 }
 #view-room .room-focus-dock.is-collapsed .room-focus-slot {
@@ -891,8 +893,8 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
   }
 
   #view-room .room-focus-dock {
-    left: 12px;
-    bottom: 12px;
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     width: min(226px, calc(100vw - 24px));
   }
   #view-room .room-focus-dock.is-collapsed {
@@ -930,9 +932,9 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
   /* Lift the camera toolbar above the bottom-left focus dock so the two
      bottom bars stack instead of overlapping (Fold cover / tablet width). */
   #view-room .room-camera-toolbar {
-    left: 12px;
-    right: 12px;
-    bottom: 72px;
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
     width: auto;
     transform: none;
     justify-content: center;

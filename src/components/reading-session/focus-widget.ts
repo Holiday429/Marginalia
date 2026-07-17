@@ -350,6 +350,10 @@ export function mountFocusWidget(): void {
 export function attachFocusWidgetTo(slot: HTMLElement): void {
   if (!_host) return;
   slot.appendChild(_host);
+  // Moving the host into the dock does not re-render, so the dock would keep
+  // its expanded padding/width until the first interaction — making the pill
+  // taller than the camera toolbar on entry. Sync the collapsed class now.
+  _syncDock(_host);
 }
 
 export function detachFocusWidgetToBody(): void {

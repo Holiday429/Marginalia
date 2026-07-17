@@ -152,8 +152,8 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     rotationY: 0,
     rotationZ: 0,
     targetHeight: 0.62,
-    photoTextureUrl: '/covers/sapiens-zh.jpg',
-    photoMaterialNameIncludes: '*',
+    // Uses the GLB's own baked cover model — no per-book cover override. The
+    // click still opens the currently-reading book (see onSapiensSelect).
     interactiveAction: 'sapiens',
   },
   {

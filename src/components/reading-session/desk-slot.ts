@@ -29,26 +29,31 @@ function render(container: HTMLElement): void {
   }
 
   const book = active ? (books.find((b) => b.id === active.bookId) ?? books[0]) : books[0];
-  const cv = (book.cover as Record<string, string>) ?? {};
   const isActive = active?.bookId === book.id;
   const elapsed  = isActive ? formatDuration(Date.now() - active.startedAt) : null;
 
-  const coverHtml = cv.image
-    ? `<img class="desk-slot__cover-img" src="${esc(cv.image)}" alt="${esc(book.title)} cover">`
-    : `<div class="desk-slot__cover-fallback" style="--cv-bg:${esc(cv.bg || '#14263e')};--cv-text:${esc(cv.text || '#e8dfc8')}">
-         <span>${esc(book.title as string)}</span>
-       </div>`;
+  // The cover now lives on the 3D desk book itself (see RoomScene.setDeskBookCover).
+  // This flat CSS3D slot is only the reading-session control, so it renders no
+  // book image — it stays out of view until a session starts, and shows just a
+  // compact timer + Stop control while active. Idle: a minimal Start affordance.
+  if (!isActive) {
+    container.innerHTML = `
+      <div class="desk-slot desk-slot--idle">
+        <button class="desk-slot__btn" type="button" data-desk-toggle data-book-id="${esc(String(book.id))}">
+          Start Reading
+        </button>
+      </div>`;
+    wireButton(container, book.id as string);
+    return;
+  }
 
   container.innerHTML = `
-    <div class="desk-slot">
-      <div class="desk-slot__cover">${coverHtml}</div>
+    <div class="desk-slot desk-slot--active">
       <div class="desk-slot__info">
-        <div class="desk-slot__title">${esc(book.title as string)}</div>
-        <div class="desk-slot__author">${esc(book.author as string)}</div>
-        ${isActive ? `<div class="desk-slot__timer" data-desk-timer>${elapsed}</div>` : ''}
-        <button class="desk-slot__btn${isActive ? ' desk-slot__btn--stop' : ''}"
+        <div class="desk-slot__timer" data-desk-timer>${elapsed}</div>
+        <button class="desk-slot__btn desk-slot__btn--stop"
           type="button" data-desk-toggle data-book-id="${esc(String(book.id))}">
-          ${isActive ? 'Stop Reading' : 'Start Reading'}
+          Stop Reading
         </button>
       </div>
     </div>`;
