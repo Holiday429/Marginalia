@@ -6,9 +6,9 @@
 
    To add a new AI feature:
      1. Add an entry here.
-     2. Create src/ai/features/prompts/{id}.js that sets
-          window.AI_PROMPTS['{id}'] = { build(book) { return promptString; } }
-     3. Load that script in index.html.
+     2. Create src/ai/features/prompts/{id}.js that calls
+          AIFeatureRegistry.setPrompt('{id}', { build(book) { return promptString; } })
+     3. Import the script as a side effect in src/main.js.
 
    The feature is only offered to the user if the book's effective
    aiFeatures[] list (resolved via BookTypes.getAiFeatures) includes the id.
