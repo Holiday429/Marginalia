@@ -6,20 +6,7 @@
 
 import { ENV } from '../core/env.ts';
 import { logEvent } from './analytics.ts';
-
-declare const firebase: {
-  auth(): { currentUser: { getIdToken(): Promise<string> } | null };
-};
-
-async function getIdToken(): Promise<string | null> {
-  try {
-    const user = firebase.auth().currentUser;
-    if (!user) return null;
-    return await user.getIdToken();
-  } catch {
-    return null;
-  }
-}
+import { getIdToken } from '../firebase/auth.ts';
 
 /**
  * Creates a Lemon Squeezy checkout session via Cloud Function and returns the URL.

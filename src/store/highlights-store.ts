@@ -4,10 +4,10 @@
 // Unauthenticated path: empty; notes-wall falls back to seed data.
 // Views subscribe via 'marginalia:highlights-changed' or HighlightsStore.subscribe().
 
+import { collectionGroup, onSnapshot, orderBy, query, where, type Firestore, type Unsubscribe } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FirestoreDB = any;
+type FirestoreDB = Firestore;
 
 export interface HighlightRecord {
   id: string;
@@ -18,7 +18,7 @@ export interface HighlightRecord {
 }
 
 let _highlights: HighlightRecord[] = [];
-let _unsubscribe: (() => void) | null = null;
+let _unsubscribe: Unsubscribe | null = null;
 let _uid: string | null = null;
 const _listeners: Array<() => void> = [];
 
@@ -37,14 +37,16 @@ function initWithUser(uid: string, db: FirestoreDB): void {
 
   // collectionGroup('highlights') matches all subcollections named 'highlights'.
   // Firestore rules restrict reads to users/{uid}/**, so only this user's highlights are returned.
-  const query = db
-    .collectionGroup('highlights')
-    .where('bookId', '>=', '')  // ensures only docs with a bookId field are included
-    .orderBy('bookId');
+  const highlightsQuery = query(
+    collectionGroup(db, 'highlights'),
+    where('bookId', '>=', ''),  // ensures only docs with a bookId field are included
+    orderBy('bookId'),
+  );
 
-  _unsubscribe = query.onSnapshot(
-    (snapshot: any) => {
-      _highlights = snapshot.docs.map((doc: any) => ({
+  _unsubscribe = onSnapshot(
+    highlightsQuery,
+    (snapshot) => {
+      _highlights = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as HighlightRecord[];

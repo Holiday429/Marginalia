@@ -2,6 +2,7 @@
    Marginalia · Add Book — add a book + DIY spine/cover
    ========================================================================== */
 
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { logEvent, logError } from '../services/analytics.ts';
 import { withMeta, withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
@@ -10,7 +11,8 @@ import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { BooksStore } from '../store/books-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { renderSearchSection } from '../search/search.js';
-import { MarginaliaAuth } from '../firebase/auth.js';
+import { MarginaliaAuth } from '../firebase/auth.ts';
+import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { BOOK_TYPES } from '../data/schema/book-types.js';
 import { SPINE_COLORS } from '../shared/spine-colors.js';
 
@@ -979,11 +981,8 @@ export const NewEntry = (() => {
 
     if (uid && db) {
       try {
-        const wsId = (window.MARGINALIA_FIREBASE?.workspaceId) || 'default';
-        const docRef = db
-          .collection('workspaces').doc(wsId)
-          .collection('users').doc(uid)
-          .collection('books').doc(id);
+        const wsId = MARGINALIA_FIREBASE?.workspaceId || 'default';
+        const docRef = doc(collection(db, 'workspaces', wsId, 'users', uid, 'books'), id);
         if (isEditing) {
           // Patch only the fields that changed
           const patch = {
@@ -995,11 +994,11 @@ export const NewEntry = (() => {
             geo: fullBook.geo,
           };
           const validated = validateWrite(BookSchema, patch);
-          await docRef.set(withMeta(validated), { merge: true });
+          await setDoc(docRef, withMeta(validated), { merge: true });
         } else {
           const validated = validateWrite(BookSchema, fullBook);
           const payload   = withMetaCreate(validated);
-          await docRef.set(payload);
+          await setDoc(docRef, payload);
         }
         BooksStore.addOptimisticBook(fullBook);
       } catch (err) {

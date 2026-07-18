@@ -1,23 +1,32 @@
 /* ==========================================================================
-   Marginalia · Firebase database layer
+   Marginalia · Firebase database layer (modular SDK)
    --------------------------------------------------------------------------
    Single point of contact for all Firestore + Storage operations.
-   Consolidated from: firebase-books-sync.js, firebase-storage.js,
-                      firebase-graph-sync.js
    Public surface:
-     window.MarginaliaDB.books  — book metadata sync
-     window.MarginaliaDB.graph  — concept graph sync
-     window.MarginaliaStorage   — file upload (kept as own namespace for compat)
+     MarginaliaBooksCloud  — book metadata sync
+     MarginaliaStorage     — file upload
    ========================================================================== */
 
-import { validateWrite, withMeta, withMetaCreate } from '../services/db.ts';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  setDoc,
+  type Unsubscribe,
+} from 'firebase/firestore';
+import {
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from 'firebase/storage';
+import { validateWrite, withMeta } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { GraphLinkStatusSchema } from '../data/schema/graph-link-status.ts';
 import { logError } from '../services/analytics.ts';
-import { MarginaliaAuth } from './auth.js';
-import { MARGINALIA_FIREBASE } from './config.js';
+import { MarginaliaAuth } from './auth.ts';
+import { MARGINALIA_FIREBASE } from './config.ts';
 import { MarginaliaGraph } from '../core/graph-data.js';
-import { NotesStore } from '../store/notes-store.js';
 
 /* ── Books sync ─────────────────────────────────────────────────────────── */
 
@@ -33,6 +42,7 @@ export const MarginaliaBooksCloud = (() => {
       setBookTags: _noop,
       setBookDouban: _noop,
       updateBook: _noop,
+      deleteBook: _noop,
     };
   }
 
@@ -40,7 +50,7 @@ export const MarginaliaBooksCloud = (() => {
     enabled: true,
     uid: '',
     workspaceId: MARGINALIA_FIREBASE?.workspaceId || 'default',
-    unsubscribe: null,
+    unsubscribe: null as Unsubscribe | null,
   };
 
   MarginaliaAuth.onAuthStateChange(({ user, ready }) => {
@@ -52,81 +62,79 @@ export const MarginaliaBooksCloud = (() => {
   });
 
   function attachListener() {
-    state.unsubscribe = booksCollectionRef().onSnapshot((_snapshot) => {
+    state.unsubscribe = onSnapshot(booksCollectionRef(), () => {
       // No-op snapshot kept to maintain subscription lifecycle.
     }, (err) => logError(err, { context: 'db:books snapshot' }));
   }
 
-  async function setBookCover({ bookId, imageUrl, storagePath }) {
+  async function setBookCover({ bookId, imageUrl, storagePath }: { bookId: string; imageUrl: string; storagePath?: string }) {
     if (!state.uid)            throw new Error('User is not signed in.');
     if (!bookId || !imageUrl)  throw new Error('bookId and imageUrl are required.');
-    const docRef = booksCollectionRef().doc(bookId);
+    const docRef = doc(booksCollectionRef(), bookId);
     const raw = { cover: { image: imageUrl, storagePath: storagePath || '' } };
     const payload = withMeta(validateWrite(BookSchema, raw));
-    await docRef.set(payload, { merge: true });
+    await setDoc(docRef, payload, { merge: true });
   }
 
-  async function setUserNote({ bookId, userNote }) {
+  async function setUserNote({ bookId, userNote }: { bookId: string; userNote: string }) {
     if (!state.uid)  throw new Error('User is not signed in.');
     if (!bookId)     throw new Error('bookId is required.');
-    const docRef = booksCollectionRef().doc(bookId);
+    const docRef = doc(booksCollectionRef(), bookId);
     const raw = { userNote: String(userNote ?? '').slice(0, 280) };
     const payload = withMeta(validateWrite(BookSchema, raw));
-    await docRef.set(payload, { merge: true });
+    await setDoc(docRef, payload, { merge: true });
   }
 
-  async function setBookRating({ bookId, rating }) {
+  async function setBookRating({ bookId, rating }: { bookId: string; rating: number }) {
     if (!state.uid) throw new Error('User is not signed in.');
     if (!bookId) throw new Error('bookId is required.');
-    const docRef = booksCollectionRef().doc(bookId);
-    await docRef.set(withMeta({ rating: Number(rating) }), { merge: true });
+    const docRef = doc(booksCollectionRef(), bookId);
+    await setDoc(docRef, withMeta({ rating: Number(rating) }), { merge: true });
   }
 
-  async function setBookProgress({ bookId, readingProgress }) {
+  async function setBookProgress({ bookId, readingProgress }: { bookId: string; readingProgress: string }) {
     if (!state.uid) throw new Error('User is not signed in.');
     if (!bookId) throw new Error('bookId is required.');
-    const statusMap = { 'done': 'read', 'in-progress': 'reading', 'not-started': 'confirmed-later' };
+    const statusMap: Record<string, string> = { 'done': 'read', 'in-progress': 'reading', 'not-started': 'confirmed-later' };
     const status = statusMap[readingProgress] || 'confirmed-later';
-    const docRef = booksCollectionRef().doc(bookId);
-    await docRef.set(withMeta({ status, meta: { readingProgress: String(readingProgress) } }), { merge: true });
+    const docRef = doc(booksCollectionRef(), bookId);
+    await setDoc(docRef, withMeta({ status, meta: { readingProgress: String(readingProgress) } }), { merge: true });
   }
 
-  async function setBookTags({ bookId, tags }) {
+  async function setBookTags({ bookId, tags }: { bookId: string; tags: string[] }) {
     if (!state.uid) throw new Error('User is not signed in.');
     if (!bookId) throw new Error('bookId is required.');
-    const docRef = booksCollectionRef().doc(bookId);
-    await docRef.set(withMeta({ tags: Array.isArray(tags) ? tags : [] }), { merge: true });
+    const docRef = doc(booksCollectionRef(), bookId);
+    await setDoc(docRef, withMeta({ tags: Array.isArray(tags) ? tags : [] }), { merge: true });
   }
 
-  async function setBookDouban({ bookId, douban }) {
+  async function setBookDouban({ bookId, douban }: { bookId: string; douban: string }) {
     if (!state.uid) throw new Error('User is not signed in.');
     if (!bookId) throw new Error('bookId is required.');
-    const docRef = booksCollectionRef().doc(bookId);
-    await docRef.set(withMeta({ meta: { douban: String(douban || '') } }), { merge: true });
+    const docRef = doc(booksCollectionRef(), bookId);
+    await setDoc(docRef, withMeta({ meta: { douban: String(douban || '') } }), { merge: true });
   }
 
-  async function updateBook({ bookId, patch }) {
+  async function updateBook({ bookId, patch }: { bookId: string; patch: Record<string, unknown> }) {
     if (!state.uid) throw new Error('User is not signed in.');
     if (!bookId) throw new Error('bookId is required.');
-    const docRef = booksCollectionRef().doc(bookId);
-    await docRef.set(withMeta(patch), { merge: true });
+    const docRef = doc(booksCollectionRef(), bookId);
+    await setDoc(docRef, withMeta(patch), { merge: true });
   }
 
-  async function deleteBook({ bookId }) {
+  async function deleteBook({ bookId }: { bookId: string }) {
     if (!state.uid) throw new Error('User is not signed in.');
     if (!bookId) throw new Error('bookId is required.');
-    await booksCollectionRef().doc(bookId).delete();
+    await deleteDoc(doc(booksCollectionRef(), bookId));
   }
 
   function booksCollectionRef() {
-    return MarginaliaAuth.db
-      .collection('workspaces').doc(state.workspaceId)
-      .collection('users').doc(state.uid)
-      .collection('books');
+    if (!MarginaliaAuth.db) throw new Error('Firestore is not initialized.');
+    return collection(MarginaliaAuth.db, 'workspaces', state.workspaceId, 'users', state.uid, 'books');
   }
 
   function detachListener() {
-    if (typeof state.unsubscribe === 'function') { state.unsubscribe(); state.unsubscribe = null; }
+    if (state.unsubscribe) { state.unsubscribe(); state.unsubscribe = null; }
   }
 
   return {
@@ -148,7 +156,7 @@ export const MarginaliaBooksCloud = (() => {
 (function initGraphSync() {
   if (!MarginaliaGraph || !MarginaliaAuth?.enabled) return;
 
-  let unsubscribeDoc = null;
+  let unsubscribeDoc: Unsubscribe | null = null;
 
   MarginaliaAuth.onAuthStateChange(async ({ user, ready }) => {
     if (!ready) return;
@@ -159,27 +167,25 @@ export const MarginaliaBooksCloud = (() => {
       return;
     }
     const docRef = getLinkStatusDocRef(user.uid);
-    MarginaliaGraph.setStatusPersistence(async ({ overrides }) => {
+    MarginaliaGraph.setStatusPersistence(async ({ overrides }: { overrides: Record<string, unknown> }) => {
       const raw = { overrides };
       const payload = withMeta(validateWrite(GraphLinkStatusSchema, raw));
-      await docRef.set(payload, { merge: true });
+      await setDoc(docRef, payload, { merge: true });
     }, 'firebase');
-    unsubscribeDoc = docRef.onSnapshot((snapshot) => {
-      const data = snapshot.exists ? snapshot.data() : {};
+    unsubscribeDoc = onSnapshot(docRef, (snapshot) => {
+      const data = snapshot.exists() ? snapshot.data() : {};
       MarginaliaGraph.useRemoteStatusOverrides(data?.overrides || {}, 'firebase');
     }, (err) => logError(err, { context: 'db:graph snapshot' }));
   });
 
-  function getLinkStatusDocRef(uid) {
+  function getLinkStatusDocRef(uid: string) {
     const workspaceId = MARGINALIA_FIREBASE?.workspaceId || 'default';
-    return MarginaliaAuth.db
-      .collection('workspaces').doc(workspaceId)
-      .collection('users').doc(uid)
-      .collection('graph').doc('linkStatus');
+    if (!MarginaliaAuth.db) throw new Error('Firestore is not initialized.');
+    return doc(MarginaliaAuth.db, 'workspaces', workspaceId, 'users', uid, 'graph', 'linkStatus');
   }
 
   function detachSnapshot() {
-    if (typeof unsubscribeDoc === 'function') { unsubscribeDoc(); unsubscribeDoc = null; }
+    if (unsubscribeDoc) { unsubscribeDoc(); unsubscribeDoc = null; }
   }
 })();
 
@@ -187,33 +193,34 @@ export const MarginaliaBooksCloud = (() => {
 /* ── Storage service ─────────────────────────────────────────────────────── */
 
 export const MarginaliaStorage = (() => {
-  function isEnabled() {
+  function isEnabled(): boolean {
     return Boolean(MarginaliaAuth?.enabled && MarginaliaAuth?.storage);
   }
 
-  async function uploadCoverImage({ file, bookId }) {
+  async function uploadCoverImage({ file, bookId }: { file: Blob & { type?: string }; bookId?: string }) {
     requireAuth();
     const path = buildPath(`covers/${sanitize(bookId || 'book')}`, file);
     return uploadFile({ file, path, contentType: file?.type || 'image/jpeg' });
   }
 
-  async function uploadNoteAttachment({ file, bookId, noteId }) {
+  async function uploadNoteAttachment({ file, bookId, noteId }: { file: Blob & { type?: string }; bookId?: string; noteId?: string }) {
     requireAuth();
     const path = buildPath(`notes/${sanitize(bookId || 'book')}/${sanitize(noteId || 'note')}`, file);
     return uploadFile({ file, path, contentType: file?.type || 'application/octet-stream' });
   }
 
-  async function uploadFile({ file, path, contentType }) {
+  async function uploadFile({ file, path, contentType }: { file: Blob; path: string; contentType: string }) {
     if (!(file instanceof Blob)) throw new Error('file must be a Blob/File.');
-    const ref = MarginaliaAuth.storage.ref().child(path);
-    await ref.put(file, {
+    if (!MarginaliaAuth.storage) throw new Error('Storage is not initialized.');
+    const fileRef = ref(MarginaliaAuth.storage, path);
+    await uploadBytes(fileRef, file, {
       contentType,
       customMetadata: { workspaceId: getWorkspaceId(), uid: getUid() },
     });
-    return { path, downloadURL: await ref.getDownloadURL(), contentType, size: file.size || 0 };
+    return { path, downloadURL: await getDownloadURL(fileRef), contentType, size: (file as File).size || 0 };
   }
 
-  function buildPath(subPath, file) {
+  function buildPath(subPath: string, file: { name?: string; type?: string }): string {
     return `workspaces/${getWorkspaceId()}/users/${getUid()}/${subPath}/${Date.now()}-${randomId(6)}.${guessExt(file)}`;
   }
 
@@ -222,15 +229,15 @@ export const MarginaliaStorage = (() => {
     if (!MarginaliaAuth?.user?.uid) throw new Error('User must be signed in.');
   }
 
-  function getUid()         { return MarginaliaAuth.user.uid; }
+  function getUid()         { return MarginaliaAuth.user!.uid; }
   function getWorkspaceId() { return MARGINALIA_FIREBASE?.workspaceId || 'default'; }
 
-  function sanitize(value) {
+  function sanitize(value: string): string {
     return String(value || '').trim().toLowerCase()
       .replace(/[^a-z0-9_.-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '') || 'item';
   }
 
-  function guessExt(file) {
+  function guessExt(file: { name?: string; type?: string }): string {
     const mime = String(file?.type || '').toLowerCase();
     if (mime.includes('png'))  return 'png';
     if (mime.includes('webp')) return 'webp';
@@ -238,11 +245,11 @@ export const MarginaliaStorage = (() => {
     if (mime.includes('svg'))  return 'svg';
     if (mime.includes('pdf'))  return 'pdf';
     if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
-    const ext = String(file?.name || '').split('.').pop().toLowerCase();
+    const ext = String(file?.name || '').split('.').pop()?.toLowerCase();
     return ext || 'bin';
   }
 
-  function randomId(n) {
+  function randomId(n: number): string {
     const c = 'abcdefghijklmnopqrstuvwxyz0123456789';
     return Array.from({ length: n }, () => c[Math.floor(Math.random() * c.length)]).join('');
   }

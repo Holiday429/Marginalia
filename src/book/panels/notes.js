@@ -1,7 +1,8 @@
+import { doc, setDoc } from 'firebase/firestore';
 import { validateWrite, withMeta } from '../../services/db.ts';
 import { BookNoteSchema } from '../../data/schema/book-note.ts';
-import { MarginaliaAuth } from '../../firebase/auth.js';
-import { MARGINALIA_FIREBASE } from '../../firebase/config.js';
+import { MarginaliaAuth } from '../../firebase/auth.ts';
+import { MARGINALIA_FIREBASE } from '../../firebase/config.ts';
 import { PanelRegistry } from './registry.js';
 import { NotesStore } from '../../store/notes-store.js';
 
@@ -90,13 +91,14 @@ import { NotesStore } from '../../store/notes-store.js';
     const workspaceId = MARGINALIA_FIREBASE?.workspaceId || 'default';
     try {
       const payload = withMeta(validateWrite(BookNoteSchema, { content }));
-      auth.db
-        .collection('workspaces').doc(workspaceId)
-        .collection('users').doc(auth.user.uid)
-        .collection('books').doc(bookId)
-        .collection('notes').doc('main')
-        .set(payload, { merge: true })
-        .catch(() => {});
+      const docRef = doc(
+        auth.db,
+        'workspaces', workspaceId,
+        'users', auth.user.uid,
+        'books', bookId,
+        'notes', 'main',
+      );
+      setDoc(docRef, payload, { merge: true }).catch(() => {});
     } catch {
       // Validation failure is surfaced in dev via the thrown error; silently skip in prod.
     }

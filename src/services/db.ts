@@ -11,11 +11,10 @@
 //   await docRef.set(withMeta(payload), { merge: true });          // update
 
 import type { ZodTypeAny } from 'zod';
+import { serverTimestamp as firestoreServerTimestamp } from 'firebase/firestore';
 
-// FieldValue is from the Firebase compat CDN global — typed as unknown here.
 function serverTimestamp(): unknown {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (window as any).firebase?.firestore?.FieldValue?.serverTimestamp?.() ?? Date.now();
+  return firestoreServerTimestamp();
 }
 
 type WithMeta<T> = T & { _v: 1; _updatedAt: unknown };

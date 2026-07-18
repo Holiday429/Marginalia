@@ -1,9 +1,21 @@
+import {
+  collection,
+  collectionGroup,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  setDoc,
+  where,
+  type Firestore,
+} from 'firebase/firestore';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
 import { logError, logEvent } from '../services/analytics.ts';
 import { renderProfileSettings } from './profile-settings.ts';
 import { ProfileMap } from './profile-map.ts';
 import { ProfileAnnualShelf } from './profile-year-in-review.ts';
-import { MarginaliaAuth } from '../firebase/auth.js';
+import { MarginaliaAuth } from '../firebase/auth.ts';
 import { ENV } from '../core/env.ts';
 import { BooksStore } from '../store/books-store.ts';
 import {
@@ -30,8 +42,7 @@ import type { PublicProfileData, PublicBook, PublicHighlight, SessionDay, Activi
 import './profile.css';
 import '../components/hero-book/hero-book.css';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FirestoreDB = any;
+type FirestoreDB = Firestore;
 
 
 export function initProfile(): void {
@@ -167,22 +178,24 @@ async function lookupByUid(db: FirestoreDB, uid: string): Promise<PublicProfileD
   const auth = MarginaliaAuth as any;
   const creationTime: string | undefined = auth.user?.metadata?.creationTime;
   const joinedAt = creationTime ? Date.parse(creationTime) : undefined;
-  const snap = await db.doc(`users/${uid}`).get();
-  if (!snap.exists) return null;
+  const snap = await getDoc(doc(db, 'users', uid));
+  if (!snap.exists()) return null;
   return buildProfileData(uid, snap.data() as Record<string, any>, joinedAt);
 }
 
 async function lookupBySlug(db: FirestoreDB, slug: string): Promise<PublicProfileData | null> {
-  const snap = await db.collection('users').where('settings.slug', '==', slug).limit(1).get();
+  const snap = await getDocs(query(collection(db, 'users'), where('settings.slug', '==', slug), limit(1)));
   if (snap.empty) return null;
-  const doc = snap.docs[0];
-  return buildProfileData(doc.id, doc.data() as Record<string, any>);
+  const userDoc = snap.docs[0];
+  return buildProfileData(userDoc.id, userDoc.data() as Record<string, any>);
 }
 
 async function fetchPublicBooks(db: FirestoreDB, uid: string, ownerPreview = false): Promise<PublicBook[]> {
   const wsId: string = ENV.WORKSPACE_ID || 'default';
-  const colRef = db.collection('workspaces').doc(wsId).collection('users').doc(uid).collection('books');
-  const snap = await (ownerPreview ? colRef.limit(60).get() : colRef.where('shareInProfile', '==', true).limit(60).get());
+  const colRef = collection(db, 'workspaces', wsId, 'users', uid, 'books');
+  const snap = await (ownerPreview
+    ? getDocs(query(colRef, limit(60)))
+    : getDocs(query(colRef, where('shareInProfile', '==', true), limit(60))));
 
   const books = snap.docs
     .map((doc: any) => {
@@ -221,7 +234,7 @@ async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview 
   const wsId: string = ENV.WORKSPACE_ID || 'default';
   try {
     if (ownerPreview) {
-      const snap = await db.collection('workspaces').doc(wsId).collection('users').doc(uid).collection('highlights').limit(24).get();
+      const snap = await getDocs(query(collection(db, 'workspaces', wsId, 'users', uid, 'highlights'), limit(24)));
       const highlights = snap.docs
         .map((doc: any) => {
           const data = doc.data() as Record<string, any>;
@@ -231,7 +244,12 @@ async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview 
       return highlights;
     }
 
-    const snap = await db.collectionGroup('highlights').where('uid', '==', uid).where('public', '==', true).limit(24).get();
+    const snap = await getDocs(query(
+      collectionGroup(db, 'highlights'),
+      where('uid', '==', uid),
+      where('public', '==', true),
+      limit(24),
+    ));
     return snap.docs
       .map((doc: any) => {
         const data = doc.data() as Record<string, any>;
@@ -246,21 +264,12 @@ async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview 
 async function fetchNotesCount(db: FirestoreDB, uid: string): Promise<number> {
   const wsId: string = ENV.WORKSPACE_ID || 'default';
   try {
-    const booksSnap = await db
-      .collection('workspaces').doc(wsId)
-      .collection('users').doc(uid)
-      .collection('books')
-      .limit(200)
-      .get();
+    const booksSnap = await getDocs(query(collection(db, 'workspaces', wsId, 'users', uid, 'books'), limit(200)));
     const checks = booksSnap.docs.map((bookDoc: any) =>
-      db.collection('workspaces').doc(wsId)
-        .collection('users').doc(uid)
-        .collection('books').doc(bookDoc.id)
-        .collection('notes').doc('main')
-        .get()
+      getDoc(doc(db, 'workspaces', wsId, 'users', uid, 'books', bookDoc.id, 'notes', 'main'))
     );
     const noteSnaps = await Promise.all(checks);
-    return noteSnaps.filter((s: any) => s.exists).length;
+    return noteSnaps.filter((s: any) => s.exists()).length;
   } catch {
     return 0;
   }
@@ -269,12 +278,10 @@ async function fetchNotesCount(db: FirestoreDB, uid: string): Promise<number> {
 async function fetchActionsDoneCount(db: FirestoreDB, uid: string): Promise<number> {
   const wsId: string = ENV.WORKSPACE_ID || 'default';
   try {
-    const snap = await db
-      .collection('workspaces').doc(wsId)
-      .collection('users').doc(uid)
-      .collection('actions')
-      .where('status', '==', 'done')
-      .get();
+    const snap = await getDocs(query(
+      collection(db, 'workspaces', wsId, 'users', uid, 'actions'),
+      where('status', '==', 'done'),
+    ));
     return snap.size;
   } catch {
     return 0;
@@ -293,11 +300,11 @@ async function fetchActivityDays(db: FirestoreDB, uid: string): Promise<Activity
   };
   const dateSet = new Set<string>();
   try {
-    const base = db.collection('workspaces').doc(wsId).collection('users').doc(uid);
+    const baseSegments = ['workspaces', wsId, 'users', uid] as const;
     const [booksSnap, highlightsSnap, actionsSnap] = await Promise.all([
-      base.collection('books').limit(500).get(),
-      base.collection('highlights').where('_createdAt', '>=', cutoff).limit(2000).get(),
-      base.collection('actions').where('createdAt', '>=', cutoff).limit(2000).get(),
+      getDocs(query(collection(db, ...baseSegments, 'books'), limit(500))),
+      getDocs(query(collection(db, ...baseSegments, 'highlights'), where('_createdAt', '>=', cutoff), limit(2000))),
+      getDocs(query(collection(db, ...baseSegments, 'actions'), where('createdAt', '>=', cutoff), limit(2000))),
     ]);
     booksSnap.docs.forEach((doc: any) => {
       const d = doc.data();
@@ -742,7 +749,7 @@ function bindAvatarUpload(container: HTMLElement): void {
         const db = auth.db;
         const uid = auth.user?.uid;
         if (db && uid) {
-          db.doc(`users/${uid}`).set({ avatarUrl: dataUrl }, { merge: true }).catch(() => {});
+          setDoc(doc(db, 'users', uid), { avatarUrl: dataUrl }, { merge: true }).catch(() => {});
         }
       } catch { /* best-effort */ }
     };
@@ -855,10 +862,9 @@ function renderPortrait(container: HTMLElement, _books: PublicBook[], _highlight
   }
 
   const wsId: string = ENV.WORKSPACE_ID || 'default';
-  db.doc(`workspaces/${wsId}/users/${uid}/ai_results/reader-portrait`)
-    .get()
+  getDoc(doc(db, 'workspaces', wsId, 'users', uid, 'ai_results', 'reader-portrait'))
     .then((snap: any) => {
-      if (!snap.exists) {
+      if (!snap.exists()) {
         container.innerHTML = '';
         return;
       }

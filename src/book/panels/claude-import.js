@@ -11,8 +11,9 @@
      Firebase:  users/{uid}/books/{bookId}/visualNotes/{id}  (content as string)
    ========================================================================== */
 
-import { MarginaliaAuth } from '../../firebase/auth.js';
-import { MARGINALIA_FIREBASE } from '../../firebase/config.js';
+import { doc, setDoc } from 'firebase/firestore';
+import { MarginaliaAuth } from '../../firebase/auth.ts';
+import { MARGINALIA_FIREBASE } from '../../firebase/config.ts';
 import { PanelRegistry } from './registry.js';
 import { NotesStore } from '../../store/notes-store.js';
 
@@ -66,13 +67,14 @@ import { NotesStore } from '../../store/notes-store.js';
     const auth = MarginaliaAuth;
     if (!auth?.user || !auth?.db) return;
     const workspaceId = MARGINALIA_FIREBASE?.workspaceId || 'default';
-    auth.db
-      .collection('workspaces').doc(workspaceId)
-      .collection('users').doc(auth.user.uid)
-      .collection('books').doc(bookId)
-      .collection('visualNotes').doc(note.id)
-      .set({ title: note.title, content: note.content, createdAt: note.createdAt },
-           { merge: true })
+    const docRef = doc(
+      auth.db,
+      'workspaces', workspaceId,
+      'users', auth.user.uid,
+      'books', bookId,
+      'visualNotes', note.id,
+    );
+    setDoc(docRef, { title: note.title, content: note.content, createdAt: note.createdAt }, { merge: true })
       .catch(() => {});
   }
 

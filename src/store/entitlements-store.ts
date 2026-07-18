@@ -6,9 +6,11 @@
 //   if (EntitlementsStore.hasEntitlement('library.3d')) { ... }
 //   const unsub = EntitlementsStore.subscribe(() => rerender());
 
+import { doc, onSnapshot, setDoc, type Firestore, type Unsubscribe } from 'firebase/firestore';
 import type { Entitlement, Plan } from '../data/schema/entitlements.js';
 import { PLAN_ENTITLEMENTS } from '../data/schema/entitlements.js';
 import { logError } from '../services/analytics.ts';
+import { MarginaliaAuth } from '../firebase/auth.ts';
 
 type ChangeListener = () => void;
 
@@ -34,15 +36,14 @@ function emit() {
 }
 
 // Unsubscribe fn for the active Firestore listener (replaced on each sign-in).
-let unsubSnapshot: (() => void) | null = null;
+let unsubSnapshot: Unsubscribe | null = null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function subscribeForUser(uid: string, db: any): void {
-  const userRef = db.doc(`users/${uid}`);
+function subscribeForUser(uid: string, db: Firestore): void {
+  const userRef = doc(db, 'users', uid);
 
-  unsubSnapshot = userRef.onSnapshot(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async (snap: any) => {
+  unsubSnapshot = onSnapshot(
+    userRef,
+    async (snap) => {
       const data = snap.data() as Record<string, unknown> | undefined;
 
       let plan: Plan = 'free';
@@ -54,7 +55,7 @@ function subscribeForUser(uid: string, db: any): void {
 
       // Write plan + entitlements on first sign-in (or when the doc is missing them).
       if (!data?.plan || !data?.entitlements) {
-        await userRef.set({ plan, entitlements }, { merge: true });
+        await setDoc(userRef, { plan, entitlements }, { merge: true });
       }
 
       state.plan = plan;
@@ -93,8 +94,7 @@ window.addEventListener('marginalia:auth-changed', (event) => {
   }
 
   // db is available via MarginaliaAuth after auth is ready.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = (window as any).MarginaliaAuth?.db;
+  const db = MarginaliaAuth?.db;
   if (!db) return;
 
   // Cancel any previous listener before starting a new one.

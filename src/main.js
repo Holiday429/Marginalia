@@ -37,9 +37,9 @@ import { PanelRegistry } from './book/panels/registry.js';
 import { AIFeatureRegistry } from './ai/features/registry.js';
 
 // 2. Firebase layer
-import { MARGINALIA_FIREBASE } from './firebase/config.js';
-import { MarginaliaAuth } from './firebase/auth.js';
-import { MarginaliaBooksCloud, MarginaliaStorage } from './firebase/db.js';
+import { doc, getDoc } from 'firebase/firestore';
+import { MarginaliaAuth } from './firebase/auth.ts';
+import { MarginaliaBooksCloud, MarginaliaStorage } from './firebase/db.ts';
 
 // 3. State stores
 import { NotesStore } from './store/notes-store.js';
@@ -119,7 +119,7 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     mountActionNotifications(user.uid, db);
     initReadingSession(user.uid, db);
     // Load user's language preference and apply immediately.
-    db.doc(`users/${user.uid}`).get().then((snap) => {
+    getDoc(doc(db, 'users', user.uid)).then((snap) => {
       const lang = snap.data()?.settings?.language;
       if (lang) setLanguage(lang);
     }).catch(() => {});
