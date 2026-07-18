@@ -11,3 +11,7 @@ data-export-*.json
 functions/node_modules/
 functions/lib/
 .vercel
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
