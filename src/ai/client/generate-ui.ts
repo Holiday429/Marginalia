@@ -14,17 +14,17 @@ import {
 import { resolveAiContent } from '../../data/schema/ai-block.ts';
 import { PanelRegistry } from '../../book/panels/registry.js';
 import { EntitlementsStore } from '../../store/entitlements-store.ts';
+import { AIFeatureRegistry } from '../features/registry.js';
+import { MarginaliaAI } from '../../services/ai-gateway.ts';
+import { MarginaliaGraph } from '../../core/graph-data.js';
 
 const FALLBACK_PROMPT_VERSION = '1';
 const AI_MODEL_LABEL = 'deepseek-chat';
 
-export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
+export const AIGenerateUI = (() => {
 
   async function mount(book: any, root: HTMLElement) {
-    const registry: any = (window as any).AIFeatureRegistry;
-    if (!registry || !(window as any).BookTypes) return;
-
-    const features: any[] = registry.forBook(book);
+    const features: any[] = AIFeatureRegistry.forBook(book);
     if (!features.length) return;
 
     for (const feature of features) {
@@ -105,8 +105,7 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
     feature: any, book: any, section: Element,
     btn: HTMLButtonElement, statusEl: HTMLElement,
   ) {
-    const registry: any = (window as any).AIFeatureRegistry;
-    const prompt = registry.buildPrompt(feature.id, book);
+    const prompt = AIFeatureRegistry.buildPrompt(feature.id, book);
     if (!prompt) {
       showError(statusEl, 'Prompt not loaded yet — try again.',
         () => run(feature, book, section, btn, statusEl));
@@ -129,7 +128,7 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
     let aborted = false;
     let errored = false;
 
-    await (window as any).MarginaliaAI.generate({
+    await MarginaliaAI.generate({
       featureId: feature.id,
       prompt,
       system: 'Return only valid JSON. No markdown fences, no explanation.',
@@ -175,14 +174,12 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
       return;
     }
 
-    const promptVersion = (window as any).AI_PROMPTS?.[feature.promptId]?.version
-      ?? FALLBACK_PROMPT_VERSION;
-    await saveAiOriginal(book.id, feature.id, parsed, promptVersion);
+    await saveAiOriginal(book.id, feature.id, parsed, FALLBACK_PROMPT_VERSION);
 
     injectResult(feature, book, section, parsed, {
       fromCache: false,
       hasUserEdit: false,
-      block: { original: parsed, generatedAt: Date.now(), promptVersion },
+      block: { original: parsed, generatedAt: Date.now(), promptVersion: FALLBACK_PROMPT_VERSION },
     });
     showStatus(statusEl, 'Generated', 'ok');
   }
@@ -277,7 +274,7 @@ export const AIGenerateUI = (window as any).AIGenerateUI = (() => {
     if (canAddToGraph) {
       const graphBtn = block_el.querySelector('.ai-graph-btn') as HTMLButtonElement;
       graphBtn.addEventListener('click', () => {
-        const added = (window as any).MarginaliaGraph?.addConceptsFromAI(book.id, displayData);
+        const added = MarginaliaGraph?.addConceptsFromAI(book.id, displayData);
         if (added) {
           graphBtn.textContent = '✓ Added';
           graphBtn.disabled = true;

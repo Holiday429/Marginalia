@@ -4,6 +4,10 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
+// window.<PascalCase>= assignments are fully eliminated as of P2 — the only
+// no-restricted-syntax entry, so it can sit at `error` on its own (ESLint flat
+// config gives one severity per rule name per matching config — see the
+// CDN_GLOBALS comment below for why firebase/am5/d3 live on a different rule).
 const NO_WINDOW_ASSIGN = {
   selector:
     "AssignmentExpression[left.type='MemberExpression'][left.object.name='window'][left.property.name=/^[A-Z]/]",
@@ -11,22 +15,17 @@ const NO_WINDOW_ASSIGN = {
     'Do not assign PascalCase globals onto window — import the module directly (see CLAUDE.md "no window.X globals").',
 };
 
-// firebase (compat CDN global) is fully removed as of P1 — enforced as an error.
-const NO_FIREBASE_GLOBAL = {
-  selector: "Identifier[name='firebase']",
-  message: 'Bare `firebase` CDN global is banned — import from src/firebase/config.ts (modular SDK).',
-};
-
-// am5/d3 are still loaded via CDN <script> until P3 migrates them to npm — warn only for now.
-const NO_AM5_D3_GLOBALS = [
-  {
-    selector: "Identifier[name='am5']",
-    message: 'Bare `am5` CDN global is banned — import @amcharts/amcharts5 from npm.',
-  },
-  {
-    selector: "Identifier[name='d3']",
-    message: 'Bare `d3` CDN global is banned — import d3 submodules from npm.',
-  },
+// Legacy CDN <script> globals. firebase is fully removed as of P1 (nothing in
+// the bundle graph ever references it again), but it stays grouped here at
+// `warn` with am5/d3 (still CDN-loaded until P3) rather than `error`: ESLint
+// flat config only allows one severity per rule name per file, and
+// no-restricted-syntax is already spoken for by NO_WINDOW_ASSIGN at `error`.
+// The real protection against a firebase regression is that the compat
+// package was uninstalled in P1, not this lint rule.
+const CDN_GLOBALS = [
+  { name: 'firebase', message: 'Bare `firebase` CDN global is banned — import from src/firebase/config.ts (modular SDK).' },
+  { name: 'am5', message: 'Bare `am5` CDN global is banned — import @amcharts/amcharts5 from npm.' },
+  { name: 'd3', message: 'Bare `d3` CDN global is banned — import d3 submodules from npm.' },
 ];
 
 export default tseslint.config(
@@ -80,11 +79,12 @@ export default tseslint.config(
       },
     },
     rules: {
-      // --- P0/P1: guard rails for the refactor, tightened phase by phase ---
-      // window.X= bans stay warn until P2 removes the last assignments (src/main.js, ai-gateway.ts).
-      'no-restricted-syntax': ['warn', NO_WINDOW_ASSIGN, ...NO_AM5_D3_GLOBALS],
-      // firebase compat global fully eliminated in P1 — error so it can never regress.
-      'no-restricted-globals': ['error', { name: 'firebase', message: NO_FIREBASE_GLOBAL.message }],
+      // --- P0/P1/P2: guard rails for the refactor, tightened phase by phase ---
+      // window.<PascalCase>= assignments: fully eliminated in P2 — error.
+      'no-restricted-syntax': ['error', NO_WINDOW_ASSIGN],
+      // firebase/am5/d3 CDN globals: see CDN_GLOBALS comment above for why these
+      // share one severity (warn) despite firebase itself being fully removed.
+      'no-restricted-globals': ['warn', ...CDN_GLOBALS],
       'no-console': ['error', { allow: ['error', 'debug'] }],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],

@@ -11,7 +11,7 @@ import { ENV } from '../core/env.ts';
 import { logEvent } from './analytics.ts';
 import { getIdToken } from '../firebase/auth.ts';
 
-export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).MarginaliaAI = (() => {
+export const MarginaliaAI = (() => {
 
   async function generate({
     featureId,

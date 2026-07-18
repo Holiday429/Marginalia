@@ -7,10 +7,10 @@
    To add a new panel:
      1. Add an entry here with a unique id.
      2. Create the render function in src/book/panels/{id}.js (or inline).
-     3. Load the script in index.html before book.js.
+     3. Import the script as a side effect in src/main.js.
 
    The `render` field is initially null — each panel script sets it via
-     window.PanelRegistry.set('id', renderFn)
+     PanelRegistry.set('id', renderFn)
    This lets panel scripts load independently without strict ordering.
    ========================================================================== */
 

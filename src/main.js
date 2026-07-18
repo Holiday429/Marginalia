@@ -32,9 +32,9 @@ if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
 // for legacy bridge code that still reads via M.*.
 
 // 1. Schema + type system
-import { BOOK_TYPES, BookTypes } from './data/schema/book-types.js';
+import './data/schema/book-types.js';
 import { PanelRegistry } from './book/panels/registry.js';
-import { AIFeatureRegistry } from './ai/features/registry.js';
+import './ai/features/registry.js';
 
 // 2. Firebase layer
 import { doc, getDoc } from 'firebase/firestore';
@@ -55,7 +55,7 @@ import './components/reading-session/reading-session.css';
 import './components/action-notifications/action-notifications.css';
 
 // 4. Core app utilities
-import { MarginaliaGraph } from './core/graph-data.js';
+import './core/graph-data.js';
 import { PanelManager } from './core/panel-manager.js';
 import { App, registerPreloader, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell } from './core/app.js';
 import { openConceptDrawer, closeConceptDrawer } from './core/concept-ui.js';
@@ -68,14 +68,8 @@ import { SpineCard } from './components/spine-card.js';
 import { NewEntry } from './new-entry/new-entry.js';
 
 // 6a. AI layer
-import { MarginaliaAI } from './services/ai-gateway.ts';
-import { AIGenerateUI } from './ai/client/generate-ui.ts';
-
-// Expose required globals for generate-ui.ts (reads via window.* for legacy compat)
-window.AIFeatureRegistry = AIFeatureRegistry;
-window.BookTypes = BookTypes;
-window.MarginaliaAI = MarginaliaAI;
-window.MarginaliaGraph = MarginaliaGraph;
+import './services/ai-gateway.ts';
+import './ai/client/generate-ui.ts';
 import './ai/features/prompts/mindmap-gen.js';
 import './ai/features/prompts/concept-cards.js';
 import './ai/features/prompts/argument-breakdown.js';

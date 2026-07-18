@@ -131,8 +131,6 @@ function _setVisibleBooks(books: BookRecord[], options: { hasOwnBooks: boolean; 
 }
 
 function _loadSeed() {
-  // Use the imported seed reference directly — window.BOOK_DETAILS is now owned
-  // by _emit() and will be overwritten, so we cannot read from it here.
   _setVisibleBooks(Array.isArray(SEED_DETAILS) ? [...SEED_DETAILS] : [], {
     hasOwnBooks: false,
     usingDemoData: true,
