@@ -5,13 +5,14 @@
 // Falls back to in-memory cache when user is not signed in (unauthenticated
 // demo path). No migration from the legacy IndexedDB (NotesStore) store —
 // old results are simply re-generated on demand.
+import { deleteDoc, deleteField, doc, getDoc, setDoc, updateDoc, type Firestore } from 'firebase/firestore';
 import type { AiBlock, AiBlockRaw } from '../data/schema/ai-block.ts';
 import { AiBlockSchema } from '../data/schema/ai-block.ts';
 import { ENV } from '../core/env.ts';
+import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 
 let _uid: string | null = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _db: any = null;
+let _db: Firestore | null = null;
 
 // In-memory fallback for unauthenticated / offline path
 const _memCache = new Map<string, AiBlockRaw>();
@@ -22,17 +23,12 @@ function cacheKey(bookId: string, featureId: string) {
 
 function aiDocRef(bookId: string, featureId: string) {
   if (!_uid || !_db) return null;
-  const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
-  return _db
-    .collection('workspaces').doc(wsId)
-    .collection('users').doc(_uid)
-    .collection('books').doc(bookId)
-    .collection('ai').doc(featureId);
+  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
+  return doc(_db, 'workspaces', wsId, 'users', _uid, 'books', bookId, 'ai', featureId);
 }
 
 // Called from main.js on auth-changed (signed in)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function initAiResultsStore(uid: string, db: any) {
+export function initAiResultsStore(uid: string, db: Firestore) {
   _uid = uid;
   _db = db;
   _memCache.clear();
@@ -50,7 +46,7 @@ export async function getAiBlock<T>(
 ): Promise<AiBlock<T> | null> {
   const ref = aiDocRef(bookId, featureId);
   if (ref) {
-    const snap = await ref.get();
+    const snap = await getDoc(ref);
     if (!snap.exists()) return null;
     const parsed = AiBlockSchema.safeParse(snap.data());
     return parsed.success ? (parsed.data as AiBlock<T>) : null;
@@ -71,7 +67,7 @@ export async function saveAiOriginal<T>(
   };
   const ref = aiDocRef(bookId, featureId);
   if (ref) {
-    await ref.set(block);
+    await setDoc(ref, block);
   } else {
     _memCache.set(cacheKey(bookId, featureId), block as AiBlockRaw);
   }
@@ -83,7 +79,7 @@ export async function saveAiUserEdit<T>(
   const ref = aiDocRef(bookId, featureId);
   if (ref) {
     // Partial update — only touch userEdited, preserve original + metadata
-    await ref.set({ userEdited }, { merge: true });
+    await setDoc(ref, { userEdited }, { merge: true });
   } else {
     const key = cacheKey(bookId, featureId);
     const existing = _memCache.get(key);
@@ -96,12 +92,7 @@ export async function clearAiUserEdit(
 ): Promise<void> {
   const ref = aiDocRef(bookId, featureId);
   if (ref) {
-    const deleteField = (window as any).firebase?.firestore?.FieldValue?.delete?.();
-    if (deleteField) {
-      await ref.update({ userEdited: deleteField });
-    } else {
-      await ref.set({ userEdited: null }, { merge: true });
-    }
+    await updateDoc(ref, { userEdited: deleteField() });
   } else {
     const key = cacheKey(bookId, featureId);
     const existing = _memCache.get(key);
@@ -117,7 +108,7 @@ export async function deleteAiBlock(
 ): Promise<void> {
   const ref = aiDocRef(bookId, featureId);
   if (ref) {
-    await ref.delete();
+    await deleteDoc(ref);
   } else {
     _memCache.delete(cacheKey(bookId, featureId));
   }

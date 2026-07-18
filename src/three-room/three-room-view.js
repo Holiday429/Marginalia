@@ -3,7 +3,7 @@ import { PanelManager } from '../core/panel-manager.js';
 import { App } from '../core/app.js';
 import { renderPrimaryTabsMarkup } from '../core/primary-tabs.js';
 import { attachFocusWidgetTo } from '../components/reading-session/focus-widget.ts';
-import { MarginaliaAuth } from '../firebase/auth.js';
+import { MarginaliaAuth } from '../firebase/auth.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { EntitlementsStore } from '../store/entitlements-store.ts';
 import { openCheckout } from '../services/billing.ts';

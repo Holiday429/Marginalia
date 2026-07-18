@@ -12,15 +12,16 @@
    before writing to Firestore.
 */
 
+import { doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { EntitlementsStore } from '../store/entitlements-store.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { logError, logEvent } from '../services/analytics.ts';
 import { t, setLanguage, getSupportedLocales, getLocaleKeys } from '../core/i18n.ts';
 import { exportJSON, exportMarkdown, triggerDownload } from '../api/export.ts';
 import { openCheckout } from '../services/billing.ts';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FirestoreDB = any;
+import { MarginaliaAuth } from '../firebase/auth.ts';
+import { firebaseFunctions, MARGINALIA_FIREBASE } from '../firebase/config.ts';
 
 interface SlugCheckResult {
   available: boolean;
@@ -31,10 +32,10 @@ interface SlugCheckResult {
 let _slugDebounce: ReturnType<typeof setTimeout> | null = null;
 
 function getAuth() {
-  return (window as any).MarginaliaAuth;
+  return MarginaliaAuth;
 }
 
-function getDb(): FirestoreDB | null {
+function getDb(): Firestore | null {
   return getAuth()?.db ?? null;
 }
 
@@ -55,13 +56,12 @@ async function checkSlugAvailability(slug: string): Promise<SlugCheckResult> {
   if (RESERVED.has(slug))  return { available: false, reason: 'reserved' };
 
   const auth = getAuth();
-  if (!auth?.app) return { available: false, reason: 'no_firebase' };
+  if (!auth?.app || !firebaseFunctions) return { available: false, reason: 'no_firebase' };
 
   try {
-    const functions = (window as any).firebase.functions();
-    const fn = functions.httpsCallable('profileSlugCheck');
+    const fn = httpsCallable<{ slug: string }, SlugCheckResult>(firebaseFunctions, 'profileSlugCheck');
     const result = await fn({ slug });
-    return result.data as SlugCheckResult;
+    return result.data;
   } catch (err) {
     logError(err instanceof Error ? err : new Error(String(err)), { context: 'profileSlugCheck' });
     // Cloud Function unreachable (not deployed locally) — skip uniqueness check,
@@ -74,7 +74,7 @@ async function saveSlug(slug: string): Promise<void> {
   const db = getDb();
   const uid = getUserId();
   if (!db || !uid) return;
-  await db.doc(`users/${uid}`).set({ settings: { slug } }, { merge: true });
+  await setDoc(doc(db, 'users', uid), { settings: { slug } }, { merge: true });
   logEvent('profile_slug_set', {});
 }
 
@@ -82,7 +82,7 @@ async function saveLanguage(lang: string): Promise<void> {
   const db = getDb();
   const uid = getUserId();
   if (!db || !uid) return;
-  await db.doc(`users/${uid}`).set({ settings: { language: lang } }, { merge: true });
+  await setDoc(doc(db, 'users', uid), { settings: { language: lang } }, { merge: true });
   logEvent('language_changed', { language: lang });
   // Trigger a full UI re-render so all views pick up the new locale.
   window.dispatchEvent(new Event('marginalia:ui-refresh'));
@@ -92,7 +92,7 @@ async function saveProfilePublic(value: boolean): Promise<void> {
   const db = getDb();
   const uid = getUserId();
   if (!db || !uid) return;
-  await db.doc(`users/${uid}`).set({ settings: { profilePublic: value } }, { merge: true });
+  await setDoc(doc(db, 'users', uid), { settings: { profilePublic: value } }, { merge: true });
   logEvent('profile_visibility_changed', { public: value });
 }
 
@@ -100,17 +100,19 @@ async function saveShareInProfile(bookId: string, value: boolean): Promise<void>
   const auth = getAuth();
   const uid = getUserId();
   if (!auth?.db || !uid) return;
-  const wsId: string = (window as any).MARGINALIA_FIREBASE?.workspaceId ?? 'default';
-  await auth.db
-    .doc(`workspaces/${wsId}/users/${uid}/books/${bookId}`)
-    .set({ shareInProfile: value }, { merge: true });
+  const wsId: string = MARGINALIA_FIREBASE?.workspaceId ?? 'default';
+  await setDoc(
+    doc(auth.db, 'workspaces', wsId, 'users', uid, 'books', bookId),
+    { shareInProfile: value },
+    { merge: true },
+  );
 }
 
 async function saveProfileSections(sections: Record<string, boolean>): Promise<void> {
   const db = getDb();
   const uid = getUserId();
   if (!db || !uid) return;
-  await db.doc(`users/${uid}`).set({ settings: { profileSections: sections } }, { merge: true });
+  await setDoc(doc(db, 'users', uid), { settings: { profileSections: sections } }, { merge: true });
 }
 
 interface UserSettings {
@@ -130,7 +132,7 @@ async function loadUserSettings(): Promise<UserSettings> {
   const uid = getUserId();
   if (!db || !uid) return {};
   try {
-    const snap = await db.doc(`users/${uid}`).get();
+    const snap = await getDoc(doc(db, 'users', uid));
     const settings = snap.data()?.settings ?? {};
     return {
       slug: settings.slug ?? '',

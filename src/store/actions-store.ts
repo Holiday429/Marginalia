@@ -6,14 +6,25 @@
    Unauthenticated: empty (no seed actions).
 */
 
+import {
+  addDoc,
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  type CollectionReference,
+  type Firestore,
+  type Unsubscribe,
+} from 'firebase/firestore';
 import { validateWrite, withMeta, withMetaCreate } from '../services/db.ts';
 import { ActionSchema } from '../data/schema/action.ts';
 import { logError, logEvent } from '../services/analytics.ts';
 import { ENV } from '../core/env.ts';
+import { MarginaliaAuth } from '../firebase/auth.ts';
+import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import type { Action } from '../data/schema/action.ts';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FirestoreDB = any;
+type FirestoreDB = Firestore;
 
 export interface ActionRecord extends Action {
   id: string;
@@ -22,7 +33,7 @@ export interface ActionRecord extends Action {
 const DAY_MS = 86_400_000;
 
 let _actions: ActionRecord[] = [];
-let _unsubscribe: (() => void) | null = null;
+let _unsubscribe: Unsubscribe | null = null;
 let _uid: string | null = null;
 let _db: FirestoreDB | null = null;
 const _listeners: Array<() => void> = [];
@@ -34,24 +45,20 @@ function _emit(): void {
   _listeners.forEach((fn) => fn());
 }
 
-function _colRef() {
+function _colRef(): CollectionReference {
   // Lazy-init: if initWithUser hasn't been called yet but Firebase auth is
   // already resolved (e.g. auth-changed fired before this listener registered),
   // pull uid + db directly from MarginaliaAuth and initialise now.
   if (!_uid || !_db) {
-    const auth = (window as any).MarginaliaAuth;
-    const uid  = auth?.user?.uid;
-    const db   = auth?.db;
+    const uid = MarginaliaAuth?.user?.uid;
+    const db  = MarginaliaAuth?.db;
     if (uid && db) {
       initWithUser(uid, db);
     }
   }
   if (!_uid || !_db) throw new Error('[ActionsStore] Not initialised');
-  const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
-  return _db
-    .collection('workspaces').doc(wsId)
-    .collection('users').doc(_uid)
-    .collection('actions');
+  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
+  return collection(_db, 'workspaces', wsId, 'users', _uid, 'actions');
 }
 
 /** Called when user signs in. Starts the Firestore onSnapshot listener. */
@@ -61,14 +68,12 @@ function initWithUser(uid: string, db: FirestoreDB): void {
   _uid = uid;
   _db = db;
 
-  const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
-  const col = db
-    .collection('workspaces').doc(wsId)
-    .collection('users').doc(uid)
-    .collection('actions');
-  _unsubscribe = col.onSnapshot(
-    (snapshot: any) => {
-      _actions = snapshot.docs.map((doc: any) => ({
+  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
+  const col = collection(db, 'workspaces', wsId, 'users', uid, 'actions');
+  _unsubscribe = onSnapshot(
+    col,
+    (snapshot) => {
+      _actions = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as ActionRecord[];
@@ -117,14 +122,14 @@ async function add(bookId: string, text: string): Promise<string> {
     reminded90: false,
     resolvedAt: null,
   });
-  const docRef = await _colRef().add(withMetaCreate(payload));
+  const docRef = await addDoc(_colRef(), withMetaCreate(payload));
   logEvent('action_added', { bookId });
   return docRef.id;
 }
 
 /** Update arbitrary fields on an action doc. */
 async function update(id: string, patch: Partial<Action>): Promise<void> {
-  await _colRef().doc(id).set(withMeta(patch), { merge: true });
+  await setDoc(doc(_colRef(), id), withMeta(patch), { merge: true });
 }
 
 /** Mark an action done. */

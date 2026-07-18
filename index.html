@@ -278,11 +278,7 @@
   <!-- view-search is declared above in the search section -->
 
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+  <!-- Firebase SDK is loaded as an ES module bundle via src/firebase/config.ts (modular SDK, npm). -->
 
   <!-- hero-glb must stay before main.js so window.__heroGLBReadyPromise exists for preloader boot.
        Do not reorder these two script tags unless preloader loading contract is redesigned. -->

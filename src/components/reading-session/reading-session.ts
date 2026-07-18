@@ -3,12 +3,12 @@
 // Optional bookId attribution links session to a currently-reading book.
 // Active session survives page reloads via sessionStorage.
 
+import { collection, doc, setDoc, type Firestore } from 'firebase/firestore';
 import { withMetaCreate, validateWrite } from '../../services/db.ts';
 import { logEvent, logError } from '../../services/analytics.ts';
 import { ReadingSessionSchema } from '../../data/schema/reading-session.ts';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FirestoreDB = any;
+type FirestoreDB = Firestore;
 
 export interface ActiveSession {
   sessionId: string;
@@ -67,8 +67,8 @@ export async function start(bookId: string | null = null): Promise<ActiveSession
         endPage:    null,
       });
       // Top-level sessions collection — not per-book subcollection.
-      const ref = _db.collection(`users/${_uid}/data/sessions`).doc(sessionId);
-      await ref.set(withMetaCreate(payload));
+      const ref = doc(collection(_db, 'users', _uid, 'data', 'sessions'), sessionId);
+      await setDoc(ref, withMetaCreate(payload));
     } catch (err) {
       logError(err, { context: 'ReadingSession.start' });
     }
@@ -90,8 +90,8 @@ export async function stop(): Promise<{ durationMs: number } | null> {
 
   if (_uid && _db) {
     try {
-      const ref = _db.collection(`users/${_uid}/data/sessions`).doc(session.sessionId);
-      await ref.set({ endedAt, durationMs, _updatedAt: Date.now() }, { merge: true });
+      const ref = doc(collection(_db, 'users', _uid, 'data', 'sessions'), session.sessionId);
+      await setDoc(ref, { endedAt, durationMs, _updatedAt: Date.now() }, { merge: true });
     } catch (err) {
       logError(err, { context: 'ReadingSession.stop' });
     }

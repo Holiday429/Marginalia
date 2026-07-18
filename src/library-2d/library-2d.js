@@ -1,12 +1,13 @@
 /* Library view — room-organize workspace */
 
+import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
 import { withMeta } from '../services/db.ts';
 import { renderLibraryShell } from './library-2d-template.js';
 import { PanelManager } from '../core/panel-manager.js';
 import { BooksStore } from '../store/books-store.ts';
-import { MarginaliaAuth } from '../firebase/auth.js';
-import { MarginaliaBooksCloud } from '../firebase/db.js';
+import { MarginaliaAuth } from '../firebase/auth.ts';
+import { MarginaliaBooksCloud } from '../firebase/db.ts';
 import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
 import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
@@ -2117,8 +2118,8 @@ function saveLayout() {
   if (_layoutSaveTimer) clearTimeout(_layoutSaveTimer);
   _layoutSaveTimer = setTimeout(() => {
     _layoutSaveTimer = null;
-    db.collection('users').doc(uid).collection('data').doc('library_layout')
-      .set(withMeta(payload), { merge: true })
+    const layoutRef = doc(collection(db, 'users', uid, 'data'), 'library_layout');
+    setDoc(layoutRef, withMeta(payload), { merge: true })
       .catch((err) => logError(err, { context: 'Library Firestore layout save' }));
   }, 500);
 }
@@ -2131,9 +2132,10 @@ async function readStoredLayout() {
 
   if (uid && db) {
     try {
-      const doc = await db.collection('users').doc(uid).collection('data').doc('library_layout').get();
-      if (doc.exists) {
-        const data = doc.data();
+      const layoutRef = doc(collection(db, 'users', uid, 'data'), 'library_layout');
+      const snap = await getDoc(layoutRef);
+      if (snap.exists()) {
+        const data = snap.data();
         if (data && Array.isArray(data.shelves)) return data;
       }
     } catch (err) {

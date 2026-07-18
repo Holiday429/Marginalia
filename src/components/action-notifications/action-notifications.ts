@@ -6,12 +6,13 @@
    Works across all views — mounts a single floating element into document.body.
 */
 
+import { collection, doc, onSnapshot, updateDoc, type Firestore, type Unsubscribe } from 'firebase/firestore';
 import { logError } from '../../services/analytics.ts';
 import { ENV } from '../../core/env.ts';
+import { MARGINALIA_FIREBASE } from '../../firebase/config.ts';
 import { App } from '../../core/app.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FirestoreDB = any;
+type FirestoreDB = Firestore;
 
 interface NotifDoc {
   id: string;
@@ -26,7 +27,7 @@ interface NotifDoc {
 
 let _uid: string | null = null;
 let _db: FirestoreDB | null = null;
-let _unsubscribe: (() => void) | null = null;
+let _unsubscribe: Unsubscribe | null = null;
 let _notifs: NotifDoc[] = [];
 
 const CONTAINER_ID = 'action-notif-root';
@@ -41,15 +42,13 @@ export function mountActionNotifications(uid: string, db: FirestoreDB): void {
 
   _ensureContainer();
 
-  const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
-  const col = db
-    .collection('workspaces').doc(wsId)
-    .collection('notifications').doc(uid)
-    .collection('unread');
-  _unsubscribe = col.onSnapshot(
-    (snap: any) => {
+  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
+  const col = collection(db, 'workspaces', wsId, 'notifications', uid, 'unread');
+  _unsubscribe = onSnapshot(
+    col,
+    (snap) => {
       _notifs = snap.docs
-        .map((d: any) => ({ id: d.id, ...d.data() } as NotifDoc))
+        .map((d) => ({ id: d.id, ...d.data() } as NotifDoc))
         .filter((n: NotifDoc) => n.type === 'action_reminder' && !n.read);
       _render();
     },
@@ -182,12 +181,11 @@ function _bindEvents(root: HTMLElement): void {
 async function _markRead(notifId: string): Promise<void> {
   if (!_uid || !_db) return;
   try {
-    const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
-    await _db
-      .collection('workspaces').doc(wsId)
-      .collection('notifications').doc(_uid)
-      .collection('unread').doc(notifId)
-      .update({ read: true });
+    const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
+    await updateDoc(
+      doc(_db, 'workspaces', wsId, 'notifications', _uid, 'unread', notifId),
+      { read: true },
+    );
   } catch (err) {
     logError(err as Error, { context: 'ActionNotifications markRead' });
   }

@@ -11,11 +11,14 @@ const NO_WINDOW_ASSIGN = {
     'Do not assign PascalCase globals onto window — import the module directly (see CLAUDE.md "no window.X globals").',
 };
 
-const NO_LEGACY_CDN_GLOBALS = [
-  {
-    selector: "Identifier[name='firebase']",
-    message: 'Bare `firebase` CDN global is banned — import from src/firebase/config.ts (modular SDK).',
-  },
+// firebase (compat CDN global) is fully removed as of P1 — enforced as an error.
+const NO_FIREBASE_GLOBAL = {
+  selector: "Identifier[name='firebase']",
+  message: 'Bare `firebase` CDN global is banned — import from src/firebase/config.ts (modular SDK).',
+};
+
+// am5/d3 are still loaded via CDN <script> until P3 migrates them to npm — warn only for now.
+const NO_AM5_D3_GLOBALS = [
   {
     selector: "Identifier[name='am5']",
     message: 'Bare `am5` CDN global is banned — import @amcharts/amcharts5 from npm.',
@@ -77,8 +80,11 @@ export default tseslint.config(
       },
     },
     rules: {
-      // --- P0: guard rails for the refactor, tightened phase by phase ---
-      'no-restricted-syntax': ['warn', NO_WINDOW_ASSIGN, ...NO_LEGACY_CDN_GLOBALS],
+      // --- P0/P1: guard rails for the refactor, tightened phase by phase ---
+      // window.X= bans stay warn until P2 removes the last assignments (src/main.js, ai-gateway.ts).
+      'no-restricted-syntax': ['warn', NO_WINDOW_ASSIGN, ...NO_AM5_D3_GLOBALS],
+      // firebase compat global fully eliminated in P1 — error so it can never regress.
+      'no-restricted-globals': ['error', { name: 'firebase', message: NO_FIREBASE_GLOBAL.message }],
       'no-console': ['error', { allow: ['error', 'debug'] }],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],

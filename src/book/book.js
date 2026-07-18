@@ -8,8 +8,9 @@ import { HighlightsStore } from '../store/highlights-store.ts';
 import { ActionsStore } from '../store/actions-store.ts';
 import { NotesStore } from '../store/notes-store.js';
 import { renderSearchSection } from '../search/search.js';
-import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.js';
-import { MarginaliaAuth } from '../firebase/auth.js';
+import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
+import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.ts';
+import { MarginaliaAuth } from '../firebase/auth.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
 import { PanelRegistry } from './panels/registry.js';
 // Register panel render functions (side-effect imports).
@@ -1711,7 +1712,7 @@ async function fetchPublicBookContext(slug, bookId) {
   const db = MarginaliaAuth?.db;
   if (!db || !slug || !bookId) return null;
 
-  const userSnap = await db.collection('users').where('settings.slug', '==', slug).limit(1).get();
+  const userSnap = await getDocs(query(collection(db, 'users'), where('settings.slug', '==', slug), limit(1)));
   if (userSnap.empty) return null;
 
   const userDoc = userSnap.docs[0];
@@ -1719,15 +1720,18 @@ async function fetchPublicBookContext(slug, bookId) {
   if (userData.settings?.profilePublic === false) return null;
 
   const workspaceId = ENV.WORKSPACE_ID || 'default';
-  const bookRef = db.collection('workspaces').doc(workspaceId).collection('users').doc(userDoc.id).collection('books').doc(bookId);
-  const bookSnap = await bookRef.get();
-  if (!bookSnap.exists) return null;
+  const bookRef = doc(db, 'workspaces', workspaceId, 'users', userDoc.id, 'books', bookId);
+  const bookSnap = await getDoc(bookRef);
+  if (!bookSnap.exists()) return null;
 
   const bookData = bookSnap.data() || {};
   const [noteSnap, highlightSnap] = await Promise.all([
-    bookRef.collection('notes').doc('main').get().catch(() => null),
-    db.collection('workspaces').doc(workspaceId).collection('users').doc(userDoc.id)
-      .collection('highlights').where('bookId', '==', bookId).limit(24).get().catch(() => null),
+    getDoc(doc(bookRef, 'notes', 'main')).catch(() => null),
+    getDocs(query(
+      collection(db, 'workspaces', workspaceId, 'users', userDoc.id, 'highlights'),
+      where('bookId', '==', bookId),
+      limit(24),
+    )).catch(() => null),
   ]);
 
   return {
@@ -1804,7 +1808,7 @@ async function buildReadingCardShareUrl(bookId) {
   if (!db || !uid || !bookId) return fallback;
 
   try {
-    const snap = await db.doc(`users/${uid}`).get();
+    const snap = await getDoc(doc(db, 'users', uid));
     const slug = String(snap.data()?.settings?.slug || '').trim().toLowerCase();
     if (!slug) return fallback;
     return `${window.location.origin}${window.location.pathname}#/p/${slug}/book/${encodeURIComponent(bookId)}`;

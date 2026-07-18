@@ -10,12 +10,13 @@
    and re-render on the 'marginalia:books-changed' event.
    ========================================================================== */
 
+import { collection, onSnapshot, type Firestore, type Unsubscribe } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
 import { ENV } from '../core/env.ts';
+import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { BOOK_DETAILS as SEED_DETAILS, BOOK_BY_ID as SEED_BY_ID } from '../data/seed/index.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FirestoreDB = any;
+type FirestoreDB = Firestore;
 
 interface BookRecord {
   id: string;
@@ -25,7 +26,7 @@ interface BookRecord {
 let _books: BookRecord[] = [];
 let _byId: Record<string, BookRecord> = {};
 let _shelfBooks: Record<string, unknown>[] = [];
-let _unsubscribe: (() => void) | null = null;
+let _unsubscribe: Unsubscribe | null = null;
 let _uid: string | null = null;
 let _hasOwnBooks = false;
 let _usingDemoData = true;
@@ -144,15 +145,13 @@ function initWithUser(uid: string, db: FirestoreDB) {
   teardown();
   _uid = uid;
 
-  const wsId = ENV.WORKSPACE_ID || (window as any).MARGINALIA_FIREBASE?.workspaceId || 'default';
-  const bookColRef = db
-    .collection('workspaces').doc(wsId)
-    .collection('users').doc(uid)
-    .collection('books');
+  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
+  const bookColRef = collection(db, 'workspaces', wsId, 'users', uid, 'books');
 
-  _unsubscribe = bookColRef.onSnapshot(
-    (snapshot: any) => {
-      const userBooks = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+  _unsubscribe = onSnapshot(
+    bookColRef,
+    (snapshot) => {
+      const userBooks = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       if (userBooks.length > 0) {
         _setVisibleBooks(userBooks, { hasOwnBooks: true, usingDemoData: false });
       } else {

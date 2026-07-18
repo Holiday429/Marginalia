@@ -9,22 +9,9 @@
 
 import { ENV } from '../core/env.ts';
 import { logEvent } from './analytics.ts';
-
-declare const firebase: {
-  auth(): { currentUser: { getIdToken(): Promise<string> } | null };
-};
+import { getIdToken } from '../firebase/auth.ts';
 
 export const MarginaliaAI = (window as Window & { MarginaliaAI?: unknown }).MarginaliaAI = (() => {
-
-  async function getIdToken(): Promise<string | null> {
-    try {
-      const user = firebase.auth().currentUser;
-      if (!user) return null;
-      return await user.getIdToken();
-    } catch {
-      return null;
-    }
-  }
 
   async function generate({
     featureId,

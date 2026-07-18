@@ -1,10 +1,30 @@
+import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  updateProfile,
+  type User,
+} from 'firebase/auth';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  setDoc,
+  where,
+} from 'firebase/firestore';
 import { validateWrite, withMeta, withMetaCreate, isLegacyDoc } from '../services/db.ts';
 import { UserProfileSchema } from '../data/schema/user-profile.ts';
 import { logError, identifyUser } from '../services/analytics.ts';
-import { MARGINALIA_FIREBASE } from './config.js';
+import { MARGINALIA_FIREBASE, firebaseApp, firebaseAuth, firestoreDb, firebaseStorage } from './config.ts';
 
 /* ==========================================================================
-   Marginalia · Firebase auth gate
+   Marginalia · Firebase auth gate (modular SDK)
    --------------------------------------------------------------------------
    - Sign up: username + email + password
    - Sign in: email or username + password
@@ -14,13 +34,9 @@ import { MARGINALIA_FIREBASE } from './config.js';
 export const MarginaliaAuth = (() => {
   const authState = {
     enabled: false,
-    app: null,
-    auth: null,
-    db: null,
-    storage: null,
-    user: null,
+    user: null as User | null,
     ready: false,
-    mode: 'login',
+    mode: 'login' as 'login' | 'register',
     gateOpen: false,
     profilePanelOpen: false,
   };
@@ -31,21 +47,13 @@ export const MarginaliaAuth = (() => {
   init();
 
   function init() {
-    const runtime = MARGINALIA_FIREBASE || {};
-    if (!runtime.enabled) {
+    if (!MARGINALIA_FIREBASE.enabled) {
       syncAuthTriggers();
       dispatchAuthState();
       return;
     }
 
-    if (!window.firebase?.initializeApp) {
-      logError(new Error('[auth] Firebase SDK is not loaded.'), { context: 'auth init' });
-      syncAuthTriggers();
-      dispatchAuthState();
-      return;
-    }
-
-    if (!runtime.config?.apiKey || !runtime.config?.projectId) {
+    if (!firebaseApp || !firebaseAuth || !firestoreDb || !firebaseStorage) {
       logError(new Error('[auth] Firebase config is incomplete.'), { context: 'auth init' });
       syncAuthTriggers();
       dispatchAuthState();
@@ -53,14 +61,10 @@ export const MarginaliaAuth = (() => {
     }
 
     authState.enabled = true;
-    authState.app = firebase.apps.length ? firebase.app() : firebase.initializeApp(runtime.config);
-    authState.auth = firebase.auth();
-    authState.db = firebase.firestore();
-    authState.storage = firebase.storage();
 
     ensureGate();
     bindAuthTriggers();
-    authState.auth.onAuthStateChanged(async (user) => {
+    onAuthStateChanged(firebaseAuth, async (user) => {
       authState.user = user || null;
       if (user) {
         await ensureUserProfile(user);
@@ -139,8 +143,8 @@ export const MarginaliaAuth = (() => {
     document.getElementById('authCloseBtn')?.addEventListener('click', closeGate);
     document.getElementById('authDockCloseBtn')?.addEventListener('click', closeProfilePanel);
     document.getElementById('authLogoutBtn')?.addEventListener('click', async () => {
-      if (!authState.auth) return;
-      await authState.auth.signOut();
+      if (!firebaseAuth) return;
+      await signOut(firebaseAuth);
       closeGate();
     });
     document.querySelectorAll('[data-auth-panel-action]').forEach((btn) => {
@@ -165,7 +169,8 @@ export const MarginaliaAuth = (() => {
     authTriggersBound = true;
 
     document.addEventListener('click', (event) => {
-      const trigger = event.target.closest('[data-auth-trigger]');
+      const target = event.target as HTMLElement;
+      const trigger = target.closest('[data-auth-trigger]');
       if (trigger) {
         event.preventDefault();
         if (!authState.user) {
@@ -184,17 +189,17 @@ export const MarginaliaAuth = (() => {
 
       if (authState.profilePanelOpen) {
         const panel = document.getElementById('authDockPanel');
-        if (panel && !event.target.closest('#authDockPanel')) closeProfilePanel();
+        if (panel && !target.closest('#authDockPanel')) closeProfilePanel();
       }
     });
   }
 
-  function setMode(mode) {
+  function setMode(mode: 'login' | 'register') {
     authState.mode = mode === 'register' ? 'register' : 'login';
     renderAuthState();
   }
 
-  function openGate(mode = 'login') {
+  function openGate(mode: 'login' | 'register' = 'login') {
     if (!authState.enabled) return;
     closeProfilePanel();
     setMode(mode);
@@ -266,13 +271,13 @@ export const MarginaliaAuth = (() => {
     }
   }
 
-  async function onProfilePanelAction(event) {
-    const action = event.currentTarget?.dataset?.authPanelAction;
+  async function onProfilePanelAction(event: Event) {
+    const action = (event.currentTarget as HTMLElement | null)?.dataset?.authPanelAction;
     if (!action) return;
 
     if (action === 'logout') {
-      if (!authState.auth) return;
-      await authState.auth.signOut();
+      if (!firebaseAuth) return;
+      await signOut(firebaseAuth);
       closeProfilePanel();
       return;
     }
@@ -284,15 +289,15 @@ export const MarginaliaAuth = (() => {
     }
   }
 
-  async function onSubmit(event) {
+  async function onSubmit(event: Event) {
     event.preventDefault();
-    if (!authState.auth || !authState.db) return;
+    if (!firebaseAuth || !firestoreDb) return;
     setAuthError('');
 
     const mode = authState.mode;
-    const identity = String(document.getElementById('authIdentityInput')?.value || '').trim();
-    const password = String(document.getElementById('authPasswordInput')?.value || '').trim();
-    const username = String(document.getElementById('authUsernameInput')?.value || '').trim();
+    const identity = String((document.getElementById('authIdentityInput') as HTMLInputElement | null)?.value || '').trim();
+    const password = String((document.getElementById('authPasswordInput') as HTMLInputElement | null)?.value || '').trim();
+    const username = String((document.getElementById('authUsernameInput') as HTMLInputElement | null)?.value || '').trim();
 
     if (!identity || !password) {
       setAuthError('Please enter credentials.');
@@ -317,13 +322,13 @@ export const MarginaliaAuth = (() => {
   }
 
   async function onGoogleLogin() {
-    if (!authState.auth) return;
+    if (!firebaseAuth) return;
     setAuthError('');
 
     try {
-      const provider = new firebase.auth.GoogleAuthProvider();
+      const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      const result = await authState.auth.signInWithPopup(provider);
+      const result = await signInWithPopup(firebaseAuth, provider);
       if (result?.user) {
         await ensureUserProfile(result.user);
         clearAuthInputs();
@@ -334,61 +339,49 @@ export const MarginaliaAuth = (() => {
     }
   }
 
-  async function registerWithUsername({ username, email, password }) {
+  async function registerWithUsername({ username, email, password }: { username: string; email: string; password: string }) {
     const normalizedUsername = normalizeUsername(username);
     if (!normalizedUsername) throw new Error('Username is invalid.');
     if (!email.includes('@')) throw new Error('Registration requires email.');
+    if (!firestoreDb || !firebaseAuth) throw new Error('Firebase is not initialized.');
 
-    const existing = await authState.db
-      .collection('workspaces')
-      .doc(getWorkspaceId())
-      .collection('userProfiles')
-      .where('usernameLower', '==', normalizedUsername)
-      .limit(1)
-      .get();
+    const profilesCol = collection(firestoreDb, 'workspaces', getWorkspaceId(), 'userProfiles');
+    const existing = await getDocs(query(profilesCol, where('usernameLower', '==', normalizedUsername), limit(1)));
     if (!existing.empty) throw new Error('Username is already used.');
 
-    const result = await authState.auth.createUserWithEmailAndPassword(email, password);
+    const result = await createUserWithEmailAndPassword(firebaseAuth, email, password);
     if (!result.user) throw new Error('Unable to create account.');
-    await result.user.updateProfile({ displayName: username });
+    await updateProfile(result.user, { displayName: username });
     await upsertUserProfile(result.user, { username, email }, true);
   }
 
-  async function loginWithIdentity({ identity, password }) {
+  async function loginWithIdentity({ identity, password }: { identity: string; password: string }) {
+    if (!firestoreDb || !firebaseAuth) throw new Error('Firebase is not initialized.');
     const identityInput = identity.trim();
     if (identityInput.includes('@')) {
-      await authState.auth.signInWithEmailAndPassword(identityInput, password);
+      await signInWithEmailAndPassword(firebaseAuth, identityInput, password);
       return;
     }
 
-    const profileSnapshot = await authState.db
-      .collection('workspaces')
-      .doc(getWorkspaceId())
-      .collection('userProfiles')
-      .where('usernameLower', '==', normalizeUsername(identityInput))
-      .limit(1)
-      .get();
+    const profilesCol = collection(firestoreDb, 'workspaces', getWorkspaceId(), 'userProfiles');
+    const profileSnapshot = await getDocs(query(profilesCol, where('usernameLower', '==', normalizeUsername(identityInput)), limit(1)));
     if (profileSnapshot.empty) throw new Error('User not found.');
 
     const profile = profileSnapshot.docs[0].data();
     if (!profile?.email) throw new Error('User profile is incomplete.');
-    await authState.auth.signInWithEmailAndPassword(profile.email, password);
+    await signInWithEmailAndPassword(firebaseAuth, profile.email, password);
   }
 
-  async function ensureUserProfile(user) {
-    if (!authState.db) return;
+  async function ensureUserProfile(user: User) {
+    if (!firestoreDb) return;
     const workspaceId = getWorkspaceId();
-    const profileRef = authState.db
-      .collection('workspaces')
-      .doc(workspaceId)
-      .collection('userProfiles')
-      .doc(user.uid);
-    const doc = await profileRef.get();
-    if (doc.exists) {
+    const profileRef = doc(firestoreDb, 'workspaces', workspaceId, 'userProfiles', user.uid);
+    const snap = await getDoc(profileRef);
+    if (snap.exists()) {
       // Migrate-on-read: silently stamp _v on legacy docs on next write opportunity.
-      if (isLegacyDoc(doc.data())) {
-        const payload = withMeta(validateWrite(UserProfileSchema, doc.data()));
-        await profileRef.set(payload, { merge: true });
+      if (isLegacyDoc(snap.data())) {
+        const payload = withMeta(validateWrite(UserProfileSchema, snap.data()));
+        await setDoc(profileRef, payload, { merge: true });
       }
       return;
     }
@@ -398,13 +391,10 @@ export const MarginaliaAuth = (() => {
     }, true);
   }
 
-  async function upsertUserProfile(user, { username, email }, isCreate = false) {
+  async function upsertUserProfile(user: User, { username, email }: { username: string; email: string }, isCreate = false) {
+    if (!firestoreDb) return;
     const workspaceId = getWorkspaceId();
-    const profileRef = authState.db
-      .collection('workspaces')
-      .doc(workspaceId)
-      .collection('userProfiles')
-      .doc(user.uid);
+    const profileRef = doc(firestoreDb, 'workspaces', workspaceId, 'userProfiles', user.uid);
 
     const raw = {
       uid: user.uid,
@@ -415,7 +405,7 @@ export const MarginaliaAuth = (() => {
     };
     const validated = validateWrite(UserProfileSchema, raw);
     const payload = isCreate ? withMetaCreate(validated) : withMeta(validated);
-    await profileRef.set(payload, { merge: true });
+    await setDoc(profileRef, payload, { merge: true });
   }
 
   function renderAuthState() {
@@ -428,13 +418,13 @@ export const MarginaliaAuth = (() => {
     lockApp(shouldOpen);
 
     const authTabs = document.getElementById('authTabs');
-    const authForm = document.getElementById('authForm');
-    const usernameRow = document.getElementById('authUsernameRow');
+    const authForm = document.getElementById('authForm') as HTMLElement | null;
+    const usernameRow = document.getElementById('authUsernameRow') as HTMLElement | null;
     const identityLabel = document.getElementById('authIdentityLabel');
     const submitBtn = document.getElementById('authSubmitBtn');
     const loginTab = document.getElementById('authTabLogin');
     const registerTab = document.getElementById('authTabRegister');
-    const userWrap = document.getElementById('authUser');
+    const userWrap = document.getElementById('authUser') as HTMLElement | null;
     const userMeta = document.getElementById('authUserMeta');
 
     const isRegister = authState.mode === 'register';
@@ -445,12 +435,12 @@ export const MarginaliaAuth = (() => {
     if (submitBtn) submitBtn.textContent = isRegister ? 'Create Account' : 'Sign In';
     if (loginTab) loginTab.classList.toggle('active', !isRegister);
     if (registerTab) registerTab.classList.toggle('active', isRegister);
-    if (authTabs) authTabs.hidden = hasUser;
+    if (authTabs) (authTabs as HTMLElement).hidden = hasUser;
     if (authForm) authForm.hidden = hasUser;
 
     if (hasUser) {
       if (userWrap) userWrap.hidden = false;
-      if (userMeta) userMeta.textContent = `${authState.user.displayName || 'User'} · ${authState.user.email || authState.user.uid}`;
+      if (userMeta) userMeta.textContent = `${authState.user!.displayName || 'User'} · ${authState.user!.email || authState.user!.uid}`;
     } else if (userWrap) {
       userWrap.hidden = true;
       closeProfilePanel();
@@ -462,14 +452,15 @@ export const MarginaliaAuth = (() => {
   function syncAuthTriggers() {
     const triggers = document.querySelectorAll('[data-auth-trigger]');
     triggers.forEach((trigger) => {
-      const avatar = trigger.querySelector('[data-auth-avatar]');
+      const el = trigger as HTMLElement;
+      const avatar = trigger.querySelector('[data-auth-avatar]') as HTMLElement | null;
       if (!authState.enabled) {
-        trigger.hidden = true;
+        el.hidden = true;
         return;
       }
 
-      trigger.hidden = false;
-      trigger.setAttribute('aria-label', authState.user ? 'Open account panel' : 'Open login panel');
+      el.hidden = false;
+      el.setAttribute('aria-label', authState.user ? 'Open account panel' : 'Open login panel');
       const user = authState.user;
       const name = user?.displayName || user?.email || 'Log In';
       const initial = String(name).trim().charAt(0).toUpperCase() || 'L';
@@ -491,31 +482,31 @@ export const MarginaliaAuth = (() => {
     }
   }
 
-  function lockApp(isLocked) {
+  function lockApp(isLocked: boolean) {
     document.body.classList.toggle('auth-locked', isLocked && authState.enabled);
   }
 
   function clearAuthInputs() {
     ['authIdentityInput', 'authPasswordInput', 'authUsernameInput'].forEach((id) => {
-      const input = document.getElementById(id);
+      const input = document.getElementById(id) as HTMLInputElement | null;
       if (input) input.value = '';
     });
   }
 
-  function setAuthError(message) {
+  function setAuthError(message: string) {
     const errorEl = document.getElementById('authError');
     if (errorEl) errorEl.textContent = message || '';
   }
 
-  function normalizeUsername(value) {
+  function normalizeUsername(value: string): string {
     return String(value || '')
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9_.-]/g, '');
   }
 
-  function normalizeAuthError(error) {
-    const code = String(error?.code || '');
+  function normalizeAuthError(error: unknown): string {
+    const code = String((error as { code?: string })?.code || '');
     if (code.includes('wrong-password')) return 'Password is incorrect.';
     if (code.includes('user-not-found')) return 'User not found.';
     if (code.includes('invalid-email')) return 'Email is invalid.';
@@ -523,10 +514,10 @@ export const MarginaliaAuth = (() => {
     if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
     if (code.includes('popup-closed-by-user')) return 'Google login was canceled.';
     if (code.includes('popup-blocked')) return 'Browser blocked popup. Please allow popups and retry.';
-    return error?.message || 'Authentication failed.';
+    return (error as { message?: string })?.message || 'Authentication failed.';
   }
 
-  function getWorkspaceId() {
+  function getWorkspaceId(): string {
     return MARGINALIA_FIREBASE?.workspaceId || 'default';
   }
 
@@ -544,9 +535,9 @@ export const MarginaliaAuth = (() => {
     }));
   }
 
-  function onAuthStateChange(listener) {
+  function onAuthStateChange(listener: (detail: { enabled: boolean; ready: boolean; user: { uid: string; email: string; displayName: string } | null }) => void) {
     if (typeof listener !== 'function') return () => {};
-    const handler = (event) => listener(event.detail);
+    const handler = (event: Event) => listener((event as CustomEvent).detail);
     window.addEventListener('marginalia:auth-changed', handler);
     listener({
       enabled: authState.enabled,
@@ -562,13 +553,24 @@ export const MarginaliaAuth = (() => {
 
   return {
     get enabled() { return authState.enabled; },
-    get app() { return authState.app; },
-    get auth() { return authState.auth; },
-    get db() { return authState.db; },
-    get storage() { return authState.storage; },
+    get app() { return firebaseApp; },
+    get auth() { return firebaseAuth; },
+    get db() { return firestoreDb; },
+    get storage() { return firebaseStorage; },
     get user() { return authState.user; },
     onAuthStateChange,
     openLogin: openGate,
     closeLogin: closeGate,
   };
 })();
+
+/** Resolves the current user's Firebase ID token, or null if signed out. */
+export async function getIdToken(): Promise<string | null> {
+  const user = MarginaliaAuth.user;
+  if (!user) return null;
+  try {
+    return await user.getIdToken();
+  } catch {
+    return null;
+  }
+}
