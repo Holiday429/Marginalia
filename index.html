@@ -36,12 +36,8 @@
   <link rel="stylesheet" href="src/new-entry/new-entry.css">
   <link rel="stylesheet" href="src/ai/ai.css">
 
-  <!-- amCharts (used by map view) — loaded eagerly so first visit boots fast -->
-  <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
-  <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
-  <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
-  <script src="https://cdn.amcharts.com/lib/5/geodata/worldLow.js"></script>
-  <script src="https://cdn.amcharts.com/lib/5/geodata/chinaHigh.js"></script>
+  <!-- amCharts is loaded as an npm-bundled dynamic import from src/map/map.js
+       when the map view is first entered — see loadAmCharts(). -->
 
 </head>
 <body data-view="preloader">

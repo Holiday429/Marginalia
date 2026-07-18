@@ -8,6 +8,28 @@ import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
 import { MarginaliaGraph } from '../core/graph-data.js';
 import { openConceptDrawer } from '../core/concept-ui.js';
 
+// The D3 submodules actually used here, loaded on demand when the graph view
+// is first entered (see loadD3()). Assembled into a single `d3` object so
+// every call site below reads exactly like the old CDN-global usage.
+let d3 = null;
+let __d3LoadPromise = null;
+function loadD3() {
+  if (d3) return Promise.resolve(d3);
+  if (__d3LoadPromise) return __d3LoadPromise;
+  __d3LoadPromise = Promise.all([
+    import('d3-selection'),
+    import('d3-zoom'),
+    import('d3-drag'),
+    import('d3-force'),
+    import('d3-scale'),
+    import('d3-array'),
+  ]).then(([selection, zoom, drag, force, scale, array]) => {
+    d3 = { ...selection, ...zoom, ...drag, ...force, ...scale, ...array };
+    return d3;
+  });
+  return __d3LoadPromise;
+}
+
 let __webBooted = false;
 let __webSvg = null;
 let __webZoom = null;
@@ -25,11 +47,13 @@ function initWeb() {
 
 function enterWeb() {
   showWebHint();
-  if (typeof d3 === 'undefined') {
-    loadD3ThenBoot();
+  if (d3) {
+    bootWeb();
     return;
   }
-  bootWeb();
+  loadD3()
+    .then(bootWeb)
+    .catch(err => logError(err instanceof Error ? err : new Error(String(err)), { context: 'web D3 import' }));
 }
 
 function webShellHTML() {
@@ -143,18 +167,6 @@ function bindWebShellEvents() {
   });
 }
 
-function loadD3ThenBoot() {
-  if (typeof d3 !== 'undefined') {
-    bootWeb();
-    return;
-  }
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';
-  script.onload = bootWeb;
-  script.onerror = () => logError(new Error('[web] Failed to load D3.'), { context: 'web D3 loader' });
-  document.head.appendChild(script);
-}
-
 function bootWeb() {
   if (!__webBooted) {
     const svg = d3.select('#webGraph');
@@ -180,7 +192,7 @@ function bootWeb() {
 }
 
 function renderWebGraph() {
-  if (!__webSvg || typeof d3 === 'undefined' || !MarginaliaGraph) return;
+  if (!__webSvg || !d3 || !MarginaliaGraph) return;
 
   const snapshot = MarginaliaGraph.getGraphSnapshot({
     query: __webQuery,

@@ -8,6 +8,16 @@ import { BooksStore } from '../store/books-store.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
 import { loadProfile, prefetchProfiles, getCachedProfile, buildFallbackProfile } from './geo-profiles.js';
 
+// amCharts5 modules, loaded on demand when the map is first entered (see
+// loadAmCharts()). Module-level so bootMap() and its helpers can keep
+// referencing them as bare identifiers, matching the CDN-global shape they
+// were originally written against.
+let am5;
+let am5map;
+let am5themes_Animated;
+let am5geodata_worldLow;
+let am5geodata_chinaHigh;
+
 let __mapChart       = null;
 let __mapBooted      = false;
 let __mapWorldSeries = null;
@@ -404,11 +414,9 @@ function enterMap(params = {}) {
 
   if (!__mapBooted) {
     __mapStagedEntry = fromGlobe;   // stage on first paint via datavalidated
-    if (typeof am5 === 'undefined' || typeof am5map === 'undefined') {
-      waitForAmCharts(bootMap);
-    } else {
-      bootMap();
-    }
+    loadAmCharts()
+      .then(bootMap)
+      .catch(err => logError(err instanceof Error ? err : new Error(String(err)), { context: 'map amCharts import' }));
     return;
   }
 
@@ -435,14 +443,28 @@ function mountGlobeWidget() {
     });
 }
 
-function waitForAmCharts(cb, attempt = 0) {
-  if (typeof am5 !== 'undefined' && typeof am5map !== 'undefined' &&
-      typeof am5geodata_worldLow !== 'undefined' &&
-      typeof am5geodata_chinaHigh !== 'undefined') {
-    cb(); return;
+// Dynamic import of amCharts5 + geodata, cached so repeat calls (e.g.
+// re-entering the map view) resolve instantly without re-fetching chunks.
+let __amChartsLoadPromise = null;
+function loadAmCharts() {
+  if (am5 && am5map && am5themes_Animated && am5geodata_worldLow && am5geodata_chinaHigh) {
+    return Promise.resolve();
   }
-  if (attempt > 100) { logError(new Error('[map] amCharts failed to load'), { context: 'map init' }); return; }
-  setTimeout(() => waitForAmCharts(cb, attempt + 1), 80);
+  if (__amChartsLoadPromise) return __amChartsLoadPromise;
+  __amChartsLoadPromise = Promise.all([
+    import('@amcharts/amcharts5'),
+    import('@amcharts/amcharts5/map'),
+    import('@amcharts/amcharts5/themes/Animated'),
+    import('@amcharts/amcharts5-geodata/worldLow'),
+    import('@amcharts/amcharts5-geodata/chinaHigh'),
+  ]).then(([am5Mod, am5mapMod, animatedThemeMod, worldLowMod, chinaHighMod]) => {
+    am5 = am5Mod;
+    am5map = am5mapMod;
+    am5themes_Animated = animatedThemeMod.default;
+    am5geodata_worldLow = worldLowMod.default;
+    am5geodata_chinaHigh = chinaHighMod.default;
+  });
+  return __amChartsLoadPromise;
 }
 
 /* ── DOM scaffold ──────────────────────────────────────────────────────── */
