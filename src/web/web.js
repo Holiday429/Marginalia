@@ -5,6 +5,7 @@
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
+import { PanelManager } from '../core/panel-manager.js';
 import { MarginaliaGraph } from '../core/graph-data.js';
 import { openConceptDrawer } from '../core/concept-ui.js';
 
@@ -341,7 +342,7 @@ function renderWebGraph() {
       webHideTip();
     })
     .on('click', (event, node) => {
-      if (BooksStore.getById(node.id)) App.show('book', { id: node.id });
+      if (BooksStore.getById(node.id)) PanelManager.open('book', { id: node.id });
     });
 
   bookEls.append('circle')

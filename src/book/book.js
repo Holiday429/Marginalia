@@ -12,6 +12,7 @@ import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/
 import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
+import { PanelManager } from '../core/panel-manager.js';
 import { PanelRegistry } from './panels/registry.js';
 // Register panel render functions (side-effect imports).
 import './panels/mindmap.js';
@@ -454,22 +455,23 @@ async function enterBook(params = {}) {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const bookId = btn.dataset.bookId;
-      if (bookId && BooksStore.getById(bookId)) App.show('book', { id: bookId });
+      if (bookId && BooksStore.getById(bookId)) PanelManager.open('book', { id: bookId });
     });
   });
   root.querySelectorAll('.connection-action--add').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const title = btn.dataset.addBookTitle;
-      const author = btn.dataset.addBookAuthor;
-      if (title) App.show('new-entry', { prefill: { title, author } });
+      // NewEntry has no prefill API yet — open a blank form rather than the
+      // previous App.show('new-entry', ...) call, which always threw
+      // (App has no 'new-entry' view and was never imported in this file).
+      NewEntry?.mount();
     });
   });
   // Overview related strip — card click → open book, see-all → switch tab
   root.querySelectorAll('.ov-rel-card.is-openable').forEach(card => {
     card.addEventListener('click', () => {
       const bookId = card.dataset.bookId;
-      if (bookId) App.show('book', { id: bookId });
+      if (bookId) PanelManager.open('book', { id: bookId });
     });
   });
   root.querySelectorAll('.ov-related-see-all[data-target]').forEach(btn => {
@@ -777,7 +779,7 @@ async function enterBook(params = {}) {
 
       // Re-render shelf and navigate back
       renderSearchSection();
-      App.show('search');
+      PanelManager.open('search');
     });
   }
 }

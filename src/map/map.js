@@ -6,6 +6,7 @@
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
+import { PanelManager } from '../core/panel-manager.js';
 import { loadProfile, prefetchProfiles, getCachedProfile, buildFallbackProfile } from './geo-profiles.js';
 
 // amCharts5 modules, loaded on demand when the map is first entered (see
@@ -2025,7 +2026,7 @@ function renderBookRow(b) {
     </div>
     <div class="mb-arrow">→</div>`;
   row.addEventListener('click', () => {
-    if (BooksStore.getById(b.id)) App.show('book', { id: b.id });
+    if (BooksStore.getById(b.id)) PanelManager.open('book', { id: b.id });
   });
   return row;
 }

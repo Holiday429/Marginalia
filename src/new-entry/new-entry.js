@@ -7,6 +7,7 @@ import { logEvent, logError } from '../services/analytics.ts';
 import { withMeta, withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { enterLibrary } from '../library-2d/library-2d.js';
+import { PanelManager } from '../core/panel-manager.js';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { BooksStore } from '../store/books-store.ts';
 import { NotesStore } from '../store/notes-store.js';
@@ -1014,7 +1015,7 @@ export const NewEntry = (() => {
     enterLibrary();
 
     close();
-    App.show('book', { id });
+    PanelManager.open('book', { id });
   }
 
   function resolveIso(raw) {
