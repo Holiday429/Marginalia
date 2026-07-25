@@ -2,6 +2,7 @@
    Marginalia · Book detail view
    ========================================================================== */
 
+import './book.css';
 import { logEvent, logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { HighlightsStore } from '../store/highlights-store.ts';

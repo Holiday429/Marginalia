@@ -3,6 +3,7 @@
    Globe projection (geoOrthographic) — spin in any direction, click to highlight.
    ========================================================================== */
 
+import './map.css';
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';

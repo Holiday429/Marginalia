@@ -6,7 +6,6 @@ import { collection, doc, setDoc } from 'firebase/firestore';
 import { logEvent, logError } from '../services/analytics.ts';
 import { withMeta, withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
-import { enterLibrary } from '../library-2d/library-2d.js';
 import { PanelManager } from '../core/panel-manager.js';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { BooksStore } from '../store/books-store.ts';
@@ -1012,7 +1011,12 @@ export const NewEntry = (() => {
       BooksStore.addOptimisticBook(fullBook);
     }
     renderSearchSection();
-    enterLibrary();
+    // Dynamic import: keeps library-2d.js (and its CSS) out of the eager
+    // bundle graph — this is the only reason it would otherwise be pulled in,
+    // since every other consumer already goes through view-registry.ts's lazy
+    // loadView(). Refreshing library state here is a nice-to-have for when
+    // the user later returns to that view, not something worth blocking on.
+    import('../library-2d/library-2d.js').then(({ enterLibrary }) => enterLibrary()).catch(() => {});
 
     close();
     PanelManager.open('book', { id });

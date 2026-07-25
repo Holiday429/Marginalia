@@ -1,5 +1,6 @@
 /* Library view — room-organize workspace */
 
+import './library-2d.css';
 import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
 import { withMeta } from '../services/db.ts';
