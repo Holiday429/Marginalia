@@ -11,11 +11,14 @@ import { visualizer } from 'rollup-plugin-visualizer';
 // instead of one predictable chunk per library — pin them explicitly so the
 // chunk graph stays legible and the size-limit budget (package.json) has a
 // stable target to check against.
+// "vendor-" prefix keeps these chunk names from colliding with app chunks
+// that legitimately start with the same word (three-room-view.js would
+// otherwise glob-match a "three-*.js" size-limit pattern meant for three.js).
 const MANUAL_CHUNK_PACKAGES = {
-  three: ['three'],
-  firebase: ['firebase'],
-  amcharts: ['@amcharts/amcharts5', '@amcharts/amcharts5-geodata'],
-  d3: ['d3-force', 'd3-selection', 'd3-zoom', 'd3-drag', 'd3-scale', 'd3-array'],
+  'vendor-three': ['three'],
+  'vendor-firebase': ['firebase'],
+  'vendor-amcharts': ['@amcharts/amcharts5', '@amcharts/amcharts5-geodata'],
+  'vendor-d3': ['d3-force', 'd3-selection', 'd3-zoom', 'd3-drag', 'd3-scale', 'd3-array'],
 };
 
 function manualChunks(id) {
