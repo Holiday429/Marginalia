@@ -8,8 +8,37 @@
 import { logError } from '../services/analytics.ts';
 import { loadView } from './view-registry.ts';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ViewFn = (params?: any) => void;
+
+// Minimal shape PanelManager needs from the room scene handle — the full
+// RoomScene type lives in the still-untyped three-room-view.js (Phase 4 step 4).
+interface RoomHandle {
+  pause(): void;
+  resume(): void;
+}
+
+interface TransitionInput {
+  origin?: string;
+  originX?: string;
+  originY?: string;
+  source?: string;
+  suppressRoomBackdrop?: boolean;
+}
+
+interface TransitionMeta {
+  origin: string;
+  originX: string;
+  originY: string;
+  source: string;
+  suppressRoomBackdrop: boolean;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PanelParams = Record<string, any>;
+
 const PANEL_IDS = ['search', 'library', 'map', 'book', 'todo', 'profile', 'web'];
-const PANEL_ALIASES = {
+const PANEL_ALIASES: Record<string, string> = {
   graph: 'web',
   studio: 'library',
   shelf: 'search',
@@ -18,12 +47,12 @@ const PANEL_ALIASES = {
 const FULL_COVER_PANELS = new Set(['search', 'library', 'map', 'book', 'web', 'todo', 'profile']);
 
 // Panels whose DOM element has a non-standard ID (not panel-{id})
-const PANEL_ELEMENT_ID = {
+const PANEL_ELEMENT_ID: Record<string, string> = {
   search: 'view-search',
 };
 
 // Maps panel ID → body[data-view] value used by CSS selectors
-const PANEL_DATA_VIEW = {
+const PANEL_DATA_VIEW: Record<string, string> = {
   search:   'search',
   library:  'library-2d',
   map:      'map',
@@ -33,7 +62,7 @@ const PANEL_DATA_VIEW = {
   profile:  'profile',
 };
 
-const PANEL_ORIGIN_BY_ID = {
+const PANEL_ORIGIN_BY_ID: Record<string, string> = {
   search: 'left',
   library: 'left',
   map: 'desk-left',
@@ -43,7 +72,7 @@ const PANEL_ORIGIN_BY_ID = {
   todo: 'right',
 };
 
-const ORIGIN_COORD_BY_KEY = {
+const ORIGIN_COORD_BY_KEY: Record<string, [string, string]> = {
   left: ['18%', '52%'],
   'desk-left': ['38%', '60%'],
   wall: ['50%', '22%'],
@@ -57,27 +86,27 @@ const PANEL_ENTER_MS = 560;
 const PANEL_EXIT_MS = 360;
 
 const PanelManager = (() => {
-  let _roomHandle = null;
-  let _activePanel = null;
-  let _activeParams = {};
-  let _pendingTransition = null;
+  let _roomHandle: RoomHandle | null = null;
+  let _activePanel: string | null = null;
+  let _activeParams: PanelParams = {};
+  let _pendingTransition: TransitionMeta | null = null;
 
-  function setRoomHandle(handle) {
+  function setRoomHandle(handle: RoomHandle): void {
     _roomHandle = handle;
   }
 
-  const _initialized = new Set();
+  const _initialized = new Set<string>();
 
-  function normalizePanelId(panelId) {
+  function normalizePanelId(panelId: string): string {
     return PANEL_ALIASES[panelId] || panelId;
   }
 
-  function getPanelElement(panelId) {
+  function getPanelElement(panelId: string): HTMLElement | null {
     const elId = PANEL_ELEMENT_ID[panelId] || `panel-${panelId}`;
     return document.getElementById(elId);
   }
 
-  function ensureTransitionOverlay() {
+  function ensureTransitionOverlay(): HTMLElement {
     let overlay = document.getElementById('roomTransitionOverlay');
     if (overlay) return overlay;
 
@@ -90,7 +119,7 @@ const PanelManager = (() => {
     return overlay;
   }
 
-  function normalizeTransition(input = {}, panelId = '') {
+  function normalizeTransition(input: TransitionInput = {}, panelId = ''): TransitionMeta {
     const origin = String(input.origin || PANEL_ORIGIN_BY_ID[panelId] || 'center');
     const fallbackCoords = ORIGIN_COORD_BY_KEY[origin] || ORIGIN_COORD_BY_KEY.center;
     const originX = input.originX || fallbackCoords[0];
@@ -105,20 +134,20 @@ const PanelManager = (() => {
     };
   }
 
-  function setTransitionCssVars(meta) {
+  function setTransitionCssVars(meta: TransitionMeta | null): void {
     if (!meta) return;
     document.body.style.setProperty('--room-origin-x', String(meta.originX));
     document.body.style.setProperty('--room-origin-y', String(meta.originY));
     document.body.dataset.panelTransitionOrigin = meta.origin;
   }
 
-  function clearTransitionCssVars() {
+  function clearTransitionCssVars(): void {
     document.body.style.removeProperty('--room-origin-x');
     document.body.style.removeProperty('--room-origin-y');
     delete document.body.dataset.panelTransitionOrigin;
   }
 
-  function showTransitionOverlay(meta, phase = 'enter') {
+  function showTransitionOverlay(meta: TransitionMeta | null, phase: 'enter' | 'leave' = 'enter'): void {
     const overlay = ensureTransitionOverlay();
     setTransitionCssVars(meta);
 
@@ -132,7 +161,7 @@ const PanelManager = (() => {
     });
   }
 
-  function hideTransitionOverlay() {
+  function hideTransitionOverlay(): void {
     const overlay = document.getElementById('roomTransitionOverlay');
     if (!overlay) {
       clearTransitionCssVars();
@@ -146,19 +175,19 @@ const PanelManager = (() => {
     }, 300);
   }
 
-  function primeTransition(input = {}, panelId = '') {
+  function primeTransition(input: TransitionInput = {}, panelId = ''): void {
     _pendingTransition = normalizeTransition(input, normalizePanelId(panelId));
     showTransitionOverlay(_pendingTransition, 'enter');
   }
 
-  function consumeTransition(params = {}, panelId = '') {
+  function consumeTransition(params: PanelParams = {}, panelId = ''): TransitionMeta {
     const fromParams = params && params.__roomTransition ? params.__roomTransition : null;
     const meta = normalizeTransition(fromParams || _pendingTransition || {}, panelId);
     _pendingTransition = null;
     return meta;
   }
 
-  function open(panelId, params = {}) {
+  function open(panelId: string, params: PanelParams = {}): void {
     const canonicalPanelId = normalizePanelId(panelId);
     if (!PANEL_IDS.includes(canonicalPanelId)) {
       logError(new Error(`[PanelManager] Unknown panel: "${canonicalPanelId}"`), { panelId: canonicalPanelId });
@@ -216,12 +245,12 @@ const PanelManager = (() => {
       if (_activePanel !== canonicalPanelId) return;
 
       if (!_initialized.has(canonicalPanelId)) {
-        try { view.init?.(params); } catch (e) {
-          logError(e, { context: `PanelManager init ${canonicalPanelId}` });
+        try { (view.init as ViewFn | undefined)?.(params); } catch (e) {
+          logError(e instanceof Error ? e : new Error(String(e)), { context: `PanelManager init ${canonicalPanelId}` });
         }
         _initialized.add(canonicalPanelId);
       }
-      view.enterPanel?.(params);
+      (view.enterPanel as ViewFn | undefined)?.(params);
     }).catch((e) => {
       logError(e instanceof Error ? e : new Error(String(e)), { context: `PanelManager load ${canonicalPanelId}` });
     });
@@ -234,17 +263,17 @@ const PanelManager = (() => {
     }
   }
 
-  function close(panelId) {
+  function close(panelId: string): void {
     const canonicalPanelId = normalizePanelId(panelId);
     if (_activePanel !== canonicalPanelId) return;
     _closeActivePanel({ skipResume: false, animate: true });
   }
 
-  function closeAll() {
+  function closeAll(): void {
     _closeActivePanel({ skipResume: false, animate: true });
   }
 
-  function _closeActivePanel({ skipResume = false, animate = true } = {}) {
+  function _closeActivePanel({ skipResume = false, animate = true }: { skipResume?: boolean; animate?: boolean } = {}): void {
     if (!_activePanel) return;
     const panelId = _activePanel;
     const activeParamsSnapshot = _activeParams;
@@ -292,7 +321,7 @@ const PanelManager = (() => {
     window.setTimeout(finalizeClose, PANEL_EXIT_MS);
   }
 
-  function getActive() {
+  function getActive(): string | null {
     return _activePanel;
   }
 

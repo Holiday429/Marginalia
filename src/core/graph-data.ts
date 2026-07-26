@@ -12,10 +12,150 @@ import { MarginaliaAuth } from '../firebase/auth.ts';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { NotesStore } from '../store/notes-store.js';
 
+// Book records come from three sources (BooksStore, seed data, ad-hoc AI
+// imports) with inconsistent optional fields — matches the loose BookRecord
+// shape already used in store/books-store.ts. Deep/nested field access below
+// intentionally stays loosely typed rather than modeling every seed shape.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Book = Record<string, any>;
+
+export type RelationType = 'core-thesis' | 'supports' | 'contrasts' | 'extends' | 'questions' | 'action-trigger';
+export type LinkStatus = 'confirmed' | 'suggested' | 'rejected';
+
+export interface RelationMeta {
+  label: string;
+  color: string;
+  strength: number;
+}
+
+export interface StatusMeta {
+  label: string;
+  visible: boolean;
+}
+
+export interface Concept {
+  id: string;
+  name: string;
+  shortLabel: string;
+  description: string;
+  aliases: string[];
+  searchText: string;
+  bookIds: string[];
+  contextIds: string[];
+  bookCount?: number;
+  totalStrength?: number;
+  hasSuggested?: boolean;
+}
+
+export interface CulturalContext {
+  id: string;
+  label: string;
+  description: string;
+  searchText: string;
+  bookIds: string[];
+  conceptIds: string[];
+  conceptCount?: number;
+}
+
+interface EvidenceHighlight {
+  id: string;
+  quote: string;
+  chapter?: string;
+  page?: number;
+  annotation: string;
+}
+
+interface RelatedAction {
+  id: string;
+  text: string;
+  status: string;
+  tag: string;
+}
+
+export interface BookConceptLink {
+  id: string;
+  bookId: string;
+  conceptId: string;
+  contextId: string | null;
+  relationType: RelationType;
+  relationLabel: string;
+  status: LinkStatus;
+  strength: number;
+  origin: string;
+  rationale: string;
+  readerUnderstanding: string;
+  readAt: string;
+  evidenceHighlights: EvidenceHighlight[];
+  relatedActions: RelatedAction[];
+  searchText: string;
+}
+
+interface GraphState {
+  books: Book[];
+  booksById: Record<string, Book>;
+  concepts: Concept[];
+  conceptsById: Record<string, Concept>;
+  culturalContexts: CulturalContext[];
+  contextsById: Record<string, CulturalContext>;
+  bookConceptLinks: BookConceptLink[];
+  linksById: Record<string, BookConceptLink>;
+  statusOverrides: Record<string, LinkStatus>;
+}
+
+interface GraphSnapshotOptions {
+  query?: string;
+  mode?: 'all' | 'suggested';
+  topConceptLimit?: number;
+  focusConceptId?: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GraphNode = (Concept | Book | CulturalContext) & { type: 'concept' | 'book' | 'context'; weight: number; [key: string]: any };
+
+interface GraphLink {
+  id: string;
+  source: string;
+  target: string;
+  linkType: 'book-concept' | 'context-concept';
+  relationType: string;
+  status: LinkStatus | 'confirmed';
+  strength: number;
+}
+
+interface GraphSnapshot {
+  nodes: GraphNode[];
+  links: GraphLink[];
+  concepts: Concept[];
+  books: Book[];
+  contexts: CulturalContext[];
+  stats: {
+    books: number;
+    concepts: number;
+    visibleConcepts: number;
+    visibleLinks: number;
+    suggestedLinks: number;
+  };
+}
+
+export interface ConceptDetails {
+  concept: Concept;
+  relatedBooks: Array<{ link: BookConceptLink; book: Book; context: CulturalContext | null }>;
+  relatedContexts: CulturalContext[];
+}
+
+interface BookRelatedConcept {
+  link: BookConceptLink;
+  concept: Concept;
+  context: CulturalContext | null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ConceptSeed = Record<string, any>;
+
 export const MarginaliaGraph = (() => {
   const STATUS_STORAGE_KEY = 'marginalia.bookConceptLink.status.v1';
 
-  const RELATION_META = {
+  const RELATION_META: Record<RelationType, RelationMeta> = {
     'core-thesis':   { label: 'Core Thesis', color: '#d5aa64', strength: 1.0 },
     supports:        { label: 'Supports', color: '#87b6a7', strength: 0.8 },
     contrasts:       { label: 'Contrasts', color: '#b67d7d', strength: 0.74 },
@@ -24,35 +164,35 @@ export const MarginaliaGraph = (() => {
     'action-trigger':{ label: 'Action Trigger', color: '#d97b65', strength: 0.88 },
   };
 
-  const STATUS_META = {
+  const STATUS_META: Record<LinkStatus, StatusMeta> = {
     confirmed: { label: 'Confirmed', visible: true },
     suggested: { label: 'AI suggested', visible: true },
     rejected:  { label: 'Rejected', visible: false },
   };
 
   let statusOverrideSource = 'local';
-  let remoteStatusOverrides = null;
-  let persistStatusOverride = null;
-  let graphState = buildGraphState();
+  let remoteStatusOverrides: Record<string, LinkStatus> | null = null;
+  let persistStatusOverride: ((payload: { linkId: string; status: LinkStatus; overrides: Record<string, LinkStatus> }) => unknown) | null = null;
+  let graphState: GraphState = buildGraphState();
 
-  function buildGraphState() {
+  function buildGraphState(): GraphState {
     const auth = MarginaliaAuth;
     const isAuthenticated = Boolean(auth?.user);
-    const books = isAuthenticated
+    const books: Book[] = isAuthenticated
       ? BooksStore.getAll()
       : (BooksStore.getAll().length ? BooksStore.getAll() : SEED_BOOK_DETAILS);
     const statusOverrides = getStatusOverrides();
-    const conceptsById = new Map();
-    const contextsById = new Map();
-    const bookConceptLinks = [];
+    const conceptsById = new Map<string, Concept>();
+    const contextsById = new Map<string, CulturalContext>();
+    const bookConceptLinks: BookConceptLink[] = [];
 
     books.forEach((book) => {
       getBookConceptSeeds(book).forEach((seed, index) => {
         const conceptId = seed.id || slugify(seed.name || `${book.id}-concept-${index}`);
         const contextId = seed.contextTag ? `context-${slugify(seed.contextTag)}` : null;
         const linkId = `${book.id}__${conceptId}`;
-        const status = statusOverrides[linkId] || seed.status || 'confirmed';
-        const relationType = RELATION_META[seed.relationType] ? seed.relationType : 'supports';
+        const status: LinkStatus = statusOverrides[linkId] || seed.status || 'confirmed';
+        const relationType: RelationType = RELATION_META[seed.relationType as RelationType] ? seed.relationType : 'supports';
         const relationMeta = RELATION_META[relationType];
         const conceptName = String(seed.name || '').trim() || 'Untitled concept';
         const description = seed.description || seed.body || '';
@@ -64,7 +204,7 @@ export const MarginaliaGraph = (() => {
           seed.rationale || '',
         ].join(' ').toLowerCase();
 
-        const concept = conceptsById.get(conceptId) || {
+        const concept: Concept = conceptsById.get(conceptId) || {
           id: conceptId,
           name: conceptName,
           shortLabel: seed.shortLabel || conceptName,
@@ -83,7 +223,7 @@ export const MarginaliaGraph = (() => {
         conceptsById.set(conceptId, concept);
 
         if (contextId) {
-          const context = contextsById.get(contextId) || {
+          const context: CulturalContext = contextsById.get(contextId) || {
             id: contextId,
             label: seed.contextTag,
             description: seed.contextDescription || lookupContextDescription(book, seed.contextTag) || '',
@@ -99,10 +239,10 @@ export const MarginaliaGraph = (() => {
           contextsById.set(contextId, context);
         }
 
-        const evidenceHighlights = (seed.highlightIds || [])
-          .map((highlightId) => book.highlights?.find((item) => String(item.id) === String(highlightId)))
+        const evidenceHighlights: EvidenceHighlight[] = (seed.highlightIds || [])
+          .map((highlightId: string) => book.highlights?.find((item: Book) => String(item.id) === String(highlightId)))
           .filter(Boolean)
-          .map((item) => ({
+          .map((item: Book) => ({
             id: item.id,
             quote: item.quote,
             chapter: item.chapter,
@@ -110,10 +250,10 @@ export const MarginaliaGraph = (() => {
             annotation: item.annotation || '',
           }));
 
-        const relatedActions = (seed.actionIds || [])
-          .map((actionId) => book.actions?.find((item) => item.id === actionId))
+        const relatedActions: RelatedAction[] = (seed.actionIds || [])
+          .map((actionId: string) => book.actions?.find((item: Book) => item.id === actionId))
           .filter(Boolean)
-          .map((item) => ({
+          .map((item: Book) => ({
             id: item.id,
             text: item.text,
             status: item.status,
@@ -147,7 +287,7 @@ export const MarginaliaGraph = (() => {
       });
     });
 
-    const concepts = Array.from(conceptsById.values()).map((concept) => {
+    const concepts: Concept[] = Array.from(conceptsById.values()).map((concept) => {
       const conceptLinks = bookConceptLinks.filter((link) => link.conceptId === concept.id);
       return {
         ...concept,
@@ -157,7 +297,7 @@ export const MarginaliaGraph = (() => {
       };
     });
 
-    const culturalContexts = Array.from(contextsById.values()).map((context) => ({
+    const culturalContexts: CulturalContext[] = Array.from(contextsById.values()).map((context) => ({
       ...context,
       conceptCount: context.conceptIds.length,
     }));
@@ -180,15 +320,15 @@ export const MarginaliaGraph = (() => {
     mode = 'all',
     topConceptLimit = 10,
     focusConceptId = '',
-  } = {}) {
+  }: GraphSnapshotOptions = {}): GraphSnapshot {
     const normalizedQuery = String(query || '').trim().toLowerCase();
-    const visibleStatuses = mode === 'suggested' ? ['suggested'] : ['confirmed', 'suggested'];
+    const visibleStatuses: LinkStatus[] = mode === 'suggested' ? ['suggested'] : ['confirmed', 'suggested'];
 
     let visibleLinks = graphState.bookConceptLinks.filter((link) => visibleStatuses.includes(link.status));
     if (focusConceptId) visibleLinks = visibleLinks.filter((link) => link.conceptId === focusConceptId);
 
-    const queryConceptIds = new Set();
-    const queryBookIds = new Set();
+    const queryConceptIds = new Set<string>();
+    const queryBookIds = new Set<string>();
 
     if (normalizedQuery) {
       graphState.concepts.forEach((concept) => {
@@ -211,8 +351,8 @@ export const MarginaliaGraph = (() => {
     if (!normalizedQuery && !focusConceptId) {
       concepts = concepts
         .sort((a, b) => (
-          (b.totalStrength - a.totalStrength) ||
-          (b.bookCount - a.bookCount) ||
+          ((b.totalStrength ?? 0) - (a.totalStrength ?? 0)) ||
+          ((b.bookCount ?? 0) - (a.bookCount ?? 0)) ||
           a.name.localeCompare(b.name, 'zh-Hans-CN')
         ))
         .slice(0, topConceptLimit);
@@ -228,32 +368,32 @@ export const MarginaliaGraph = (() => {
     const books = graphState.books.filter((book) => bookIds.has(book.id));
     const contexts = graphState.culturalContexts.filter((context) => contextIds.has(context.id));
 
-    const nodes = [
+    const nodes: GraphNode[] = [
       ...concepts.map((concept) => ({
         ...concept,
-        type: 'concept',
-        weight: Math.max(0.6, concept.totalStrength),
+        type: 'concept' as const,
+        weight: Math.max(0.6, concept.totalStrength ?? 0),
       })),
       ...books.map((book) => ({
         ...book,
-        type: 'book',
+        type: 'book' as const,
         weight: 0.55,
         bg: book.cover?.bg || '#333',
         text: book.cover?.text || '#eee',
       })),
       ...contexts.map((context) => ({
         ...context,
-        type: 'context',
-        weight: Math.max(0.45, 0.4 + context.conceptCount * 0.12),
+        type: 'context' as const,
+        weight: Math.max(0.45, 0.4 + (context.conceptCount ?? 0) * 0.12),
       })),
     ];
 
-    const links = [
+    const links: GraphLink[] = [
       ...visibleLinks.map((link) => ({
         id: link.id,
         source: link.conceptId,
         target: link.bookId,
-        linkType: 'book-concept',
+        linkType: 'book-concept' as const,
         relationType: link.relationType,
         status: link.status,
         strength: link.strength,
@@ -265,9 +405,9 @@ export const MarginaliaGraph = (() => {
             id: `${context.id}__${conceptId}`,
             source: context.id,
             target: conceptId,
-            linkType: 'context-concept',
+            linkType: 'context-concept' as const,
             relationType: 'contextualizes',
-            status: 'confirmed',
+            status: 'confirmed' as const,
             strength: 0.35,
           }))
       )),
@@ -289,7 +429,7 @@ export const MarginaliaGraph = (() => {
     };
   }
 
-  function getConceptDetails(conceptId, { focusBookId = '' } = {}) {
+  function getConceptDetails(conceptId: string, { focusBookId = '' }: { focusBookId?: string } = {}): ConceptDetails | null {
     const concept = graphState.conceptsById[conceptId];
     if (!concept) return null;
 
@@ -321,7 +461,7 @@ export const MarginaliaGraph = (() => {
     };
   }
 
-  function getBookRelatedConcepts(bookId, { includeRejected = false } = {}) {
+  function getBookRelatedConcepts(bookId: string, { includeRejected = false }: { includeRejected?: boolean } = {}): BookRelatedConcept[] {
     return graphState.bookConceptLinks
       .filter((link) => link.bookId === bookId && (includeRejected || link.status !== 'rejected'))
       .map((link) => ({
@@ -329,7 +469,7 @@ export const MarginaliaGraph = (() => {
         concept: graphState.conceptsById[link.conceptId],
         context: link.contextId ? graphState.contextsById[link.contextId] : null,
       }))
-      .filter((item) => item.concept)
+      .filter((item): item is BookRelatedConcept => Boolean(item.concept))
       .sort((a, b) => {
         if (a.link.status !== b.link.status) return a.link.status === 'suggested' ? 1 : -1;
         return (b.link.strength - a.link.strength) || a.concept.name.localeCompare(b.concept.name, 'zh-Hans-CN');
@@ -341,16 +481,16 @@ export const MarginaliaGraph = (() => {
    * concepts: array from concept-cards prompt output — each needs id, name,
    * contextTag, relationType, strength, description, readerUnderstanding.
    */
-  function addConceptsFromAI(bookId, concepts) {
+  function addConceptsFromAI(bookId: string, concepts: ConceptSeed[]): boolean {
     const auth = MarginaliaAuth;
-    const book = graphState.booksById[bookId] || BooksStore.getById(bookId)
+    const book: Book | undefined = graphState.booksById[bookId] || BooksStore.getById(bookId)
       || (!auth?.user ? SEED_BOOK_BY_ID[bookId] : null);
     if (!book) return false;
 
     if (!book.graph) book.graph = {};
     if (!Array.isArray(book.graph.suggestedConcepts)) book.graph.suggestedConcepts = [];
 
-    const existingIds = new Set(book.graph.suggestedConcepts.map(c => c.id));
+    const existingIds = new Set(book.graph.suggestedConcepts.map((c: ConceptSeed) => c.id));
     let added = 0;
     for (const c of concepts) {
       const id = c.id || slugify(c.name || 'concept');
@@ -361,7 +501,7 @@ export const MarginaliaGraph = (() => {
         aliases:            c.aliases || [],
         description:        c.description || '',
         contextTag:         c.contextTag || '',
-        relationType:       RELATION_META[c.relationType] ? c.relationType : 'supports',
+        relationType:       RELATION_META[c.relationType as RelationType] ? c.relationType : 'supports',
         strength:           typeof c.strength === 'number' ? c.strength : 0.72,
         readerUnderstanding: c.readerUnderstanding || '',
         status:             'suggested',
@@ -383,14 +523,14 @@ export const MarginaliaGraph = (() => {
     return true;
   }
 
-  function setBookConceptLinkStatus(linkId, status) {
+  function setBookConceptLinkStatus(linkId: string, status: LinkStatus): boolean {
     if (!STATUS_META[status]) return false;
     const overrides = getStatusOverrides();
     overrides[linkId] = status;
     persistLocalStatus(overrides);
     if (typeof persistStatusOverride === 'function') {
       Promise.resolve(persistStatusOverride({ linkId, status, overrides: { ...overrides } }))
-        .catch((error) => logError(error, { context: 'graph persist remote override' }));
+        .catch((error) => logError(error instanceof Error ? error : new Error(String(error)), { context: 'graph persist remote override' }));
     }
     remoteStatusOverrides = { ...overrides };
     graphState = buildGraphState();
@@ -400,7 +540,7 @@ export const MarginaliaGraph = (() => {
     return true;
   }
 
-  function useRemoteStatusOverrides(overrides, source = 'remote') {
+  function useRemoteStatusOverrides(overrides: Record<string, LinkStatus>, source = 'remote'): void {
     remoteStatusOverrides = { ...(overrides || {}) };
     statusOverrideSource = source;
     graphState = buildGraphState();
@@ -409,7 +549,7 @@ export const MarginaliaGraph = (() => {
     }));
   }
 
-  function clearRemoteStatusOverrides() {
+  function clearRemoteStatusOverrides(): void {
     remoteStatusOverrides = null;
     statusOverrideSource = 'local';
     graphState = buildGraphState();
@@ -418,34 +558,34 @@ export const MarginaliaGraph = (() => {
     }));
   }
 
-  function setStatusPersistence(handler, source = 'local') {
+  function setStatusPersistence(handler: typeof persistStatusOverride | null, source = 'local'): void {
     persistStatusOverride = typeof handler === 'function' ? handler : null;
     statusOverrideSource = source;
   }
 
-  function getLinkStatusMeta(status) {
+  function getLinkStatusMeta(status: LinkStatus): StatusMeta {
     return STATUS_META[status] || STATUS_META.confirmed;
   }
 
-  function getRelationMeta(relationType) {
+  function getRelationMeta(relationType: RelationType): RelationMeta {
     return RELATION_META[relationType] || RELATION_META.supports;
   }
 
-  function lookupContextDescription(book, contextTag) {
-    return book.cultural?.find((item) => item.tag === contextTag)?.body || '';
+  function lookupContextDescription(book: Book, contextTag: string): string {
+    return book.cultural?.find((item: Book) => item.tag === contextTag)?.body || '';
   }
 
-  function getBookConceptSeeds(book) {
-    const explicit = [
-      ...(book.graph?.concepts || []).map((item) => ({ ...item, status: item.status || 'confirmed' })),
-      ...(book.graph?.suggestedConcepts || []).map((item) => ({ ...item, status: 'suggested', origin: item.origin || 'ai' })),
+  function getBookConceptSeeds(book: Book): ConceptSeed[] {
+    const explicit: ConceptSeed[] = [
+      ...(book.graph?.concepts || []).map((item: ConceptSeed) => ({ ...item, status: item.status || 'confirmed' })),
+      ...(book.graph?.suggestedConcepts || []).map((item: ConceptSeed) => ({ ...item, status: 'suggested', origin: item.origin || 'ai' })),
     ];
     if (explicit.length) return explicit;
     return deriveLegacyConceptSeeds(book);
   }
 
-  function deriveLegacyConceptSeeds(book) {
-    return (book.cultural || []).map((item, index) => ({
+  function deriveLegacyConceptSeeds(book: Book): ConceptSeed[] {
+    return (book.cultural || []).map((item: Book, index: number) => ({
       id: item.conceptId || slugify(stripParenthetical(item.term) || `${book.id}-concept-${index}`),
       name: stripParenthetical(item.term) || item.term || item.tag,
       aliases: item.term && stripParenthetical(item.term) !== item.term ? [item.term] : [],
@@ -460,32 +600,32 @@ export const MarginaliaGraph = (() => {
     }));
   }
 
-  function getStatusOverrides() {
+  function getStatusOverrides(): Record<string, LinkStatus> {
     if (remoteStatusOverrides && typeof remoteStatusOverrides === 'object') {
       return { ...remoteStatusOverrides };
     }
     return readLocalStatusOverrides();
   }
 
-  function readLocalStatusOverrides() {
+  function readLocalStatusOverrides(): Record<string, LinkStatus> {
     try {
       const raw = window.localStorage.getItem(STATUS_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
       return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (error) {
+    } catch {
       return {};
     }
   }
 
-  function persistLocalStatus(overrides) {
+  function persistLocalStatus(overrides: Record<string, LinkStatus>): void {
     try {
       window.localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(overrides));
     } catch (error) {
-      logError(error, { context: 'graph persist local override' });
+      logError(error instanceof Error ? error : new Error(String(error)), { context: 'graph persist local override' });
     }
   }
 
-  function buildBookSearchText(book) {
+  function buildBookSearchText(book: Book): string {
     return [
       book.title || '',
       book.titleZh || '',
@@ -497,11 +637,11 @@ export const MarginaliaGraph = (() => {
     ].join(' ').toLowerCase();
   }
 
-  function stripParenthetical(value) {
+  function stripParenthetical(value: unknown): string {
     return String(value || '').replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  function slugify(value) {
+  function slugify(value: unknown): string {
     const latin = String(value || '').trim().toLowerCase()
       .replace(/['’]/g, '')
       .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
@@ -509,9 +649,9 @@ export const MarginaliaGraph = (() => {
     return latin || 'item';
   }
 
-  function appendUnique(list, ...values) {
+  function appendUnique(list: string[], ...values: Array<string | undefined | null>): void {
     values.filter(Boolean).forEach((value) => {
-      if (!list.includes(value)) list.push(value);
+      if (value && !list.includes(value)) list.push(value);
     });
   }
 

@@ -16,7 +16,7 @@ import { PanelRegistry } from '../../book/panels/registry.js';
 import { EntitlementsStore } from '../../store/entitlements-store.ts';
 import { AIFeatureRegistry } from '../features/registry.js';
 import { MarginaliaAI } from '../../services/ai-gateway.ts';
-import { MarginaliaGraph } from '../../core/graph-data.js';
+import { MarginaliaGraph } from '../../core/graph-data.ts';
 
 const FALLBACK_PROMPT_VERSION = '1';
 const AI_MODEL_LABEL = 'deepseek-chat';

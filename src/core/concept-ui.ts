@@ -3,15 +3,24 @@
    ========================================================================== */
 
 import { BooksStore } from '../store/books-store.ts';
-import { MarginaliaGraph } from './graph-data.js';
-import { PanelManager } from './panel-manager.js';
+import { MarginaliaGraph, type ConceptDetails, type LinkStatus } from './graph-data.ts';
+import { PanelManager } from './panel-manager.ts';
+
+interface OpenConceptDrawerOptions {
+  focusBookId?: string;
+}
+
+interface ConceptDrawerState {
+  conceptId: string;
+  options: OpenConceptDrawerOptions;
+}
 
 let __conceptDrawerReady = false;
-let __conceptDrawerState = null;
+let __conceptDrawerState: ConceptDrawerState | null = null;
 
 ensureConceptDrawer();
 
-function ensureConceptDrawer() {
+function ensureConceptDrawer(): void {
   if (__conceptDrawerReady || !document.body) return;
   const shell = document.createElement('div');
   shell.innerHTML = `
@@ -41,7 +50,7 @@ function ensureConceptDrawer() {
   __conceptDrawerReady = true;
 }
 
-function openConceptDrawer(conceptId, options = {}) {
+function openConceptDrawer(conceptId: string, options: OpenConceptDrawerOptions = {}): void {
   ensureConceptDrawer();
   const details = MarginaliaGraph?.getConceptDetails(conceptId, options);
   if (!details) return;
@@ -51,7 +60,7 @@ function openConceptDrawer(conceptId, options = {}) {
   const titleEl = document.getElementById('conceptDrawerTitle');
   const bodyEl = document.getElementById('conceptDrawerBody');
   const drawerEl = document.getElementById('conceptDrawer');
-  const overlayEl = document.getElementById('conceptOverlay');
+  const overlayEl = document.getElementById('conceptOverlay') as HTMLElement | null;
   if (!titleEl || !bodyEl || !drawerEl || !overlayEl) return;
 
   titleEl.textContent = details.concept.name;
@@ -65,17 +74,17 @@ function openConceptDrawer(conceptId, options = {}) {
   bindConceptDrawerEvents();
 }
 
-function closeConceptDrawer() {
+function closeConceptDrawer(): void {
   __conceptDrawerState = null;
   document.getElementById('conceptDrawer')?.classList.remove('open');
   document.getElementById('conceptDrawer')?.setAttribute('aria-hidden', 'true');
   document.getElementById('conceptOverlay')?.classList.remove('open');
-  const overlay = document.getElementById('conceptOverlay');
+  const overlay = document.getElementById('conceptOverlay') as HTMLElement | null;
   if (overlay) overlay.hidden = true;
   document.body.classList.remove('concept-drawer-open');
 }
 
-function renderConceptDrawerBody(details, options) {
+function renderConceptDrawerBody(details: ConceptDetails, options: OpenConceptDrawerOptions): string {
   const concept = details.concept;
   const contextMarkup = details.relatedContexts.length
     ? `<div class="concept-chip-row">
@@ -142,10 +151,12 @@ function renderConceptDrawerBody(details, options) {
   `;
 }
 
-function bindConceptDrawerEvents() {
+const VALID_LINK_STATUSES: LinkStatus[] = ['confirmed', 'suggested', 'rejected'];
+
+function bindConceptDrawerEvents(): void {
   document.querySelectorAll('[data-open-book-id]').forEach((button) => {
     button.addEventListener('click', () => {
-      const bookId = button.dataset.openBookId;
+      const bookId = (button as HTMLElement).dataset.openBookId;
       if (bookId && BooksStore.getById(bookId)) {
         closeConceptDrawer();
         PanelManager.open('book', { id: bookId });
@@ -155,18 +166,19 @@ function bindConceptDrawerEvents() {
 
   document.querySelectorAll('[data-link-status][data-link-id]').forEach((button) => {
     button.addEventListener('click', () => {
-      const linkId = button.dataset.linkId;
-      const status = button.dataset.linkStatus;
-      if (!linkId || !status) return;
-      MarginaliaGraph?.setBookConceptLinkStatus(linkId, status);
+      const el = button as HTMLElement;
+      const linkId = el.dataset.linkId;
+      const status = el.dataset.linkStatus;
+      if (!linkId || !status || !VALID_LINK_STATUSES.includes(status as LinkStatus)) return;
+      MarginaliaGraph?.setBookConceptLinkStatus(linkId, status as LinkStatus);
     });
   });
 }
 
-function esc(value) {
+function esc(value: unknown): string {
   if (value == null) return '';
   return String(value).replace(/[&<>"]/g, (char) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as Record<string, string>)[char]
   ));
 }
 

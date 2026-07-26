@@ -6,8 +6,8 @@
 import './map.css';
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
-import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
-import { PanelManager } from '../core/panel-manager.js';
+import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.ts';
+import { PanelManager } from '../core/panel-manager.ts';
 import { loadProfile, prefetchProfiles, getCachedProfile, buildFallbackProfile } from './geo-profiles.js';
 
 // amCharts5 modules, loaded on demand when the map is first entered (see

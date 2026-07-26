@@ -3,8 +3,8 @@
 import { BooksStore } from '../store/books-store.ts';
 import { SEED_BOOK_BY_ID, SEED_BOOK_DETAILS } from '../data/seed/index.js';
 import { SHELF_BOOKS as MOCK_SPINES } from '../data/mock/seed-spines.js';
-import { renderUnifiedPanelHeader } from '../core/app.js';
-import { PanelManager } from '../core/panel-manager.js';
+import { renderUnifiedPanelHeader } from '../core/app.ts';
+import { PanelManager } from '../core/panel-manager.ts';
 import { SpineCard } from '../components/spine-card.js';
 import { NewEntry } from '../new-entry/new-entry.js';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';

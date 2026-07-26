@@ -15,21 +15,37 @@
    PanelManager — use PanelManager.open('book', { id: 'sapiens' }) for those.
    ========================================================================== */
 
-import { PanelManager } from './panel-manager.js';
+import { PanelManager } from './panel-manager.ts';
 import { logEvent, logError } from '../services/analytics.ts';
 import { loadView } from './view-registry.ts';
-import { renderPrimaryTabsMarkup } from './primary-tabs.js';
+import { renderPrimaryTabsMarkup } from './primary-tabs.ts';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ViewParams = Record<string, any>;
+type ViewFn = (params?: ViewParams) => void;
+
+interface RenderPrimaryHeaderOptions {
+  showNewEntry?: boolean;
+  actionLabel?: string;
+  actionId?: string;
+}
+
+interface RenderUnifiedPanelHeaderOptions {
+  actionLabel?: string;
+  actionId?: string;
+  rightHTML?: string;
+}
 
 // Module-level exports for render helpers — set by App IIFE below.
 // eslint-disable-next-line prefer-const
-export let renderPrimaryHeader = null;
+export let renderPrimaryHeader: (activeView: string, options?: RenderPrimaryHeaderOptions) => string = null as unknown as typeof renderPrimaryHeader;
 // eslint-disable-next-line prefer-const
-export let renderUnifiedPanelHeader = null;
+export let renderUnifiedPanelHeader: (activeView: string, options?: RenderUnifiedPanelHeaderOptions) => string = null as unknown as typeof renderUnifiedPanelHeader;
 // eslint-disable-next-line prefer-const
-export let renderToolPageShell = null;
+export let renderToolPageShell: (pageType: string, contentHTML?: string) => string = null as unknown as typeof renderToolPageShell;
 // Preloader registration target — assigned by main.js after preloader module loads.
 // Do not import preloader.js directly in this file (it imports App, circular dependency).
-let _enterPreloader = null;
+let _enterPreloader: ViewFn | null = null;
 
 const App = (() => {
   const NAV_ITEMS = [
@@ -39,47 +55,47 @@ const App = (() => {
     { view: 'graph',    label: 'Graph',    icon: 'graph',   href: '#graph' },
     { view: 'profile',  label: 'Profile',  icon: 'profile', href: '#profile' },
   ];
-  const HEADER_ACTION_BY_VIEW = {
+  const HEADER_ACTION_BY_VIEW: Record<string, { label: string; id: string }> = {
     search:   { label: 'Add Book',     id: 'searchNewEntryBtn' },
     map:      { label: '↩ Back',       id: 'mapWorldBtn' },
     web:      { label: '◈ New Concept', id: 'webNewConceptBtn' },
     profile:  { label: 'Settings',     id: 'profileHeaderSettingsBtn' },
   };
 
-  const views = {
+  const views: Record<string, HTMLElement | null> = {
     preloader: document.getElementById('view-preloader'),
     search:    document.getElementById('view-search'),  // TODO(p0-cleanup): merge into panel-library
     // room is the persistent shell — not in views, never toggled by show()
   };
 
-  const initialized = new Set();
-  const routeParamsByView = new Map();
+  const initialized = new Set<string>();
+  const routeParamsByView = new Map<string, ViewParams>();
 
-  function toCanonicalViewName(name) {
+  function toCanonicalViewName(name: string): string {
     if (name === 'studio') return 'library';
     if (name === 'graph') return 'web';
     if (name === 'shelf') return 'search';
     return name;
   }
 
-  function toNavViewName(name) {
+  function toNavViewName(name: string): string {
     if (name === 'web') return 'graph';
     if (name === 'shelf') return 'search';
     return name;
   }
 
-  function setActiveNav(targetView) {
+  function setActiveNav(targetView: string): void {
     const navView = toNavViewName(targetView);
     document.querySelectorAll('.nav-link[data-view]').forEach((a) => {
-      a.classList.toggle('active', a.dataset.view === navView);
+      a.classList.toggle('active', (a as HTMLElement).dataset.view === navView);
     });
   }
 
-  function getRequestedViewFromEvent(event) {
+  function getRequestedViewFromEvent(event: MouseEvent): string {
     const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
     for (const node of path) {
       if (!(node instanceof Element) || node === document.body) continue;
-      if (node.hasAttribute('data-view')) return node.getAttribute('data-view');
+      if (node.hasAttribute('data-view')) return node.getAttribute('data-view') || '';
 
       if (node instanceof HTMLAnchorElement) {
         const hash = node.getAttribute('href') || '';
@@ -88,11 +104,11 @@ const App = (() => {
     }
 
     const fallback = event.target instanceof Element ? event.target.closest('[data-view]') : null;
-    if (fallback && fallback !== document.body) return fallback.getAttribute('data-view');
+    if (fallback && fallback !== document.body) return fallback.getAttribute('data-view') || '';
     return '';
   }
 
-  function syncFromHash() {
+  function syncFromHash(): void {
     const rawHash = window.location.hash.replace(/^#/, '').trim();
     if (!rawHash) {
       if (PanelManager) PanelManager.closeAll();
@@ -129,7 +145,7 @@ const App = (() => {
     }
   }
 
-  function setHashRoute(targetView) {
+  function setHashRoute(targetView: string): void {
     const navView = toNavViewName(targetView);
     const nextHash = `#${navView}`;
     if (window.location.hash === nextHash) {
@@ -139,7 +155,7 @@ const App = (() => {
     window.location.hash = nextHash;
   }
 
-  function navigateTo(targetView, params = {}) {
+  function navigateTo(targetView: string, params: ViewParams = {}): void {
     const canonicalView = toCanonicalViewName(targetView);
     if (canonicalView === 'room') {
       setHashRoute('room');
@@ -154,7 +170,7 @@ const App = (() => {
   // one case reachable via the nav-click delegate below, since every other
   // real view — book/library/map/web/profile — is routed through
   // PanelManager.open(), not here). `views` reflects exactly that.
-  function show(name, params = {}) {
+  function show(name: string, params: ViewParams = {}): void {
     const canonicalName = toCanonicalViewName(name);
     const view = views[canonicalName];
     if (!view) {
@@ -176,10 +192,10 @@ const App = (() => {
       loadView(canonicalName).then((viewModule) => {
         if (document.body.dataset.view !== canonicalName) return;
         if (!initialized.has(canonicalName)) {
-          viewModule.init?.(params);
+          (viewModule.init as ViewFn | undefined)?.(params);
           initialized.add(canonicalName);
         }
-        viewModule.enter?.(params);
+        (viewModule.enter as ViewFn | undefined)?.(params);
       }).catch((e) => {
         logError(e instanceof Error ? e : new Error(String(e)), { context: `App load ${canonicalName}` });
       });
@@ -194,12 +210,13 @@ const App = (() => {
   }
 
   let transitioning = false;
-  function showSearch() {
+  function showSearch(): void {
     if (transitioning) return;
     transitioning = true;
 
     const preloader = views.preloader;
     const search    = views.search;
+    if (!preloader || !search) return;
 
     // Reveal search underneath the preloader, then fade preloader out
     search.hidden = false;
@@ -207,7 +224,7 @@ const App = (() => {
     setActiveNav('search');
     if (!initialized.has('search')) {
       loadView('search').then((viewModule) => {
-        try { viewModule.init?.(); } catch (e) { logError(e, { context: 'App initSearch' }); }
+        try { (viewModule.init as ViewFn | undefined)?.(); } catch (e) { logError(e instanceof Error ? e : new Error(String(e)), { context: 'App initSearch' }); }
       }).catch((e) => logError(e instanceof Error ? e : new Error(String(e)), { context: 'App load search' }));
       initialized.add('search');
     }
@@ -228,24 +245,25 @@ const App = (() => {
 
   // Close panel when any [data-panel-close] element is clicked.
   document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-panel-close]')) {
+    if ((e.target as HTMLElement).closest('[data-panel-close]')) {
       e.preventDefault();
       navigateTo('room');
     }
   });
 
-  function showRoom() {
+  function showRoom(): void {
     if (transitioning) return;
     transitioning = true;
 
     const preloader = views.preloader;
+    if (!preloader) return;
 
     document.body.dataset.view = 'room';
     setActiveNav('room');
 
     if (!initialized.has('room')) {
       loadView('room').then((viewModule) => {
-        try { viewModule.init?.(); } catch (e) { logError(e, { context: 'App initRoom' }); }
+        try { (viewModule.init as ViewFn | undefined)?.(); } catch (e) { logError(e instanceof Error ? e : new Error(String(e)), { context: 'App initRoom' }); }
       }).catch((e) => logError(e instanceof Error ? e : new Error(String(e)), { context: 'App load room' }));
       initialized.add('room');
     }
@@ -268,7 +286,7 @@ const App = (() => {
   // Wire up any element with data-view (nav links, wordmarks, breadcrumbs).
   // Body also carries data-view as a styling hook, so exclude it from the delegate.
   document.addEventListener('click', (e) => {
-    const rawRequestedView = getRequestedViewFromEvent(e);
+    const rawRequestedView = getRequestedViewFromEvent(e as MouseEvent);
     if (!rawRequestedView) return;
     e.preventDefault();
     const requestedView = toCanonicalViewName(rawRequestedView);
@@ -288,14 +306,14 @@ const App = (() => {
 
   window.addEventListener('hashchange', syncFromHash);
 
-  function renderPrimaryHeader(
-    activeView,
-    { showNewEntry = false, actionLabel = '', actionId = '' } = {}
-  ) {
+  function renderPrimaryHeaderImpl(
+    activeView: string,
+    { showNewEntry = false, actionLabel = '', actionId = '' }: RenderPrimaryHeaderOptions = {}
+  ): string {
     const canonicalView = toCanonicalViewName(activeView);
     const activeNavView = toNavViewName(canonicalView);
     const sharedAction = HEADER_ACTION_BY_VIEW[canonicalView] || null;
-    const NAV_ICON_SYMBOLS = {
+    const NAV_ICON_SYMBOLS: Record<string, string> = {
       search: 'icon-nav-search',
       shelf: 'icon-nav-shelf',
       library: 'icon-nav-library',
@@ -304,7 +322,7 @@ const App = (() => {
       list: 'icon-nav-list',
     };
 
-    function renderNavIcon(iconKey) {
+    function renderNavIcon(iconKey: string): string {
       if (iconKey === 'profile') {
         return `
           <span class="nav-icon" aria-hidden="true">
@@ -350,7 +368,7 @@ const App = (() => {
     `;
   }
 
-  function renderUnifiedPanelHeader(activeView, { actionLabel = '', actionId = '', rightHTML = '' } = {}) {
+  function renderUnifiedPanelHeaderImpl(activeView: string, { actionLabel = '', actionId = '', rightHTML = '' }: RenderUnifiedPanelHeaderOptions = {}): string {
     const canonicalView = toCanonicalViewName(activeView);
     const activeNavView = toNavViewName(canonicalView);
     const sharedAction = HEADER_ACTION_BY_VIEW[canonicalView] || null;
@@ -385,7 +403,7 @@ const App = (() => {
     `;
   }
 
-  function renderToolPageShell(pageType, contentHTML = '') {
+  function renderToolPageShellImpl(pageType: string, contentHTML = ''): string {
     const safeType = String(pageType || 'tool').trim().toLowerCase();
     return `
       <div class="tool-page-shell tool-page-shell--${safeType}">
@@ -396,7 +414,7 @@ const App = (() => {
     `;
   }
 
-  function toServiceTitleCase(text) {
+  function toServiceTitleCase(text: string): string {
     return String(text || '')
       .trim()
       .split(/\s+/)
@@ -411,14 +429,23 @@ const App = (() => {
   }
 
   // Navigate to a public profile by slug — sets #/p/{slug} and opens panel.
-  function showProfile(slug) {
+  function showProfile(slug: string): void {
     window.location.hash = `/p/${slug}`;
   }
 
   // Start on preloader
   show('preloader');
 
-  return { show, showSearch, showRoom, navigateTo, showProfile, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell };
+  return {
+    show,
+    showSearch,
+    showRoom,
+    navigateTo,
+    showProfile,
+    renderPrimaryHeader: renderPrimaryHeaderImpl,
+    renderUnifiedPanelHeader: renderUnifiedPanelHeaderImpl,
+    renderToolPageShell: renderToolPageShellImpl,
+  };
 })();
 
 export { App };
@@ -433,7 +460,7 @@ renderToolPageShell = App.renderToolPageShell;
 
 // Preloader registration — avoids the app.js ↔ preloader.js circular import.
 // main.js calls registerPreloader(enterPreloader) after both modules are loaded.
-export function registerPreloader(fn) {
+export function registerPreloader(fn: ViewFn): void {
   _enterPreloader = fn;
   // App starts on preloader before this registration runs; kick it once now.
   // Keep this eager call: removing it can leave first paint stuck on static title screen.

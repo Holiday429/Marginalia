@@ -55,10 +55,10 @@ import './components/reading-session/reading-session.css';
 import './components/action-notifications/action-notifications.css';
 
 // 4. Core app utilities
-import './core/graph-data.js';
-import { PanelManager } from './core/panel-manager.js';
-import { App, registerPreloader, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell } from './core/app.js';
-import { openConceptDrawer, closeConceptDrawer } from './core/concept-ui.js';
+import './core/graph-data.ts';
+import { PanelManager } from './core/panel-manager.ts';
+import { App, registerPreloader, renderPrimaryHeader, renderUnifiedPanelHeader, renderToolPageShell } from './core/app.ts';
+import { openConceptDrawer, closeConceptDrawer } from './core/concept-ui.ts';
 
 // 4b. API adapters
 import { KindleImport } from './api/kindle-import.js';

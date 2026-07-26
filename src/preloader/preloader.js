@@ -3,8 +3,8 @@
    1) app.js starts on 'preloader' before preloader.js is ready.
    2) main.js calls registerPreloader(enterPreloader) once this module is loaded.
    3) enterPreloader() is the only start entrypoint (do not auto-run on module eval). */
-import { App } from '../core/app.js';
-import { PanelManager } from '../core/panel-manager.js';
+import { App } from '../core/app.ts';
+import { PanelManager } from '../core/panel-manager.ts';
 import { BOOKS } from '../data/mock/seed-spines.js';
 
 const TWEAK_DEFAULTS = {

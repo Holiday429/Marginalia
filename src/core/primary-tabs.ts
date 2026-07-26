@@ -1,4 +1,13 @@
-const PRIMARY_TAB_ITEMS = [
+interface PrimaryTabItem {
+  id: string;
+  label: string;
+  icon: string;
+  route: string;
+  panel: string;
+  disabled?: boolean;
+}
+
+const PRIMARY_TAB_ITEMS: PrimaryTabItem[] = [
   { id: 'search', label: 'Search', icon: 'search', route: 'search', panel: 'search' },
   { id: 'library', label: 'Library', icon: 'library', route: 'library', panel: 'library' },
   { id: 'map', label: 'Map', icon: 'map', route: 'map', panel: 'map' },
@@ -6,7 +15,7 @@ const PRIMARY_TAB_ITEMS = [
   { id: 'profile', label: 'Profile', icon: 'profile', route: 'profile', panel: 'profile' },
 ];
 
-const PRIMARY_TAB_ICON_SYMBOLS = {
+const PRIMARY_TAB_ICON_SYMBOLS: Record<string, string> = {
   search: 'icon-nav-search',
   library: 'icon-nav-library',
   shelf: 'icon-nav-shelf',
@@ -15,7 +24,7 @@ const PRIMARY_TAB_ICON_SYMBOLS = {
   list: 'icon-nav-list',
 };
 
-function renderPrimaryTabIcon(iconId) {
+function renderPrimaryTabIcon(iconId: string): string {
   if (iconId === 'profile') {
     return `
       <svg viewBox="0 0 18 18" class="room-svg-icon">
@@ -28,13 +37,21 @@ function renderPrimaryTabIcon(iconId) {
   return `<svg viewBox="0 0 16 16" class="room-svg-icon"><use href="#${symbolId}"></use></svg>`;
 }
 
+interface RenderPrimaryTabsOptions {
+  activeId?: string;
+  dataAttr?: string;
+  valueKey?: keyof PrimaryTabItem;
+  className?: string;
+  ariaLabel?: string;
+}
+
 export function renderPrimaryTabsMarkup({
   activeId = '',
   dataAttr = 'view',
   valueKey = 'route',
   className = 'room-top-tabs',
   ariaLabel = 'Primary pages',
-} = {}) {
+}: RenderPrimaryTabsOptions = {}): string {
   return `
     <nav class="${className}" aria-label="${ariaLabel}">
       ${PRIMARY_TAB_ITEMS.map((item) => `

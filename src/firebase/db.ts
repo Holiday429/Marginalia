@@ -26,7 +26,7 @@ import { GraphLinkStatusSchema } from '../data/schema/graph-link-status.ts';
 import { logError } from '../services/analytics.ts';
 import { MarginaliaAuth } from './auth.ts';
 import { MARGINALIA_FIREBASE } from './config.ts';
-import { MarginaliaGraph } from '../core/graph-data.js';
+import { MarginaliaGraph } from '../core/graph-data.ts';
 
 /* ── Books sync ─────────────────────────────────────────────────────────── */
 
