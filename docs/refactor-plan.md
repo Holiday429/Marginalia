@@ -149,6 +149,18 @@ Execution order: amCharts + D3 (lower risk, independently verifiable) → view-r
 
 Done when: `index.html` has zero third-party `<script>` tags; `npx size-limit` passes locally and is wired into CI as a hard gate; every view still enters correctly via smoke e2e (extended to assert lazy-loaded content actually renders, e.g. `#mapChart svg` exists, `#webGraph` has nodes — not just that `data-view` changed); Network panel confirms map/graph chunks download only on first entry to those views, not on initial page load.
 
+### Phase 3 ✅ done (branch `refactor/p3-bundle-architecture`, 7 commits)
+
+**Numbers**: entry chunk 2,306.62 kB → 425.88 kB raw (642 KB → **137.5 KB gzip / 116.8 KB brotli**) — an **82% reduction**. `index.html` has zero third-party `<script>` tags (down from 5 amCharts CDN scripts + a second undeclared D3 CDN injected at runtime). `three`/`firebase`/`amcharts`/`d3` are each one predictable `vendor-*` chunk, gated by a `size-limit` CI job that fails the build on regression (verified: deliberately lowered a threshold, confirmed `size-limit` exits 1).
+
+**Two things surfaced mid-phase, fixed in their own commits, not folded silently into the bundling work**:
+- `App.show('book'/'new-entry'/'search')` was silently broken at 9 call sites — some threw `ReferenceError: App is not defined` (never imported), others hit a `views` object that only ever had `preloader`/`search` keys. Root cause: `PanelManager.open()` is the real routing path for book/library/map/web/profile; `App.show()` only ever owns `search`+`preloader`. Fixed all 9 sites to call `PanelManager.open()` instead; one (`new-entry` prefill) had no real fix available since `NewEntry` never had a prefill parameter, so it was downgraded to opening a blank form rather than left dead.
+- `library-2d.js` had one static import (`new-entry.js`'s `enterLibrary`) that pulled it (and its CSS) into the eager entry bundle despite `view-registry.ts`'s lazy loader — Rollup can't defer a module reachable via any static path. Converted to a dynamic import at that one call site.
+
+**Deviations from the original plan, all pre-approved before executing** (see the finalized-plan commit, `41deda9`): `hero-glb.js` dropped from scope entirely — `docs/window-cleanup.md` documents its triple-loading as intentional (preloader needs `window.__heroGLBReadyPromise` set before Vite's bundle even starts evaluating); manualChunks covers all 4 third-party deps instead of 2; size budget is a CI gate instead of a number recorded here after the fact.
+
+**Verified beyond typecheck/build**: network-traced (not just build-output-inferred) that initial page load fetches exactly one JS chunk; entering Map fetches only map+amCharts+geodata chunks at that moment; entering Graph fetches only web+D3 chunks; a second visit to an already-loaded view hits `loadView()`'s cache with zero re-fetch. Full manual walkthrough of all 7 views (search/library/room/book/map/graph/profile) with screenshots, including a FOUC check on the newly CSS-split views and a font-swap visual check on preloader/book/profile.
+
 ## Phase 4 — TypeScript completion
 
 Goal: one language, one typecheck surface, `strict` everywhere.
