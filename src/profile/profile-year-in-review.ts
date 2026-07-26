@@ -1,4 +1,4 @@
-import { PanelManager } from '../core/panel-manager.js';
+import { PanelManager } from '../core/panel-manager.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { SpineCard } from '../components/spine-card.js';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';

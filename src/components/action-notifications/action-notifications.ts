@@ -10,7 +10,7 @@ import { collection, doc, onSnapshot, updateDoc, type Firestore, type Unsubscrib
 import { logError } from '../../services/analytics.ts';
 import { ENV } from '../../core/env.ts';
 import { MARGINALIA_FIREBASE } from '../../firebase/config.ts';
-import { App } from '../../core/app.js';
+import { App } from '../../core/app.ts';
 
 type FirestoreDB = Firestore;
 

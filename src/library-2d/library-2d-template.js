@@ -1,4 +1,4 @@
-import { renderUnifiedPanelHeader } from '../core/app.js';
+import { renderUnifiedPanelHeader } from '../core/app.ts';
 
 function renderLeftRail() {
   return `

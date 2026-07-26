@@ -5,10 +5,10 @@
 import './web.css';
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
-import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
-import { PanelManager } from '../core/panel-manager.js';
-import { MarginaliaGraph } from '../core/graph-data.js';
-import { openConceptDrawer } from '../core/concept-ui.js';
+import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.ts';
+import { PanelManager } from '../core/panel-manager.ts';
+import { MarginaliaGraph } from '../core/graph-data.ts';
+import { openConceptDrawer } from '../core/concept-ui.ts';
 
 // The D3 submodules actually used here, loaded on demand when the graph view
 // is first entered (see loadD3()). Assembled into a single `d3` object so

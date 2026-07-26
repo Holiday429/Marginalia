@@ -6,7 +6,7 @@ import { collection, doc, setDoc } from 'firebase/firestore';
 import { logEvent, logError } from '../services/analytics.ts';
 import { withMeta, withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
-import { PanelManager } from '../core/panel-manager.js';
+import { PanelManager } from '../core/panel-manager.ts';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { BooksStore } from '../store/books-store.ts';
 import { NotesStore } from '../store/notes-store.js';

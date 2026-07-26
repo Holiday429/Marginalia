@@ -5,7 +5,7 @@ import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
 import { withMeta } from '../services/db.ts';
 import { renderLibraryShell } from './library-2d-template.js';
-import { PanelManager } from '../core/panel-manager.js';
+import { PanelManager } from '../core/panel-manager.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { MarginaliaBooksCloud } from '../firebase/db.ts';

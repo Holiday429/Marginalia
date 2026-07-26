@@ -10,7 +10,7 @@ import {
   where,
   type Firestore,
 } from 'firebase/firestore';
-import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.js';
+import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.ts';
 import { logError, logEvent } from '../services/analytics.ts';
 import { renderProfileSettings } from './profile-settings.ts';
 import { ProfileMap } from './profile-map.ts';
