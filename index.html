@@ -16,11 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!--
-    Type system (target): Fraunces (serif body+display) · IBM Plex Mono (labels) · Bodoni Moda (covers only)
-    Cormorant / Libre Caslon / Inter are still loaded only because preloader book data references them
-    on individual covers. Migrate book schema to use the 3-font system, then drop these three.
+    Type system: Fraunces (serif body+display) · IBM Plex Mono (labels) ·
+    Bodoni Moda (covers only) · Caveat (--font-hand, handwritten margin
+    notes only — see src/core/base.css). Cormorant Garamond, Libre Caslon
+    Text, Inter, and Ma Shan Zheng were dropped 2026-07 — grep confirmed
+    zero remaining font-family references anywhere in src/.
   -->
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..800,0..100;1,9..144,300..800,0..100&family=IBM+Plex+Mono:wght@300;400;500&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;700&family=Caveat:wght@500;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..800,0..100;1,9..144,300..800,0..100&family=IBM+Plex+Mono:wght@300;400;500&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="src/core/base.css">
   <link rel="stylesheet" href="src/preloader/preloader.css">
