@@ -10,12 +10,14 @@
                        view is shown. Define on window.
      - enter<Name>()   optional, called every time the view is shown.
 
-   Use App.show('book', { id: 'sapiens' }) to pass params to a view.
+   Use App.show('search', params) for the two views App owns (preloader,
+   search). Every other panel (book, library, map, web, profile) is owned by
+   PanelManager — use PanelManager.open('book', { id: 'sapiens' }) for those.
    ========================================================================== */
 
 import { PanelManager } from './panel-manager.js';
 import { logEvent, logError } from '../services/analytics.ts';
-import { VIEW_REGISTRY } from './view-registry.ts';
+import { loadView } from './view-registry.ts';
 import { renderPrimaryTabsMarkup } from './primary-tabs.js';
 
 // Module-level exports for render helpers — set by App IIFE below.
@@ -148,6 +150,10 @@ const App = (() => {
     setHashRoute(canonicalView);
   }
 
+  // App only ever owns two views: 'preloader' (bootstrap) and 'search' (the
+  // one case reachable via the nav-click delegate below, since every other
+  // real view — book/library/map/web/profile — is routed through
+  // PanelManager.open(), not here). `views` reflects exactly that.
   function show(name, params = {}) {
     const canonicalName = toCanonicalViewName(name);
     const view = views[canonicalName];
@@ -160,20 +166,23 @@ const App = (() => {
       if (el) el.hidden = key !== canonicalName;
     });
     document.body.dataset.view = canonicalName;
-    if (canonicalName !== 'map') document.body.classList.remove('map-panel-open');
 
-    // Run init once, enter every time — resolved from VIEW_REGISTRY.
     // preloader is excluded: it imports App itself (circular), so its
     // enterPreloader is registered via registerPreloader() in main.js.
-    if (canonicalName !== 'preloader') {
-      if (!initialized.has(canonicalName)) {
-        VIEW_REGISTRY[canonicalName]?.init?.(params);
-        initialized.add(canonicalName);
-      }
-      VIEW_REGISTRY[canonicalName]?.enter?.(params);
-    } else {
+    if (canonicalName === 'preloader') {
       if (!initialized.has('preloader')) initialized.add('preloader');
       _enterPreloader?.(params);
+    } else {
+      loadView(canonicalName).then((viewModule) => {
+        if (document.body.dataset.view !== canonicalName) return;
+        if (!initialized.has(canonicalName)) {
+          viewModule.init?.(params);
+          initialized.add(canonicalName);
+        }
+        viewModule.enter?.(params);
+      }).catch((e) => {
+        logError(e instanceof Error ? e : new Error(String(e)), { context: `App load ${canonicalName}` });
+      });
     }
 
     // Highlight nav state
@@ -197,7 +206,9 @@ const App = (() => {
     document.body.dataset.view = 'search';
     setActiveNav('search');
     if (!initialized.has('search')) {
-      try { VIEW_REGISTRY.search?.init?.(); } catch(e) { logError(e, { context: 'App initSearch' }); }
+      loadView('search').then((viewModule) => {
+        try { viewModule.init?.(); } catch (e) { logError(e, { context: 'App initSearch' }); }
+      }).catch((e) => logError(e instanceof Error ? e : new Error(String(e)), { context: 'App load search' }));
       initialized.add('search');
     }
 
@@ -233,7 +244,9 @@ const App = (() => {
     setActiveNav('room');
 
     if (!initialized.has('room')) {
-      try { VIEW_REGISTRY.room?.init?.(); } catch(e) { logError(e, { context: 'App initRoom' }); }
+      loadView('room').then((viewModule) => {
+        try { viewModule.init?.(); } catch (e) { logError(e, { context: 'App initRoom' }); }
+      }).catch((e) => logError(e instanceof Error ? e : new Error(String(e)), { context: 'App load room' }));
       initialized.add('room');
     }
 

@@ -6,7 +6,7 @@
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
-import { VIEW_REGISTRY } from './view-registry.ts';
+import { loadView } from './view-registry.ts';
 
 const PANEL_IDS = ['search', 'library', 'map', 'book', 'todo', 'profile', 'web'];
 const PANEL_ALIASES = {
@@ -201,15 +201,30 @@ const PanelManager = (() => {
       _roomHandle.pause();
     }
 
-    // Run init once, enterPanel every time — resolved from VIEW_REGISTRY
-    if (!_initialized.has(canonicalPanelId)) {
-      try { VIEW_REGISTRY[canonicalPanelId]?.init?.(params); } catch(e) {
-        logError(e, { context: `PanelManager init ${canonicalPanelId}` });
-      }
-      _initialized.add(canonicalPanelId);
-    }
-    VIEW_REGISTRY[canonicalPanelId]?.enterPanel?.(params);
+    // The panel-open event and scroll reset happen immediately — they don't
+    // depend on the view's code having loaded. init/enterPanel are resolved
+    // from the (possibly still-loading) view module and run whenever that
+    // resolves; the transition overlay/animation above already covers the gap
+    // on first visit to a given view, so there's nothing to block on here.
     window.scrollTo({ top: 0 });
+    window.dispatchEvent(new CustomEvent('marginalia:panel-open', {
+      detail: { panelId: canonicalPanelId, params, transition: transitionMeta }
+    }));
+
+    loadView(canonicalPanelId).then((view) => {
+      // Bail if another panel was opened while this view's chunk was loading.
+      if (_activePanel !== canonicalPanelId) return;
+
+      if (!_initialized.has(canonicalPanelId)) {
+        try { view.init?.(params); } catch (e) {
+          logError(e, { context: `PanelManager init ${canonicalPanelId}` });
+        }
+        _initialized.add(canonicalPanelId);
+      }
+      view.enterPanel?.(params);
+    }).catch((e) => {
+      logError(e instanceof Error ? e : new Error(String(e)), { context: `PanelManager load ${canonicalPanelId}` });
+    });
 
     if (isRoomOrigin) {
       window.setTimeout(() => {
@@ -217,10 +232,6 @@ const PanelManager = (() => {
         hideTransitionOverlay();
       }, Math.max(320, PANEL_ENTER_MS - 120));
     }
-
-    window.dispatchEvent(new CustomEvent('marginalia:panel-open', {
-      detail: { panelId: canonicalPanelId, params, transition: transitionMeta }
-    }));
   }
 
   function close(panelId) {

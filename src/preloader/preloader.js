@@ -4,6 +4,7 @@
    2) main.js calls registerPreloader(enterPreloader) once this module is loaded.
    3) enterPreloader() is the only start entrypoint (do not auto-run on module eval). */
 import { App } from '../core/app.js';
+import { PanelManager } from '../core/panel-manager.js';
 import { BOOKS } from '../data/mock/seed-spines.js';
 
 const TWEAK_DEFAULTS = {
@@ -442,7 +443,7 @@ function runBookPreloadTransition(bookId) {
 
   const heroEl = books[getHeroIdx()];
   if (!heroEl) {
-    App.show('book', { id: bookId });
+    PanelManager.open('book', { id: bookId });
     return;
   }
 
@@ -453,7 +454,7 @@ function runBookPreloadTransition(bookId) {
   }, 120));
   T.push(setTimeout(() => {
     closeBook(heroEl);
-    App.show('book', { id: bookId });
+    PanelManager.open('book', { id: bookId });
     clearBookTransitionTimers();
   }, 780));
 }

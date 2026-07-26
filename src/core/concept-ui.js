@@ -4,6 +4,7 @@
 
 import { BooksStore } from '../store/books-store.ts';
 import { MarginaliaGraph } from './graph-data.js';
+import { PanelManager } from './panel-manager.js';
 
 let __conceptDrawerReady = false;
 let __conceptDrawerState = null;
@@ -147,7 +148,7 @@ function bindConceptDrawerEvents() {
       const bookId = button.dataset.openBookId;
       if (bookId && BooksStore.getById(bookId)) {
         closeConceptDrawer();
-        App.show('book', { id: bookId });
+        PanelManager.open('book', { id: bookId });
       }
     });
   });

@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:prod": "vite --mode production",
     "build": "vite build",
+    "build:analyze": "ANALYZE=1 vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "typecheck:room": "tsc --noEmit -p tsconfig.room-check.json",
@@ -17,23 +18,62 @@
     "test:e2e": "playwright test",
     "i18n:sync": "npx tsx scripts/i18n-sync.ts",
     "data:export": "npx tsx scripts/export-user-data.ts",
-    "data:import": "npx tsx scripts/import-user-data.ts"
+    "data:import": "npx tsx scripts/import-user-data.ts",
+    "size": "size-limit"
   },
+  "size-limit": [
+    {
+      "name": "Entry chunk",
+      "path": "dist/assets/index-*.js",
+      "limit": "135 KB"
+    },
+    {
+      "name": "three.js chunk (room entry only)",
+      "path": "dist/assets/vendor-three-*.js",
+      "limit": "157 KB"
+    },
+    {
+      "name": "firebase chunk (app boot)",
+      "path": "dist/assets/vendor-firebase-*.js",
+      "limit": "170 KB"
+    },
+    {
+      "name": "amCharts5 chunk (map entry only)",
+      "path": "dist/assets/vendor-amcharts-*.js",
+      "limit": "235 KB"
+    },
+    {
+      "name": "D3 chunk (graph entry only)",
+      "path": "dist/assets/vendor-d3-*.js",
+      "limit": "40 KB"
+    }
+  ],
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@firebase/rules-unit-testing": "^5.0.0",
     "@playwright/test": "^1.61.1",
+    "@size-limit/file": "^13.0.1",
     "@types/qrcode": "^1.5.6",
     "@types/three": "^0.160.0",
     "eslint": "^9.39.5",
     "playwright-core": "^1.60.0",
+    "rollup-plugin-visualizer": "^7.0.1",
+    "size-limit": "^12.1.0",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.64.0",
     "vite": "^5.2.11",
     "vitest": "^4.1.5"
   },
   "dependencies": {
+    "@amcharts/amcharts5": "^5.19.1",
+    "@amcharts/amcharts5-geodata": "^5.1.5",
     "@sentry/browser": "^10.51.0",
+    "d3-array": "^3.2.4",
+    "d3-drag": "^3.0.0",
+    "d3-force": "^3.0.0",
+    "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0",
+    "d3-zoom": "^3.0.0",
     "firebase": "^12.16.0",
     "html-to-image": "^1.11.13",
     "posthog-js": "^1.372.6",

@@ -1,4 +1,4 @@
-import { App } from '../core/app.js';
+import { PanelManager } from '../core/panel-manager.js';
 import { BooksStore } from '../store/books-store.ts';
 import { SpineCard } from '../components/spine-card.js';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
@@ -496,7 +496,7 @@ export class ProfileAnnualShelf {
     this.host.querySelector('#profAnnualStage')?.addEventListener('click', () => {
       if (!this.allowOpenDetails || this.state.isAnimating || this.state.curateMode) return;
       const book = this.shelfDataForYear(this.year).selectedBooks.find((b) => b.id === this.state.previewBookId);
-      if (book?.id && BooksStore.getById(book.id)) App.show('book', { id: book.id });
+      if (book?.id && BooksStore.getById(book.id)) PanelManager.open('book', { id: book.id });
     });
   }
 

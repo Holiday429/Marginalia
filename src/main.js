@@ -89,14 +89,18 @@ import './book/panels/actions.css';
 
 // 6. Views (three-room/room-scene.js and preloader/hero-glb.js stay in index.html as type="module")
 // window.__heroGLBReadyPromise is set by hero-glb.js (HTML script tag, not bundled — see ADR 0002)
+//
+// search and room/three-room-view stay eager: search is the default landing
+// view after the preloader, room is the persistent 3D shell shown immediately
+// after it — neither benefits from lazy loading. library/book/map/web/profile
+// are NOT imported here — src/core/view-registry.ts dynamically imports each
+// on first navigation (see loadView()), so their bundle chunks (and, for
+// map/web, the amCharts5/D3 chunks they in turn load) are only fetched once
+// the user actually visits that view.
 import { enterPreloader } from './preloader/preloader.js';
 registerPreloader(enterPreloader);
-import { initSearch, enterSearch, enterPanel_search, renderSearchSection } from './search/search.js';
-import { initLibrary, enterLibrary, enterPanel_library } from './library-2d/library-2d.js';
-import { initRoom, enterRoom, renderRoomTopTabs } from './three-room/three-room-view.js';
-import { initBook, enterBook, enterPanel_book } from './book/book.js';
-import { initMap, enterMap, enterPanel_map } from './map/map.js';
-import { initWeb, enterWeb, enterPanel_web } from './web/web.js';
+import './search/search.js';
+import './three-room/three-room-view.js';
 
 // Wire BooksStore to Firebase auth state.
 // When a user signs in, start the Firestore onSnapshot listener.

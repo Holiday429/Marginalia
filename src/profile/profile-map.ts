@@ -6,10 +6,34 @@
 import { PixelReader } from '../components/pixel-avatar/pixel-avatar.js';
 import { logError } from '../services/analytics.ts';
 
-// TODO(tech-debt): am5 / am5map / am5themes_Animated are accessed via window globals
-// because amCharts 5 is loaded as a CDN <script> tag in index.html.
-// Fix: replace with dynamic import() or inject via dependency injection.
-// Tracked: CLAUDE.md §"window.X globals are bugs to fix".
+// amCharts5 modules, loaded on demand the first time a ProfileMap is mounted.
+// Module-level + cached promise so repeat profile visits don't re-fetch chunks.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let am5: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let am5map: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let am5themesAnimated: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let am5geodataWorldLow: any;
+let __amChartsLoadPromise: Promise<void> | null = null;
+
+function loadAmCharts(): Promise<void> {
+  if (am5 && am5map && am5themesAnimated && am5geodataWorldLow) return Promise.resolve();
+  if (__amChartsLoadPromise) return __amChartsLoadPromise;
+  __amChartsLoadPromise = Promise.all([
+    import('@amcharts/amcharts5'),
+    import('@amcharts/amcharts5/map'),
+    import('@amcharts/amcharts5/themes/Animated'),
+    import('@amcharts/amcharts5-geodata/worldLow'),
+  ]).then(([am5Mod, am5mapMod, animatedThemeMod, worldLowMod]) => {
+    am5 = am5Mod;
+    am5map = am5mapMod;
+    am5themesAnimated = animatedThemeMod.default;
+    am5geodataWorldLow = worldLowMod.default;
+  });
+  return __amChartsLoadPromise;
+}
 
 type GeoDim = 'journey' | 'authorOrigin' | 'contentLocation' | 'readerLocation';
 type LensDim = Exclude<GeoDim, 'journey'>;
@@ -237,12 +261,16 @@ export class ProfileMap {
     this.books = books;
   }
 
-  mount(): void {
-    const am5 = (window as any).am5;
-    const am5map = (window as any).am5map;
-    const am5themesAnimated = (window as any).am5themes_Animated;
-    const world = (window as any).am5geodata_worldLow;
+  async mount(): Promise<void> {
+    try {
+      await loadAmCharts();
+    } catch (error) {
+      logError(error instanceof Error ? error : new Error(String(error)), { context: 'ProfileMap amCharts import' });
+      this.mapEl.classList.add('prof-map--unavailable');
+      return;
+    }
 
+    const world = am5geodataWorldLow;
     if (!am5 || !am5map || !world) {
       this.mapEl.classList.add('prof-map--unavailable');
       return;
@@ -685,7 +713,6 @@ export class ProfileMap {
 
   private lightCountries(activeIdx: number, activeCountry: string): void {
     if (!this.polygonSeries) return;
-    const am5 = (window as any).am5;
     const visitCounts = new Map<string, number>();
     this.events.slice(0, activeIdx + 1).forEach((event) => {
       visitCounts.set(event.country, (visitCounts.get(event.country) ?? 0) + 1);
@@ -713,7 +740,6 @@ export class ProfileMap {
 
   private resetCountryLighting(): void {
     if (!this.polygonSeries) return;
-    const am5 = (window as any).am5;
     this.polygonSeries.mapPolygons.each((poly: any) => {
       poly.set('fill', am5.color(UNLIT_FILL));
     });
