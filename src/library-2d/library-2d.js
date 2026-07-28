@@ -10,7 +10,7 @@ import { BooksStore } from '../store/books-store.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { MarginaliaBooksCloud } from '../firebase/db.ts';
 import { SpineCard } from '../components/spine-card.ts';
-import { NewEntry } from '../new-entry/new-entry.js';
+import { NewEntry } from '../new-entry/new-entry.ts';
 import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { SPINE_COLORS } from '../shared/spine-colors.ts';
 import {

@@ -6,7 +6,7 @@ import { SHELF_BOOKS as MOCK_SPINES } from '../data/mock/seed-spines.js';
 import { renderUnifiedPanelHeader } from '../core/app.ts';
 import { PanelManager } from '../core/panel-manager.ts';
 import { SpineCard } from '../components/spine-card.ts';
-import { NewEntry } from '../new-entry/new-entry.js';
+import { NewEntry } from '../new-entry/new-entry.ts';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
 import { maybeSettleLaptopFlyIn } from './laptop-fly.js';
 

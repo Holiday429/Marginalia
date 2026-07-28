@@ -31,7 +31,7 @@ import { generateReadingCardBlob, fetchReadingCardAI } from './reading-card.ts';
 import { ENV } from '../core/env.ts';
 import { HeroBook } from '../components/hero-book/hero-book.ts';
 import '../components/hero-book/hero-book.css';
-import { NewEntry } from '../new-entry/new-entry.js';
+import { NewEntry } from '../new-entry/new-entry.ts';
 
 let __currentBookId = null;
 

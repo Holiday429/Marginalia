@@ -16,9 +16,32 @@ import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { BOOK_TYPES } from '../data/schema/book-types.ts';
 import { SPINE_COLORS } from '../shared/spine-colors.ts';
 
+type Book = { id: string; [key: string]: any }; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
+
+interface SpineStyle {
+  id: string;
+  label: string;
+  font: string;
+  weight: number;
+  size: number;
+  tracking: string;
+  band: string | null;
+  topMark: string | null;
+}
+
+interface IsbnLookupData {
+  title: string;
+  author: string;
+  language: string;
+  tags: string[];
+  coverUrl: string;
+  origin: string;
+  bookType: string;
+}
+
 export const NewEntry = (() => {
 
-  const SPINE_STYLES = [
+  const SPINE_STYLES: SpineStyle[] = [
     {
       id: 'minimal',
       label: 'Minimal',
@@ -121,7 +144,7 @@ export const NewEntry = (() => {
     { name: 'Zimbabwe', flag: '🇿🇼' },
   ];
 
-  const COUNTRY_TO_ISO = {
+  const COUNTRY_TO_ISO: Record<string, string> = {
     'Afghanistan':'AF','Albania':'AL','Algeria':'DZ','Argentina':'AR','Armenia':'AM',
     'Australia':'AU','Austria':'AT','Azerbaijan':'AZ','Bangladesh':'BD','Belarus':'BY',
     'Belgium':'BE','Bolivia':'BO','Brazil':'BR','Bulgaria':'BG','Cambodia':'KH',
@@ -144,7 +167,7 @@ export const NewEntry = (() => {
 
   /* ── Text color auto-contrast ────────────────────────────────────────────── */
 
-  function autoTextColor(hex) {
+  function autoTextColor(hex: string): string {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
@@ -152,7 +175,7 @@ export const NewEntry = (() => {
     return luminance > 0.45 ? '#1a1714' : '#e8dfc8';
   }
 
-  function isCJK(str) {
+  function isCJK(str: string): boolean {
     return /[一-鿿぀-ヿ]/.test(str || '');
   }
 
@@ -167,16 +190,16 @@ export const NewEntry = (() => {
     thickness:    34,   // px equivalent (w in SHELF_BOOKS)
     height:       0.88, // h ratio
     status:       'confirmed-later',
-    coverFile:    null,
-    coverPreview: null,
+    coverFile:    null as File | null,
+    coverPreview: null as string | null,
   };
 
   /* ── Mount / unmount ─────────────────────────────────────────────────────── */
 
   // Tracks the book being edited (null = new book mode)
-  let _editBookId = null;
+  let _editBookId: string | null = null;
 
-  function mount() {
+  function mount(): void {
     document.getElementById('newEntryDialog')?.remove();
     resetState();
     _editBookId = null;
@@ -191,7 +214,7 @@ export const NewEntry = (() => {
     open();
   }
 
-  function mountForEdit(book) {
+  function mountForEdit(book: Book): void {
     _editBookId = book.id;
     const existing = document.getElementById('newEntryDialog');
     if (existing) {
@@ -222,7 +245,7 @@ export const NewEntry = (() => {
     if (submitBtn) submitBtn.textContent = 'Save changes';
 
     // Pre-fill form fields
-    const set = (sel, val) => { const el = dialog.querySelector(sel); if (el && val != null) el.value = val; };
+    const set = (sel: string, val: unknown) => { const el = dialog.querySelector(sel) as HTMLInputElement | HTMLSelectElement | null; if (el && val != null) el.value = String(val); };
     set('#neTitle',    book.title);
     set('#neAuthor',   book.author);
     set('#neStatus',   toEntryStatus(book.status));
@@ -234,7 +257,7 @@ export const NewEntry = (() => {
     // Pre-fill country from geo or location
     const country = book.geo?.authorOrigin?.country || book.location?.country || '';
     if (country) {
-      const originInput = dialog.querySelector('#neOrigin');
+      const originInput = dialog.querySelector('#neOrigin') as HTMLInputElement | null;
       if (originInput) {
         // Try to reverse-map ISO code to country name
         const name = Object.entries(COUNTRY_TO_ISO).find(([, iso]) => iso === country)?.[0] || country;
@@ -244,8 +267,8 @@ export const NewEntry = (() => {
 
     // Pre-fill cover image if available
     if (book.cover?.image) {
-      const img = dialog.querySelector('#neCoverImg');
-      const placeholder = dialog.querySelector('#neCoverPlaceholder');
+      const img = dialog.querySelector('#neCoverImg') as HTMLImageElement | null;
+      const placeholder = dialog.querySelector('#neCoverPlaceholder') as HTMLElement | null;
       const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
       if (img) { img.src = book.cover.image; img.hidden = false; }
       if (placeholder) placeholder.hidden = true;
@@ -256,18 +279,18 @@ export const NewEntry = (() => {
     open();
   }
 
-  function open() {
-    const dialog = document.getElementById('newEntryDialog');
+  function open(): void {
+    const dialog = document.getElementById('newEntryDialog') as HTMLDialogElement | null;
     if (!dialog) return;
     dialog.showModal();
     renderSpinePreview();
   }
 
-  function close() {
-    document.getElementById('newEntryDialog')?.close();
+  function close(): void {
+    (document.getElementById('newEntryDialog') as HTMLDialogElement | null)?.close();
   }
 
-  function resetState() {
+  function resetState(): void {
     state.spineColor = '#14263e';
     state.textColor = '#e8dfc8';
     state.styleId = 'classic';
@@ -282,7 +305,7 @@ export const NewEntry = (() => {
 
   /* ── HTML ────────────────────────────────────────────────────────────────── */
 
-  function buildHTML() {
+  function buildHTML(): string {
     return `
       <div class="ne-layout">
 
@@ -432,14 +455,14 @@ export const NewEntry = (() => {
 
   /* ── Spine preview renderer ──────────────────────────────────────────────── */
 
-  function renderSpinePreview() {
-    const wrap = document.getElementById('neSpinePreview');
+  function renderSpinePreview(): void {
+    const wrap = document.getElementById('neSpinePreview') as HTMLElement | null;
     if (!wrap) return;
 
     const style = SPINE_STYLES.find(s => s.id === state.styleId) || SPINE_STYLES[0];
     const title = state.title || 'Title';
     const author = state.author || 'Author';
-    const lang = document.getElementById('neLanguage')?.value || 'en';
+    const lang = (document.getElementById('neLanguage') as HTMLSelectElement | null)?.value || 'en';
     const isChinese = lang === 'zh' || isCJK(title);
 
     const w = Math.max(24, state.thickness);
@@ -450,7 +473,7 @@ export const NewEntry = (() => {
     wrap.style.background = state.spineColor;
     wrap.style.color      = state.textColor;
     wrap.style.fontFamily = style.font;
-    wrap.style.fontWeight = style.weight;
+    wrap.style.fontWeight = String(style.weight);
     wrap.style.fontSize   = style.size + 'px';
     wrap.style.letterSpacing = style.tracking;
 
@@ -475,7 +498,7 @@ export const NewEntry = (() => {
     }
 
     // Title text
-    let titleEl = wrap.querySelector('.ne-spine-title');
+    let titleEl = wrap.querySelector('.ne-spine-title') as HTMLElement | null;
     if (!titleEl) {
       titleEl = document.createElement('div');
       titleEl.className = 'ne-spine-title';
@@ -487,14 +510,15 @@ export const NewEntry = (() => {
 
     // Remove any existing author element (author no longer shown on spine)
     wrap.querySelector('.ne-spine-author')?.remove();
+    void author; // retained for parity with original destructure; not rendered on spine
 
     // Cover preview bg color sync
-    const coverPlaceholder = document.getElementById('neCoverPlaceholder');
+    const coverPlaceholder = document.getElementById('neCoverPlaceholder') as HTMLElement | null;
     if (coverPlaceholder) {
       coverPlaceholder.style.background = state.spineColor;
       coverPlaceholder.style.color = state.textColor;
     }
-    const coverPreview = document.getElementById('neCoverPreview');
+    const coverPreview = document.getElementById('neCoverPreview') as HTMLElement | null;
     if (coverPreview) {
       coverPreview.style.setProperty('--ne-spine-bg', state.spineColor);
     }
@@ -502,7 +526,7 @@ export const NewEntry = (() => {
 
   /* ── Event binding ───────────────────────────────────────────────────────── */
 
-  function bindEvents(dialog) {
+  function bindEvents(dialog: HTMLElement): void {
 
     // Close buttons
     dialog.querySelector('#neCloseBtn')?.addEventListener('click', close);
@@ -511,10 +535,11 @@ export const NewEntry = (() => {
 
     // Color swatches
     dialog.querySelector('#neColorGrid')?.addEventListener('click', e => {
-      const customTrigger = e.target.closest('#neCustomColorTrigger');
+      const target = e.target as HTMLElement;
+      const customTrigger = target.closest('#neCustomColorTrigger');
       if (customTrigger) {
-        if (e.target?.id !== 'neCustomColor') {
-          const picker = dialog.querySelector('#neCustomColor');
+        if (target?.id !== 'neCustomColor') {
+          const picker = dialog.querySelector('#neCustomColor') as (HTMLInputElement & { showPicker?: () => void }) | null;
           if (picker) {
             if (typeof picker.showPicker === 'function') picker.showPicker();
             else picker.click();
@@ -522,20 +547,20 @@ export const NewEntry = (() => {
         }
         return;
       }
-      const swatch = e.target.closest('[data-color]');
+      const swatch = target.closest('[data-color]') as HTMLElement | null;
       if (!swatch) return;
-      state.spineColor = swatch.dataset.color;
+      state.spineColor = swatch.dataset.color!;
       state.textColor  = autoTextColor(state.spineColor);
-      dialog.querySelector('#neCustomColor').value = state.spineColor;
+      (dialog.querySelector('#neCustomColor') as HTMLInputElement).value = state.spineColor;
       dialog.querySelector('#neCustomColorTrigger')?.classList.remove('is-active');
       dialog.querySelectorAll('.ne-color-swatch').forEach(s =>
-        s.classList.toggle('is-active', s.dataset.color === state.spineColor));
+        s.classList.toggle('is-active', (s as HTMLElement).dataset.color === state.spineColor));
       renderSpinePreview();
     });
 
     // Custom color picker
     dialog.querySelector('#neCustomColor')?.addEventListener('input', e => {
-      state.spineColor = e.target.value;
+      state.spineColor = (e.target as HTMLInputElement).value;
       state.textColor  = autoTextColor(state.spineColor);
       dialog.querySelectorAll('.ne-color-swatch').forEach(s => s.classList.remove('is-active'));
       dialog.querySelector('#neCustomColorTrigger')?.classList.add('is-active');
@@ -544,17 +569,17 @@ export const NewEntry = (() => {
 
     // Style buttons
     dialog.querySelector('#neStyleRow')?.addEventListener('click', e => {
-      const btn = e.target.closest('[data-style]');
+      const btn = (e.target as HTMLElement).closest('[data-style]') as HTMLElement | null;
       if (!btn) return;
-      state.styleId = btn.dataset.style;
+      state.styleId = btn.dataset.style!;
       dialog.querySelectorAll('.ne-style-btn').forEach(b =>
-        b.classList.toggle('is-active', b.dataset.style === state.styleId));
+        b.classList.toggle('is-active', (b as HTMLElement).dataset.style === state.styleId));
       renderSpinePreview();
     });
 
     // Thickness slider
     dialog.querySelector('#neThickness')?.addEventListener('input', e => {
-      state.thickness = parseInt(e.target.value);
+      state.thickness = parseInt((e.target as HTMLInputElement).value);
       const val = dialog.querySelector('#neThicknessVal');
       if (val) val.textContent = state.thickness + 'px';
       renderSpinePreview();
@@ -563,15 +588,15 @@ export const NewEntry = (() => {
     // Title / author / language → live preview update
     ['#neTitle', '#neAuthor', '#neLanguage'].forEach(sel => {
       dialog.querySelector(sel)?.addEventListener('input', () => {
-        state.title  = dialog.querySelector('#neTitle')?.value  || '';
-        state.author = dialog.querySelector('#neAuthor')?.value || '';
+        state.title  = (dialog.querySelector('#neTitle') as HTMLInputElement | null)?.value  || '';
+        state.author = (dialog.querySelector('#neAuthor') as HTMLInputElement | null)?.value || '';
         renderSpinePreview();
       });
     });
 
     // Tags input: Enter confirms the current token and keeps editing.
     dialog.querySelector('#neTags')?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') handleTagsEnter(e);
+      if ((e as KeyboardEvent).key === 'Enter') handleTagsEnter(e as KeyboardEvent);
     });
 
     // Country autocomplete
@@ -579,12 +604,12 @@ export const NewEntry = (() => {
 
     // Cover upload
     dialog.querySelector('#neCoverInput')?.addEventListener('change', e => {
-      const file = e.target.files?.[0];
+      const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       state.coverFile = file;
       const url = URL.createObjectURL(file);
-      const img = dialog.querySelector('#neCoverImg');
-      const placeholder = dialog.querySelector('#neCoverPlaceholder');
+      const img = dialog.querySelector('#neCoverImg') as HTMLImageElement | null;
+      const placeholder = dialog.querySelector('#neCoverPlaceholder') as HTMLElement | null;
       const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
       if (img) { img.src = url; img.hidden = false; }
       if (placeholder) placeholder.hidden = true;
@@ -594,7 +619,7 @@ export const NewEntry = (() => {
     // ISBN lookup
     dialog.querySelector('#neIsbnBtn')?.addEventListener('click', () => lookupIsbn(dialog));
     dialog.querySelector('#neIsbn')?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); lookupIsbn(dialog); }
+      if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); lookupIsbn(dialog); }
     });
     dialog.querySelector('#neIsbn')?.addEventListener('paste', () => {
       // auto-lookup after paste settles
@@ -606,7 +631,7 @@ export const NewEntry = (() => {
 
     // Form submit
     dialog.querySelector('#neForm')?.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && e.target?.id === 'neTags') handleTagsEnter(e);
+      if ((e as KeyboardEvent).key === 'Enter' && (e.target as HTMLElement)?.id === 'neTags') handleTagsEnter(e as KeyboardEvent);
     }, true);
     dialog.querySelector('#neForm')?.addEventListener('submit', e => {
       e.preventDefault();
@@ -614,11 +639,11 @@ export const NewEntry = (() => {
     });
   }
 
-  function handleTagsEnter(event) {
+  function handleTagsEnter(event: KeyboardEvent): void {
     if (event.defaultPrevented) return;
     event.preventDefault();
     event.stopPropagation();
-    const input = event.target;
+    const input = event.target as HTMLInputElement | null;
     if (!input) return;
     const value = String(input.value || '').trim();
     if (!value || /[,，]$/.test(value)) return;
@@ -627,16 +652,17 @@ export const NewEntry = (() => {
 
   /* ── Country autocomplete ────────────────────────────────────────────────── */
 
-  function bindCountryAutocomplete(dialog) {
-    const input = dialog.querySelector('#neOrigin');
-    const dropdown = dialog.querySelector('#neCountryDropdown');
+  function bindCountryAutocomplete(dialog: HTMLElement): void {
+    const input = dialog.querySelector('#neOrigin') as HTMLInputElement | null;
+    const dropdown = dialog.querySelector('#neCountryDropdown') as HTMLElement | null;
     if (!input || !dropdown) return;
 
     let focusedIndex = -1;
 
-    function showDropdown(matches) {
+    function showDropdown(matches: typeof COUNTRIES): void {
+      if (!dropdown) return;
       if (!matches.length) { dropdown.hidden = true; return; }
-      dropdown.innerHTML = matches.map((c, i) =>
+      dropdown.innerHTML = matches.map((c) =>
         `<div class="ne-country-option" data-name="${c.name}" tabindex="-1">
           <span class="ne-country-flag">${c.flag}</span>
           <span>${c.name}</span>
@@ -646,21 +672,22 @@ export const NewEntry = (() => {
       focusedIndex = -1;
     }
 
-    function pickCountry(name) {
+    function pickCountry(name: string): void {
+      if (!input || !dropdown) return;
       input.value = name;
       dropdown.hidden = true;
     }
 
     input.addEventListener('input', () => {
-      const q = input.value.trim().toLowerCase();
-      if (!q) { dropdown.hidden = true; return; }
+      const q = input!.value.trim().toLowerCase();
+      if (!q) { dropdown!.hidden = true; return; }
       const matches = COUNTRIES.filter(c => c.name.toLowerCase().startsWith(q)).slice(0, 8);
       showDropdown(matches);
     });
 
     input.addEventListener('keydown', e => {
-      if (dropdown.hidden) return;
-      const opts = dropdown.querySelectorAll('.ne-country-option');
+      if (dropdown!.hidden) return;
+      const opts = dropdown!.querySelectorAll('.ne-country-option');
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         focusedIndex = Math.min(focusedIndex + 1, opts.length - 1);
@@ -671,27 +698,27 @@ export const NewEntry = (() => {
         opts.forEach((o, i) => o.classList.toggle('is-focused', i === focusedIndex));
       } else if (e.key === 'Enter' && focusedIndex >= 0) {
         e.preventDefault();
-        pickCountry(opts[focusedIndex].dataset.name);
+        pickCountry((opts[focusedIndex] as HTMLElement).dataset.name!);
       } else if (e.key === 'Escape') {
-        dropdown.hidden = true;
+        dropdown!.hidden = true;
       }
     });
 
     dropdown.addEventListener('click', e => {
-      const opt = e.target.closest('.ne-country-option');
-      if (opt) pickCountry(opt.dataset.name);
+      const opt = (e.target as HTMLElement).closest('.ne-country-option') as HTMLElement | null;
+      if (opt) pickCountry(opt.dataset.name!);
     });
 
     document.addEventListener('click', e => {
-      if (!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.hidden = true;
+      if (!input!.contains(e.target as Node) && !dropdown!.contains(e.target as Node)) dropdown!.hidden = true;
     });
   }
 
   /* ── ISBN lookup (Open Library) ──────────────────────────────────────────── */
 
-  async function lookupIsbn(dialog) {
-    const status = dialog.querySelector('#neIsbnStatus');
-    const rawIsbn = dialog.querySelector('#neIsbn')?.value || '';
+  async function lookupIsbn(dialog: HTMLElement): Promise<void> {
+    const status = dialog.querySelector('#neIsbnStatus') as HTMLElement | null;
+    const rawIsbn = (dialog.querySelector('#neIsbn') as HTMLInputElement | null)?.value || '';
     const isbn = normalizeIsbn(rawIsbn);
     if (isbn.length !== 10 && isbn.length !== 13) {
       showLookupStatus(status, `ISBN must be 10 or 13 digits (got ${isbn.length}). Remove hyphens and spaces.`, 'error');
@@ -712,7 +739,7 @@ export const NewEntry = (() => {
     }
   }
 
-  function showLookupStatus(el, msg, type) {
+  function showLookupStatus(el: HTMLElement | null, msg: string, type: string): void {
     if (!el) return;
     if (!msg) {
       el.hidden = true;
@@ -725,7 +752,7 @@ export const NewEntry = (() => {
     el.className = `ne-isbn-status ne-isbn-status--${type}`;
   }
 
-  async function fetchBookByIsbn(isbn) {
+  async function fetchBookByIsbn(isbn: string): Promise<IsbnLookupData | null> {
     const isbnVariants = getIsbnVariants(isbn);
 
     for (const v of isbnVariants) {
@@ -734,7 +761,7 @@ export const NewEntry = (() => {
         const gbRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5`);
         if (gbRes.ok) {
           const gbJson = await gbRes.json();
-          const gbInfo = (gbJson.items || []).find(item => item?.volumeInfo?.title)?.volumeInfo;
+          const gbInfo = (gbJson.items || []).find((item: any) => item?.volumeInfo?.title)?.volumeInfo; // eslint-disable-line @typescript-eslint/no-explicit-any -- third-party API response
           if (gbInfo) return mapGoogleBookToLookup(gbInfo);
         }
       } catch { /* try OpenLibrary */ }
@@ -753,11 +780,11 @@ export const NewEntry = (() => {
     return null;
   }
 
-  function normalizeIsbn(raw) {
+  function normalizeIsbn(raw: string): string {
     return String(raw || '').replace(/[^0-9X]/gi, '').toUpperCase();
   }
 
-  function getIsbnVariants(isbn) {
+  function getIsbnVariants(isbn: string): string[] {
     const variants = new Set([isbn]);
     if (isbn.length === 13 && isbn.startsWith('978')) {
       const isbn10 = toIsbn10(isbn);
@@ -770,21 +797,21 @@ export const NewEntry = (() => {
     return [...variants];
   }
 
-  function toIsbn10(isbn13) {
+  function toIsbn10(isbn13: string): string {
     const core = isbn13.slice(3, 12);
     if (!/^\d{9}$/.test(core)) return '';
     const check = (11 - (core.split('').reduce((s, d, i) => s + (10 - i) * Number(d), 0) % 11)) % 11;
     return core + (check === 10 ? 'X' : String(check));
   }
 
-  function toIsbn13(isbn10) {
+  function toIsbn13(isbn10: string): string {
     const core = `978${isbn10.slice(0, 9)}`;
     if (!/^\d{12}$/.test(core)) return '';
     const sum = core.split('').reduce((s, d, i) => s + Number(d) * (i % 2 ? 3 : 1), 0);
     return core + String((10 - (sum % 10)) % 10);
   }
 
-  function mapGoogleBookToLookup(info) {
+  function mapGoogleBookToLookup(info: any): IsbnLookupData { // eslint-disable-line @typescript-eslint/no-explicit-any -- third-party API response
     return {
       title: info.title || '',
       author: (info.authors || []).filter(Boolean).join(', '),
@@ -796,26 +823,26 @@ export const NewEntry = (() => {
     };
   }
 
-  function mapOpenLibraryBookToLookup(book) {
+  function mapOpenLibraryBookToLookup(book: any): IsbnLookupData { // eslint-disable-line @typescript-eslint/no-explicit-any -- third-party API response
     return {
       title: book.title || '',
-      author: (book.authors || []).map(a => a?.name).filter(Boolean).join(', '),
+      author: (book.authors || []).map((a: any) => a?.name).filter(Boolean).join(', '), // eslint-disable-line @typescript-eslint/no-explicit-any -- third-party API response
       language: normalizeLanguage(book.languages?.[0]?.key?.split('/').pop()),
-      tags: (book.subjects || []).slice(0, 4).map(s => typeof s === 'string' ? s : s?.name).filter(Boolean),
+      tags: (book.subjects || []).slice(0, 4).map((s: any) => typeof s === 'string' ? s : s?.name).filter(Boolean), // eslint-disable-line @typescript-eslint/no-explicit-any -- third-party API response
       coverUrl: book.cover?.large || book.cover?.medium || '',
       origin: '',
-      bookType: inferBookType((book.subjects || []).map(s => typeof s === 'string' ? s : s?.name).filter(Boolean)),
+      bookType: inferBookType((book.subjects || []).map((s: any) => typeof s === 'string' ? s : s?.name).filter(Boolean)), // eslint-disable-line @typescript-eslint/no-explicit-any -- third-party API response
     };
   }
 
-  function applyLookupData(dialog, data, opts = {}) {
+  function applyLookupData(dialog: HTMLElement, data: IsbnLookupData, opts: { keepExistingCover?: boolean } = {}): void {
     const keepExistingCover = Boolean(opts.keepExistingCover);
-    const titleInput = dialog.querySelector('#neTitle');
-    const authorInput = dialog.querySelector('#neAuthor');
-    const languageInput = dialog.querySelector('#neLanguage');
-    const bookTypeInput = dialog.querySelector('#neBookType');
-    const tagsInput = dialog.querySelector('#neTags');
-    const originInput = dialog.querySelector('#neOrigin');
+    const titleInput = dialog.querySelector('#neTitle') as HTMLInputElement | null;
+    const authorInput = dialog.querySelector('#neAuthor') as HTMLInputElement | null;
+    const languageInput = dialog.querySelector('#neLanguage') as HTMLSelectElement | null;
+    const bookTypeInput = dialog.querySelector('#neBookType') as HTMLSelectElement | null;
+    const tagsInput = dialog.querySelector('#neTags') as HTMLInputElement | null;
+    const originInput = dialog.querySelector('#neOrigin') as HTMLInputElement | null;
 
     if (titleInput && data.title) titleInput.value = data.title;
     if (authorInput && data.author) authorInput.value = data.author;
@@ -824,10 +851,10 @@ export const NewEntry = (() => {
     if (tagsInput && Array.isArray(data.tags) && data.tags.length) tagsInput.value = data.tags.join(', ');
     if (originInput && data.origin) originInput.value = data.origin;
 
-    const img = dialog.querySelector('#neCoverImg');
+    const img = dialog.querySelector('#neCoverImg') as HTMLImageElement | null;
     const hasCurrentCover = Boolean(img?.src);
     if (data.coverUrl && (!keepExistingCover || !hasCurrentCover)) {
-      const placeholder = dialog.querySelector('#neCoverPlaceholder');
+      const placeholder = dialog.querySelector('#neCoverPlaceholder') as HTMLElement | null;
       const uploadBtn = dialog.querySelector('.ne-cover-upload-btn');
       if (img) {
         img.src = data.coverUrl;
@@ -842,7 +869,7 @@ export const NewEntry = (() => {
     renderSpinePreview();
   }
 
-  function inferBookType(tags) {
+  function inferBookType(tags: string[]): string {
     const joined = (tags || []).join(' ').toLowerCase();
     if (!joined) return 'nonfiction';
     if (/(novel|fiction|literary|story)/.test(joined)) return 'fiction';
@@ -852,7 +879,7 @@ export const NewEntry = (() => {
     return 'nonfiction';
   }
 
-  function normalizeLanguage(lang) {
+  function normalizeLanguage(lang: unknown): string {
     const raw = String(lang || '').toLowerCase();
     if (raw.startsWith('zh') || raw === 'chi' || raw === 'zho') return 'zh';
     if (raw.startsWith('en') || raw === 'eng') return 'en';
@@ -860,7 +887,7 @@ export const NewEntry = (() => {
     return 'other';
   }
 
-  function toEntryStatus(status) {
+  function toEntryStatus(status: unknown): string {
     const raw = String(status || '').trim();
     if (raw === 'read') return 'finished';
     if (raw === 'unread' || raw === 'wishlist') return 'want';
@@ -868,7 +895,7 @@ export const NewEntry = (() => {
     return 'confirmed-later';
   }
 
-  function normalizeUrl(raw) {
+  function normalizeUrl(raw: string): string {
     try {
       const maybePrefixed = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
       const url = new URL(maybePrefixed);
@@ -878,16 +905,16 @@ export const NewEntry = (() => {
     }
   }
 
-  function syncExternalLinkButton(dialog) {
-    const btn = dialog.querySelector('#neExternalOpenBtn');
-    const raw = dialog.querySelector('#neExternalLink')?.value || '';
+  function syncExternalLinkButton(dialog: HTMLElement): void {
+    const btn = dialog.querySelector('#neExternalOpenBtn') as HTMLButtonElement | null;
+    const raw = (dialog.querySelector('#neExternalLink') as HTMLInputElement | null)?.value || '';
     if (!btn) return;
     btn.disabled = !normalizeUrl(raw);
   }
 
-  function openExternalLink(dialog) {
-    const status = dialog.querySelector('#neIsbnStatus');
-    const raw = (dialog.querySelector('#neExternalLink')?.value || '').trim();
+  function openExternalLink(dialog: HTMLElement): void {
+    const status = dialog.querySelector('#neIsbnStatus') as HTMLElement | null;
+    const raw = ((dialog.querySelector('#neExternalLink') as HTMLInputElement | null)?.value || '').trim();
     const url = normalizeUrl(raw);
     if (!url) {
       showLookupStatus(status, 'Enter a valid external link first.', 'error');
@@ -898,26 +925,26 @@ export const NewEntry = (() => {
 
   /* ── Submit ──────────────────────────────────────────────────────────────── */
 
-  async function submitNewEntry(dialog) {
-    const title = dialog.querySelector('#neTitle')?.value.trim();
+  async function submitNewEntry(dialog: HTMLElement): Promise<void> {
+    const title = (dialog.querySelector('#neTitle') as HTMLInputElement | null)?.value.trim();
     if (!title) {
-      dialog.querySelector('#neTitle')?.focus();
+      (dialog.querySelector('#neTitle') as HTMLInputElement | null)?.focus();
       return;
     }
 
     const style    = SPINE_STYLES.find(s => s.id === state.styleId) || SPINE_STYLES[0];
-    const lang     = dialog.querySelector('#neLanguage')?.value || 'en';
-    const bookType = dialog.querySelector('#neBookType')?.value || 'nonfiction';
-    const author   = dialog.querySelector('#neAuthor')?.value.trim() || '';
-    const status   = dialog.querySelector('#neStatus')?.value || 'confirmed-later';
-    const originRaw = dialog.querySelector('#neOrigin')?.value.trim() || '';
-    const externalLink = normalizeUrl(dialog.querySelector('#neExternalLink')?.value || '');
-    const tags     = (dialog.querySelector('#neTags')?.value || '')
+    const lang     = (dialog.querySelector('#neLanguage') as HTMLSelectElement | null)?.value || 'en';
+    const bookType = (dialog.querySelector('#neBookType') as HTMLSelectElement | null)?.value || 'nonfiction';
+    const author   = (dialog.querySelector('#neAuthor') as HTMLInputElement | null)?.value.trim() || '';
+    const status   = (dialog.querySelector('#neStatus') as HTMLSelectElement | null)?.value || 'confirmed-later';
+    const originRaw = (dialog.querySelector('#neOrigin') as HTMLInputElement | null)?.value.trim() || '';
+    const externalLink = normalizeUrl((dialog.querySelector('#neExternalLink') as HTMLInputElement | null)?.value || '');
+    const tags     = ((dialog.querySelector('#neTags') as HTMLInputElement | null)?.value || '')
       .split(',').map(t => t.trim()).filter(Boolean);
 
     // Resolve cover image: prefer already-converted data URL, then convert blob
-    let coverImageUrl = null;
-    const coverImg = dialog.querySelector('#neCoverImg');
+    let coverImageUrl: string | null = null;
+    const coverImg = dialog.querySelector('#neCoverImg') as HTMLImageElement | null;
     if (coverImg && !coverImg.hidden && coverImg.src) {
       if (coverImg.src.startsWith('blob:')) {
         // Convert blob URL to data URL so it persists after the dialog closes
@@ -926,7 +953,7 @@ export const NewEntry = (() => {
           const blob = await resp.blob();
           coverImageUrl = await new Promise((res, rej) => {
             const reader = new FileReader();
-            reader.onload = () => res(reader.result);
+            reader.onload = () => res(reader.result as string);
             reader.onerror = rej;
             reader.readAsDataURL(blob);
           });
@@ -938,17 +965,17 @@ export const NewEntry = (() => {
     const isoCode = originRaw ? resolveIso(originRaw) : null;
 
     const isEditing = Boolean(_editBookId);
-    const existingBook = isEditing ? BooksStore.getById(_editBookId) : null;
-    const id = isEditing ? _editBookId : (
+    const existingBook: Book | undefined = isEditing ? BooksStore.getById(_editBookId!) : undefined;
+    const id = isEditing ? _editBookId! : (
       'book-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32)
         + '-' + Date.now().toString(36)
     );
 
-    const typeConfig    = BOOK_TYPES?.[bookType] || {};
+    const typeConfig    = (BOOK_TYPES as Record<string, any>)?.[bookType] || {}; // eslint-disable-line @typescript-eslint/no-explicit-any -- indexed lookup against BookTypeDefinition
     const defaultPanels = typeConfig.defaultPanels || ['overview', 'highlights', 'notes', 'actions'];
     const aiFeatures    = typeConfig.defaultAiFeatures || [];
 
-    const fullBook = {
+    const fullBook: Book = {
       ...(existingBook || {}),
       id, title, author, status, tags,
       language: lang, bookType,
@@ -1005,8 +1032,8 @@ export const NewEntry = (() => {
         logError(err instanceof Error ? err : new Error(String(err)), { context: `NewEntry Firestore ${isEditing ? 'edit' : 'write'}` });
       }
     } else {
-      SEED_BOOK_DETAILS.unshift(fullBook);
-      SEED_BOOK_BY_ID[id] = fullBook;
+      SEED_BOOK_DETAILS.unshift(fullBook as any); // eslint-disable-line @typescript-eslint/no-explicit-any -- seed/index.js is untyped; TS over-infers its element shape from seed literals
+      SEED_BOOK_BY_ID[id] = fullBook as any; // eslint-disable-line @typescript-eslint/no-explicit-any -- see above
       NotesStore?.saveBook(fullBook);
       BooksStore.addOptimisticBook(fullBook);
     }
@@ -1022,7 +1049,7 @@ export const NewEntry = (() => {
     PanelManager.open('book', { id });
   }
 
-  function resolveIso(raw) {
+  function resolveIso(raw: string): string | null {
     const cleaned = raw.trim();
     // Direct match (exact country name)
     if (COUNTRY_TO_ISO[cleaned]) return COUNTRY_TO_ISO[cleaned];
