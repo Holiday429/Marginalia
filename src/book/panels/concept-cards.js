@@ -5,7 +5,7 @@
    `concept-cards` (or `argument-breakdown`) AI features.
    ========================================================================== */
 
-import { PanelRegistry } from './registry.js';
+import { PanelRegistry } from './registry.ts';
 
 const RELATION_LABELS = {
   'core-thesis':   'Core thesis',

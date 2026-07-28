@@ -5,7 +5,7 @@
 */
 
 import { ActionsStore } from '../../store/actions-store.ts';
-import { PanelRegistry } from './registry.js';
+import { PanelRegistry } from './registry.ts';
 
 (function registerActionsPanel() {
   PanelRegistry.set('actions', function renderActions(book, container) {

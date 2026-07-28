@@ -8,11 +8,20 @@
      1. Add an entry here — that's it.
      2. Optionally add type-specific prompt templates in src/ai/features/.
 
-   Panel ids must exist in src/book/panels/registry.js.
-   AI feature ids must exist in src/ai/features/registry.js.
+   Panel ids must exist in src/book/panels/registry.ts.
+   AI feature ids must exist in src/ai/features/registry.ts.
    ========================================================================== */
 
-export const BOOK_TYPES = {
+export interface BookTypeDefinition {
+  label: string;
+  description: string;
+  defaultPanels: string[];
+  defaultAiFeatures: string[];
+}
+
+type Book = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
+
+export const BOOK_TYPES: Record<string, BookTypeDefinition> = {
 
   fiction: {
     label: 'Fiction',
@@ -55,31 +64,26 @@ export const BOOK_TYPES = {
    Helpers
    -------------------------------------------------------------------------- */
 
-/**
- * Resolve the effective panel list for a book.
- * Book-level `panels` field overrides the type default entirely.
- * @param {object} book
- * @returns {string[]}
- */
 export const BookTypes = {
-  getPanels(book) {
+  /** Resolve the effective panel list for a book. Book-level `panels` field overrides the type default entirely. */
+  getPanels(book: Book): string[] {
     if (Array.isArray(book.panels) && book.panels.length) return book.panels;
     const type = BOOK_TYPES[book.bookType];
     return type ? type.defaultPanels : ['overview', 'highlights', 'notes', 'actions'];
   },
 
-  getAiFeatures(book) {
+  getAiFeatures(book: Book): string[] {
     if (Array.isArray(book.aiFeatures) && book.aiFeatures.length) return book.aiFeatures;
     const type = BOOK_TYPES[book.bookType];
     return type ? type.defaultAiFeatures : [];
   },
 
-  getTypeLabel(bookType) {
+  getTypeLabel(bookType: string): string {
     return BOOK_TYPES[bookType]?.label || 'General';
   },
 
   /** All registered type ids, in display order. */
-  all() {
+  all(): string[] {
     return Object.keys(BOOK_TYPES);
   },
 };

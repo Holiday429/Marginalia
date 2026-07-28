@@ -1,4 +1,9 @@
-export const SPINE_COLORS = [
+export interface SpineColor {
+  hex: string;
+  label: string;
+}
+
+export const SPINE_COLORS: SpineColor[] = [
   // Warm neutrals
   { hex: '#d4c4a0', label: 'Parchment' },
   { hex: '#c4b090', label: 'Sand' },

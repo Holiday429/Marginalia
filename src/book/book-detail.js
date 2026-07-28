@@ -5,7 +5,7 @@
    contract for the book detail view.
    ========================================================================== */
 
-import { BookTypes } from '../data/schema/book-types.js';
+import { BookTypes } from '../data/schema/book-types.ts';
 
 export const BOOK_SECTION_ORDER = [
   'overview',

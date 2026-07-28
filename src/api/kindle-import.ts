@@ -11,14 +11,28 @@
 
 import { NotesStore } from '../store/notes-store.ts';
 
+interface Clipping {
+  quote: string;
+  page: number | null;
+  location: string | null;
+  kind: 'note' | 'bookmark' | 'highlight';
+  source: 'kindle';
+}
+
+interface BookEntry {
+  title: string;
+  author: string;
+  clippings: Clipping[];
+}
+
 export const KindleImport = (() => {
   const SEPARATOR = '==========';
 
   // ── Parser ───────────────────────────────────────────────────────────────
 
-  function parse(text) {
+  function parse(text: string): { books: Map<string, BookEntry> } {
     const entries = text.split(SEPARATOR).map(s => s.trim()).filter(Boolean);
-    const books = new Map();
+    const books = new Map<string, BookEntry>();
 
     for (const entry of entries) {
       const lines = entry.split('\n').map(l => l.trim()).filter(Boolean);
@@ -32,16 +46,16 @@ export const KindleImport = (() => {
 
       const { title, author } = parseTitleLine(titleLine);
       const { page, location, kind } = parseMetaLine(metaLine);
-      const clipping = { quote, page, location, kind, source: 'kindle' };
+      const clipping: Clipping = { quote, page, location, kind, source: 'kindle' };
 
       if (!books.has(title)) books.set(title, { title, author, clippings: [] });
-      books.get(title).clippings.push(clipping);
+      books.get(title)!.clippings.push(clipping);
     }
 
     return { books };
   }
 
-  function parseTitleLine(line) {
+  function parseTitleLine(line: string): { title: string; author: string } {
     // Format: "Title (Author Name)" or "Title - Author Name"
     const parenMatch = line.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
     if (parenMatch) return { title: parenMatch[1].trim(), author: parenMatch[2].trim() };
@@ -50,7 +64,7 @@ export const KindleImport = (() => {
     return { title: line.trim(), author: '' };
   }
 
-  function parseMetaLine(line) {
+  function parseMetaLine(line: string): { page: number | null; location: string | null; kind: Clipping['kind'] } {
     const pageMatch = line.match(/page\s+(\d+)/i);
     const locMatch  = line.match(/location\s+([\d-]+)/i);
     const isNote    = /your note/i.test(line);
@@ -64,7 +78,7 @@ export const KindleImport = (() => {
 
   // ── Import ───────────────────────────────────────────────────────────────
 
-  async function importToBook(bookId, clippings) {
+  async function importToBook(bookId: string, clippings: Clipping[]): Promise<number> {
     if (!NotesStore) throw new Error('NotesStore not available');
     const highlights = clippings
       .filter(c => c.kind !== 'bookmark' && c.quote)
@@ -80,7 +94,7 @@ export const KindleImport = (() => {
     return highlights.length;
   }
 
-  function hashStr(str) {
+  function hashStr(str: string): string {
     let h = 0;
     for (let i = 0; i < Math.min(str.length, 40); i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
     return Math.abs(h).toString(36);
@@ -88,7 +102,7 @@ export const KindleImport = (() => {
 
   // ── UI ───────────────────────────────────────────────────────────────────
 
-  function mountUI(container) {
+  function mountUI(container: HTMLElement): void {
     container.innerHTML = `
       <div class="kindle-import-zone" id="kindleDropZone">
         <div class="kindle-import-icon">📖</div>
@@ -100,28 +114,28 @@ export const KindleImport = (() => {
       <div class="kindle-import-preview" id="kindlePreview" hidden></div>
     `;
 
-    const zone   = container.querySelector('#kindleDropZone');
-    const input  = container.querySelector('#kindleFileInput');
-    const status = container.querySelector('#kindleStatus');
-    const preview = container.querySelector('#kindlePreview');
+    const zone   = container.querySelector('#kindleDropZone') as HTMLElement;
+    const input  = container.querySelector('#kindleFileInput') as HTMLInputElement;
+    const status = container.querySelector('#kindleStatus') as HTMLElement;
+    const preview = container.querySelector('#kindlePreview') as HTMLElement;
 
-    function handleFile(file) {
+    function handleFile(file: File | null | undefined): void {
       if (!file || !file.name.endsWith('.txt')) {
         showStatus('Please select a .txt file from your Kindle.', 'error');
         return;
       }
       const reader = new FileReader();
-      reader.onload = e => processText(e.target.result);
+      reader.onload = e => processText(e.target?.result as string);
       reader.readAsText(file, 'utf-8');
     }
 
-    function processText(text) {
+    function processText(text: string): void {
       const { books } = parse(text);
       if (!books.size) { showStatus('No clippings found in this file.', 'error'); return; }
       showPreview(books);
     }
 
-    function showPreview(books) {
+    function showPreview(books: Map<string, BookEntry>): void {
       status.hidden = true;
       preview.hidden = false;
       const bookId = container.dataset.bookId || '';
@@ -140,10 +154,10 @@ export const KindleImport = (() => {
 
       preview.querySelectorAll('.kindle-preview-import').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const title = btn.dataset.title;
-          const entry = books.get(title);
+          const title = (btn as HTMLElement).dataset.title;
+          const entry = title ? books.get(title) : undefined;
           if (!entry) return;
-          btn.disabled = true;
+          (btn as HTMLButtonElement).disabled = true;
           btn.textContent = 'Importing…';
           const count = await importToBook(bookId, entry.clippings);
           btn.textContent = `✓ ${count} imported`;
@@ -152,7 +166,7 @@ export const KindleImport = (() => {
       });
     }
 
-    function showStatus(msg, type = 'info') {
+    function showStatus(msg: string, type: 'info' | 'error' = 'info'): void {
       preview.hidden = true;
       status.hidden = false;
       status.className = `kindle-import-status kindle-status--${type}`;
@@ -164,13 +178,13 @@ export const KindleImport = (() => {
     zone.addEventListener('drop', e => {
       e.preventDefault();
       zone.classList.remove('is-over');
-      handleFile(e.dataTransfer.files[0]);
+      handleFile((e as DragEvent).dataTransfer?.files[0]);
     });
-    input.addEventListener('change', () => handleFile(input.files[0]));
+    input.addEventListener('change', () => handleFile(input.files?.[0]));
   }
 
-  function esc(s) {
-    return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  function esc(s: unknown): string {
+    return String(s ?? '').replace(/[&<>"]/g, c => (({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }) as Record<string, string>)[c]);
   }
 
   return { parse, importToBook, mountUI };

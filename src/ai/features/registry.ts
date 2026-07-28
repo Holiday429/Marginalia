@@ -15,10 +15,24 @@
    ========================================================================== */
 
 import { logError } from '../../services/analytics.ts';
-import { BookTypes } from '../../data/schema/book-types.js';
+import { BookTypes } from '../../data/schema/book-types.ts';
+
+type Book = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
+
+interface AiFeatureDef {
+  label: string;
+  panel: string;
+  outputType: string;
+  promptId: string;
+  profileFeature?: boolean;
+}
+
+interface PromptObj {
+  build(book: Book): string;
+}
 
 export const AIFeatureRegistry = (() => {
-  const _features = {
+  const _features: Record<string, AiFeatureDef> = {
 
     /* ── Fiction ──────────────────────────────────────────────────────────── */
 
@@ -109,32 +123,27 @@ export const AIFeatureRegistry = (() => {
   };
 
   /* ── Prompt store (populated by individual prompt files) ─────────────── */
-  const _prompts = {};
+  const _prompts: Record<string, PromptObj> = {};
 
   return {
     /**
      * Register a prompt builder for a feature.
      * Called by src/ai/features/prompts/{id}.js.
-     * @param {string} id
-     * @param {{ build(book): string }} promptObj
      */
-    setPrompt(id, promptObj) {
+    setPrompt(id: string, promptObj: PromptObj): void {
       _prompts[id] = promptObj;
     },
 
     /** Get feature config by id. */
-    get(id) {
+    get(id: string): AiFeatureDef | null {
       return _features[id] || null;
     },
 
     /**
      * Build the prompt string for a given feature + book.
      * Returns null if the prompt file hasn't loaded yet.
-     * @param {string} featureId
-     * @param {object} book
-     * @returns {string|null}
      */
-    buildPrompt(featureId, book) {
+    buildPrompt(featureId: string, book: Book): string | null {
       const feature = _features[featureId];
       if (!feature) return null;
       const promptObj = _prompts[feature.promptId];
@@ -145,19 +154,15 @@ export const AIFeatureRegistry = (() => {
       return promptObj.build(book);
     },
 
-    /**
-     * Resolve the active AI features for a book.
-     * @param {object} book
-     * @returns {Array<{id, label, panel, outputType}>}
-     */
-    forBook(book) {
+    /** Resolve the active AI features for a book. */
+    forBook(book: Book): Array<{ id: string } & Partial<AiFeatureDef>> {
       const ids = BookTypes.getAiFeatures(book);
       return ids
         .map(id => ({ id, ...(_features[id] || {}) }))
         .filter(f => f.label);
     },
 
-    all() {
+    all(): string[] {
       return Object.keys(_features);
     },
   };

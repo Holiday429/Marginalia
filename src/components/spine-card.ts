@@ -3,31 +3,26 @@
    --------------------------------------------------------------------------
    Shared factory for book spine buttons used in Shelf and Booklist.
    Returns a <button> element; caller appends it and supplies onClick.
-
-   createSpineCard(config) → HTMLButtonElement
-   config {
-     title       string  — display title (already truncated or raw)
-     author      string  — display author
-     spine       string  — CSS color for background
-     text        string  — CSS color for text
-     width       number  — px
-     height      number  — px
-     className   string  — base class ('shelf-spine' | 'booklist-spine')
-     extraClasses string[] — optional extra class names
-     dataAttrs   object  — key/value pairs for dataset
-     ariaLabel   string  — optional aria-label override
-     titleClass  string  — class for title span
-     authorClass string  — class for author span
-     onClick     fn(buttonEl) — click callback
-   }
    ========================================================================== */
 
+export interface SpineCardConfig {
+  title?: string;
+  author?: string;
+  spine?: string;
+  text?: string;
+  width?: number;
+  height?: number;
+  className?: string;
+  extraClasses?: string[];
+  dataAttrs?: Record<string, string | number | boolean | null | undefined>;
+  ariaLabel?: string;
+  titleClass?: string;
+  authorClass?: string;
+  onClick?: (buttonEl: HTMLButtonElement) => void;
+}
+
 export const SpineCard = {
-  /**
-   * @param {object} config
-   * @returns {HTMLButtonElement}
-   */
-  create(config) {
+  create(config: SpineCardConfig): HTMLButtonElement {
     const {
       title       = '',
       author      = '',
@@ -48,7 +43,7 @@ export const SpineCard = {
     btn.type = 'button';
     btn.className = [className, ...extraClasses].filter(Boolean).join(' ');
 
-    Object.entries(dataAttrs).forEach(([k, v]) => { if (v != null) btn.dataset[k] = v; });
+    Object.entries(dataAttrs).forEach(([k, v]) => { if (v != null) btn.dataset[k] = String(v); });
 
     if (width  != null) btn.style.width  = width  + 'px';
     if (height != null) btn.style.height = height + 'px';

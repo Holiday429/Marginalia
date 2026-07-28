@@ -2,7 +2,7 @@
    Target panel: mindmap (timeline tab)
    Output: JSON array of timeline groups matching book.mindmap.timeline schema
 */
-import { AIFeatureRegistry } from "../registry.js";
+import { AIFeatureRegistry } from "../registry.ts";
 AIFeatureRegistry.setPrompt('timeline-gen', {
   build(book) {
     return `You are a historian and reading analyst. Extract the chronological structure from this book.

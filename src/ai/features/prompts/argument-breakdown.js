@@ -2,7 +2,7 @@
    Target panel: concept-cards (shared panel, renders as argument cards)
    Output: JSON array of argument objects
 */
-import { AIFeatureRegistry } from "../registry.js";
+import { AIFeatureRegistry } from "../registry.ts";
 AIFeatureRegistry.setPrompt('argument-breakdown', {
   build(book) {
     const highlights = (book.highlights || []).map(h =>

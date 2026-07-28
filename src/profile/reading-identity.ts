@@ -1,7 +1,7 @@
 import { cycleReadingIdentityVariant } from './reading-identity-adapter.ts';
 import { getReadingIdentityResult } from './reading-identity-service.ts';
 import { PixelReader } from '../components/pixel-avatar/pixel-avatar.js';
-import { HeroBook } from '../components/hero-book/hero-book.js';
+import { HeroBook } from '../components/hero-book/hero-book.ts';
 import '../components/hero-book/hero-book.css';
 import type {
   ReadingIdentityAxis,
@@ -568,7 +568,7 @@ async function generateIdentityFromAI(
 ): Promise<ReadingIdentityResult | null> {
   try {
     const { MarginaliaAI } = await import('../services/ai-gateway.ts');
-    const { AIFeatureRegistry } = await import('../ai/features/registry.js');
+    const { AIFeatureRegistry } = await import('../ai/features/registry.ts');
     await import('../ai/features/prompts/reader-identity.js');
 
     const library = buildLibraryPayload(books, highlights, sessionDays);

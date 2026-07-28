@@ -2,7 +2,7 @@
    Target panel: Knowledge Structure (mindmap)
    Output: JSON matching the book.mindmap schema used by renderMindmap()
 */
-import { AIFeatureRegistry } from "../registry.js";
+import { AIFeatureRegistry } from "../registry.ts";
 AIFeatureRegistry.setPrompt('mindmap-gen', {
   build(book) {
     const highlights = (book.highlights || []).map(h => `- [p.${h.page || '?'}] "${h.quote}"`).join('\n');

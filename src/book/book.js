@@ -14,7 +14,7 @@ import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.ts';
 import { PanelManager } from '../core/panel-manager.ts';
-import { PanelRegistry } from './panels/registry.js';
+import { PanelRegistry } from './panels/registry.ts';
 // Register panel render functions (side-effect imports).
 import './panels/mindmap.js';
 import './panels/concept-cards.js';
@@ -25,11 +25,11 @@ import { buildBookDetailModel, BOOK_SECTION_LABELS } from './book-detail.js';
 import { MarginaliaGraph } from '../core/graph-data.ts';
 import { openConceptDrawer } from '../core/concept-ui.ts';
 import { AIGenerateUI } from '../ai/client/generate-ui.ts';
-import { KindleImport } from '../api/kindle-import.js';
+import { KindleImport } from '../api/kindle-import.ts';
 import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { generateReadingCardBlob, fetchReadingCardAI } from './reading-card.ts';
 import { ENV } from '../core/env.ts';
-import { HeroBook } from '../components/hero-book/hero-book.js';
+import { HeroBook } from '../components/hero-book/hero-book.ts';
 import '../components/hero-book/hero-book.css';
 import { NewEntry } from '../new-entry/new-entry.js';
 

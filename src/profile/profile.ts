@@ -25,7 +25,7 @@ import {
 import { loadAnnualShelf } from './annual-shelf-store.ts';
 import { mountReadingIdentity } from './reading-identity.ts';
 import { PixelReader } from '../components/pixel-avatar/pixel-avatar.ts';
-import { HeroBook } from '../components/hero-book/hero-book.js';
+import { HeroBook } from '../components/hero-book/hero-book.ts';
 import { maybeSettleFrameFlyIn } from '../three-room/frame-fly.js';
 import {
   normalizeProfileStatus,

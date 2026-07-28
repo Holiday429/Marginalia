@@ -13,8 +13,8 @@ import { NotesStore } from '../store/notes-store.ts';
 import { renderSearchSection } from '../search/search.js';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
-import { BOOK_TYPES } from '../data/schema/book-types.js';
-import { SPINE_COLORS } from '../shared/spine-colors.js';
+import { BOOK_TYPES } from '../data/schema/book-types.ts';
+import { SPINE_COLORS } from '../shared/spine-colors.ts';
 
 export const NewEntry = (() => {
 

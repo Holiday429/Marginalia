@@ -2,7 +2,7 @@
    Target panel: Related Concepts
    Output: JSON array of concept objects matching graph.concepts schema
 */
-import { AIFeatureRegistry } from "../registry.js";
+import { AIFeatureRegistry } from "../registry.ts";
 AIFeatureRegistry.setPrompt('concept-cards', {
   build(book) {
     const highlights = (book.highlights || []).map(h => `- "${h.quote}" (p.${h.page || '?'})`).join('\n');

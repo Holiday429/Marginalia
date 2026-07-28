@@ -1,6 +1,6 @@
 import { RoomScene } from '../three/room.ts';
 import { ROOM_SKINS } from '../three/skins.ts';
-import { createNotesWallComponent } from '../components/notes-wall/notes-wall.js';
+import { createNotesWallComponent } from '../components/notes-wall/notes-wall.ts';
 import { createDeskSlotComponent } from '../components/reading-session/desk-slot.ts';
 import { createShelfWallComponent } from '../library-2d/library-2d-slot.ts';
 

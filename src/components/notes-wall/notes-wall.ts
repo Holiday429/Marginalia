@@ -3,6 +3,7 @@ import { HighlightsStore } from '../../store/highlights-store.ts';
 import { BooksStore } from '../../store/books-store.ts';
 import { NotesStore } from '../../store/notes-store.ts';
 import { __SEED_SAPIENS } from '../../data/seed/sapiens.js';
+import type { SlotComponent } from '../../three/slots.ts';
 
 const WALL_WIDTH = 880;
 const WALL_HEIGHT = 520;
@@ -20,7 +21,38 @@ const FOLLOWUP_SWATCHES = [
 ];
 const FOLLOWUP_ROTATIONS = [-3, 2, -1, 4, -4, 1];
 
-function esc(value) {
+interface WallQuote {
+  quote: string;
+  bookTitle: string;
+}
+
+interface WallTodo {
+  id: string;
+  text: string;
+  status: 'todo' | 'done';
+  createdAt: number;
+}
+
+interface WallFollowUp {
+  id: string;
+  source: 'todo' | 'action';
+  todoId?: string;
+  text: string;
+  createdAt: number;
+  status?: string;
+}
+
+interface WallData {
+  now: Date;
+  quote: WallQuote | null;
+  todos: WallTodo[];
+  activeTodos: WallTodo[];
+  followUps: WallFollowUp[];
+}
+
+type ActiveCard = { kind: string; id?: string | null };
+
+function esc(value: unknown): string {
   return String(value || '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -28,7 +60,7 @@ function esc(value) {
     .replaceAll('"', '&quot;');
 }
 
-function hashString(value) {
+function hashString(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i += 1) {
     hash = ((hash << 5) - hash) + value.charCodeAt(i);
@@ -37,18 +69,18 @@ function hashString(value) {
   return Math.abs(hash);
 }
 
-function pickTodayQuote(highlights) {
+function pickTodayQuote(highlights: WallQuote[]): WallQuote | null {
   if (!highlights.length) return null;
   const day = Math.floor(Date.now() / 86400000);
   return highlights[day % highlights.length];
 }
 
-function isFollowUp(item) {
+function isFollowUp(item: { createdAt?: number; status?: string }): boolean {
   const age = Date.now() - (item.createdAt || 0);
   return age >= FOLLOWUP_MS && item.status !== 'done';
 }
 
-function formatBoardDate(date = new Date()) {
+function formatBoardDate(date: Date = new Date()) {
   return {
     month: new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date),
     weekday: new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date),
@@ -57,21 +89,21 @@ function formatBoardDate(date = new Date()) {
   };
 }
 
-function getFollowUpColor(id) {
+function getFollowUpColor(id: string): string {
   const tone = FOLLOWUP_SWATCHES[hashString(id) % FOLLOWUP_SWATCHES.length];
   return `hsl(${tone.h} ${tone.s}% ${tone.l}%)`;
 }
 
-function getFollowUpRotation(index) {
+function getFollowUpRotation(index: number): number {
   return FOLLOWUP_ROTATIONS[index % FOLLOWUP_ROTATIONS.length];
 }
 
-function getFollowUpAgeLabel(createdAt) {
+function getFollowUpAgeLabel(createdAt: number): string {
   const days = Math.max(7, Math.floor((Date.now() - (createdAt || 0)) / 86400000));
   return `${days}d+ pending`;
 }
 
-function loadLocalTodos() {
+function loadLocalTodos(): WallTodo[] {
   try {
     const parsed = JSON.parse(localStorage.getItem(TODOS_KEY) || '[]');
     return Array.isArray(parsed)
@@ -87,22 +119,22 @@ function loadLocalTodos() {
   }
 }
 
-function saveLocalTodos(todos) {
+function saveLocalTodos(todos: WallTodo[]): void {
   try {
     localStorage.setItem(TODOS_KEY, JSON.stringify(todos));
-  } catch {}
+  } catch { /* storage unavailable — non-fatal */ }
 }
 
-export function createNotesWallComponent() {
-  let containerRef = null;
-  let unsubscribe = null;
-  let unsubscribeHighlights = null;
-  let activeCard = null;
-  let pendingFocusTodoId = null;
-  let removingIds = new Set();
+export function createNotesWallComponent(): SlotComponent {
+  let containerRef: HTMLElement | null = null;
+  let unsubscribe: (() => void) | null = null;
+  let unsubscribeHighlights: (() => void) | null = null;
+  let activeCard: ActiveCard | null = null;
+  let pendingFocusTodoId: string | null = null;
+  let removingIds = new Set<string>();
   let renderToken = 0;
 
-  function loadHighlights() {
+  function loadHighlights(): WallQuote[] {
     // Authenticated: read live highlights from HighlightsStore, join bookTitle from BooksStore.
     if (HighlightsStore?.getUid()) {
       return HighlightsStore.getAll()
@@ -110,8 +142,8 @@ export function createNotesWallComponent() {
         .map((h) => {
           const book = BooksStore?.getById(h.bookId);
           return {
-            quote: h.quote,
-            bookTitle: book?.titleZh || book?.title || h.bookTitle || '',
+            quote: h.quote as string,
+            bookTitle: (book?.titleZh as string) || (book?.title as string) || h.bookTitle || '',
           };
         });
     }
@@ -120,8 +152,8 @@ export function createNotesWallComponent() {
     const sapiens = __SEED_SAPIENS;
     if (sapiens?.highlights) {
       return sapiens.highlights
-        .filter((h) => h.quote)
-        .map((h) => ({
+        .filter((h: { quote?: string }) => h.quote)
+        .map((h: { quote: string }) => ({
           quote: h.quote,
           bookTitle: sapiens.titleZh || sapiens.title || 'Sapiens',
         }));
@@ -130,10 +162,10 @@ export function createNotesWallComponent() {
     return [];
   }
 
-  async function loadData() {
+  async function loadData(): Promise<WallData> {
     const now = new Date();
     const todos = loadLocalTodos();
-    const followUps = [];
+    const followUps: WallFollowUp[] = [];
 
     const allHighlights = loadHighlights();
 
@@ -162,11 +194,11 @@ export function createNotesWallComponent() {
     };
   }
 
-  function findFollowUp(data, id) {
+  function findFollowUp(data: WallData, id: string): WallFollowUp | null {
     return data.followUps.find((item) => item.id === id) || null;
   }
 
-  function renderZoneTag(title, accent) {
+  function renderZoneTag(title: string, accent: string): string {
     return `
       <div class="notes-zone__tag notes-zone__tag--${accent}">
         <span>${esc(title)}</span>
@@ -174,7 +206,7 @@ export function createNotesWallComponent() {
     `;
   }
 
-  function renderQuoteZone(data) {
+  function renderQuoteZone(data: WallData): string {
     const date = formatBoardDate(data.now);
     const quote = data.quote;
 
@@ -208,7 +240,7 @@ export function createNotesWallComponent() {
     `;
   }
 
-  function renderTodoZone(data) {
+  function renderTodoZone(data: WallData): string {
     const rows = data.activeTodos.slice(0, 6);
 
     return `
@@ -242,7 +274,7 @@ export function createNotesWallComponent() {
     `;
   }
 
-  function renderFollowUpSticky(item, index) {
+  function renderFollowUpSticky(item: WallFollowUp, index: number): string {
     const style = [
       `--sticky-bg:${getFollowUpColor(item.id)}`,
       `--sticky-rotate:${getFollowUpRotation(index)}deg`,
@@ -263,7 +295,7 @@ export function createNotesWallComponent() {
     `;
   }
 
-  function renderFollowUpZone(data) {
+  function renderFollowUpZone(data: WallData): string {
     return `
       <section class="notes-zone notes-zone--followup">
         ${renderZoneTag('Follow Up', 'followup')}
@@ -278,7 +310,7 @@ export function createNotesWallComponent() {
     `;
   }
 
-  function renderQuoteOverlay(data) {
+  function renderQuoteOverlay(data: WallData): string {
     const date = formatBoardDate(data.now);
     const quote = data.quote;
 
@@ -308,7 +340,7 @@ export function createNotesWallComponent() {
     `;
   }
 
-  function renderTodoOverlay(data) {
+  function renderTodoOverlay(data: WallData): string {
     return `
       <article class="notes-overlay__card notes-overlay__card--todo" data-overlay-card>
         <button class="notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
@@ -350,7 +382,7 @@ export function createNotesWallComponent() {
     `;
   }
 
-  function renderFollowUpOverlay(data, id) {
+  function renderFollowUpOverlay(data: WallData, id: string): string {
     const item = findFollowUp(data, id);
     if (!item) return '';
 
@@ -395,7 +427,7 @@ export function createNotesWallComponent() {
     `;
   }
 
-  function renderOverlay(data) {
+  function renderOverlay(data: WallData): string {
     if (!activeCard) return '';
 
     let content = '';
@@ -417,7 +449,7 @@ export function createNotesWallComponent() {
     `;
   }
 
-  async function render() {
+  async function render(): Promise<void> {
     if (!containerRef) return;
     const token = ++renderToken;
     const data = await loadData();
@@ -442,7 +474,7 @@ export function createNotesWallComponent() {
       const focusId = pendingFocusTodoId;
       pendingFocusTodoId = null;
       requestAnimationFrame(() => {
-        const target = containerRef?.querySelector(`[data-edit-todo="${focusId}"]`);
+        const target = containerRef?.querySelector(`[data-edit-todo="${focusId}"]`) as HTMLElement | null;
         if (!target) return;
         target.focus();
         if (document.createRange && window.getSelection) {
@@ -457,9 +489,9 @@ export function createNotesWallComponent() {
     }
   }
 
-  function createTodo() {
+  function createTodo(): void {
     const todos = loadLocalTodos();
-    const todo = {
+    const todo: WallTodo = {
       id: `todo-${Date.now()}`,
       text: '',
       status: 'todo',
@@ -472,7 +504,7 @@ export function createNotesWallComponent() {
     render();
   }
 
-  function updateTodoText(id, text) {
+  function updateTodoText(id: string, text: string): void {
     const todos = loadLocalTodos();
     const todo = todos.find((item) => item.id === id);
     if (!todo) return;
@@ -481,7 +513,7 @@ export function createNotesWallComponent() {
     render();
   }
 
-  function toggleTodoDone(id) {
+  function toggleTodoDone(id: string): void {
     const todos = loadLocalTodos();
     const todo = todos.find((item) => item.id === id);
     if (!todo) return;
@@ -490,7 +522,7 @@ export function createNotesWallComponent() {
     render();
   }
 
-  async function persistFollowUpDone(id) {
+  async function persistFollowUpDone(id: string): Promise<void> {
     if (id.startsWith('todo:')) {
       const todoId = id.slice('todo:'.length);
       const todos = loadLocalTodos();
@@ -508,7 +540,7 @@ export function createNotesWallComponent() {
     }
   }
 
-  function completeFollowUp(id) {
+  function completeFollowUp(id: string): void {
     if (!id || removingIds.has(id)) return;
     removingIds = new Set(removingIds).add(id);
 
@@ -530,7 +562,7 @@ export function createNotesWallComponent() {
     }, FOLLOWUP_EXIT_MS);
   }
 
-  function handleClick(event) {
+  function handleClick(event: Event): void {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
@@ -541,7 +573,7 @@ export function createNotesWallComponent() {
       return;
     }
 
-    const completeTrigger = target.closest('[data-complete-followup]');
+    const completeTrigger = target.closest('[data-complete-followup]') as HTMLElement | null;
     if (completeTrigger) {
       completeFollowUp(completeTrigger.dataset.completeFollowup || '');
       return;
@@ -554,13 +586,13 @@ export function createNotesWallComponent() {
       return;
     }
 
-    const toggleTrigger = target.closest('[data-toggle-todo]');
+    const toggleTrigger = target.closest('[data-toggle-todo]') as HTMLElement | null;
     if (toggleTrigger) {
       toggleTodoDone(toggleTrigger.dataset.toggleTodo || '');
       return;
     }
 
-    const openTrigger = target.closest('[data-open-card]');
+    const openTrigger = target.closest('[data-open-card]') as HTMLElement | null;
     if (openTrigger) {
       const kind = openTrigger.dataset.openCard || '';
       activeCard = {
@@ -571,7 +603,7 @@ export function createNotesWallComponent() {
     }
   }
 
-  function handleKeyDown(event) {
+  function handleKeyDown(event: KeyboardEvent): void {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
@@ -587,7 +619,7 @@ export function createNotesWallComponent() {
     }
   }
 
-  function handleFocusOut(event) {
+  function handleFocusOut(event: FocusEvent): void {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
@@ -602,12 +634,12 @@ export function createNotesWallComponent() {
   }
 
   return {
-    mount(container) {
+    mount(container: HTMLElement) {
       containerRef = container;
       containerRef.classList.add('notes-wall-root');
       containerRef.addEventListener('click', handleClick);
-      containerRef.addEventListener('keydown', handleKeyDown);
-      containerRef.addEventListener('focusout', handleFocusOut);
+      containerRef.addEventListener('keydown', handleKeyDown as EventListener);
+      containerRef.addEventListener('focusout', handleFocusOut as EventListener);
       render();
       // Re-render when Firestore highlights arrive (async after mount).
       const onHighlightsChanged = () => render();
@@ -626,8 +658,8 @@ export function createNotesWallComponent() {
       }
       if (containerRef) {
         containerRef.removeEventListener('click', handleClick);
-        containerRef.removeEventListener('keydown', handleKeyDown);
-        containerRef.removeEventListener('focusout', handleFocusOut);
+        containerRef.removeEventListener('keydown', handleKeyDown as EventListener);
+        containerRef.removeEventListener('focusout', handleFocusOut as EventListener);
         containerRef.innerHTML = '';
       }
       containerRef = null;
