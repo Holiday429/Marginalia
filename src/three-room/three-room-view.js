@@ -7,7 +7,7 @@ import { MarginaliaAuth } from '../firebase/auth.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { EntitlementsStore } from '../store/entitlements-store.ts';
 import { openCheckout } from '../services/billing.ts';
-import { NewEntry } from '../new-entry/new-entry.js';
+import { NewEntry } from '../new-entry/new-entry.ts';
 import { RoomAudio } from './room-audio.ts';
 
 const SPACE_ITEMS = [

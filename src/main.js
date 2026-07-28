@@ -65,7 +65,7 @@ import { KindleImport } from './api/kindle-import.ts';
 
 // 5. Shared components
 import { SpineCard } from './components/spine-card.ts';
-import { NewEntry } from './new-entry/new-entry.js';
+import { NewEntry } from './new-entry/new-entry.ts';
 
 // 6a. AI layer
 import './services/ai-gateway.ts';
