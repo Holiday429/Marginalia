@@ -18,6 +18,41 @@
 
 import { logError } from '../services/analytics.ts';
 
+type Book = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
+
+interface HighlightRecord {
+  id: string;
+  bookId: string;
+  source: string;
+  createdAt: number;
+  updatedAt: number;
+  [key: string]: unknown;
+}
+
+interface NoteRecord {
+  bookId: string;
+  content: string;
+  updatedAt: number;
+}
+
+interface ActionStatusRecord {
+  key: string;
+  bookId: string;
+  actionId: string;
+  status: string;
+  updatedAt: number;
+}
+
+interface AiResultRecord {
+  key: string;
+  bookId: string;
+  featureId: string;
+  data: unknown;
+  savedAt: number;
+}
+
+type ChangeListener = () => void;
+
 export const NotesStore = (() => {
   const DB_NAME    = 'marginalia-notes';
   const DB_VERSION = 3;
@@ -27,18 +62,17 @@ export const NotesStore = (() => {
   const STORE_AI         = 'ai-results';
   const STORE_BOOKS      = 'user-books';
 
-  let _db     = null;
-  let _ready  = false;
-  const _listeners = [];
+  let _db: IDBDatabase | null = null;
+  const _listeners: ChangeListener[] = [];
 
   /* ── Init ────────────────────────────────────────────────────────────────── */
 
-  function init() {
-    return new Promise((resolve, reject) => {
+  function init(): Promise<void> {
+    return new Promise((resolve) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
 
       req.onupgradeneeded = (event) => {
-        const db = event.target.result;
+        const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains(STORE_ACTIONS)) {
           // key: "bookId::actionId"
           db.createObjectStore(STORE_ACTIONS, { keyPath: 'key' });
@@ -62,14 +96,12 @@ export const NotesStore = (() => {
       };
 
       req.onsuccess = (event) => {
-        _db    = event.target.result;
-        _ready = true;
+        _db    = (event.target as IDBOpenDBRequest).result;
         resolve();
       };
 
       req.onerror = () => {
         logError(new Error('[NotesStore] IndexedDB open failed — falling back to in-memory.'), { context: 'notes-store init' });
-        _ready = true;
         resolve();
       };
     });
@@ -77,13 +109,13 @@ export const NotesStore = (() => {
 
   /* ── Internal helpers ────────────────────────────────────────────────────── */
 
-  function _tx(storeName, mode = 'readonly') {
+  function _tx(storeName: string, mode: IDBTransactionMode = 'readonly'): IDBObjectStore | null {
     if (!_db) return null;
     try { return _db.transaction(storeName, mode).objectStore(storeName); }
     catch { return null; }
   }
 
-  function _idbGet(store, key) {
+  function _idbGet<T>(store: IDBObjectStore | null, key: IDBValidKey): Promise<T | null> {
     return new Promise((resolve) => {
       if (!store) return resolve(null);
       const req = store.get(key);
@@ -92,7 +124,7 @@ export const NotesStore = (() => {
     });
   }
 
-  function _idbPut(store, record) {
+  function _idbPut(store: IDBObjectStore | null, record: unknown): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!store) return resolve();
       const req = store.put(record);
@@ -101,7 +133,7 @@ export const NotesStore = (() => {
     });
   }
 
-  function _idbDelete(store, key) {
+  function _idbDelete(store: IDBObjectStore | null, key: IDBValidKey): Promise<void> {
     return new Promise((resolve) => {
       if (!store) return resolve();
       const req = store.delete(key);
@@ -110,7 +142,7 @@ export const NotesStore = (() => {
     });
   }
 
-  function _idbGetAllByIndex(storeName, indexName, value) {
+  function _idbGetAllByIndex<T>(storeName: string, indexName: string, value: IDBValidKey): Promise<T[]> {
     return new Promise((resolve) => {
       const tx = _db?.transaction(storeName, 'readonly');
       if (!tx) return resolve([]);
@@ -121,26 +153,26 @@ export const NotesStore = (() => {
     });
   }
 
-  function _emit() {
-    _listeners.forEach(fn => { try { fn(); } catch {} });
+  function _emit(): void {
+    _listeners.forEach(fn => { try { fn(); } catch { /* listener error is non-fatal */ } });
     window.dispatchEvent(new CustomEvent('marginalia:notes-changed'));
   }
 
   /* ── Action status ───────────────────────────────────────────────────────── */
 
   // In-memory fallback when IndexedDB is unavailable
-  const _memActions = {};
+  const _memActions: Record<string, string> = {};
 
-  async function getActionStatus(bookId, actionId) {
+  async function getActionStatus(bookId: string, actionId: string): Promise<string | null> {
     const key = `${bookId}::${actionId}`;
     if (_db) {
-      const record = await _idbGet(_tx(STORE_ACTIONS), key);
+      const record = await _idbGet<ActionStatusRecord>(_tx(STORE_ACTIONS), key);
       return record?.status ?? null;
     }
     return _memActions[key] ?? null;
   }
 
-  async function setActionStatus(bookId, actionId, status) {
+  async function setActionStatus(bookId: string, actionId: string, status: string): Promise<void> {
     const key = `${bookId}::${actionId}`;
     if (_db) {
       await _idbPut(_tx(STORE_ACTIONS, 'readwrite'), { key, bookId, actionId, status, updatedAt: Date.now() });
@@ -152,13 +184,13 @@ export const NotesStore = (() => {
 
   /* ── Highlights ──────────────────────────────────────────────────────────── */
 
-  async function getHighlights(bookId) {
+  async function getHighlights(bookId: string): Promise<HighlightRecord[]> {
     if (!_db) return [];
-    return _idbGetAllByIndex(STORE_HIGHLIGHTS, 'bookId', bookId);
+    return _idbGetAllByIndex<HighlightRecord>(STORE_HIGHLIGHTS, 'bookId', bookId);
   }
 
-  async function saveHighlight(bookId, highlight) {
-    const record = {
+  async function saveHighlight(bookId: string, highlight: Record<string, any>): Promise<HighlightRecord> { // eslint-disable-line @typescript-eslint/no-explicit-any -- caller-supplied partial highlight shape
+    const record: HighlightRecord = {
       ...highlight,
       id:        highlight.id     || `hl-${bookId}-${Date.now()}`,
       bookId,
@@ -173,13 +205,13 @@ export const NotesStore = (() => {
     return record;
   }
 
-  async function deleteHighlight(bookId, highlightId) {
+  async function deleteHighlight(bookId: string, highlightId: string): Promise<void> {
     if (_db) await _idbDelete(_tx(STORE_HIGHLIGHTS, 'readwrite'), highlightId);
     _emit();
   }
 
   // Batch import — used by Kindle parser; skips duplicates by id
-  async function importHighlights(bookId, highlights) {
+  async function importHighlights(bookId: string, highlights: Array<Record<string, any>>): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any -- caller-supplied partial highlight shapes
     if (!_db) return;
     const tx = _db.transaction(STORE_HIGHLIGHTS, 'readwrite');
     const store = tx.objectStore(STORE_HIGHLIGHTS);
@@ -193,19 +225,19 @@ export const NotesStore = (() => {
       };
       store.put(record);
     }
-    await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+    await new Promise<void>((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
     _emit();
   }
 
   /* ── Book notes ──────────────────────────────────────────────────────────── */
 
-  async function getNote(bookId) {
+  async function getNote(bookId: string): Promise<NoteRecord | null> {
     if (!_db) return null;
-    return _idbGet(_tx(STORE_NOTES), bookId);
+    return _idbGet<NoteRecord>(_tx(STORE_NOTES), bookId);
   }
 
-  async function saveNote(bookId, content) {
-    const record = { bookId, content, updatedAt: Date.now() };
+  async function saveNote(bookId: string, content: string): Promise<NoteRecord> {
+    const record: NoteRecord = { bookId, content, updatedAt: Date.now() };
     if (_db) {
       await _idbPut(_tx(STORE_NOTES, 'readwrite'), record);
     }
@@ -215,21 +247,21 @@ export const NotesStore = (() => {
 
   /* ── AI results ─────────────────────────────────────────────────────────── */
 
-  async function getAiResult(bookId, featureId) {
+  async function getAiResult(bookId: string, featureId: string): Promise<unknown> {
     if (!_db) return null;
     const key = `${bookId}::${featureId}`;
-    const record = await _idbGet(_tx(STORE_AI), key);
+    const record = await _idbGet<AiResultRecord>(_tx(STORE_AI), key);
     return record ? record.data : null;
   }
 
-  async function saveAiResult(bookId, featureId, data) {
+  async function saveAiResult(bookId: string, featureId: string, data: unknown): Promise<void> {
     const key = `${bookId}::${featureId}`;
     if (_db) {
       await _idbPut(_tx(STORE_AI, 'readwrite'), { key, bookId, featureId, data, savedAt: Date.now() });
     }
   }
 
-  async function deleteAiResult(bookId, featureId) {
+  async function deleteAiResult(bookId: string, featureId: string): Promise<void> {
     if (!_db) return;
     const key = `${bookId}::${featureId}`;
     await _idbDelete(_tx(STORE_AI, 'readwrite'), key);
@@ -237,20 +269,20 @@ export const NotesStore = (() => {
 
   /* ── User books ──────────────────────────────────────────────────────────── */
 
-  async function saveBook(book) {
+  async function saveBook(book: Book): Promise<void> {
     if (!_db) return;
     await _idbPut(_tx(STORE_BOOKS, 'readwrite'), { ...book, _savedAt: Date.now() });
   }
 
-  async function deleteBook(bookId) {
+  async function deleteBook(bookId: string): Promise<void> {
     if (!_db) return;
     await _idbDelete(_tx(STORE_BOOKS, 'readwrite'), bookId);
   }
 
-  async function getAllBooks() {
+  async function getAllBooks(): Promise<Book[]> {
     if (!_db) return [];
     return new Promise((resolve) => {
-      const tx = _db.transaction(STORE_BOOKS, 'readonly');
+      const tx = _db!.transaction(STORE_BOOKS, 'readonly');
       const req = tx.objectStore(STORE_BOOKS).getAll();
       req.onsuccess = () => resolve(req.result ?? []);
       req.onerror   = () => resolve([]);
@@ -259,7 +291,7 @@ export const NotesStore = (() => {
 
   /* ── Subscriptions ───────────────────────────────────────────────────────── */
 
-  function onChange(fn) {
+  function onChange(fn: ChangeListener): () => void {
     _listeners.push(fn);
     return () => { const i = _listeners.indexOf(fn); if (i >= 0) _listeners.splice(i, 1); };
   }

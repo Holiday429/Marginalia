@@ -7,7 +7,7 @@ import { logEvent, logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { HighlightsStore } from '../store/highlights-store.ts';
 import { ActionsStore } from '../store/actions-store.ts';
-import { NotesStore } from '../store/notes-store.js';
+import { NotesStore } from '../store/notes-store.ts';
 import { renderSearchSection } from '../search/search.js';
 import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
 import { MarginaliaStorage, MarginaliaBooksCloud } from '../firebase/db.ts';

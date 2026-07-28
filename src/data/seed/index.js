@@ -8,7 +8,7 @@
 
 import { __SEED_SAPIENS } from './sapiens.js';
 import { BOOK_TYPES } from '../schema/book-types.js';
-import { NotesStore } from '../../store/notes-store.js';
+import { NotesStore } from '../../store/notes-store.ts';
 import { BOOKS as SHELF_BOOKS } from '../mock/seed-spines.js';
 
 export const BOOK_DETAILS = [

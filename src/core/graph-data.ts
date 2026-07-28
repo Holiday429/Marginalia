@@ -10,7 +10,7 @@ import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
-import { NotesStore } from '../store/notes-store.js';
+import { NotesStore } from '../store/notes-store.ts';
 
 // Book records come from three sources (BooksStore, seed data, ad-hoc AI
 // imports) with inconsistent optional fields — matches the loose BookRecord

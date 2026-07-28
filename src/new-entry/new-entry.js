@@ -9,7 +9,7 @@ import { BookSchema } from '../data/schema/book.ts';
 import { PanelManager } from '../core/panel-manager.ts';
 import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { BooksStore } from '../store/books-store.ts';
-import { NotesStore } from '../store/notes-store.js';
+import { NotesStore } from '../store/notes-store.ts';
 import { renderSearchSection } from '../search/search.js';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
