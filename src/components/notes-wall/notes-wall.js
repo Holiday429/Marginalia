@@ -1,7 +1,7 @@
 import './notes-wall.css';
 import { HighlightsStore } from '../../store/highlights-store.ts';
 import { BooksStore } from '../../store/books-store.ts';
-import { NotesStore } from '../../store/notes-store.js';
+import { NotesStore } from '../../store/notes-store.ts';
 import { __SEED_SAPIENS } from '../../data/seed/sapiens.js';
 
 const WALL_WIDTH = 880;

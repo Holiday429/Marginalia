@@ -42,7 +42,7 @@ import { MarginaliaAuth } from './firebase/auth.ts';
 import { MarginaliaBooksCloud, MarginaliaStorage } from './firebase/db.ts';
 
 // 3. State stores
-import { NotesStore } from './store/notes-store.js';
+import { NotesStore } from './store/notes-store.ts';
 import { BooksStore } from './store/books-store.ts';
 import { HighlightsStore } from './store/highlights-store.ts';
 import { EntitlementsStore } from './store/entitlements-store.ts';

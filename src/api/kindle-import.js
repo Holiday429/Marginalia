@@ -9,7 +9,7 @@
      KindleImport.mountUI(containerEl)  — renders a drag-drop zone
    ========================================================================== */
 
-import { NotesStore } from '../store/notes-store.js';
+import { NotesStore } from '../store/notes-store.ts';
 
 export const KindleImport = (() => {
   const SEPARATOR = '==========';
