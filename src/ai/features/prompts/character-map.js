@@ -2,7 +2,7 @@
    Target panel: characters (fiction)
    Output: JSON array of character objects
 */
-import { AIFeatureRegistry } from "../registry.js";
+import { AIFeatureRegistry } from "../registry.ts";
 
 AIFeatureRegistry.setPrompt('character-map', {
   build(book) {

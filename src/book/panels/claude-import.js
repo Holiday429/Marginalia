@@ -14,7 +14,7 @@
 import { doc, setDoc } from 'firebase/firestore';
 import { MarginaliaAuth } from '../../firebase/auth.ts';
 import { MARGINALIA_FIREBASE } from '../../firebase/config.ts';
-import { PanelRegistry } from './registry.js';
+import { PanelRegistry } from './registry.ts';
 import { NotesStore } from '../../store/notes-store.ts';
 
 (function registerVisualNotesPanel() {

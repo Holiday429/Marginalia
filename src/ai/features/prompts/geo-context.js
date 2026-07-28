@@ -2,7 +2,7 @@
    Target panel: geo-context (travel)
    Output: JSON array of place objects
 */
-import { AIFeatureRegistry } from "../registry.js";
+import { AIFeatureRegistry } from "../registry.ts";
 
 AIFeatureRegistry.setPrompt('geo-context', {
   build(book) {

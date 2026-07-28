@@ -12,9 +12,9 @@ import {
   getAiBlock, saveAiOriginal, saveAiUserEdit, clearAiUserEdit, deleteAiBlock,
 } from '../../store/ai-results-store.ts';
 import { resolveAiContent } from '../../data/schema/ai-block.ts';
-import { PanelRegistry } from '../../book/panels/registry.js';
+import { PanelRegistry } from '../../book/panels/registry.ts';
 import { EntitlementsStore } from '../../store/entitlements-store.ts';
-import { AIFeatureRegistry } from '../features/registry.js';
+import { AIFeatureRegistry } from '../features/registry.ts';
 import { MarginaliaAI } from '../../services/ai-gateway.ts';
 import { MarginaliaGraph } from '../../core/graph-data.ts';
 
@@ -233,7 +233,7 @@ export const AIGenerateUI = (() => {
       <div class="ai-generated-content"></div>
     `;
     const contentEl = block_el.querySelector('.ai-generated-content') as HTMLElement;
-    if (usePanel) {
+    if (usePanel && panel?.render) {
       panel.render(book, contentEl);
     } else {
       contentEl.innerHTML = renderResult(feature, displayData);

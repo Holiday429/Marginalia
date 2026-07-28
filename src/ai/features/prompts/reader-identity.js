@@ -5,7 +5,7 @@
 
    version: 3
 */
-import { AIFeatureRegistry } from '../registry.js';
+import { AIFeatureRegistry } from '../registry.ts';
 
 AIFeatureRegistry.setPrompt('reader-identity', {
   version: '3',

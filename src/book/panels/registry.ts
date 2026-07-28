@@ -15,10 +15,20 @@
    ========================================================================== */
 
 import { logError } from '../../services/analytics.ts';
-import { BookTypes } from '../../data/schema/book-types.js';
+import { BookTypes } from '../../data/schema/book-types.ts';
+
+type Book = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
+type PanelRenderFn = (book: Book, container: HTMLElement) => void;
+
+interface PanelDef {
+  label: string;
+  icon: string;
+  universal: boolean;
+  render: PanelRenderFn | null;
+}
 
 export const PanelRegistry = (() => {
-  const _panels = {
+  const _panels: Record<string, PanelDef> = {
 
     /* ── Universal panels ─────────────────────────────────────────────────── */
 
@@ -138,10 +148,8 @@ export const PanelRegistry = (() => {
     /**
      * Register a render function for a panel.
      * Called by each panel's own script file.
-     * @param {string} id
-     * @param {function} renderFn  (book, container) => void
      */
-    set(id, renderFn) {
+    set(id: string, renderFn: PanelRenderFn): void {
       if (!_panels[id]) {
         logError(new Error(`[PanelRegistry] Unknown panel id: "${id}"`), { panelId: id });
         return;
@@ -150,17 +158,15 @@ export const PanelRegistry = (() => {
     },
 
     /** Get panel config by id. */
-    get(id) {
+    get(id: string): PanelDef | null {
       return _panels[id] || null;
     },
 
     /**
      * Resolve the ordered panel list for a book.
      * Filters out any panels whose render function hasn't loaded yet.
-     * @param {object} book
-     * @returns {Array<{id, label, icon, render}>}
      */
-    forBook(book) {
+    forBook(book: Book): Array<{ id: string } & Partial<PanelDef>> {
       const ids = BookTypes.getPanels(book);
       return ids
         .map(id => ({ id, ...(_panels[id] || {}) }))
@@ -168,7 +174,7 @@ export const PanelRegistry = (() => {
     },
 
     /** All registered panel ids. */
-    all() {
+    all(): string[] {
       return Object.keys(_panels);
     },
   };

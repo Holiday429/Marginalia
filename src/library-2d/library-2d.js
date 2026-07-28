@@ -9,10 +9,10 @@ import { PanelManager } from '../core/panel-manager.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { MarginaliaBooksCloud } from '../firebase/db.ts';
-import { SpineCard } from '../components/spine-card.js';
+import { SpineCard } from '../components/spine-card.ts';
 import { NewEntry } from '../new-entry/new-entry.js';
 import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
-import { SPINE_COLORS } from '../shared/spine-colors.js';
+import { SPINE_COLORS } from '../shared/spine-colors.ts';
 import {
   LIBRARY_STORAGE_KEY,
   LIBRARY_WORLD_WIDTH,

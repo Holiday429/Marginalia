@@ -32,9 +32,9 @@ if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
 // for legacy bridge code that still reads via M.*.
 
 // 1. Schema + type system
-import './data/schema/book-types.js';
-import { PanelRegistry } from './book/panels/registry.js';
-import './ai/features/registry.js';
+import './data/schema/book-types.ts';
+import { PanelRegistry } from './book/panels/registry.ts';
+import './ai/features/registry.ts';
 
 // 2. Firebase layer
 import { doc, getDoc } from 'firebase/firestore';
@@ -61,10 +61,10 @@ import { App, registerPreloader, renderPrimaryHeader, renderUnifiedPanelHeader, 
 import { openConceptDrawer, closeConceptDrawer } from './core/concept-ui.ts';
 
 // 4b. API adapters
-import { KindleImport } from './api/kindle-import.js';
+import { KindleImport } from './api/kindle-import.ts';
 
 // 5. Shared components
-import { SpineCard } from './components/spine-card.js';
+import { SpineCard } from './components/spine-card.ts';
 import { NewEntry } from './new-entry/new-entry.js';
 
 // 6a. AI layer

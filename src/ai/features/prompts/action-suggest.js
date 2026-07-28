@@ -2,7 +2,7 @@
    Target panel: actions
    Output: JSON array matching book.actions schema
 */
-import { AIFeatureRegistry } from "../registry.js";
+import { AIFeatureRegistry } from "../registry.ts";
 AIFeatureRegistry.setPrompt('action-suggest', {
   build(book) {
     const highlights = (book.highlights || []).map(h => `- "${h.quote}"`).join('\n');

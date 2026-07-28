@@ -5,7 +5,7 @@
 
    version: 1
 */
-import { AIFeatureRegistry } from '../registry.js';
+import { AIFeatureRegistry } from '../registry.ts';
 
 AIFeatureRegistry.setPrompt('reader-portrait', {
   version: '1',

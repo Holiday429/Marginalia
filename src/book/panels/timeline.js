@@ -8,7 +8,7 @@
         [{ chapter, period, event, characters[], significance, highlight }]
    ========================================================================== */
 
-import { PanelRegistry } from './registry.js';
+import { PanelRegistry } from './registry.ts';
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"]/g, c =>

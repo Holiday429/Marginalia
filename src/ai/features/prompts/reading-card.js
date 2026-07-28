@@ -1,4 +1,4 @@
-import { AIFeatureRegistry } from '../registry.js';
+import { AIFeatureRegistry } from '../registry.ts';
 
 AIFeatureRegistry.setPrompt('reading-card', {
   version: '1.0',

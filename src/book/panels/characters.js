@@ -2,7 +2,7 @@
    Marginalia · Characters panel (fiction)
    ========================================================================== */
 
-import { PanelRegistry } from './registry.js';
+import { PanelRegistry } from './registry.ts';
 
 const ROLE_ORDER = ['protagonist', 'antagonist', 'supporting', 'minor'];
 

@@ -1,6 +1,6 @@
 import { PanelManager } from '../core/panel-manager.ts';
 import { BooksStore } from '../store/books-store.ts';
-import { SpineCard } from '../components/spine-card.js';
+import { SpineCard } from '../components/spine-card.ts';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
 import { mountReadingPath } from './reading-path.ts';
 import { SHELF_BOOKS as MOCK_SHELF_BOOKS } from '../data/mock/seed-spines.js';

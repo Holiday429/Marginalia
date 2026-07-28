@@ -8,6 +8,10 @@
  */
 import { mountHeroGLB } from '../../preloader/hero-glb.js';
 
+interface HeroBookOptions {
+  height?: number;
+}
+
 const HERO_SEED = {
   title: 'VISIBLE SIGNS',
   spine: '#1a2550',
@@ -18,16 +22,17 @@ const HERO_SEED = {
 };
 
 export class HeroBook {
-  /**
-   * @param {{ height?: number }} [options] target rendered book height in px.
-   */
-  constructor(options = {}) {
+  height: number;
+  bookEl: HTMLDivElement | null;
+  teardown: (() => void) | null | undefined;
+
+  constructor(options: HeroBookOptions = {}) {
     this.height = options.height ?? 240;
     this.bookEl = null;
     this.teardown = null;
   }
 
-  mount(container) {
+  mount(container: HTMLElement): void {
     const baseH = this.height;
     const w = HERO_SEED.w;
     const coverW = Math.round(Math.max(w * 2.4, 100));
@@ -110,18 +115,18 @@ export class HeroBook {
   }
 
   /** Swing the cover open (cover-forward flip). */
-  open() {
+  open(): void {
     this.bookEl?.classList.add('opening', 'opened');
   }
 
   /** Return to spine-forward rest. */
-  close() {
+  close(): void {
     if (!this.bookEl) return;
     this.bookEl.classList.remove('opened');
     window.setTimeout(() => this.bookEl?.classList.remove('opening'), 1300);
   }
 
-  unmount() {
+  unmount(): void {
     this.teardown?.();
     this.teardown = null;
     this.bookEl?.remove();
