@@ -10,34 +10,52 @@ import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.ts';
 import { PanelManager } from '../core/panel-manager.ts';
 import { loadProfile, prefetchProfiles, getCachedProfile, buildFallbackProfile } from './geo-profiles.js';
 
+type Book = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
+
 // amCharts5 modules, loaded on demand when the map is first entered (see
 // loadAmCharts()). Module-level so bootMap() and its helpers can keep
 // referencing them as bare identifiers, matching the CDN-global shape they
 // were originally written against.
-let am5;
-let am5map;
-let am5themes_Animated;
-let am5geodata_worldLow;
-let am5geodata_chinaHigh;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped dynamic amCharts5 module, matches src/profile/profile-map.ts
+let am5: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped dynamic amCharts5 module
+let am5map: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped dynamic amCharts5 module
+let am5themes_Animated: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped dynamic amCharts5-geodata module
+let am5geodata_worldLow: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped dynamic amCharts5-geodata module
+let am5geodata_chinaHigh: any;
 
-let __mapChart       = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- amCharts5 MapChart instance
+let __mapChart: any       = null;
 let __mapBooted      = false;
-let __mapWorldSeries = null;
-let __mapChinaSeries = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygonSeries instance
+let __mapWorldSeries: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygonSeries instance
+let __mapChinaSeries: any = null;
 let __mapInChina     = false;
-let __mapFocusedCountryId = null;
-let __mapActivePoly  = null;
-let __mapRoot        = null;
-let __mapGoWorldFn   = null;
-let __mapPanelState  = null;
-let __mapHoverCountryId = null;
+let __mapFocusedCountryId: string | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
+let __mapActivePoly: any  = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- amCharts5 Root instance
+let __mapRoot: any        = null;
+let __mapGoWorldFn: (() => void) | null   = null;
+let __mapPanelState: MapPanelState | null  = null;
+let __mapHoverCountryId: string | null = null;
 let __mapPointer    = { x: 0, y: 0 };
 let __mapGeoMode    = 'all';
 
 /* ── Book data ──────────────────────────────────────────────────────────── */
 // MAP_BOOKS static array removed — map now reads from BooksStore reactively.
 
-const MAP_MODE_META = {
+interface MapModeMeta {
+  label: string;
+  short: string;
+  empty: string;
+}
+
+const MAP_MODE_META: Record<string, MapModeMeta> = {
   authorOrigin: {
     label: 'Author Origin',
     short: 'Author',
@@ -63,7 +81,34 @@ const MAP_TAB_META = [
   { id: 'starter',  label: 'Starter' },
 ];
 
-function deriveMapGeo(book) {
+interface GeoPoint {
+  country: string;
+  province?: string | null;
+  city?: string | null;
+}
+
+interface MapBookGeo {
+  authorOrigin: GeoPoint | null;
+  contentLocation: GeoPoint | null;
+  readerLocation: GeoPoint | null;
+}
+
+interface MapBook {
+  id: string;
+  title: string;
+  author: string;
+  bg: string;
+  text: string;
+  coverImage: string | null;
+  tags: string[];
+  year: number | null;
+  loc: string | null;
+  province: string | null;
+  city: string | null;
+  geo: MapBookGeo;
+}
+
+function deriveMapGeo(book: Book): MapBookGeo {
   // Prefer the book's own geo block (set by new-entry or AI), then fall back
   // to location.country if only the simple field is present.
   const bookGeo = book.geo || {};
@@ -78,7 +123,7 @@ function deriveMapGeo(book) {
   };
 }
 
-function buildMapLibrary(books) {
+function buildMapLibrary(books: Book[]): MapBook[] {
   return books.map(book => ({
     id:         book.id,
     title:      book.title ?? book.meta?.title ?? String(book.id),
@@ -95,8 +140,21 @@ function buildMapLibrary(books) {
   }));
 }
 
-function buildGeoBuckets(books) {
-  const buckets = {
+interface GeoBucketScope {
+  countries: Record<string, MapBook[]>;
+  provinces: Record<string, MapBook[]>;
+}
+
+interface GeoBuckets {
+  authorOrigin: GeoBucketScope;
+  contentLocation: GeoBucketScope;
+  readerLocation: GeoBucketScope;
+  allCountries: Set<string>;
+  [key: string]: GeoBucketScope | Set<string>;
+}
+
+function buildGeoBuckets(books: MapBook[]): GeoBuckets {
+  const buckets: GeoBuckets = {
     authorOrigin: { countries: {}, provinces: {} },
     contentLocation: { countries: {}, provinces: {} },
     readerLocation: { countries: {}, provinces: {} },
@@ -105,12 +163,13 @@ function buildGeoBuckets(books) {
 
   books.forEach(book => {
     Object.keys(MAP_MODE_META).forEach(mode => {
-      const geo = book.geo?.[mode];
+      const geo = book.geo?.[mode as keyof MapBookGeo];
       if (!geo?.country) return;
-      (buckets[mode].countries[geo.country] = buckets[mode].countries[geo.country] || []).push(book);
+      const scope = buckets[mode] as GeoBucketScope;
+      (scope.countries[geo.country] = scope.countries[geo.country] || []).push(book);
       buckets.allCountries.add(geo.country);
       if (geo.province) {
-        (buckets[mode].provinces[geo.province] = buckets[mode].provinces[geo.province] || []).push(book);
+        (scope.provinces[geo.province] = scope.provinces[geo.province] || []).push(book);
       }
     });
   });
@@ -121,63 +180,63 @@ function buildGeoBuckets(books) {
 // Mutable — rebuilt on every BooksStore change.
 let MAP_LIBRARY = buildMapLibrary(BooksStore.getAll());
 let MAP_GEO = buildGeoBuckets(MAP_LIBRARY);
-let setMapGeoMode = null;
+let setMapGeoMode: ((mode: string) => void) | null = null;
 
-function rebuildLibrary() {
+function rebuildLibrary(): void {
   MAP_LIBRARY = buildMapLibrary(BooksStore.getAll());
   MAP_GEO = buildGeoBuckets(MAP_LIBRARY);
 }
 
-function activeCountryMap() {
+function activeCountryMap(): Record<string, MapBook[]> {
   if (__mapGeoMode === 'all') return mergedCountryMap();
-  return MAP_GEO[__mapGeoMode].countries;
+  return (MAP_GEO[__mapGeoMode] as GeoBucketScope).countries;
 }
 
-function activeProvinceMap() {
+function activeProvinceMap(): Record<string, MapBook[]> {
   if (__mapGeoMode === 'all') return mergedProvinceMap();
-  return MAP_GEO[__mapGeoMode].provinces;
+  return (MAP_GEO[__mapGeoMode] as GeoBucketScope).provinces;
 }
 
-function activeCountries() {
+function activeCountries(): Set<string> {
   return new Set(Object.keys(activeCountryMap()));
 }
 
-function activeCountryBooks(countryId) {
+function activeCountryBooks(countryId: string): MapBook[] {
   return activeCountryMap()[countryId] || [];
 }
 
-function activeProvinceBooks(provinceId) {
+function activeProvinceBooks(provinceId: string): MapBook[] {
   return activeProvinceMap()[provinceId] || [];
 }
 
-function allCountryBooks(countryId) {
-  const map = new Map();
+function allCountryBooks(countryId: string): MapBook[] {
+  const map = new Map<string, MapBook>();
   Object.keys(MAP_MODE_META).forEach(mode => {
-    const list = MAP_GEO[mode].countries[countryId] || [];
+    const list = (MAP_GEO[mode] as GeoBucketScope).countries[countryId] || [];
     list.forEach(book => map.set(book.id, book));
   });
   return Array.from(map.values());
 }
 
-function allProvinceBooks(provinceId) {
-  const map = new Map();
+function allProvinceBooks(provinceId: string): MapBook[] {
+  const map = new Map<string, MapBook>();
   Object.keys(MAP_MODE_META).forEach(mode => {
-    const list = MAP_GEO[mode].provinces[provinceId] || [];
+    const list = (MAP_GEO[mode] as GeoBucketScope).provinces[provinceId] || [];
     list.forEach(book => map.set(book.id, book));
   });
   return Array.from(map.values());
 }
 
-function modeMaxCount(kind = 'country') {
+function modeMaxCount(kind: 'country' | 'province' = 'country'): number {
   const scope = kind === 'province' ? activeProvinceMap() : activeCountryMap();
   const counts = Object.values(scope).map(list => list.length);
   return Math.max(1, ...counts, 0);
 }
 
-function mergedCountryMap() {
-  const merged = {};
+function mergedCountryMap(): Record<string, MapBook[]> {
+  const merged: Record<string, Map<string, MapBook>> = {};
   Object.keys(MAP_MODE_META).forEach(mode => {
-    Object.entries(MAP_GEO[mode].countries).forEach(([countryId, books]) => {
+    Object.entries((MAP_GEO[mode] as GeoBucketScope).countries).forEach(([countryId, books]) => {
       const map = (merged[countryId] = merged[countryId] || new Map());
       books.forEach(book => map.set(book.id, book));
     });
@@ -185,10 +244,10 @@ function mergedCountryMap() {
   return Object.fromEntries(Object.entries(merged).map(([k, map]) => [k, Array.from(map.values())]));
 }
 
-function mergedProvinceMap() {
-  const merged = {};
+function mergedProvinceMap(): Record<string, MapBook[]> {
+  const merged: Record<string, Map<string, MapBook>> = {};
   Object.keys(MAP_MODE_META).forEach(mode => {
-    Object.entries(MAP_GEO[mode].provinces).forEach(([provinceId, books]) => {
+    Object.entries((MAP_GEO[mode] as GeoBucketScope).provinces).forEach(([provinceId, books]) => {
       const map = (merged[provinceId] = merged[provinceId] || new Map());
       books.forEach(book => map.set(book.id, book));
     });
@@ -211,7 +270,7 @@ const PALETTE = [
   '#c2a079', '#8593a3', '#9fb09a', '#c08775',
 ];
 
-const COUNTRY_COLOR = {
+const COUNTRY_COLOR: Record<string, string> = {
   US:'#eec86f', CA:'#7fae8a', MX:'#c75d68',
   GT:'#a385b5', BZ:'#5f8a96', HN:'#d5944f', SV:'#6f7fa8',
   NI:'#9caa4f', CR:'#d98f7a', PA:'#a385b5',
@@ -257,7 +316,7 @@ const COUNTRY_COLOR = {
 // Book-holding countries get a lift in lightness within their own hue family
 // (not a switch to a louder colour), so they read brighter than dimmed
 // neighbours while staying inside the muted envelope above.
-const BOOK_COLOR_BOOST = {
+const BOOK_COLOR_BOOST: Record<string, string> = {
   CN:'#e0b478', GB:'#cf977e', FR:'#92b39a', RU:'#aebfa9',
   JP:'#83a3a8', US:'#e6c98a', IN:'#e6c98a', CO:'#e6c98a',
   GR:'#e0b478', NG:'#e6c98a', CZ:'#c98591', PT:'#e0b478',
@@ -270,7 +329,7 @@ const REGION_NAME_FORMATTER = typeof Intl !== 'undefined' && Intl.DisplayNames
 const DIMMED_FILL        = '#3a342c';
 const HOVER_STROKE       = '#d8b878';
 const HOVER_STROKE_WIDTH = 1.5;
-const HEAT_MODE_COLORS = {
+const HEAT_MODE_COLORS: Record<string, { low: string; high: string }> = {
   authorOrigin: {
     low: '#6e7c8b',
     high: '#aabccf',
@@ -285,7 +344,7 @@ const HEAT_MODE_COLORS = {
   },
 };
 
-function countryFill(id) {
+function countryFill(id: string): string {
   if (__mapGeoMode === 'all') {
     const hasBooks = activeCountryBooks(id).length > 0;
     if (hasBooks && BOOK_COLOR_BOOST[id]) return BOOK_COLOR_BOOST[id];
@@ -296,7 +355,7 @@ function countryFill(id) {
   return heatColorForCount(count, max);
 }
 
-function provinceFill(id) {
+function provinceFill(id: string): string {
   if (__mapGeoMode === 'all') {
     const base = PALETTE[Math.abs(hashStr(id)) % PALETTE.length];
     return activeProvinceBooks(id).length ? brighten(base, 8) : base;
@@ -306,7 +365,7 @@ function provinceFill(id) {
   return heatColorForCount(count, max, 0.7);
 }
 
-function heatColorForCount(count, maxCount, minT = 0.42) {
+function heatColorForCount(count: number, maxCount: number, minT = 0.42): string {
   if (count <= 0) return DIMMED_FILL;
   const scale = Math.max(0, Math.min(1, count / Math.max(1, maxCount)));
   const tone = minT + (1 - minT) * Math.pow(scale, 0.75);
@@ -314,14 +373,14 @@ function heatColorForCount(count, maxCount, minT = 0.42) {
   return mixHexColor(palette.low, palette.high, tone);
 }
 
-function mixHexColor(fromHex, toHex, t) {
+function mixHexColor(fromHex: string, toHex: string, t: number): string {
   const a = hexToRgb(fromHex);
   const b = hexToRgb(toHex);
-  const mix = (x, y) => Math.round(x + (y - x) * t);
+  const mix = (x: number, y: number) => Math.round(x + (y - x) * t);
   return rgbToHex(mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b));
 }
 
-function hexToRgb(hex) {
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const s = hex.replace('#', '');
   return {
     r: parseInt(s.slice(0, 2), 16),
@@ -330,28 +389,28 @@ function hexToRgb(hex) {
   };
 }
 
-function rgbToHex(r, g, b) {
+function rgbToHex(r: number, g: number, b: number): string {
   return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
 }
-function hashStr(s) {
+function hashStr(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return h;
 }
 
-function mapTopPadding(forChina = false) {
+function mapTopPadding(forChina = false): number {
   const isMobile = window.innerWidth <= 980;
   if (forChina) return isMobile ? 12 : 8;
   return isMobile ? 18 : 10;
 }
 
-function mapBottomPadding(forChina = false) {
+function mapBottomPadding(forChina = false): number {
   const isMobile = window.innerWidth <= 980;
   if (forChina) return isMobile ? 18 : 14;
   return isMobile ? 24 : 18;
 }
 
-function applyMapTopPadding(forChina = __mapInChina) {
+function applyMapTopPadding(forChina = __mapInChina): void {
   if (!__mapChart) return;
   __mapChart.set('paddingTop', mapTopPadding(forChina));
   __mapChart.set('paddingBottom', mapBottomPadding(forChina));
@@ -359,15 +418,15 @@ function applyMapTopPadding(forChina = __mapInChina) {
 
 // Align the page-level right column (stats / detail panel) with the top of the
 // Author Origin row by exposing the subheader's offset within .map-page.
-function syncSubheaderTop() {
-  const page = document.querySelector('#panel-map .map-page');
-  const sub = document.querySelector('#panel-map .map-subheader');
+function syncSubheaderTop(): void {
+  const page = document.querySelector<HTMLElement>('#panel-map .map-page');
+  const sub = document.querySelector<HTMLElement>('#panel-map .map-subheader');
   if (!page || !sub) return;
   const top = Math.round(sub.getBoundingClientRect().top - page.getBoundingClientRect().top);
   page.style.setProperty('--map-subheader-top', `${Math.max(0, top)}px`);
 }
 
-function setMapInteractionMode(mode = 'world') {
+function setMapInteractionMode(mode: 'world' | 'detail' = 'world'): void {
   if (!__mapChart) return;
   if (mode === 'world') {
     __mapChart.setAll({
@@ -384,8 +443,8 @@ function setMapInteractionMode(mode = 'world') {
 
 /* ── Lifecycle ─────────────────────────────────────────────────────────── */
 
-function initMap() {
-  document.getElementById('panel-map').innerHTML = mapShellHTML();
+function initMap(): void {
+  document.getElementById('panel-map')!.innerHTML = mapShellHTML();
   bindMapShellEvents();
 
   // Pre-warm profiles for the most-clicked countries.
@@ -406,7 +465,12 @@ function initMap() {
 // boot reveals continents one batch at a time instead of all at once.
 let __mapStagedEntry = false;
 
-function enterMap(params = {}) {
+interface EnterMapParams {
+  __roomTransition?: { source?: string };
+  [key: string]: unknown;
+}
+
+function enterMap(params: EnterMapParams = {}): void {
   // Run the continent-by-continent reveal whenever the map is entered via the
   // room globe transition — regardless of whether the chart was already booted
   // on a prior visit. (The globe fly-in is the cue; the reveal replays the map.)
@@ -431,7 +495,7 @@ function enterMap(params = {}) {
 let __mapGlobeMounted = false;
 // Lazy-load the decorative globe so Three.js never blocks the map's first
 // paint. Skipped on small screens (no room for it) and if WebGL is unusable.
-function mountGlobeWidget() {
+function mountGlobeWidget(): void {
   if (__mapGlobeMounted) return;
   if (window.innerWidth <= 980) return;
   const container = document.getElementById('mapGlobe');
@@ -447,8 +511,8 @@ function mountGlobeWidget() {
 
 // Dynamic import of amCharts5 + geodata, cached so repeat calls (e.g.
 // re-entering the map view) resolve instantly without re-fetching chunks.
-let __amChartsLoadPromise = null;
-function loadAmCharts() {
+let __amChartsLoadPromise: Promise<void> | null = null;
+function loadAmCharts(): Promise<void> {
   if (am5 && am5map && am5themes_Animated && am5geodata_worldLow && am5geodata_chinaHigh) {
     return Promise.resolve();
   }
@@ -471,7 +535,7 @@ function loadAmCharts() {
 
 /* ── DOM scaffold ──────────────────────────────────────────────────────── */
 
-function mapShellHTML() {
+function mapShellHTML(): string {
   const sharedHeader = renderUnifiedPanelHeader('map');
   const content = `
     ${sharedHeader}
@@ -523,8 +587,8 @@ function mapShellHTML() {
   return renderToolPageShell('map', `<div class="map-page">${content}</div>`);
 }
 
-function bindMapShellEvents() {
-  document.getElementById('mapPanelClose').addEventListener('click', closePanel);
+function bindMapShellEvents(): void {
+  document.getElementById('mapPanelClose')!.addEventListener('click', closePanel);
   renderGlobalGeoFilters();
   renderMapStats();
   syncSubheaderTop();
@@ -544,7 +608,7 @@ function bindMapShellEvents() {
     });
   }
 
-  const tooltip = document.getElementById('mapTooltip');
+  const tooltip = document.getElementById('mapTooltip') as HTMLElement;
   document.addEventListener('mousemove', e => {
     __mapPointer = { x: e.clientX, y: e.clientY };
     const tw = 220, th = 44;
@@ -557,7 +621,7 @@ function bindMapShellEvents() {
   });
 }
 
-function renderGlobalGeoFilters() {
+function renderGlobalGeoFilters(): void {
   const wrap = document.getElementById('mapGeoFilters');
   if (!wrap) return;
   wrap.innerHTML = '';
@@ -571,7 +635,7 @@ function renderGlobalGeoFilters() {
   });
 }
 
-function updateSubheaderCounts() {
+function updateSubheaderCounts(): void {
   const countriesEl = document.getElementById('mapCountriesCount');
   if (countriesEl) countriesEl.textContent = String(activeCountries().size);
   const booksEl = document.getElementById('mapBooksCount');
@@ -594,8 +658,8 @@ const CONTINENT_ORDER = ['Eurasia', 'NorthAmerica', 'SouthAmerica', 'Africa', 'O
 // Europe into one mass; the Americas split into north and south so they can
 // enter from different corners. Built from per-block code lists so every
 // country lands in a real batch.
-const CONTINENT_OF = (() => {
-  const lists = {
+const CONTINENT_OF: Record<string, string> = (() => {
+  const lists: Record<string, string> = {
     Eurasia: 'AF AM AZ BH BD BT BN KH CN CY GE HK IN ID IR IQ IL JP JO KZ KW KG LA LB MO MY MV MN MM NP KP OM PK PS PH QA SA SG KR LK SY TW TJ TH TL TR TM AE UZ VN YE '
       + 'AL AD AT BY BE BA BG HR CZ DK EE FO FI FR DE GI GR GG HU IS IE IM IT JE XK LV LI LT LU MT MD MC ME NL MK NO PL PT RO RU SM RS SK SI ES SE CH UA GB VA',
     NorthAmerica: 'AG AW BS BB BZ CA KY CR CU DM DO SV GL GD GP GT HT HN JM MQ MX NI PA PR BL KN LC PM VC TT TC US VG VI',
@@ -604,7 +668,7 @@ const CONTINENT_OF = (() => {
     Oceania: 'AU NZ PG FJ NC SB VU PF GU',
     Other: 'AS CK KI MH FM NR NU MP PW PN WS TK TO TV WF',
   };
-  const out = {};
+  const out: Record<string, string> = {};
   for (const [block, codes] of Object.entries(lists)) {
     for (const code of codes.split(/\s+/)) if (code) out[code] = block;
   }
@@ -613,13 +677,14 @@ const CONTINENT_OF = (() => {
 
 // amCharts geodata sometimes carries a continent code in feature properties;
 // use it as a coarse fallback for any id not in the explicit lookup.
-const CONTINENT_CODE_MAP = {
+const CONTINENT_CODE_MAP: Record<string, string> = {
   AS: 'Eurasia', EU: 'Eurasia',
   NA: 'NorthAmerica', SA: 'SouthAmerica',
   AF: 'Africa', OC: 'Oceania', AN: 'Other',
 };
 
-function continentOfPolygon(poly) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
+function continentOfPolygon(poly: any): string {
   const id = poly?.dataItem?.get?.('id');
   if (id && CONTINENT_OF[id]) return CONTINENT_OF[id];
   const ctx = poly?.dataItem?.dataContext;
@@ -631,7 +696,7 @@ function continentOfPolygon(poly) {
 // Per-block slide-in direction (pixel offset the batch starts displaced by,
 // then animates to zero). Same direction + timing for every country in a block,
 // so the whole mass reads as one solid plate flying in from off-screen.
-const CONTINENT_SLIDE = {
+const CONTINENT_SLIDE: Record<string, { dx: number; dy: number }> = {
   Eurasia:      { dx:  420, dy: -300 },  // in from the top-right
   NorthAmerica: { dx: -440, dy: -280 },  // in from the top-left
   SouthAmerica: { dx: -380, dy:  300 },  // in from the bottom-left
@@ -641,15 +706,16 @@ const CONTINENT_SLIDE = {
 };
 
 // Build the ISO-code list per continent block (for temp-series `include`).
-function continentCodeLists() {
-  const byBlock = Object.fromEntries(CONTINENT_ORDER.map(c => [c, []]));
+function continentCodeLists(): Record<string, string[]> {
+  const byBlock: Record<string, string[]> = Object.fromEntries(CONTINENT_ORDER.map(c => [c, []]));
   for (const [code, block] of Object.entries(CONTINENT_OF)) {
     if (byBlock[block]) byBlock[block].push(code);
   }
   return byBlock;
 }
 
-let __mapStaggerTemp = [];   // temp overlay series, torn down after the fly-in
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygonSeries instances
+let __mapStaggerTemp: any[] = [];   // temp overlay series, torn down after the fly-in
 
 // Reveal the map by flying each continent in as a SOLID BLOCK from its own
 // off-screen direction, settling into place. This uses throwaway per-continent
@@ -657,7 +723,8 @@ let __mapStaggerTemp = [];   // temp overlay series, torn down after the fly-in
 // entrance; the real worldSeries — with all its per-country hover/click/fill
 // logic — is hidden during the flight and shown intact at the end. So nothing
 // about normal interaction changes; only the entrance is grouped by continent.
-function runContinentStagger(worldSeries) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygonSeries instance
+function runContinentStagger(worldSeries: any): void {
   const chart = __mapChart;
   const root = __mapRoot;
   if (!chart || !root || !worldSeries) return;
@@ -696,7 +763,8 @@ function runContinentStagger(worldSeries) {
     // Start displaced off-screen and transparent; paint to match the real map.
     temp.setAll({ dx: slide.dx, dy: slide.dy, opacity: 0 });
     temp.events.on('datavalidated', () => {
-      temp.mapPolygons.each(poly => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
+      temp.mapPolygons.each((poly: any) => {
         poly.set('fill', am5.color(countryFill(poly.dataItem.get('id'))));
       });
     });
@@ -719,8 +787,8 @@ function runContinentStagger(worldSeries) {
   }, lastEnd + 120);
 }
 
-function teardownStaggerTemp() {
-  __mapStaggerTemp.forEach(s => { try { s.dispose(); } catch {} });
+function teardownStaggerTemp(): void {
+  __mapStaggerTemp.forEach(s => { try { s.dispose(); } catch { /* already disposed */ } });
   __mapStaggerTemp = [];
 }
 
@@ -729,7 +797,7 @@ function teardownStaggerTemp() {
 // Compact region map for the Insight line. Synchronous (does not depend on
 // loaded profiles, which only cover a subset). Unmapped codes fall back to
 // the country's own name so the line never breaks.
-const COUNTRY_REGION = {
+const COUNTRY_REGION: Record<string, string> = {
   US:'North America', CA:'North America', MX:'North America',
   CO:'Latin America', BR:'Latin America', AR:'Latin America', CL:'Latin America', PE:'Latin America',
   GB:'Western Europe', FR:'Western Europe', DE:'Western Europe', NL:'Western Europe', BE:'Western Europe', AT:'Western Europe', CH:'Western Europe', IE:'Western Europe',
@@ -743,13 +811,13 @@ const COUNTRY_REGION = {
   AU:'Oceania', NZ:'Oceania',
 };
 
-function regionForCountry(id) {
+function regionForCountry(id: string): string {
   return COUNTRY_REGION[id] || countryLabelFromId(id);
 }
 
 // ISO-3166 alpha-2 → regional-indicator emoji flag. No asset needed; works
 // for any valid two-letter code. Returns '' for non-country ids (e.g. CN-11).
-function flagEmoji(id) {
+function flagEmoji(id: string): string {
   if (!/^[A-Za-z]{2}$/.test(id)) return '';
   const base = 0x1f1e6;
   const cc = id.toUpperCase();
@@ -761,26 +829,50 @@ function flagEmoji(id) {
 
 // Best-available recency signal on a book record. Falls back through the
 // common timestamp shapes, then to year, so ordering degrades gracefully.
-function bookRecency(book) {
-  const raw = book.addedAt ?? book.createdAt ?? book.updatedAt ?? book.finishedAt
-    ?? book.meta?.addedAt ?? book.meta?.createdAt ?? null;
+function bookRecency(book: MapBook): number {
+  const b = book as any; // eslint-disable-line @typescript-eslint/no-explicit-any -- MapBook doesn't declare these optional timestamp fields; sourced from the raw Book
+  const raw = b.addedAt ?? b.createdAt ?? b.updatedAt ?? b.finishedAt
+    ?? b.meta?.addedAt ?? b.meta?.createdAt ?? null;
   if (raw != null) {
     const t = typeof raw === 'number' ? raw : Date.parse(raw);
     if (Number.isFinite(t)) return t;
   }
-  return Number.isFinite(book.year) ? book.year : 0;
+  return Number.isFinite(book.year) ? (book.year as number) : 0;
 }
 
-function mappedBookCount(countryMap = activeCountryMap()) {
-  const ids = new Set();
+function mappedBookCount(countryMap: Record<string, MapBook[]> = activeCountryMap()): number {
+  const ids = new Set<string>();
   Object.values(countryMap).forEach((books) => {
     books.forEach((book) => ids.add(book.id));
   });
   return ids.size;
 }
 
+interface MapStatsTop {
+  id: string;
+  name: string;
+  count: number;
+}
+
+interface MapStatsRecent {
+  id: string;
+  name: string;
+  flag: string;
+  count: number;
+  label: string;
+}
+
+interface MapStats {
+  countries: number;
+  books: number;
+  top: MapStatsTop[];
+  maxCount: number;
+  topRegions: string[];
+  recent: MapStatsRecent[];
+}
+
 // Derive everything the sidebar needs from the active buckets — no new data.
-function buildMapStats() {
+function buildMapStats(): MapStats {
   const countryMap = activeCountryMap();
   const ranked = Object.entries(countryMap)
     .map(([id, books]) => ({ id, name: countryLabelFromId(id), count: books.length }))
@@ -791,7 +883,7 @@ function buildMapStats() {
   const maxCount = top[0]?.count || 1;
 
   // Aggregate books-per-region to derive the reading-preference insight.
-  const regionTotals = {};
+  const regionTotals: Record<string, number> = {};
   ranked.forEach(({ id, count }) => {
     const r = regionForCountry(id);
     regionTotals[r] = (regionTotals[r] || 0) + count;
@@ -803,7 +895,7 @@ function buildMapStats() {
 
   // Recent exploration: per country, keep the most-recent book's timestamp
   // and the country's book count; order countries by that timestamp desc.
-  const recentByCountry = {};
+  const recentByCountry: Record<string, { id: string; count: number; recency: number }> = {};
   Object.entries(countryMap).forEach(([id, books]) => {
     if (!books.length) return;
     const newest = Math.max(...books.map(bookRecency));
@@ -831,13 +923,13 @@ function buildMapStats() {
 }
 
 // Compact YYYY.MM label from an epoch-ms timestamp.
-function formatRecencyDate(t) {
+function formatRecencyDate(t: number): string {
   const d = new Date(t);
   if (Number.isNaN(d.getTime())) return '';
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function renderMapStats() {
+function renderMapStats(): void {
   const el = document.getElementById('mapStats');
   if (!el) return;
 
@@ -902,14 +994,14 @@ function renderMapStats() {
 
 // Toggle world-view-only visibility. Hidden whenever a country/province is
 // focused (detail panel takes over), shown again on return to world.
-function setStatsVisible(visible) {
+function setStatsVisible(visible: boolean): void {
   document.body.classList.toggle('map-stats-hidden', !visible);
   if (visible) renderMapStats();
 }
 
 /* ── amCharts boot ─────────────────────────────────────────────────────── */
 
-function bootMap() {
+function bootMap(): void {
   __mapBooted = true;
 
   const root = am5.Root.new('mapChart');
@@ -929,7 +1021,7 @@ function bootMap() {
   );
   __mapChart = chart;
 
-  function setMapProjection(mode = 'world') {
+  function setMapProjection(mode: 'world' | 'detail' = 'world'): void {
     if (mode === 'world') {
       chart.set('projection', am5map.geoNaturalEarth1());
       return;
@@ -982,11 +1074,11 @@ function bootMap() {
   });
 
   /* Tooltip — show name on any country, book count if available */
-  const tooltip  = document.getElementById('mapTooltip');
-  const tipName  = document.getElementById('mapTooltipName');
-  const tipCount = document.getElementById('mapTooltipCount');
+  const tooltip  = document.getElementById('mapTooltip') as HTMLElement;
+  const tipName  = document.getElementById('mapTooltipName') as HTMLElement;
+  const tipCount = document.getElementById('mapTooltipCount') as HTMLElement;
 
-  worldSeries.mapPolygons.template.events.on('pointerover', ev => {
+  worldSeries.mapPolygons.template.events.on('pointerover', (ev: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 pointer event
     const id    = ev.target.dataItem.get('id');
     const name  = getPolyName(ev.target);
     const count = activeCountryBooks(id).length;
@@ -1005,11 +1097,11 @@ function bootMap() {
   });
 
   /* Click */
-  worldSeries.mapPolygons.template.events.on('click', ev => {
+  worldSeries.mapPolygons.template.events.on('click', (ev: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 pointer event
     const id   = ev.target.dataItem.get('id');
     const name = getPolyName(ev.target);
     tooltip.classList.remove('visible');
-    document.getElementById('mapHint').classList.remove('show');
+    document.getElementById('mapHint')!.classList.remove('show');
 
     if (id === 'CN') { drillChina(); return; }
 
@@ -1047,7 +1139,7 @@ function bootMap() {
     repaintChinaFills(chinaSeries);
   });
 
-  chinaSeries.mapPolygons.template.events.on('pointerover', ev => {
+  chinaSeries.mapPolygons.template.events.on('pointerover', (ev: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 pointer event
     const id    = ev.target.dataItem.get('id');
     const name  = getPolyName(ev.target);
     const count = activeProvinceBooks(id).length;
@@ -1077,13 +1169,13 @@ function bootMap() {
     if (__mapGeoMode !== 'all') clearHoverPreview();
   });
 
-  chinaSeries.mapPolygons.template.events.on('click', ev => {
+  chinaSeries.mapPolygons.template.events.on('click', (ev: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 pointer event
     const id   = ev.target.dataItem.get('id');
     const name = getPolyName(ev.target);
     tooltip.classList.remove('visible');
 
     /* Dim all other provinces */
-    chinaSeries.mapPolygons.each(p => {
+    chinaSeries.mapPolygons.each((p: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
       const pid = p.dataItem.get('id');
       const base = provinceFill(pid);
       p.set('fill', am5.color(
@@ -1102,14 +1194,14 @@ function bootMap() {
   /* After the panel slides in (450ms), re-zoom to fit China in the narrowed
      chart area. zoomToGeoPoint level 5 fills ~66% of the viewport well.
      A second pass at 900ms catches any remaining resize lag. */
-  function fitChina() {
+  function fitChina(): void {
     // Zoom to China's actual polygon bounds (same reliable path as other
     // countries) rather than a hard-coded lng/lat+level, which mis-framed the
     // province map in the narrowed pane and left it off-screen / blank. Then
     // ease out a notch so neighbouring provinces/countries stay visible.
     const cnItem = () => {
-      let found = null;
-      worldSeries.mapPolygons.each(poly => {
+      let found: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 DataItem instance
+      worldSeries.mapPolygons.each((poly: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
         if (poly.dataItem?.get('id') === 'CN') found = poly.dataItem;
       });
       return found;
@@ -1137,7 +1229,7 @@ function bootMap() {
     setTimeout(doZoom, 640);
   }
 
-  function resetWorldHome() {
+  function resetWorldHome(): void {
     setMapProjection('world');
     applyMapTopPadding(false);
     setMapInteractionMode('world');
@@ -1153,7 +1245,7 @@ function bootMap() {
     setTimeout(doHome, 520);
   }
 
-  function fitCountry(poly) {
+  function fitCountry(poly: any): void { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
     const di = poly?.dataItem;
     if (!di) return;
     setMapProjection('detail');
@@ -1173,12 +1265,12 @@ function bootMap() {
   }
 
   // Geographic centre of a polygon data item, for re-centring after fit.
-  function centroidOf(di) {
+  function centroidOf(di: any): { longitude: number; latitude: number } { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 DataItem instance
     const g = di?.get('geometry');
     try {
       const c = am5map.getGeoCentroid(g);
       if (c && Number.isFinite(c.longitude) && Number.isFinite(c.latitude)) return c;
-    } catch {}
+    } catch { /* fall through to bounds centre */ }
     // Fallback to bounds centre.
     const b = di?.get('geometry') && am5map.getGeoBounds
       ? am5map.getGeoBounds(di.get('geometry')) : null;
@@ -1186,7 +1278,7 @@ function bootMap() {
     return { longitude: 0, latitude: 0 };
   }
 
-  function focusCountry(poly, id, name) {
+  function focusCountry(poly: any, id: string, name: string): void { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
     __mapInChina = false;
     __mapFocusedCountryId = id;
     chinaSeries.hide();
@@ -1199,7 +1291,7 @@ function bootMap() {
     fitCountry(poly);
   }
 
-  function drillChina() {
+  function drillChina(): void {
     if (__mapInChina) return;
     clearHoverPreview();
     __mapInChina = true;
@@ -1223,7 +1315,7 @@ function bootMap() {
     }, 760);
   }
 
-  function goWorld() {
+  function goWorld(): void {
     __mapInChina = false;
     __mapFocusedCountryId = null;
     clearHoverPreview();
@@ -1238,7 +1330,7 @@ function bootMap() {
   }
   __mapGoWorldFn = goWorld;
 
-  setMapGeoMode = (mode) => {
+  setMapGeoMode = (mode: string) => {
     __mapGeoMode = mode;
     renderGlobalGeoFilters();
     updateSubheaderCounts();
@@ -1249,17 +1341,17 @@ function bootMap() {
       dimAllExcept(worldSeries, __mapActivePoly, __mapFocusedCountryId);
     }
     if (__mapPanelState?.type === 'country') {
-      openCountryPanel(__mapPanelState.countryId, __mapPanelState.placeLabel);
+      openCountryPanel(__mapPanelState.countryId!, __mapPanelState.placeLabel);
     }
     if (__mapPanelState?.type === 'province') {
-      openProvincePanel(__mapPanelState.provinceId, __mapPanelState.placeLabel);
+      openProvincePanel(__mapPanelState.provinceId!, __mapPanelState.placeLabel);
     }
     clearHoverPreview();
   };
 
-  document.getElementById('mapZoomIn').addEventListener('click',  () => chart.zoomIn());
-  document.getElementById('mapZoomOut').addEventListener('click', () => chart.zoomOut());
-  document.getElementById('mapZoomHome').addEventListener('click', () => {
+  document.getElementById('mapZoomIn')!.addEventListener('click',  () => chart.zoomIn());
+  document.getElementById('mapZoomOut')!.addEventListener('click', () => chart.zoomOut());
+  document.getElementById('mapZoomHome')!.addEventListener('click', () => {
     if (__mapInChina) {
       fitChina();
     } else if (__mapFocusedCountryId) {
@@ -1272,7 +1364,7 @@ function bootMap() {
   });
 
   applyMapTopPadding();
-  let mapResizeTimer = null;
+  let mapResizeTimer: ReturnType<typeof setTimeout> | null = null;
   window.addEventListener('resize', () => {
     if (mapResizeTimer) clearTimeout(mapResizeTimer);
     mapResizeTimer = setTimeout(() => {
@@ -1284,15 +1376,15 @@ function bootMap() {
 
   chart.appear(800, 100);
 
-  const hint = document.getElementById('mapHint');
+  const hint = document.getElementById('mapHint')!;
   setTimeout(() => hint.classList.add('show'),    1800);
   setTimeout(() => hint.classList.remove('show'), 6500);
 }
 
 /* ── Fill helpers ───────────────────────────────────────────────────────── */
 
-function dimAllExcept(series, activePoly, activeId) {
-  series.mapPolygons.each(poly => {
+function dimAllExcept(series: any, activePoly: any, activeId: string): void { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygonSeries / MapPolygon instances
+  series.mapPolygons.each((poly: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
     const id = poly.dataItem.get('id');
     poly.set('fill', am5.color(
       poly === activePoly
@@ -1303,28 +1395,28 @@ function dimAllExcept(series, activePoly, activeId) {
   __mapActivePoly = activePoly;
 }
 
-function resetWorldFills(series) {
+function resetWorldFills(series: any): void { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygonSeries instance
   repaintWorldFills(series);
   __mapActivePoly = null;
 }
 
-function repaintWorldFills(series = __mapWorldSeries) {
+function repaintWorldFills(series: any = __mapWorldSeries): void { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygonSeries instance
   if (!series) return;
-  series.mapPolygons.each(poly => {
+  series.mapPolygons.each((poly: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
     const id = poly.dataItem.get('id');
     poly.set('fill', am5.color(countryFill(id)));
   });
 }
 
-function repaintChinaFills(series = __mapChinaSeries) {
+function repaintChinaFills(series: any = __mapChinaSeries): void { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygonSeries instance
   if (!series) return;
-  series.mapPolygons.each(poly => {
+  series.mapPolygons.each((poly: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
     const id = poly.dataItem.get('id');
     poly.set('fill', am5.color(provinceFill(id)));
   });
 }
 
-function setGeoMode(mode) {
+function setGeoMode(mode: string): void {
   const isValid = mode === 'all' || !!MAP_MODE_META[mode];
   if (!isValid || mode === __mapGeoMode) return;
   if (typeof setMapGeoMode === 'function') {
@@ -1336,7 +1428,7 @@ function setGeoMode(mode) {
   }
 }
 
-function clearHoverPreview() {
+function clearHoverPreview(): void {
   __mapHoverCountryId = null;
   __mapHoverPoly = null;
   clearHoverTypewriters();
@@ -1345,7 +1437,7 @@ function clearHoverPreview() {
   if (!__mapFocusedCountryId && !__mapInChina) resetWorldFills(__mapWorldSeries);
 }
 
-function showHoverPreview(countryId, countryName, activePoly) {
+function showHoverPreview(countryId: string, countryName: string, activePoly: any): void { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
   __mapHoverCountryId = countryId;
   if (__mapGeoMode === 'all') {
     showHoverCard(countryId, countryName, activePoly);
@@ -1369,20 +1461,26 @@ function showHoverPreview(countryId, countryName, activePoly) {
 
 // Anchor the active polygon so the card can pin to the country itself (not the
 // cursor) and stay attached as the map redraws / the profile arrives.
-let __mapHoverPoly = null;
+let __mapHoverPoly: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
 let __mapHoverAnchor = { x: 0, y: 0 };
 
 // Typewriter timers, cleared whenever the card is re-rendered or torn down so
 // switching countries never leaves a half-typed string from the previous one.
-let __hoverTypeTimers = [];
-function clearHoverTypewriters() {
+let __hoverTypeTimers: ReturnType<typeof setTimeout>[] = [];
+function clearHoverTypewriters(): void {
   __hoverTypeTimers.forEach(t => clearTimeout(t));
   __hoverTypeTimers = [];
 }
 
+interface TypewriterOptions {
+  speed?: number;
+  startDelay?: number;
+  onDone?: () => void;
+}
+
 // Type `text` into `el` one character at a time. `startDelay` staggers multiple
 // fields; `onDone` chains the next field.
-function typewriterInto(el, text, { speed = 26, startDelay = 0, onDone } = {}) {
+function typewriterInto(el: HTMLElement | null, text: string, { speed = 26, startDelay = 0, onDone }: TypewriterOptions = {}): void {
   if (!el) return;
   el.textContent = '';
   el.classList.add('is-typing');
@@ -1406,7 +1504,7 @@ function typewriterInto(el, text, { speed = 26, startDelay = 0, onDone } = {}) {
 // the country name and one line of literary DNA typed out like field notes.
 // A single positioned node — no multi-card collision layout. Deep context lives
 // in the click panel.
-function renderHoverCard(countryId, countryName) {
+function renderHoverCard(countryId: string, countryName: string): void {
   const stage = document.getElementById('mapHoverStage');
   if (!stage) return;
   clearHoverTypewriters();
@@ -1441,7 +1539,7 @@ function renderHoverCard(countryId, countryName) {
     card.style.setProperty('--hover-tilt-start', `${tilt * 1.8}deg`);
     card.style.setProperty('--hover-tilt-end', `${tilt}deg`);
   }
-  const img = stage.querySelector('.map-hover-card-thumb img');
+  const img = stage.querySelector<HTMLImageElement>('.map-hover-card-thumb img');
   if (img && img.complete && img.naturalWidth > 0) {
     img.closest('.map-hover-card-thumb')?.classList.add('loaded');
     requestAnimationFrame(positionHoverCard);
@@ -1468,14 +1566,19 @@ function renderHoverCard(countryId, countryName) {
   positionHoverCard();
   requestAnimationFrame(positionHoverCard);
 }
-let __hoverRendered = null;
+interface HoverRendered {
+  countryId: string;
+  dna: string;
+  image: string | null;
+}
+let __hoverRendered: HoverRendered | null = null;
 
 // Place the card BESIDE the hovered country so it never covers the land the
 // reader is looking at. We read the country's on-screen bounding box and set
 // the card just outside it (on whichever side has room), vertically centred on
 // the country. Only when neither side fits do we fall back to above/below.
 // Anchoring to the polygon (not the cursor) keeps the card attached to the land.
-function positionHoverCard() {
+function positionHoverCard(): void {
   const card = document.getElementById('mapHoverCard');
   if (!card) return;
 
@@ -1522,7 +1625,7 @@ function positionHoverCard() {
   }
 
   // Vertically centre the card on the country, clamped within the viewport.
-  let y = Math.max(bounds.top, Math.min(midY - ch / 2, bounds.bottom - ch));
+  const y = Math.max(bounds.top, Math.min(midY - ch / 2, bounds.bottom - ch));
 
   card.style.left = `${x - stageRect.left}px`;
   card.style.top = `${y - stageRect.top}px`;
@@ -1531,11 +1634,11 @@ function positionHoverCard() {
 // The hovered polygon's bounding box in page (client) pixels, or null if it
 // can't be resolved. amCharts MapPolygon exposes a Sprite-level bounds() in its
 // own local coords; we offset it by the chart's page rect to get page pixels.
-function hoverPolyPageBox() {
+function hoverPolyPageBox(): { left: number; right: number; top: number; bottom: number } | null {
   const poly = __mapHoverPoly;
   const chartRect = document.getElementById('mapChart')?.getBoundingClientRect();
   if (!poly || !chartRect) return null;
-  let b = null;
+  let b: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 bounds object
   try { b = poly.globalBounds?.() || poly.bounds?.(); } catch { b = null; }
   if (!b || !Number.isFinite(b.left) || !Number.isFinite(b.right)) return null;
   // globalBounds() is already relative to the root container (the chart div).
@@ -1547,13 +1650,18 @@ function hoverPolyPageBox() {
   };
 }
 
-function hoverCardTilt(countryId, zone) {
+interface HoverAnchorZone {
+  horizontal: 'left' | 'right' | 'center';
+  vertical: 'top' | 'bottom' | 'middle';
+}
+
+function hoverCardTilt(countryId: string, zone: HoverAnchorZone): number {
   const base = (Math.abs(hashStr(countryId)) % 7) + 1;
   const sign = zone.horizontal === 'right' ? -1 : zone.horizontal === 'left' ? 1 : (Math.abs(hashStr(`${countryId}-tilt`)) % 2 === 0 ? 1 : -1);
   return sign * (1.2 + base * 0.32);
 }
 
-function getHoverCardAnchor() {
+function getHoverCardAnchor(): { x: number; y: number } {
   const chartRect = document.getElementById('mapChart')?.getBoundingClientRect();
   const spriteX = __mapHoverPoly?.get?.('x');
   const spriteY = __mapHoverPoly?.get?.('y');
@@ -1569,7 +1677,7 @@ function getHoverCardAnchor() {
   };
 }
 
-async function showHoverCard(countryId, countryName, activePoly) {
+async function showHoverCard(countryId: string, countryName: string, activePoly: any): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
   __mapHoverPoly = activePoly;
   // Freeze the cursor position at hover-start as the card's anchor (the card
   // does not follow the cursor afterwards — it stays pinned to this point).
@@ -1593,7 +1701,17 @@ async function showHoverCard(countryId, countryName, activePoly) {
   }
 }
 
-function showHoverTitleCloud(books, activePoly, options = {}) {
+interface HoverTitleCloudOptions {
+  emptyText?: string;
+  max?: number;
+  className?: string;
+  radiusBase?: number;
+  radiusStep?: number;
+  width?: number;
+  height?: number;
+}
+
+function showHoverTitleCloud(books: MapBook[], activePoly: any, options: HoverTitleCloudOptions = {}): void { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
   const stage = document.getElementById('mapHoverStage');
   if (!stage) return;
   const anchor = getHoverAnchorPoint(activePoly);
@@ -1601,7 +1719,7 @@ function showHoverTitleCloud(books, activePoly, options = {}) {
   stage.innerHTML = nodes.join('');
 }
 
-function hoverViewportBounds() {
+function hoverViewportBounds(): { left: number; right: number; top: number; bottom: number } {
   const chartRect = document.getElementById('mapChart')?.getBoundingClientRect();
   if (chartRect) {
     return {
@@ -1619,13 +1737,13 @@ function hoverViewportBounds() {
   };
 }
 
-function hoverStageRect() {
+function hoverStageRect(): { left: number; top: number } {
   return document.getElementById('mapHoverStage')?.getBoundingClientRect()
     || document.getElementById('mapChart')?.getBoundingClientRect()
     || { left: 0, top: 0 };
 }
 
-function getHoverAnchorPoint(poly) {
+function getHoverAnchorPoint(poly: any): { x: number; y: number } { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
   const chartRect = document.getElementById('mapChart')?.getBoundingClientRect();
   const spriteX = poly?.get?.('x');
   const spriteY = poly?.get?.('y');
@@ -1641,7 +1759,7 @@ function getHoverAnchorPoint(poly) {
   };
 }
 
-function clampHoverNode(x, y, width, height) {
+function clampHoverNode(x: number, y: number, width: number, height: number): { x: number; y: number } {
   const bounds = hoverViewportBounds();
   return {
     x: Math.max(bounds.left, Math.min(x, bounds.right - width)),
@@ -1649,12 +1767,12 @@ function clampHoverNode(x, y, width, height) {
   };
 }
 
-function hoverSafeTop() {
+function hoverSafeTop(): number {
   const subheaderRect = document.querySelector('#panel-map .map-subheader')?.getBoundingClientRect();
   return subheaderRect ? Math.round(subheaderRect.bottom + 12) : 132;
 }
 
-function getHoverAnchorZone(anchor) {
+function getHoverAnchorZone(anchor: { x: number; y: number }): HoverAnchorZone {
   const bounds = hoverViewportBounds();
   const width = Math.max(1, bounds.right - bounds.left);
   const height = Math.max(1, bounds.bottom - bounds.top);
@@ -1666,16 +1784,16 @@ function getHoverAnchorZone(anchor) {
   };
 }
 
-function mirrorAngles(angles) {
+function mirrorAngles(angles: number[]): number[] {
   return angles.map(angle => {
     const mirrored = 180 - angle;
     return mirrored > 180 ? mirrored - 360 : mirrored;
   });
 }
 
-function uniqueCompact(values, max = Infinity) {
-  const out = [];
-  const seen = new Set();
+function uniqueCompact(values: unknown[], max = Infinity): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
   values.forEach((value) => {
     const text = String(value || '').trim();
     if (!text) return;
@@ -1690,7 +1808,7 @@ function uniqueCompact(values, max = Infinity) {
 // Slim teaser for the minimal hover card: a single line of literary DNA.
 // Deep context (voices, entry work, cultural cue) now lives in the click panel,
 // so the hover stays a lightweight prompt to click rather than a content dump.
-function buildHoverTeaser(countryId, countryName) {
+function buildHoverTeaser(countryId: string, countryName: string): { dna: string; image: string | null } {
   const profile = buildRegionContextSync(countryId, countryName);
   const hover = profile.hover || {};
   const dna = uniqueCompact(
@@ -1701,7 +1819,7 @@ function buildHoverTeaser(countryId, countryName) {
   return { dna, image };
 }
 
-function buildHoverTitles(anchor, books, options = {}) {
+function buildHoverTitles(anchor: { x: number; y: number }, books: MapBook[], options: HoverTitleCloudOptions = {}): string[] {
   const {
     max = 8,
     emptyText = 'No mapped books yet',
@@ -1737,7 +1855,7 @@ function buildHoverTitles(anchor, books, options = {}) {
   });
 }
 
-function hoverStagePoint(point) {
+function hoverStagePoint(point: { x: number; y: number }): { x: number; y: number } {
   const rect = hoverStageRect();
   return {
     x: point.x - rect.left,
@@ -1745,16 +1863,49 @@ function hoverStagePoint(point) {
   };
 }
 
-function brighten(hex, amount) {
-  let r = parseInt(hex.slice(1,3),16);
-  let g = parseInt(hex.slice(3,5),16);
-  let b = parseInt(hex.slice(5,7),16);
+function brighten(hex: string, amount: number): string {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
   return '#' + [r,g,b].map(v => Math.min(255,v+amount).toString(16).padStart(2,'0')).join('');
 }
 
 /* ── Panel ──────────────────────────────────────────────────────────────── */
 
-async function openCountryPanel(countryId, name) {
+interface RegionContext {
+  hover: { dna?: string[]; [key: string]: unknown };
+  hero: { image?: string; caption?: string } | null;
+  culture: string;
+  history: string[];
+  keywords: string[];
+  starters: StarterItem[];
+  userHero?: { image?: string; caption?: string } | null;
+}
+
+interface StarterItem {
+  title: string;
+  author: string;
+  year?: number | null;
+  note: string;
+  type: string;
+  coverPath?: string;
+  cover?: string;
+}
+
+interface MapPanelState {
+  type: 'country' | 'province';
+  countryId: string | null;
+  provinceId?: string;
+  regionLabel: string;
+  placeLabel: string;
+  filterMode: string;
+  activeTab: string;
+  books: MapBook[];
+  context: RegionContext;
+  showProvinceLabels: boolean;
+}
+
+async function openCountryPanel(countryId: string, name: string): Promise<void> {
   const books = allCountryBooks(countryId);
 
   // Open panel immediately with fallback context so it feels instant.
@@ -1781,7 +1932,7 @@ async function openCountryPanel(countryId, name) {
   });
 }
 
-async function openProvincePanel(provinceId, name, books = allProvinceBooks(provinceId)) {
+async function openProvincePanel(provinceId: string, name: string, books: MapBook[] = allProvinceBooks(provinceId)): Promise<void> {
   const provinceName = PROV_NAMES[provinceId] || name;
   const parentCountryId = inferProvinceCountry(provinceId, books);
   const parentCountryLabel = countryLabelFromId(parentCountryId);
@@ -1809,13 +1960,13 @@ async function openProvincePanel(provinceId, name, books = allProvinceBooks(prov
   });
 }
 
-function renderPanel() {
+function renderPanel(): void {
   const panelEl = document.getElementById('mapPanel');
   if (!panelEl || !__mapPanelState) return;
 
   renderPanelHero();
-  document.getElementById('mapPanelPlace').textContent = __mapPanelState.placeLabel;
-  const subEl = document.getElementById('mapPanelSub');
+  document.getElementById('mapPanelPlace')!.textContent = __mapPanelState.placeLabel;
+  const subEl = document.getElementById('mapPanelSub')!;
   const subtitle = buildPanelSubtitle(__mapPanelState);
   subEl.textContent = subtitle;
   subEl.classList.toggle('is-empty', !subtitle);
@@ -1832,19 +1983,19 @@ function renderPanel() {
 // isn't duplicated. Falls back to the text-only head when no image exists.
 // `hero` resolves user-uploaded photos first (future), then the curated
 // open-source image: userHero ?? hero.
-function renderPanelHero() {
+function renderPanelHero(): void {
   const heroEl = document.getElementById('mapPanelHero');
   const panelEl = document.getElementById('mapPanel');
   if (!heroEl || !__mapPanelState) return;
 
-  const ctx = __mapPanelState.context || {};
+  const ctx = __mapPanelState.context || ({} as RegionContext);
   const hero = ctx.userHero || ctx.hero || null;
   const image = hero?.image;
 
   if (!image) {
     heroEl.hidden = true;
     heroEl.innerHTML = '';
-    panelEl.classList.remove('has-hero');
+    panelEl?.classList.remove('has-hero');
     return;
   }
 
@@ -1860,19 +2011,19 @@ function renderPanelHero() {
       ${caption}
     </div>`;
   heroEl.hidden = false;
-  panelEl.classList.add('has-hero');
+  panelEl?.classList.add('has-hero');
 }
 
 // Closes only the panel DOM — used internally by goWorld() to avoid recursion.
-function dismissPanel() {
+function dismissPanel(): void {
   __mapPanelState = null;
-  const panelEl = document.getElementById('mapPanel');
+  const panelEl = document.getElementById('mapPanel')!;
   panelEl.classList.remove('open');
   document.body.classList.remove('map-panel-open');
 }
 
 // Closes panel and resets map to fit view — used by the × close button.
-function closePanel() {
+function closePanel(): void {
   dismissPanel();
   __mapFocusedCountryId = null;
   if (typeof __mapGoWorldFn === 'function') {
@@ -1882,7 +2033,7 @@ function closePanel() {
   }
 }
 
-function renderPanelTabs() {
+function renderPanelTabs(): void {
   const container = document.getElementById('mapPanelTabs');
   if (!container || !__mapPanelState) return;
   container.innerHTML = '';
@@ -1890,10 +2041,10 @@ function renderPanelTabs() {
   MAP_TAB_META.forEach(tab => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'map-tab-btn' + (tab.id === __mapPanelState.activeTab ? ' active' : '');
+    btn.className = 'map-tab-btn' + (tab.id === __mapPanelState!.activeTab ? ' active' : '');
     btn.textContent = tab.label;
     btn.addEventListener('click', () => {
-      __mapPanelState.activeTab = tab.id;
+      __mapPanelState!.activeTab = tab.id;
       renderPanelBody();
       renderPanelTabs();
     });
@@ -1901,7 +2052,7 @@ function renderPanelTabs() {
   });
 }
 
-function renderPanelBody() {
+function renderPanelBody(): void {
   const container = document.getElementById('mapPanelBody');
   if (!container || !__mapPanelState) return;
 
@@ -1973,7 +2124,7 @@ function renderPanelBody() {
   }
 }
 
-function renderPanelBooks(books, { showProvinceLabels = true } = {}) {
+function renderPanelBooks(books: MapBook[], { showProvinceLabels = true }: { showProvinceLabels?: boolean; filterMode?: string } = {}): void {
   const container = document.getElementById('mapPanelBody');
   if (!container || !__mapPanelState) return;
   if (!books.length) {
@@ -1988,8 +2139,8 @@ function renderPanelBooks(books, { showProvinceLabels = true } = {}) {
   }
   container.innerHTML = '';
 
-  const groups = showProvinceLabels
-    ? Object.entries(books.reduce((acc, b) => {
+  const groups: [string, MapBook[]][] = showProvinceLabels
+    ? Object.entries(books.reduce((acc: Record<string, MapBook[]>, b) => {
       const key = inferProvinceKey(b);
       (acc[key] = acc[key] || []).push(b);
       return acc;
@@ -2007,10 +2158,10 @@ function renderPanelBooks(books, { showProvinceLabels = true } = {}) {
   });
 }
 
-function renderBookRow(b) {
+function renderBookRow(b: MapBook): HTMLElement {
   const row = document.createElement('div');
   row.className = 'mb-row';
-  const yearLabel = b.year > 0 ? b.year : Math.abs(b.year) + ' BCE';
+  const yearLabel = (b.year ?? 0) > 0 ? b.year : Math.abs(b.year ?? 0) + ' BCE';
   const coverMarkup = b.coverImage
     ? `<div class="mb-mini-cover has-image"><img src="${escapeHTML(b.coverImage)}" alt="${escapeHTML(b.title)} cover"></div>`
     : `<div class="mb-mini-cover" style="background:${b.bg};color:${b.text}"><div class="mb-mini-title">${escapeHTML(b.title)}</div></div>`;
@@ -2032,7 +2183,7 @@ function renderBookRow(b) {
   return row;
 }
 
-function inferProvinceKey(book) {
+function inferProvinceKey(book: MapBook): string {
   return (
     book.geo?.contentLocation?.province ||
     book.geo?.authorOrigin?.province ||
@@ -2042,18 +2193,18 @@ function inferProvinceKey(book) {
   );
 }
 
-function buildPanelSubtitle(state) {
+function buildPanelSubtitle(_state: MapPanelState): string {
   return '';
 }
 
-function buildProvincePathLabel(provinceId, books) {
+function buildProvincePathLabel(provinceId: string, books: MapBook[]): string {
   const countryId = inferProvinceCountry(provinceId, books);
   return `${countryLabelFromId(countryId)} > ${PROV_NAMES[provinceId] || provinceId}`;
 }
 
-function inferProvinceCountry(provinceId, books = []) {
-  const counts = {};
-  const note = (countryId) => {
+function inferProvinceCountry(provinceId: string, books: MapBook[] = []): string {
+  const counts: Record<string, number> = {};
+  const note = (countryId: string | null | undefined) => {
     if (!countryId) return;
     counts[countryId] = (counts[countryId] || 0) + 1;
   };
@@ -2071,14 +2222,14 @@ function inferProvinceCountry(provinceId, books = []) {
   return __mapPanelState?.countryId || 'CN';
 }
 
-function countryLabelFromId(countryId) {
+function countryLabelFromId(countryId: string | null | undefined): string {
   if (!countryId) return 'World';
   const label = REGION_NAME_FORMATTER?.of(countryId);
   return label || countryId;
 }
 
 // Flatten a loaded geo-profile JSON into the shape the panel renderers expect.
-function normalizeProfile(raw) {
+function normalizeProfile(raw: any): RegionContext | null { // eslint-disable-line @typescript-eslint/no-explicit-any -- geo-profiles.js is still untyped JS; raw shape is whatever the fetched JSON/fallback object contains
   if (!raw) return null;
   const p = raw.panel || {};
   return {
@@ -2093,26 +2244,26 @@ function normalizeProfile(raw) {
 
 // Synchronous: returns cached profile or fallback immediately.
 // Use for hover previews where async rendering would flicker.
-function buildRegionContextSync(countryId, label) {
+function buildRegionContextSync(countryId: string, label: string): RegionContext {
   const cached = getCachedProfile(countryId);
-  return normalizeProfile(cached) || normalizeProfile(buildFallbackProfile(countryId, label));
+  return (normalizeProfile(cached) || normalizeProfile(buildFallbackProfile(countryId, label)))!;
 }
 
 // Async: fetches the profile, then calls onReady(profile) when available.
 // Returns the fallback immediately for callers that need something now.
-async function buildRegionContext(countryId, label, onReady) {
-  const fallback = normalizeProfile(buildFallbackProfile(countryId, label));
+async function buildRegionContext(countryId: string, label: string, onReady?: (profile: RegionContext) => void): Promise<RegionContext> {
+  const fallback = normalizeProfile(buildFallbackProfile(countryId, label))!;
   const raw = await loadProfile(countryId).catch(() => null);
   const profile = normalizeProfile(raw) || fallback;
   if (onReady) onReady(profile);
   return profile;
 }
 
-function buildKeywordNarrative(label, keywords) {
-  return `${label} 这条阅读线不一定先求“完整”，先抓住 ${keywords.slice(0, 3).join(' / ')} 这几个词，通常就能更快进入地区语境。`;
+function buildKeywordNarrative(label: string, keywords: string[]): string {
+  return `${label} 这条阅读线不一定先求"完整"，先抓住 ${keywords.slice(0, 3).join(' / ')} 这几个词，通常就能更快进入地区语境。`;
 }
 
-function buildStarterList(state) {
+function buildStarterList(state: MapPanelState): StarterItem[] {
   const starters = [...(state.context.starters || [])];
   if (state.countryId === 'CN' && state.type === 'country') {
     return starters.slice(0, 4);
@@ -2134,7 +2285,7 @@ function buildStarterList(state) {
 
 /* ── Misc ───────────────────────────────────────────────────────────────── */
 
-const PROV_NAMES = {
+const PROV_NAMES: Record<string, string> = {
   'CN-11':'Beijing',     'CN-12':'Tianjin',      'CN-13':'Hebei',
   'CN-14':'Shanxi',      'CN-15':'Inner Mongolia','CN-21':'Liaoning',
   'CN-22':'Jilin',       'CN-23':'Heilongjiang',  'CN-31':'Shanghai',
@@ -2148,8 +2299,8 @@ const PROV_NAMES = {
   'CN-65':'Xinjiang',
 };
 
-function setBreadcrumb(level, label, worldClickFn) {
-  const el = document.getElementById('mapBreadcrumb');
+function setBreadcrumb(level: string, label: string, worldClickFn: (() => void) | null): void {
+  const el = document.getElementById('mapBreadcrumb')!;
   if (level === 'world') {
     el.innerHTML = `<span class="crumb active">🌐 World</span>`;
   } else {
@@ -2157,7 +2308,7 @@ function setBreadcrumb(level, label, worldClickFn) {
       <span class="crumb-sep">›</span>
       <span class="crumb active">${escapeHTML(label)}</span>`;
     if (worldClickFn) {
-      document.getElementById('crumbWorld').addEventListener('click', worldClickFn);
+      document.getElementById('crumbWorld')!.addEventListener('click', worldClickFn);
     }
   }
 }
@@ -2165,7 +2316,7 @@ function setBreadcrumb(level, label, worldClickFn) {
 /* amCharts 5 stores GeoJSON properties under dataItem.dataContext.
    The 'name' key is NOT promoted to dataItem.get('name') — read it
    directly from the feature properties instead. */
-function getPolyName(polygon) {
+function getPolyName(polygon: any): string { // eslint-disable-line @typescript-eslint/no-explicit-any -- amCharts5 MapPolygon instance
   const di = polygon.dataItem;
   if (!di) return '';
   // Primary path: GeoJSON feature properties
@@ -2177,17 +2328,17 @@ function getPolyName(polygon) {
   return '';
 }
 
-function truncateText(text, maxChars) {
+function truncateText(text: string, maxChars: number): string {
   const raw = String(text || '').trim();
   if (raw.length <= maxChars) return raw;
   return raw.slice(0, maxChars - 1).trimEnd() + '…';
 }
 
-function escapeHTML(s) {
+function escapeHTML(s: unknown): string {
   if (s == null) return '';
   return String(s).replace(/[&<>"]/g, ch =>
-    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[ch]);
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' } as Record<string, string>)[ch]);
 }
 
 export { initMap, enterMap };
-export function enterPanel_map(params = {}) { enterMap(params); }
+export function enterPanel_map(params: EnterMapParams = {}): void { enterMap(params); }
