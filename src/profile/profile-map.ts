@@ -65,7 +65,7 @@ interface JourneyEvent {
   stamp: string;
 }
 
-// Light retro palette, shared with the Map view (src/map/map.js).
+// Light retro palette, shared with the Map view (src/map/map.ts).
 // 14 chromatically distinct families so neighbouring countries never collapse
 // into the same muted hue on the dark journey map. Keep both maps in sync.
 const COUNTRY_COLOR: Record<string, string> = {

@@ -32,7 +32,7 @@ const VIEW_LOADERS: Record<string, ViewLoader> = {
   book: () => import('../book/book.js').then((m) => ({
     init: m.initBook, enter: m.enterBook, enterPanel: m.enterPanel_book,
   })),
-  map: () => import('../map/map.js').then((m) => ({
+  map: () => import('../map/map.ts').then((m) => ({
     init: m.initMap, enter: m.enterMap, enterPanel: m.enterPanel_map,
   })),
   web: () => import('../web/web.js').then((m) => ({
