@@ -39,6 +39,25 @@ interface IsbnLookupData {
   bookType: string;
 }
 
+/**
+ * Firebase Auth resolves asynchronously on page load. Reading
+ * `MarginaliaAuth.user`/`.db` before that resolves looks identical to being
+ * signed out, which previously caused Add Book to silently fall back to
+ * local-only storage for a signed-in user whose session just hadn't loaded
+ * yet. Wait for the one-time `ready` signal so the save path reflects the
+ * real auth state.
+ */
+function waitForAuthReady(): Promise<void> {
+  return new Promise((resolve) => {
+    const unsubscribe = MarginaliaAuth.onAuthStateChange((detail) => {
+      if (detail.ready) {
+        unsubscribe();
+        resolve();
+      }
+    });
+  });
+}
+
 export const NewEntry = (() => {
 
   const SPINE_STYLES: SpineStyle[] = [
@@ -442,6 +461,7 @@ export const NewEntry = (() => {
                 <button class="ne-external-btn" type="button" id="neExternalOpenBtn">Open</button>
               </div>
             </div>
+            <div class="ne-error" id="neError" hidden></div>
             <div class="ne-footer-actions">
               <button class="ne-submit-btn" type="submit" id="neSubmitBtn">Add to library</button>
               <button class="ne-cancel-btn" type="button" id="neCancelBtn">Cancel</button>
@@ -1002,6 +1022,16 @@ export const NewEntry = (() => {
 
     logEvent(isEditing ? 'book_edited' : 'book_added', { bookId: id, status });
 
+    const errorEl = dialog.querySelector('#neError') as HTMLElement | null;
+    const submitBtn = dialog.querySelector('#neSubmitBtn') as HTMLButtonElement | null;
+    if (errorEl) errorEl.hidden = true;
+    if (submitBtn) submitBtn.disabled = true;
+
+    // Auth resolves asynchronously; wait for the ready signal instead of
+    // racing it, so a signed-in user whose session hasn't loaded yet still
+    // gets a real Firestore write rather than a silent local-only fallback.
+    await waitForAuthReady();
+
     const auth = MarginaliaAuth;
     const uid  = auth?.user?.uid;
     const db   = auth?.db;
@@ -1030,6 +1060,12 @@ export const NewEntry = (() => {
         BooksStore.addOptimisticBook(fullBook);
       } catch (err) {
         logError(err instanceof Error ? err : new Error(String(err)), { context: `NewEntry Firestore ${isEditing ? 'edit' : 'write'}` });
+        if (errorEl) {
+          errorEl.textContent = 'Could not save to your account. Check your connection and try again.';
+          errorEl.hidden = false;
+        }
+        if (submitBtn) submitBtn.disabled = false;
+        return; // Keep the dialog open — nothing was actually saved.
       }
     } else {
       SEED_BOOK_DETAILS.unshift(fullBook as any); // eslint-disable-line @typescript-eslint/no-explicit-any -- seed/index.js is untyped; TS over-infers its element shape from seed literals

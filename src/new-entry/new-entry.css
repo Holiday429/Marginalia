@@ -543,9 +543,21 @@
   cursor: not-allowed;
 }
 
+.ne-error {
+  font-family: var(--font-service-ui);
+  font-size: var(--fs-fluid-sm);
+  color: var(--color-rose);
+  margin-bottom: 10px;
+}
+
 .ne-footer-actions {
   display: flex;
   gap: 10px;
+}
+
+.ne-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .ne-submit-btn {
