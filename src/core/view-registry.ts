@@ -23,7 +23,7 @@ const VIEW_LOADERS: Record<string, ViewLoader> = {
   search: () => import('../search/search.js').then((m) => ({
     init: m.initSearch, enter: m.enterSearch, enterPanel: m.enterPanel_search,
   })),
-  library: () => import('../library-2d/library-2d.js').then((m) => ({
+  library: () => import('../library-2d/library-2d.ts').then((m) => ({
     init: m.initLibrary, enter: m.enterLibrary, enterPanel: m.enterPanel_library,
   })),
   room: () => import('../three-room/three-room-view.js').then((m) => ({

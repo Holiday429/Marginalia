@@ -1038,12 +1038,12 @@ export const NewEntry = (() => {
       BooksStore.addOptimisticBook(fullBook);
     }
     renderSearchSection();
-    // Dynamic import: keeps library-2d.js (and its CSS) out of the eager
+    // Dynamic import: keeps library-2d.ts (and its CSS) out of the eager
     // bundle graph — this is the only reason it would otherwise be pulled in,
     // since every other consumer already goes through view-registry.ts's lazy
     // loadView(). Refreshing library state here is a nice-to-have for when
     // the user later returns to that view, not something worth blocking on.
-    import('../library-2d/library-2d.js').then(({ enterLibrary }) => enterLibrary()).catch(() => {});
+    import('../library-2d/library-2d.ts').then(({ enterLibrary }) => enterLibrary()).catch(() => {});
 
     close();
     PanelManager.open('book', { id });
