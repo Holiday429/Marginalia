@@ -45,16 +45,24 @@ interface IsbnLookupData {
  * signed out, which previously caused Add Book to silently fall back to
  * local-only storage for a signed-in user whose session just hadn't loaded
  * yet. Wait for the one-time `ready` signal so the save path reflects the
- * real auth state.
+ * real auth state. Capped with a timeout: `ready` is only ever set from
+ * inside the Firebase `onAuthStateChanged` callback, so a misconfigured or
+ * not-yet-initialized SDK would otherwise wait forever.
  */
 function waitForAuthReady(): Promise<void> {
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      unsubscribe();
+      clearTimeout(timer);
+      resolve();
+    };
     const unsubscribe = MarginaliaAuth.onAuthStateChange((detail) => {
-      if (detail.ready) {
-        unsubscribe();
-        resolve();
-      }
+      if (detail.ready) finish();
     });
+    const timer = setTimeout(finish, 4000);
   });
 }
 
