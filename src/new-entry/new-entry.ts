@@ -51,7 +51,14 @@ interface IsbnLookupData {
  */
 function waitForAuthReady(): Promise<void> {
   return new Promise((resolve) => {
+    // MarginaliaAuth.onAuthStateChange() invokes the listener synchronously
+    // with the current state before returning, so `unsubscribe`/`timer`
+    // below are not assigned yet the first time `finish` can run — read
+    // them lazily (via the wrapping functions) rather than closing over the
+    // not-yet-initialized bindings directly.
     let settled = false;
+    let unsubscribe: () => void = () => {};
+    let timer: ReturnType<typeof setTimeout>;
     const finish = () => {
       if (settled) return;
       settled = true;
@@ -59,10 +66,10 @@ function waitForAuthReady(): Promise<void> {
       clearTimeout(timer);
       resolve();
     };
-    const unsubscribe = MarginaliaAuth.onAuthStateChange((detail) => {
+    unsubscribe = MarginaliaAuth.onAuthStateChange((detail) => {
       if (detail.ready) finish();
     });
-    const timer = setTimeout(finish, 4000);
+    timer = setTimeout(finish, 4000);
   });
 }
 
