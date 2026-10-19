@@ -6,7 +6,7 @@
      MarginaliaAI.generate({ featureId, bookId?, onChunk?, onDone, onError })
      MarginaliaAI.generateJSON({ featureId, bookId?, onError })
 
-   The client sends only { featureId, bookId }. Prompts are assembled server-side from the
+   The client sends only { featureId, bookId, params? }; params are cut down to the fields the feature declares. Prompts are assembled server-side from the
    user's own Firestore data (functions/src/ai-handler.ts); the gateway rejects custom prompts.
    A 402 surfaces as an error with code 'AI_QUOTA_EXCEEDED' so the UI can show an upgrade prompt.
 */
@@ -22,6 +22,7 @@ export const MarginaliaAI = (() => {
   async function generate({
     featureId,
     bookId,
+    params,
     onChunk,
     onDone,
     onError,
@@ -29,6 +30,8 @@ export const MarginaliaAI = (() => {
   }: {
     featureId: string;
     bookId?: string;
+    /** Only the fields the feature declares are used; the server drops the rest. */
+    params?: Record<string, string>;
     onChunk?: (delta: string) => void;
     onDone?: (full: string) => void;
     onError?: (err: Error) => void;
@@ -55,7 +58,7 @@ export const MarginaliaAI = (() => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ featureId, bookId }),
+        body: JSON.stringify({ featureId, bookId, ...(params ? { params } : {}) }),
         signal,
       });
 

@@ -109,6 +109,12 @@ service cloud.firestore {
       allow read, write: if isSelf(uid);
     }
 
+    // /workspaces/{workspaceId}/users/{uid}/moments/{bookId} — finish ritual record (answers + finish card).
+    // Owner only; the doc id is the book id, so there is at most one per book.
+    match /workspaces/{workspaceId}/users/{uid}/moments/{bookId} {
+      allow read, write: if isSelf(uid);
+    }
+
     // /workspaces/{workspaceId}/users/{uid}/sessions/{sessionId} — reading-session timer records.
     // Owner only. A session must carry a numeric startedAt and it can never be rewritten.
     match /workspaces/{workspaceId}/users/{uid}/sessions/{sessionId} {

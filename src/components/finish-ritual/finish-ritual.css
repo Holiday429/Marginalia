@@ -1,0 +1,97 @@
+/* Marginalia · finish ritual dialog */
+
+.fr-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(21, 18, 16, 0.6);
+}
+
+.fr-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 9001;
+  box-sizing: border-box;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 20px;
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--color-brass-border);
+  border-radius: 8px;
+  background: var(--color-ink-deep);
+  color: var(--color-paper);
+  font-family: var(--font-serif);
+}
+
+.fr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  color: var(--color-taupe);
+}
+
+.fr-skip,
+.fr-back {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.fr-book { margin: 0 0 14px; font-size: var(--fs-14); color: var(--color-taupe); line-height: 1.5; }
+
+.fr-question { display: block; font-size: var(--fs-20); font-weight: 500; line-height: 1.3; }
+
+.fr-hint { margin: 6px 0 12px; font-family: var(--font-mono); font-size: var(--fs-11); color: var(--color-taupe); }
+
+/* 16px stops iOS Safari zooming the page when the field is focused. */
+.fr-answer {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  resize: none;
+  border: 1px solid var(--color-brass-border);
+  border-radius: 4px;
+  background: var(--color-ink);
+  color: var(--color-ivory-text);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.fr-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.fr-next {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  font-size: var(--fs-16);
+  cursor: pointer;
+}
+
+.fr-skip:focus-visible,
+.fr-back:focus-visible,
+.fr-next:focus-visible,
+.fr-answer:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

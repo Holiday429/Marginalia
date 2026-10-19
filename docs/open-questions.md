@@ -165,3 +165,9 @@ Per the plan, adding a book starts one `intro-card` generation (pre-read card pl
 
 ### Q2.2-c — The 30-second check was made against a fake model (needs one run by you)
 The e2e runs the real `aiGenerate` function (auth, server-built prompt, quota, audit log) but against a fake model server that answers after 0.6 s; the card appeared 4.6 s after saving the book. Real DeepSeek latency is not measured. On your dev project please add one book and check the card appears within 30 s.
+
+### Q2.3-a — Finish card editing and when the ritual should appear (small decisions; defaults chosen)
+- The finish card is stored as an AI block (`original` / `userEdited`), but there is no edit button yet; CLAUDE.md says every AI output is editable. Say if you want inline editing now (it is the same pattern as the other AI blocks).
+- The ritual opens for every move into "finished" except a book that already has a record: finishing (answered or skipped) is remembered per book, so marking it finished again never asks again. Adding a book that is already marked finished is not a transition and does not ask. Escape or a click outside counts as Skip.
+- The ritual is for signed-in readers with their own books (it needs the AI gateway); signed-out demo visitors never see it.
+- No migration for `moments/{bookId}`: it is a new collection with no existing data.

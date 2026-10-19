@@ -6,6 +6,9 @@ import './book.css';
 import { logError } from '../services/analytics.ts';
 import { track } from '../services/events.ts';
 import { renderTabEmptyState } from '../components/empty-state/empty-state.ts';
+import { MomentsStore } from '../store/moments-store.ts';
+import { renderFinishCardBlock, buildFinishReadingCardData } from './finish-card.ts';
+import './finish-card.css';
 import { getIntroCardState, INTRO_CARD_CHANGED_EVENT } from '../ai/features/intro-card-service.ts';
 import { notifyBookStatusChange } from '../store/book-status-events.ts';
 import { BooksStore } from '../store/books-store.ts';
@@ -116,11 +119,13 @@ async function enterBook(params = {}) {
   const liveActions = ActionsStore.getUid()
     ? ActionsStore.getByBook(id)
     : (book.actions || []);
+  const moment = publicView ? null : await MomentsStore.get(id);
   const rawBookView = {
     ...book,
     ...(mergedHighlights.length ? { highlights: mergedHighlights } : {}),
     ...(ActionsStore.getUid() ? { actions: liveActions } : {}),
     noteContent,
+    moment,
     isReadOnly: publicView,
   };
   const bookView = buildBookDetailModel(rawBookView);
@@ -164,6 +169,48 @@ async function enterBook(params = {}) {
   });
 
   if (keepTab) root.querySelector(`.book-tab-btn[data-target="${CSS.escape(keepTab)}"]`)?.click();
+  // An explicit tab only comes from the finish ritual and the Profile shelf; every other way in starts on Overview.
+  if (params.tab) root.querySelector(`.book-tab-btn[data-target="${CSS.escape(String(params.tab))}"]`)?.click();
+
+  // ── Finish card (2.3) ──
+  root.querySelector('[data-fc-start]')?.addEventListener('click', () => {
+    import('../components/finish-ritual/finish-ritual.ts').then(({ openFinishRitual }) => openFinishRitual(id, { force: true }));
+  });
+  root.querySelector('[data-fc-generate]')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = 'Writing…';
+    const { generateFinishCard } = await import('../ai/features/finish-synthesis-service.ts');
+    const result = await generateFinishCard(id, moment?.answers || { belief: '', intention: '', next: '' });
+    if (result.ok) await MomentsStore.saveCompleted(id, moment?.answers || { belief: '', intention: '', next: '' }, result.card);
+    else {
+      btn.disabled = false;
+      btn.textContent = result.reason === 'quota' ? 'Free AI generations used up this month' : 'Try again';
+      return;
+    }
+    enterBook({ id, keepTab: true });
+  });
+  root.querySelector('[data-fc-export]')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const card = MomentsStore.cardOf(moment);
+    if (!card) return;
+    btn.disabled = true;
+    try {
+      const blob = await generateReadingCardBlob(buildFinishReadingCardData(bookView, card));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${sanitizeFilename(bookView.title || 'book')}-finish-card.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (err) {
+      logError(err, { context: 'finish card export', bookId: id });
+    } finally {
+      btn.disabled = false;
+    }
+  });
   if (params.focusHighlight) {
     root.querySelector(`[data-hl-id="${CSS.escape(String(params.focusHighlight))}"]`)?.scrollIntoView({ block: 'center' });
   }
@@ -510,6 +557,7 @@ async function enterBook(params = {}) {
     try {
       await MarginaliaBooksCloud?.setBookStatus?.({ bookId: id, status: newStatus });
       notifyBookStatusChange(id, previousStatus, newStatus);
+      enterBook({ id, keepTab: true }); // the Notes tab offers the finish reflection only for finished books
     } catch (err) { logError(err, { context: 'book status save', bookId: id }); }
   });
 
@@ -959,8 +1007,17 @@ function getBookSections(b) {
           label: BOOK_SECTION_LABELS[sectionId],
           html: b.relatedBooks.length ? renderConnections(b) : renderTabEmptyState('related-books'),
         };
-      case 'notes':
-        return renderNotesSection(b);
+      case 'notes': {
+        const notes = renderNotesSection(b);
+        if (b.isReadOnly) return notes;
+        const finish = renderFinishCardBlock({
+          card: MomentsStore.cardOf(b.moment),
+          momentState: b.moment?.state ?? null,
+          isFinished: normalizeReadingStatus(b.status) === 'finished',
+          finishedAt: b.moment?.finishedAt,
+        });
+        return { ...notes, html: finish + notes.html };
+      }
       case 'actions':
         return renderMountedPanelSection({
           id: sectionId,

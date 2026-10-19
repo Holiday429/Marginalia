@@ -47,6 +47,8 @@ export const CASES = {
     action: { doc: WsPaths.action(WS, U, 'a1'), access: 'owner-rw' },
     sessions: { doc: `${WsPaths.sessions(WS, U)}/s2`, access: 'owner-rw', data: { bookId: '', startedAt: 1 } },
     session: { doc: WsPaths.session(WS, U, 's1'), access: 'owner-rw', data: { bookId: '', startedAt: 1 } },
+    moments: { doc: `${WsPaths.moments(WS, U)}/b2`, access: 'owner-rw', data: { bookId: 'b2', kind: 'finish', state: 'skipped' } },
+    moment: { doc: WsPaths.moment(WS, U, 'b1'), access: 'owner-rw', data: { bookId: 'b1', kind: 'finish', state: 'skipped' } },
     aiResult: { doc: WsPaths.aiResult(WS, U, 'reader-portrait'), access: 'owner-rw' },
     libraryLayout: { doc: WsPaths.libraryLayout(WS, U), access: 'owner-rw' },
     graphLinkStatus: { doc: WsPaths.graphLinkStatus(WS, U), access: 'owner-rw' },

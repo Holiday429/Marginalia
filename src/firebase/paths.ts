@@ -50,6 +50,9 @@ export const WsPaths = {
   action: (ws: string, uid: string, id: string) => `workspaces/${ws}/users/${uid}/actions/${id}`,
   sessions: (ws: string, uid: string) => `workspaces/${ws}/users/${uid}/sessions`,
   session: (ws: string, uid: string, id: string) => `workspaces/${ws}/users/${uid}/sessions/${id}`,
+  /** One finish-ritual record per book (answers + finish card). Doc id is the bookId. */
+  moments: (ws: string, uid: string) => `workspaces/${ws}/users/${uid}/moments`,
+  moment: (ws: string, uid: string, bookId: string) => `workspaces/${ws}/users/${uid}/moments/${bookId}`,
   aiResult: (ws: string, uid: string, featureId: string) => `workspaces/${ws}/users/${uid}/ai_results/${featureId}`,
   libraryLayout: (ws: string, uid: string) => `workspaces/${ws}/users/${uid}/data/library_layout`,
   graphLinkStatus: (ws: string, uid: string) => `workspaces/${ws}/users/${uid}/graph/linkStatus`,

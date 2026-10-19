@@ -6,7 +6,7 @@
    Order: method → origin → auth → body → rate limit → context → quota reserve → model call.
    The quota slot is released if the model call fails. */
 
-import { AI_FEATURES, PROMPT_LIMITS, isAiFeatureId, type PromptCtx } from './_shared/ai-prompts';
+import { AI_FEATURES, PROMPT_LIMITS, isAiFeatureId, sanitizeParams, type PromptCtx } from './_shared/ai-prompts';
 import { releaseAiCall, reserveAiCall, type QuotaDb } from './ai-quota';
 import { loadBookContext, loadLibraryContext, ContextError, type ContextDb } from './ai-context';
 
@@ -74,6 +74,8 @@ export async function handleGatewayRequest(deps: GatewayDeps, req: GatewayReques
     if (e instanceof ContextError) return err(e.status, e.message);
     throw e;
   }
+  const spec = 'params' in feature ? (feature.params as Readonly<Record<string, number>>) : undefined;
+  ctx.params = sanitizeParams(spec, params);
   const prompt = feature.build(ctx).slice(0, PROMPT_LIMITS.promptChars);
 
   const reservation = await reserveAiCall(deps.db, uid);

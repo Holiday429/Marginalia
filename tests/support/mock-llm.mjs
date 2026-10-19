@@ -21,6 +21,11 @@ const INTRO_CARD = {
 };
 
 function replyFor(prompt) {
+  if (/just finished/i.test(prompt)) {
+    // Echo the reader's first answer so a test can prove the answers reached the server-built prompt.
+    const belief = /surprised them: "([^"]*)"/.exec(prompt)?.[1] ?? '';
+    return { headline: 'Doubt, then action', synthesis: `Because you wrote "${belief}", this book became a habit rather than an opinion.`, tags: ['focus', 'habits'] };
+  }
   if (/pre-read card/i.test(prompt)) return INTRO_CARD;
   return {};
 }

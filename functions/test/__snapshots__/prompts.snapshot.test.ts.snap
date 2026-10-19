@@ -125,6 +125,23 @@ Rules:
 - Return ONLY the JSON array, no markdown fences, no explanation"
 `;
 
+exports[`AI prompt text is stable > finish-synthesis 1`] = `
+"You are a thoughtful reading companion. The reader just finished "Sapiens" by Harari.
+
+Their reflections:
+- What shifted or surprised them: "(skipped)"
+- What they intend to do differently: "(skipped)"
+- What they want to read next, and why: "(skipped)"
+
+Their highlights from the book:
+"q1"
+"q2"
+
+Write a personal synthesis of what this book meant to this reader. Be specific and concrete: name the ideas from their highlights and connect them to their stated intentions. If an answer was skipped, do not invent one. 2 to 3 sentences. Do not use generic phrases like "this book changed my perspective". Write in the language the reader used in their answers, otherwise the language of the book's title.
+
+Return JSON only: { "headline": "<5 words max>", "synthesis": "<the paragraph>", "tags": ["<tag1>", "<tag2>"] }"
+`;
+
 exports[`AI prompt text is stable > geo-context 1`] = `
 "You are a cultural geographer. Identify the key places in this travel or geography-focused book and provide cultural context.
 

@@ -1,5 +1,6 @@
 import { PanelManager } from '../core/panel-manager.ts';
 import { BooksStore } from '../store/books-store.ts';
+import { MomentsStore, MOMENTS_CHANGED_EVENT } from '../store/moments-store.ts';
 import { SpineCard } from '../components/spine-card.ts';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
 import { mountReadingPath } from './reading-path.ts';
@@ -91,6 +92,16 @@ export class ProfileAnnualShelf {
   mount(): void {
     this.render();
     this.bind();
+    // The owner's finish cards: once loaded, the preview says when the book on stage has one.
+    if (this.isOwner) {
+      void MomentsStore.list().then(() => this.updateReflectionHint());
+      window.addEventListener(MOMENTS_CHANGED_EVENT, () => this.updateReflectionHint());
+    }
+  }
+
+  private updateReflectionHint(): void {
+    const hint = this.host.querySelector<HTMLElement>('#profAnnualStageReflection');
+    if (hint) hint.hidden = !(this.isOwner && MomentsStore.hasCardCached(this.state.previewBookId));
   }
 
   destroy(): void {
@@ -225,6 +236,7 @@ export class ProfileAnnualShelf {
                       <div class="booklist-stage-copy">
                         <h3 class="booklist-stage-title" id="profAnnualStageTitle"></h3>
                         <p class="booklist-stage-author" id="profAnnualStageAuthor"></p>
+                        <p class="booklist-stage-reflection" id="profAnnualStageReflection" hidden>Finish card ready. Open to read it.</p>
                       </div>
                     </div>
                   </div>
@@ -417,6 +429,7 @@ export class ProfileAnnualShelf {
       }, 520);
     }
     this.state.previewBookId = book.id;
+    this.updateReflectionHint();
     // Highlight the active slot
     this.host.querySelectorAll('.booklist-slot').forEach((s) => {
       (s as HTMLElement).classList.toggle('is-active', (s as HTMLElement).dataset.slotId === book.id);
@@ -494,7 +507,9 @@ export class ProfileAnnualShelf {
     this.host.querySelector('#profAnnualStage')?.addEventListener('click', () => {
       if (!this.allowOpenDetails || this.state.isAnimating || this.state.curateMode) return;
       const book = this.shelfDataForYear(this.year).selectedBooks.find((b) => b.id === this.state.previewBookId);
-      if (book?.id && BooksStore.getById(book.id)) PanelManager.open('book', { id: book.id });
+      if (!book?.id || !BooksStore.getById(book.id)) return;
+      // A book with a finish card opens straight on it (Notes tab); any other book opens on Overview.
+      PanelManager.open('book', MomentsStore.hasCardCached(book.id) ? { id: book.id, tab: 'notes' } : { id: book.id });
     });
   }
 

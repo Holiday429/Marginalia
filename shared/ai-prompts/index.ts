@@ -7,6 +7,7 @@ import { buildActionSuggestPrompt } from './action-suggest';
 import { buildArgumentBreakdownPrompt } from './argument-breakdown';
 import { buildCharacterMapPrompt } from './character-map';
 import { buildConceptCardsPrompt } from './concept-cards';
+import { buildFinishSynthesisPrompt, FINISH_SYNTHESIS_PARAMS } from './finish-synthesis';
 import { buildGeoContextPrompt } from './geo-context';
 import { buildIntroCardPrompt } from './intro-card';
 import { buildMindmapGenPrompt } from './mindmap-gen';
@@ -21,6 +22,19 @@ export interface PromptCtx {
   book: BookCtx;
   library: LibraryCtx;
   notes?: string;
+  /** Validated per-feature parameters (see `params` on AI_FEATURES entries). Never free text outside the declared fields. */
+  params?: Record<string, string>;
+}
+
+/** Keep only the declared fields of `raw`, as trimmed strings cut to their maximum length. */
+export function sanitizeParams(spec: Readonly<Record<string, number>> | undefined, raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!spec || !raw || typeof raw !== 'object') return out;
+  for (const [key, max] of Object.entries(spec)) {
+    const value = (raw as Record<string, unknown>)[key];
+    if (typeof value === 'string' && value.trim()) out[key] = value.trim().slice(0, max);
+  }
+  return out;
 }
 
 export const AI_FEATURES = {
@@ -28,6 +42,7 @@ export const AI_FEATURES = {
   'argument-breakdown': { kind: 'book', build: (c: PromptCtx) => buildArgumentBreakdownPrompt(c.book) },
   'character-map': { kind: 'book', build: (c: PromptCtx) => buildCharacterMapPrompt(c.book) },
   'concept-cards': { kind: 'book', build: (c: PromptCtx) => buildConceptCardsPrompt(c.book) },
+  'finish-synthesis': { kind: 'book', params: FINISH_SYNTHESIS_PARAMS, build: (c: PromptCtx) => buildFinishSynthesisPrompt(c.book, c.params) },
   'geo-context': { kind: 'book', build: (c: PromptCtx) => buildGeoContextPrompt(c.book) },
   'intro-card': { kind: 'book', build: (c: PromptCtx) => buildIntroCardPrompt(c.book) },
   'mindmap-gen': { kind: 'book', build: (c: PromptCtx) => buildMindmapGenPrompt(c.book) },
