@@ -94,6 +94,18 @@ service cloud.firestore {
       allow read, write: if isSelf(uid);
     }
 
+    // /workspaces/{workspaceId}/users/{uid}/sessions/{sessionId} — reading-session timer records.
+    // Owner only. A session must carry a numeric startedAt and it can never be rewritten.
+    match /workspaces/{workspaceId}/users/{uid}/sessions/{sessionId} {
+      allow read: if isSelf(uid);
+      allow create: if isSelf(uid)
+        && request.resource.data.startedAt is number
+        && request.resource.data.bookId is string;
+      allow update: if isSelf(uid)
+        && request.resource.data.startedAt == resource.data.startedAt;
+      allow delete: if isSelf(uid);
+    }
+
     // /workspaces/{workspaceId}/users/{uid}/actions/{actionId}
     match /workspaces/{workspaceId}/users/{uid}/actions/{actionId} {
       allow read, write: if isSelf(uid);

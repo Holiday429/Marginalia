@@ -17,7 +17,8 @@ import { ProfileMap } from './profile-map.ts';
 import { ProfileAnnualShelf } from './profile-year-in-review.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { ENV } from '../core/env.ts';
-import { Paths } from '../firebase/paths.ts';
+import { Paths, WsPaths } from '../firebase/paths.ts';
+import { buildSessionDays } from './session-days.ts';
 import { fetchPublicProfile, syncPublicProfile } from './public-profile.ts';
 import { BooksStore } from '../store/books-store.ts';
 import {
@@ -124,19 +125,21 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
       return;
     }
 
-    const [realBooks, highlights0, notesCount, actionsDoneCount, activityDays] = await Promise.all([
+    const [realBooks, highlights0, notesCount, actionsDoneCount, activityDays, sessionDays] = await Promise.all([
       fetchPublicBooks(db, profileData.uid, ownerPreview),
       fetchPublicHighlights(db, profileData.uid, ownerPreview),
       fetchNotesCount(db, profileData.uid),
       fetchActionsDoneCount(db, profileData.uid),
       fetchActivityDays(db, profileData.uid),
+      // Sessions are owner-only (firestore.rules); public visitors get an empty rhythm.
+      ownerPreview ? fetchSessionDays(db, profileData.uid) : Promise.resolve([] as SessionDay[]),
     ]);
 
     const books = realBooks;
     const highlights = highlights0;
 
     const isOwner = ownerPreview;
-    renderResolvedProfile(container, profileData, books, highlights, activityDays, notesCount, actionsDoneCount, isOwner, showSettingsAction);
+    renderResolvedProfile(container, profileData, books, highlights, activityDays, notesCount, actionsDoneCount, isOwner, showSettingsAction, sessionDays);
     logEvent('profile_viewed', { slug: profileData.slug || 'owner-preview' });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -180,9 +183,13 @@ async function lookupByUid(db: FirestoreDB, uid: string): Promise<PublicProfileD
   const auth = MarginaliaAuth as any;
   const creationTime: string | undefined = auth.user?.metadata?.creationTime;
   const joinedAt = creationTime ? Date.parse(creationTime) : undefined;
+  // users/{uid} is created lazily (first settings write); a brand-new account has none yet.
   const snap = await getDoc(doc(db, Paths.user(uid)));
-  if (!snap.exists()) return null;
-  return buildProfileData(uid, snap.data() as Record<string, any>, joinedAt);
+  const data = snap.exists() ? (snap.data() as Record<string, any>) : {};
+  if (!data.displayName) {
+    data.displayName = capitalizeWords(String(auth.user?.displayName || auth.user?.email || 'Reader').split('@')[0]);
+  }
+  return buildProfileData(uid, data, joinedAt);
 }
 
 // Anonymous visitors only ever see the derived publicProfiles/{slug} card — never users/{uid}.
@@ -301,6 +308,25 @@ async function fetchActionsDoneCount(db: FirestoreDB, uid: string): Promise<numb
     return snap.size;
   } catch {
     return 0;
+  }
+}
+
+/** Reading sessions + highlight dates of the last two years, grouped per local day (owner only). */
+async function fetchSessionDays(db: FirestoreDB, uid: string): Promise<SessionDay[]> {
+  const wsId: string = ENV.WORKSPACE_ID || 'default';
+  const cutoff = Date.now() - 365 * 2 * 24 * 60 * 60 * 1000;
+  try {
+    const [sessionsSnap, highlightsSnap] = await Promise.all([
+      getDocs(query(collection(db, WsPaths.sessions(wsId, uid)), where('startedAt', '>=', cutoff), limit(5000))),
+      getDocs(query(collection(db, WsPaths.highlights(wsId, uid)), where('_createdAt', '>=', cutoff), limit(2000))),
+    ]);
+    return buildSessionDays(
+      sessionsSnap.docs.map((d) => d.data()),
+      highlightsSnap.docs.map((d) => d.data()._createdAt),
+    );
+  } catch (err) {
+    logError(err instanceof Error ? err : new Error(String(err)), { context: 'fetchSessionDays' });
+    return [];
   }
 }
 
@@ -797,6 +823,7 @@ function mountSections(
   _activityDays: ActivityDay[],
   profile: PublicProfileData,
   isOwner: boolean,
+  sessionDays: SessionDay[] = [],
 ): void {
   if (profile.showMap) {
     const mapEl = container.querySelector<HTMLElement>('#profMap');
@@ -821,7 +848,7 @@ function mountSections(
       const annual = new ProfileAnnualShelf({
         host: annualEl,
         books,
-        sessionDays: [],
+        sessionDays,
         allowOpenDetails: isOwner,
         showRhythm: profile.showRhythm ?? true,
         isOwner,
@@ -835,7 +862,7 @@ function mountSections(
       const annual = new ProfileAnnualShelf({
         host: annualEl,
         books,
-        sessionDays: [],
+        sessionDays,
         allowOpenDetails: isOwner,
         showRhythm: profile.showRhythm ?? true,
       });
@@ -861,7 +888,7 @@ function mountSections(
       status: b.status,
     })),
     highlights: highlights.map((h) => ({ quote: h.quote, bookTitle: h.bookTitle })),
-    sessionDays: [],
+    sessionDays,
   });
 }
 
@@ -954,11 +981,12 @@ function renderResolvedProfile(
   actionsDoneCount: number,
   isOwner: boolean,
   showSettingsAction: boolean,
+  sessionDays: SessionDay[] = [],
 ): void {
   container.innerHTML = renderProfilePageShell(profileHTML(profileData, books, highlights, activityDays, notesCount, actionsDoneCount, isOwner, showSettingsAction));
   bindProfileChrome(container, false);
   bindProfileEvents(container, highlights, books);
-  mountSections(container, books, highlights, activityDays, profileData, isOwner);
+  mountSections(container, books, highlights, activityDays, profileData, isOwner, sessionDays);
   maybeSettleFrameFlyIn(container);
 }
 

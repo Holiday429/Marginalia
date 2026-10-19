@@ -3,10 +3,12 @@
 // Optional bookId attribution links session to a currently-reading book.
 // Active session survives page reloads via sessionStorage.
 
-import { collection, doc, setDoc, type Firestore } from 'firebase/firestore';
+import { doc, setDoc, type Firestore } from 'firebase/firestore';
 import { withMetaCreate, validateWrite } from '../../services/db.ts';
 import { logEvent, logError } from '../../services/analytics.ts';
 import { ReadingSessionSchema } from '../../data/schema/reading-session.ts';
+import { WsPaths } from '../../firebase/paths.ts';
+import { MARGINALIA_FIREBASE } from '../../firebase/config.ts';
 
 type FirestoreDB = Firestore;
 
@@ -17,6 +19,12 @@ export interface ActiveSession {
 }
 
 const SESSION_KEY = 'marginalia:active-session';
+
+// workspaces/{ws}/users/{uid}/sessions/{sessionId} — same root as every other user collection.
+function sessionRef(db: FirestoreDB, uid: string, sessionId: string) {
+  const ws = MARGINALIA_FIREBASE?.workspaceId || 'default';
+  return doc(db, `${WsPaths.sessions(ws, uid)}/${sessionId}`);
+}
 
 let _uid: string | null = null;
 let _db: FirestoreDB | null = null;
@@ -66,9 +74,7 @@ export async function start(bookId: string | null = null): Promise<ActiveSession
         durationMs: null,
         endPage:    null,
       });
-      // Top-level sessions collection — not per-book subcollection.
-      const ref = doc(collection(_db, 'users', _uid, 'data', 'sessions'), sessionId);
-      await setDoc(ref, withMetaCreate(payload));
+      await setDoc(sessionRef(_db, _uid, sessionId), withMetaCreate(payload));
     } catch (err) {
       logError(err, { context: 'ReadingSession.start' });
     }
@@ -90,8 +96,14 @@ export async function stop(): Promise<{ durationMs: number } | null> {
 
   if (_uid && _db) {
     try {
-      const ref = doc(collection(_db, 'users', _uid, 'data', 'sessions'), session.sessionId);
-      await setDoc(ref, { endedAt, durationMs, _updatedAt: Date.now() }, { merge: true });
+      // Re-send the identifying fields so a missed start write still produces a valid doc.
+      const payload = validateWrite(ReadingSessionSchema, {
+        bookId:     session.bookId ?? '',
+        startedAt:  session.startedAt,
+        endedAt,
+        durationMs,
+      });
+      await setDoc(sessionRef(_db, _uid, session.sessionId), { ...payload, _updatedAt: Date.now() }, { merge: true });
     } catch (err) {
       logError(err, { context: 'ReadingSession.stop' });
     }
@@ -99,6 +111,10 @@ export async function stop(): Promise<{ durationMs: number } | null> {
 
   _setActive(null);
   logEvent('reading_session_ended', { bookId: session.bookId, durationMs });
+  // Hook for the "want to note something?" prompt (quick capture, plan task 2.1).
+  window.dispatchEvent(new CustomEvent('marginalia:session-ended', {
+    detail: { sessionId: session.sessionId, bookId: session.bookId, durationMs },
+  }));
   return { durationMs };
 }
 

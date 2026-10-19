@@ -10,6 +10,7 @@ npm --prefix functions run build
 npm run test:unit
 npm run test:rules:emu
 npm run build
+npm run test:e2e:emu
 npm run size
 du -sh dist
 rm -f firestore-debug.log

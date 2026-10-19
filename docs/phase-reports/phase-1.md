@@ -63,3 +63,27 @@ Design notes
 - No uid in `custom_data` → document parked in `billing_orphans` (clients cannot read it; default-deny) and the webhook still returns 200 so LS stops retrying. Handler errors return 500 so LS retries.
 - `createCheckout`: CORS and the post-checkout redirect now use the `ALLOWED_ORIGINS` allow-list (403 otherwise; previously any `Origin` header became the redirect), and a lifetime owner gets 409 instead of being able to pay again.
 - Decisions deferred to you: Q1.3-a/b/c/d in `docs/open-questions.md`.
+
+## 1.4 Reading-session writes — done
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| Emulator: start + stop a timer → doc with `durationMs`; rules test: owner can write, others cannot | ✅ | `npm run test:e2e:emu` → `tests/e2e-emulator/reading-session.spec.ts` drives the real login form and focus widget, then reads `workspaces/default/users/{uid}/sessions` from the Firestore emulator: 1 doc, `durationMs ≥ 1000`, `startedAt`, `endedAt` present. Rules: `tests/firestore-rules.test.ts` block "reading sessions (1.4)" (4 tests, 24 total pass) |
+| After refresh, today's Profile heatmap cell is coloured | ✅ | Same spec: reload → Profile → `.prof-year__cell[title^="<today>"]` has class `is-l1…l4` and title "1 sessions". Screenshot: `tests/screenshots/phase-1/1.4-profile-heatmap.png` (390/768/1440 sizes still to do in the final screenshot pass) |
+| No `ReadingSession.start` error in Sentry/console | ✅ (local) | Spec asserts no console error containing `ReadingSession.start/stop`. Production Sentry not checked. |
+
+What changed
+- Root cause: `collection(db,'users',uid,'data','sessions')` has an even number of segments, so the SDK threw and the `catch` swallowed it. Now `workspaces/{ws}/users/{uid}/sessions/{id}` via `WsPaths.sessions`. Stop re-sends `bookId/startedAt` so a missed start still yields a valid doc.
+- Rules: owner-only; `create` needs numeric `startedAt` + string `bookId`; `startedAt` cannot be rewritten.
+- Index: none needed — the only query is a single-field range (`startedAt >= cutoff`), which Firestore indexes automatically. `firestore.indexes.json` is unchanged on purpose.
+- Profile reads sessions (+ highlight dates) for the owner and passes per-day `sessionDays` to the annual shelf heatmap and the reading-identity input (previously hard-coded `[]`). `src/profile/session-days.ts` aggregates by local calendar day (unit-tested, 4 tests). Public visitors get an empty rhythm because sessions are owner-only.
+- Stop emits `marginalia:session-ended` `{ sessionId, bookId, durationMs }`. The visible "Want to note something?" prompt is **not** built here: it needs the quick-capture panel from task 2.1, and a button with nothing behind it would be worse than no button. 2.1 should listen for that event.
+
+New test infrastructure (needed for every logged-in acceptance item)
+- `vite --mode emulator` (`.env.emulator`, demo project, no secrets) connects Auth/Firestore/Functions/Storage to the local emulators; guarded by `MODE === 'emulator'` so dev/prod builds cannot point at localhost. `playwright.emulator.config.ts`, `npm run test:e2e:emu`, now part of `npm run check:all`.
+
+Regression found and fixed on the way (introduced by 1.1)
+- `entitlements-store` used to create `users/{uid}` on first sign-in; 1.1 removed that write, so a brand-new account had no `users/{uid}` and the owner's Profile showed "Profile not found". The e2e caught it. `lookupByUid` now builds the profile from the auth user when the doc does not exist.
+
+Known, deferred
+- Boot-time `TypeError: Cannot read properties of undefined (reading 'image')` comes from three.js's loader on the broken `oriented_strand_board_rough_2k.exr`; it is removed by 1.6. The new spec tolerates it explicitly (comment points to 1.6); the phase gate still requires 0 pageerrors.

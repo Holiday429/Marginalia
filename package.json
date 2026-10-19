@@ -19,6 +19,7 @@
     "pretest:unit": "node scripts/sync-shared.mjs",
     "test:unit": "vitest run --exclude tests/firestore-rules.test.ts --exclude functions/test/quota.emulator.test.ts",
     "test:e2e": "playwright test",
+    "test:e2e:emu": "firebase emulators:exec --only auth,firestore --project demo-marginalia \"playwright test -c playwright.emulator.config.ts\"",
     "i18n:sync": "npx tsx scripts/i18n-sync.ts",
     "data:export": "npx tsx scripts/export-user-data.ts",
     "data:import": "npx tsx scripts/import-user-data.ts",

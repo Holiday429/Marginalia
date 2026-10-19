@@ -194,3 +194,35 @@ describe('Firestore rules — users/{uid} privacy and publicProfiles (1.1)', () 
     await assertFails(testEnv.unauthenticatedContext().firestore().doc('publicProfiles/anon').set({ uid: uidA }));
   });
 });
+
+describe('Firestore rules — reading sessions (1.4)', () => {
+  const uidA = 'user-a';
+  const uidB = 'user-b';
+  const path = `workspaces/${WORKSPACE_ID}/users/${uidA}/sessions/s1`;
+
+  it('owner can create, finish and read a session', async () => {
+    const db = testEnv.authenticatedContext(uidA).firestore();
+    await assertSucceeds(db.doc(path).set({ bookId: '', startedAt: 1000, endedAt: null, durationMs: null }));
+    await assertSucceeds(db.doc(path).set({ bookId: '', startedAt: 1000, endedAt: 4000, durationMs: 3000 }, { merge: true }));
+    await assertSucceeds(db.doc(path).get());
+  });
+
+  it('another user cannot read or write it', async () => {
+    const db = testEnv.authenticatedContext(uidB).firestore();
+    await assertFails(db.doc(path).get());
+    await assertFails(db.doc(path).set({ bookId: '', startedAt: 1, durationMs: 1 }, { merge: true }));
+    await assertFails(testEnv.unauthenticatedContext().firestore().doc(path).get());
+  });
+
+  it('rejects a session without a numeric startedAt and refuses to rewrite startedAt', async () => {
+    const db = testEnv.authenticatedContext(uidA).firestore();
+    await assertFails(db.doc(`workspaces/${WORKSPACE_ID}/users/${uidA}/sessions/bad`).set({ bookId: '' }));
+    await assertFails(db.doc(path).set({ startedAt: 5 }, { merge: true }));
+  });
+
+  it('legacy users/{uid}/data/* paths are not writable', async () => {
+    // The old code built a 4-segment collection path (invalid in the SDK); nothing under users/{uid}/data is allowed.
+    const db = testEnv.authenticatedContext(uidA).firestore();
+    await assertFails(db.doc(`users/${uidA}/data/s1`).set({ startedAt: 1 }));
+  });
+});

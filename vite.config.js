@@ -46,8 +46,8 @@ export default defineConfig({
     }),
   ].filter(Boolean),
   test: {
-    // tests/e2e/** are Playwright specs, run via `npm run test:e2e` — keep them
+    // tests/e2e/** and tests/e2e-emulator/** are Playwright specs (npm run test:e2e / test:e2e:emu) — keep them
     // out of vitest's collection so the two runners never fight over the same files.
-    exclude: [...configDefaults.exclude, 'tests/e2e/**'],
+    exclude: [...configDefaults.exclude, 'tests/e2e/**', 'tests/e2e-emulator/**'],
   },
 });
