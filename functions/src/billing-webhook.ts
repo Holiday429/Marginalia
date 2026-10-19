@@ -1,6 +1,6 @@
 /* Marginalia · Lemon Squeezy billing webhook
-   Validates the LS webhook signature and updates users/{uid}.plan + .entitlements
-   on subscription lifecycle events.
+   Verifies the LS signature, then applies the event to billing/{uid} through the state machine in
+   billing-state.ts. billing/{uid} is server-written only (firestore.rules: write false).
 
    POST /billingWebhook
    Headers: X-Signature: <hmac-sha256-hex>
@@ -10,100 +10,70 @@
 import * as crypto from 'crypto';
 import * as functions from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { Paths } from './_shared/paths';
+import { reduceBillingEvent, uidFromPayload, type BillingDoc, type LSPayload } from './billing-state';
 
 // admin.initializeApp() is called once in ai-generate.ts — shared instance.
 
-const db = admin.firestore();
-
-type Plan = 'free' | 'pro' | 'lifetime';
-
-const PLAN_ENTITLEMENTS: Record<Plan, string[]> = {
-  free: ['export.json', 'profile.public'],
-  pro: [
-    'export.json',
-    'profile.public',
-    'ai.unlimited',
-    'export.pdf',
-    'profile.customDomain',
-    'sync.notion',
-    'library.3d',
-  ],
-  lifetime: [
-    'export.json',
-    'profile.public',
-    'ai.unlimited',
-    'export.pdf',
-    'profile.customDomain',
-    'sync.notion',
-    'library.3d',
-  ],
-};
-
-// Lemon Squeezy event types we care about.
-type LSEvent =
-  | 'subscription_created'
-  | 'subscription_updated'
-  | 'subscription_cancelled'
-  | 'subscription_resumed'
-  | 'subscription_expired'
-  | 'order_created';
-
-interface LSPayload {
-  meta: {
-    event_name: LSEvent;
-    custom_data?: { uid?: string };
-  };
-  data: {
-    attributes: {
-      status?: string;           // subscription status
-      order_id?: number;
-      product_name?: string;
-      // order attributes
-      custom_data?: { uid?: string };
-    };
-  };
-}
-
-function verifySignature(rawBody: Buffer, signature: string, secret: string): boolean {
-  const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(rawBody);
-  const expected = hmac.digest('hex');
+export function verifySignature(rawBody: Buffer, signature: string, secret: string): boolean {
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
   try {
     return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'));
   } catch {
-    return false;
+    return false; // signature was not valid hex / wrong length
   }
 }
 
-function planFromPayload(payload: LSPayload): Plan {
-  const status = payload.data.attributes.status || '';
-  const event = payload.meta.event_name;
-
-  // Cancelled or expired → revert to free.
-  if (event === 'subscription_cancelled' || event === 'subscription_expired') return 'free';
-  if (event === 'subscription_resumed') return 'pro';
-
-  // Active subscription states.
-  if (['active', 'trialing'].includes(status)) return 'pro';
-
-  // One-time order (lifetime deal).
-  if (event === 'order_created') return 'lifetime';
-
-  // Past-due or unpaid → free until resolved.
-  return 'free';
+/** The slice of Firestore the webhook needs (admin SDK satisfies it). */
+export interface BillingDb {
+  doc(path: string): unknown;
+  collection(path: string): { add(data: Record<string, unknown>): Promise<unknown> };
+  runTransaction<T>(fn: (tx: {
+    get(ref: unknown): Promise<{ exists: boolean; data(): Record<string, unknown> | undefined }>;
+    set(ref: unknown, data: Record<string, unknown>): unknown;
+  }) => Promise<T>): Promise<T>;
 }
 
-function uidFromPayload(payload: LSPayload): string | null {
-  // custom_data can be nested at meta level or data.attributes level depending on LS version.
-  return (
-    payload.meta.custom_data?.uid ||
-    payload.data.attributes.custom_data?.uid ||
-    null
-  );
+export type ApplyOutcome =
+  | { status: 'applied'; uid: string; plan: BillingDoc['plan'] }
+  | { status: 'ignored'; reason: string }
+  | { status: 'orphan' };
+
+/** Applies one verified payload. `serverTime` is injected so tests do not need the admin SDK. */
+export async function applyBillingEvent(
+  db: BillingDb,
+  payload: LSPayload,
+  opts: { lifetimeVariantId: string; now?: number; serverTime?: unknown },
+): Promise<ApplyOutcome> {
+  const uid = uidFromPayload(payload);
+  if (!uid) {
+    // Cannot map to a user. Park it for manual resolution; acknowledge so LS stops retrying.
+    await db.collection(Paths.billingOrphans()).add({
+      event: payload.meta?.event_name ?? null,
+      resourceType: payload.data?.type ?? null,
+      resourceId: String(payload.data?.id ?? ''),
+      customerId: payload.data?.attributes?.customer_id ?? null,
+      userEmail: payload.data?.attributes?.user_email ?? null,
+      receivedAt: opts.serverTime ?? Date.now(),
+    });
+    return { status: 'orphan' };
+  }
+
+  const ref = db.doc(Paths.billing(uid));
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const result = reduceBillingEvent(snap.exists ? (snap.data() as Partial<BillingDoc>) : undefined, payload, {
+      lifetimeVariantId: opts.lifetimeVariantId,
+      now: opts.now ?? Date.now(),
+    });
+    if (result.kind === 'ignore') return { status: 'ignored' as const, reason: result.reason };
+    tx.set(ref, { ...result.next, updatedAt: opts.serverTime ?? Date.now() });
+    return { status: 'applied' as const, uid, plan: result.next.plan };
+  });
 }
 
 export const billingWebhook = functions.onRequest(
-  { secrets: ['LEMON_SQUEEZY_WEBHOOK_SECRET'] },
+  { secrets: ['LEMON_SQUEEZY_WEBHOOK_SECRET', 'LEMON_SQUEEZY_VARIANT_LIFETIME'] },
   async (req, res) => {
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method not allowed' });
@@ -116,16 +86,13 @@ export const billingWebhook = functions.onRequest(
       return;
     }
 
-    // Verify signature using raw body.
     const signature = (req.headers['x-signature'] as string) || '';
     const rawBody: Buffer = (req as unknown as { rawBody: Buffer }).rawBody;
-
-    if (!rawBody || !signature) {
-      res.status(400).json({ error: 'Missing signature or body' });
+    if (!rawBody) {
+      res.status(400).json({ error: 'Missing body' });
       return;
     }
-
-    if (!verifySignature(rawBody, signature, secret)) {
+    if (!signature || !verifySignature(rawBody, signature, secret)) {
       res.status(401).json({ error: 'Invalid webhook signature' });
       return;
     }
@@ -138,39 +105,17 @@ export const billingWebhook = functions.onRequest(
       return;
     }
 
-    const event = payload.meta.event_name;
-    const handled: LSEvent[] = [
-      'subscription_created',
-      'subscription_updated',
-      'subscription_cancelled',
-      'subscription_resumed',
-      'subscription_expired',
-      'order_created',
-    ];
-
-    if (!handled.includes(event)) {
-      // Acknowledge unhandled events without error.
-      res.status(200).json({ ok: true, skipped: true });
-      return;
+    try {
+      const outcome = await applyBillingEvent(admin.firestore() as unknown as BillingDb, payload, {
+        lifetimeVariantId: process.env.LEMON_SQUEEZY_VARIANT_LIFETIME ?? '',
+        serverTime: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.info('[billing-webhook] event=%s outcome=%s', payload.meta?.event_name, outcome.status);
+      res.status(200).json({ ok: true, ...outcome });
+    } catch (err) {
+      // 500 makes Lemon Squeezy retry; the state machine is idempotent and order-safe.
+      console.error('[billing-webhook] failed', err);
+      res.status(500).json({ error: 'Failed to apply event' });
     }
-
-    const uid = uidFromPayload(payload);
-    if (!uid) {
-      // No uid in custom_data — can't map to a user. Log and acknowledge.
-      console.warn('[billing-webhook] No uid in custom_data for event', event);
-      res.status(200).json({ ok: true, skipped: true });
-      return;
-    }
-
-    const plan = planFromPayload(payload);
-    const entitlements = PLAN_ENTITLEMENTS[plan];
-
-    await db.doc(`users/${uid}`).set(
-      { plan, entitlements, _updatedAt: admin.firestore.FieldValue.serverTimestamp() },
-      { merge: true }
-    );
-
-    console.info('[billing-webhook] Updated uid=%s plan=%s event=%s', uid, plan, event);
-    res.status(200).json({ ok: true });
   }
 );

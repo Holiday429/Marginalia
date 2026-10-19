@@ -5,9 +5,12 @@
 import { APP_VERSION } from './core/version.ts';
 import { M } from './core/namespace.ts';
 import { initAnalytics } from './services/analytics.ts';
+import { mountConsentBanner } from './components/consent-banner/consent-banner.ts';
+import './components/legal-links/legal-links.css';
 import { setLanguage } from './core/i18n.ts';
 console.debug('[marginalia] version', APP_VERSION);
 initAnalytics();
+document.addEventListener('DOMContentLoaded', () => mountConsentBanner());
 
 // Warn when localhost is connected to the prod Firebase project (`npm run dev:prod`).
 // This is intentional but easy to forget — show a persistent corner badge.
@@ -38,6 +41,8 @@ import './ai/features/registry.ts';
 
 // 2. Firebase layer
 import { doc, getDoc } from 'firebase/firestore';
+import { Paths } from './firebase/paths.ts';
+import { setFramePhotoUrl } from './three/frame-photo.ts';
 import { MarginaliaAuth } from './firebase/auth.ts';
 import { MarginaliaBooksCloud, MarginaliaStorage } from './firebase/db.ts';
 
@@ -70,16 +75,6 @@ import { NewEntry } from './new-entry/new-entry.ts';
 // 6a. AI layer
 import './services/ai-gateway.ts';
 import './ai/client/generate-ui.ts';
-import './ai/features/prompts/mindmap-gen.js';
-import './ai/features/prompts/concept-cards.js';
-import './ai/features/prompts/argument-breakdown.js';
-import './ai/features/prompts/timeline-gen.js';
-import './ai/features/prompts/action-suggest.js';
-import './ai/features/prompts/reader-portrait.js';
-import './ai/features/prompts/reader-identity.js';
-import './ai/features/prompts/character-map.js';
-import './ai/features/prompts/geo-context.js';
-import './ai/features/prompts/reading-card.js';
 
 // 6b. Panel scripts
 import './book/panels/notes.js';
@@ -117,9 +112,10 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     mountActionNotifications(user.uid, db);
     initReadingSession(user.uid, db);
     // Load user's language preference and apply immediately.
-    getDoc(doc(db, 'users', user.uid)).then((snap) => {
+    getDoc(doc(db, Paths.user(user.uid))).then((snap) => {
       const lang = snap.data()?.settings?.language;
       if (lang) setLanguage(lang);
+      setFramePhotoUrl(snap.data()?.avatarUrl || null);
     }).catch(() => {});
   } else {
     BooksStore.teardown();
@@ -129,6 +125,7 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     unmountActionNotifications();
     teardownReadingSession();
     setLanguage('en');
+    setFramePhotoUrl(null);
   }
 });
 

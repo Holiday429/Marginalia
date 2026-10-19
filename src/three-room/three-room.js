@@ -12,11 +12,12 @@ export function createThreeRoomPreview(host, options = {}) {
     onGlobeSelect: typeof options.onGlobeSelect === 'function' ? options.onGlobeSelect : undefined,
     onLaptopSelect: typeof options.onLaptopSelect === 'function' ? options.onLaptopSelect : undefined,
     onOrganizeSelect: typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : undefined,
-    onSapiensSelect: typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : undefined,
+    onDeskBookSelect: typeof options.onDeskBookSelect === 'function' ? options.onDeskBookSelect : undefined,
     onHeroBookSelect: typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : undefined,
     onPhotoFrameSelect: typeof options.onPhotoFrameSelect === 'function' ? options.onPhotoFrameSelect : undefined,
     onWebSelect: typeof options.onWebSelect === 'function' ? options.onWebSelect : undefined,
     onInteractiveHover: typeof options.onInteractiveHover === 'function' ? options.onInteractiveHover : undefined,
+    onSceneReady: typeof options.onSceneReady === 'function' ? options.onSceneReady : undefined,
   });
 
   // Mount notes wall component

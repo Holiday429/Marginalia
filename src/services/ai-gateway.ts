@@ -3,28 +3,32 @@
    No API key on the client — auth is via Firebase ID token.
 
    Usage (same interface as the old api.js):
-     MarginaliaAI.generate({ featureId?, prompt, system?, onChunk?, onDone, onError })
-     MarginaliaAI.generateJSON({ featureId?, prompt, system?, onError })
+     MarginaliaAI.generate({ featureId, bookId?, onChunk?, onDone, onError })
+     MarginaliaAI.generateJSON({ featureId, bookId?, onError })
+
+   The client sends only { featureId, bookId }. Prompts are assembled server-side from the
+   user's own Firestore data (functions/src/ai-handler.ts); the gateway rejects custom prompts.
+   A 402 surfaces as an error with code 'AI_QUOTA_EXCEEDED' so the UI can show an upgrade prompt.
 */
 
 import { ENV } from '../core/env.ts';
 import { logEvent } from './analytics.ts';
 import { getIdToken } from '../firebase/auth.ts';
 
+export const AI_QUOTA_EXCEEDED = 'AI_QUOTA_EXCEEDED';
+
 export const MarginaliaAI = (() => {
 
   async function generate({
     featureId,
-    prompt,
-    system: _system,
+    bookId,
     onChunk,
     onDone,
     onError,
     signal,
   }: {
-    featureId?: string;
-    prompt: string;
-    system?: string;
+    featureId: string;
+    bookId?: string;
     onChunk?: (delta: string) => void;
     onDone?: (full: string) => void;
     onError?: (err: Error) => void;
@@ -51,7 +55,7 @@ export const MarginaliaAI = (() => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ featureId, prompt }),
+        body: JSON.stringify({ featureId, bookId }),
         signal,
       });
 
@@ -59,7 +63,7 @@ export const MarginaliaAI = (() => {
         const body = await res.text().catch(() => '');
         let message = `Gateway error ${res.status}`;
         try { message = (JSON.parse(body) as { error?: string }).error || message; } catch { /* raw text */ }
-        throw new Error(message);
+        throw Object.assign(new Error(message), res.status === 402 ? { code: AI_QUOTA_EXCEEDED } : {});
       }
 
       // SSE stream
@@ -109,20 +113,17 @@ export const MarginaliaAI = (() => {
 
   async function generateJSON({
     featureId,
-    prompt,
-    system,
+    bookId,
     onError,
   }: {
-    featureId?: string;
-    prompt: string;
-    system?: string;
+    featureId: string;
+    bookId?: string;
     onError?: (err: Error) => void;
   }): Promise<unknown> {
     return new Promise((resolve) => {
       generate({
         featureId,
-        prompt,
-        system: system || 'Return only valid JSON. No markdown fences, no explanation.',
+        bookId,
         onDone(text) {
           try {
             const clean = text.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();

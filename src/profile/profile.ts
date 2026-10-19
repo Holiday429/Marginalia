@@ -16,7 +16,10 @@ import { renderProfileSettings } from './profile-settings.ts';
 import { ProfileMap } from './profile-map.ts';
 import { ProfileAnnualShelf } from './profile-year-in-review.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
-import { ENV } from '../core/env.ts';
+import { GroupNames, Paths, WsPaths } from '../firebase/paths.ts';
+import { buildSessionDays } from './session-days.ts';
+import { setFramePhotoUrl } from '../three/frame-photo.ts';
+import { fetchPublicProfile, syncPublicProfile } from './public-profile.ts';
 import { BooksStore } from '../store/books-store.ts';
 import {
   DEMO_PROFILE,
@@ -41,6 +44,7 @@ import {
 import type { PublicProfileData, PublicBook, PublicHighlight, SessionDay, ActivityDay, DemoPayload } from './profile-types.ts';
 import './profile.css';
 import '../components/hero-book/hero-book.css';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 
 type FirestoreDB = Firestore;
 
@@ -122,19 +126,21 @@ export async function enterProfile(params: { slug?: string; _settingsOnly?: bool
       return;
     }
 
-    const [realBooks, highlights0, notesCount, actionsDoneCount, activityDays] = await Promise.all([
+    const [realBooks, highlights0, notesCount, actionsDoneCount, activityDays, sessionDays] = await Promise.all([
       fetchPublicBooks(db, profileData.uid, ownerPreview),
       fetchPublicHighlights(db, profileData.uid, ownerPreview),
       fetchNotesCount(db, profileData.uid),
       fetchActionsDoneCount(db, profileData.uid),
       fetchActivityDays(db, profileData.uid),
+      // Sessions are owner-only (firestore.rules); public visitors get an empty rhythm.
+      ownerPreview ? fetchSessionDays(db, profileData.uid) : Promise.resolve([] as SessionDay[]),
     ]);
 
     const books = realBooks;
     const highlights = highlights0;
 
     const isOwner = ownerPreview;
-    renderResolvedProfile(container, profileData, books, highlights, activityDays, notesCount, actionsDoneCount, isOwner, showSettingsAction);
+    renderResolvedProfile(container, profileData, books, highlights, activityDays, notesCount, actionsDoneCount, isOwner, showSettingsAction, sessionDays);
     logEvent('profile_viewed', { slug: profileData.slug || 'owner-preview' });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -178,21 +184,38 @@ async function lookupByUid(db: FirestoreDB, uid: string): Promise<PublicProfileD
   const auth = MarginaliaAuth as any;
   const creationTime: string | undefined = auth.user?.metadata?.creationTime;
   const joinedAt = creationTime ? Date.parse(creationTime) : undefined;
-  const snap = await getDoc(doc(db, 'users', uid));
-  if (!snap.exists()) return null;
-  return buildProfileData(uid, snap.data() as Record<string, any>, joinedAt);
+  // users/{uid} is created lazily (first settings write); a brand-new account has none yet.
+  const snap = await getDoc(doc(db, Paths.user(uid)));
+  const data = snap.exists() ? (snap.data() as Record<string, any>) : {};
+  if (!data.displayName) {
+    data.displayName = capitalizeWords(String(auth.user?.displayName || auth.user?.email || 'Reader').split('@')[0]);
+  }
+  return buildProfileData(uid, data, joinedAt);
 }
 
+// Anonymous visitors only ever see the derived publicProfiles/{slug} card — never users/{uid}.
 async function lookupBySlug(db: FirestoreDB, slug: string): Promise<PublicProfileData | null> {
-  const snap = await getDocs(query(collection(db, 'users'), where('settings.slug', '==', slug), limit(1)));
-  if (snap.empty) return null;
-  const userDoc = snap.docs[0];
-  return buildProfileData(userDoc.id, userDoc.data() as Record<string, any>);
+  const card = await fetchPublicProfile(db, slug);
+  if (!card) return null;
+  const sections = card.sections ?? {};
+  return {
+    uid: card.uid,
+    slug: card.slug,
+    profilePublic: true,
+    displayName: card.displayName || card.slug,
+    avatarUrl: card.avatarUrl ?? undefined,
+    bio: card.bio ?? undefined,
+    location: card.location ? countryName(card.location) : undefined,
+    joinedAt: card.joinedAt,
+    showMap: sections.map !== false,
+    showPortrait: sections.portrait === true,
+    showRhythm: sections.rhythm !== false,
+    showDesk: sections.desk !== false,
+  };
 }
 
 async function fetchPublicBooks(db: FirestoreDB, uid: string, ownerPreview = false): Promise<PublicBook[]> {
-  const wsId: string = ENV.WORKSPACE_ID || 'default';
-  const colRef = collection(db, 'workspaces', wsId, 'users', uid, 'books');
+  const colRef = collection(db, WsPaths.books(getWorkspaceId(), uid));
   const snap = await (ownerPreview
     ? getDocs(query(colRef, limit(60)))
     : getDocs(query(colRef, where('shareInProfile', '==', true), limit(60))));
@@ -231,10 +254,9 @@ async function fetchPublicBooks(db: FirestoreDB, uid: string, ownerPreview = fal
 }
 
 async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview = false): Promise<PublicHighlight[]> {
-  const wsId: string = ENV.WORKSPACE_ID || 'default';
   try {
     if (ownerPreview) {
-      const snap = await getDocs(query(collection(db, 'workspaces', wsId, 'users', uid, 'highlights'), limit(24)));
+      const snap = await getDocs(query(collection(db, WsPaths.highlights(getWorkspaceId(), uid)), limit(24)));
       const highlights = snap.docs
         .map((doc: any) => {
           const data = doc.data() as Record<string, any>;
@@ -245,7 +267,7 @@ async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview 
     }
 
     const snap = await getDocs(query(
-      collectionGroup(db, 'highlights'),
+      collectionGroup(db, GroupNames.highlights),
       where('uid', '==', uid),
       where('public', '==', true),
       limit(24),
@@ -262,11 +284,11 @@ async function fetchPublicHighlights(db: FirestoreDB, uid: string, ownerPreview 
 }
 
 async function fetchNotesCount(db: FirestoreDB, uid: string): Promise<number> {
-  const wsId: string = ENV.WORKSPACE_ID || 'default';
+  const wsId = getWorkspaceId();
   try {
-    const booksSnap = await getDocs(query(collection(db, 'workspaces', wsId, 'users', uid, 'books'), limit(200)));
+    const booksSnap = await getDocs(query(collection(db, WsPaths.books(wsId, uid)), limit(200)));
     const checks = booksSnap.docs.map((bookDoc: any) =>
-      getDoc(doc(db, 'workspaces', wsId, 'users', uid, 'books', bookDoc.id, 'notes', 'main'))
+      getDoc(doc(db, WsPaths.bookNote(wsId, uid, bookDoc.id)))
     );
     const noteSnaps = await Promise.all(checks);
     return noteSnaps.filter((s: any) => s.exists()).length;
@@ -276,10 +298,9 @@ async function fetchNotesCount(db: FirestoreDB, uid: string): Promise<number> {
 }
 
 async function fetchActionsDoneCount(db: FirestoreDB, uid: string): Promise<number> {
-  const wsId: string = ENV.WORKSPACE_ID || 'default';
   try {
     const snap = await getDocs(query(
-      collection(db, 'workspaces', wsId, 'users', uid, 'actions'),
+      collection(db, WsPaths.actions(getWorkspaceId(), uid)),
       where('status', '==', 'done'),
     ));
     return snap.size;
@@ -288,8 +309,27 @@ async function fetchActionsDoneCount(db: FirestoreDB, uid: string): Promise<numb
   }
 }
 
+/** Reading sessions + highlight dates of the last two years, grouped per local day (owner only). */
+async function fetchSessionDays(db: FirestoreDB, uid: string): Promise<SessionDay[]> {
+  const wsId = getWorkspaceId();
+  const cutoff = Date.now() - 365 * 2 * 24 * 60 * 60 * 1000;
+  try {
+    const [sessionsSnap, highlightsSnap] = await Promise.all([
+      getDocs(query(collection(db, WsPaths.sessions(wsId, uid)), where('startedAt', '>=', cutoff), limit(5000))),
+      getDocs(query(collection(db, WsPaths.highlights(wsId, uid)), where('_createdAt', '>=', cutoff), limit(2000))),
+    ]);
+    return buildSessionDays(
+      sessionsSnap.docs.map((d) => d.data()),
+      highlightsSnap.docs.map((d) => d.data()._createdAt),
+    );
+  } catch (err) {
+    logError(err instanceof Error ? err : new Error(String(err)), { context: 'fetchSessionDays' });
+    return [];
+  }
+}
+
 async function fetchActivityDays(db: FirestoreDB, uid: string): Promise<ActivityDay[]> {
-  const wsId: string = ENV.WORKSPACE_ID || 'default';
+  const wsId = getWorkspaceId();
   const cutoff = Date.now() - 365 * 2 * 24 * 60 * 60 * 1000;
   const toDate = (ts: unknown): string | null => {
     const ms = typeof ts === 'number' ? ts
@@ -300,11 +340,10 @@ async function fetchActivityDays(db: FirestoreDB, uid: string): Promise<Activity
   };
   const dateSet = new Set<string>();
   try {
-    const baseSegments = ['workspaces', wsId, 'users', uid] as const;
     const [booksSnap, highlightsSnap, actionsSnap] = await Promise.all([
-      getDocs(query(collection(db, ...baseSegments, 'books'), limit(500))),
-      getDocs(query(collection(db, ...baseSegments, 'highlights'), where('_createdAt', '>=', cutoff), limit(2000))),
-      getDocs(query(collection(db, ...baseSegments, 'actions'), where('createdAt', '>=', cutoff), limit(2000))),
+      getDocs(query(collection(db, WsPaths.books(wsId, uid)), limit(500))),
+      getDocs(query(collection(db, WsPaths.highlights(wsId, uid)), where('_createdAt', '>=', cutoff), limit(2000))),
+      getDocs(query(collection(db, WsPaths.actions(wsId, uid)), where('createdAt', '>=', cutoff), limit(2000))),
     ]);
     booksSnap.docs.forEach((doc: any) => {
       const d = doc.data();
@@ -749,7 +788,10 @@ function bindAvatarUpload(container: HTMLElement): void {
         const db = auth.db;
         const uid = auth.user?.uid;
         if (db && uid) {
-          setDoc(doc(db, 'users', uid), { avatarUrl: dataUrl }, { merge: true }).catch(() => {});
+          setDoc(doc(db, Paths.user(uid)), { avatarUrl: dataUrl }, { merge: true })
+            .then(() => { setFramePhotoUrl(dataUrl); })
+            .then(() => syncPublicProfile(db, uid, String(auth.user?.displayName || auth.user?.email || '').split('@')[0]))
+            .catch(() => {});
         }
       } catch { /* best-effort */ }
     };
@@ -779,6 +821,7 @@ function mountSections(
   _activityDays: ActivityDay[],
   profile: PublicProfileData,
   isOwner: boolean,
+  sessionDays: SessionDay[] = [],
 ): void {
   if (profile.showMap) {
     const mapEl = container.querySelector<HTMLElement>('#profMap');
@@ -803,7 +846,7 @@ function mountSections(
       const annual = new ProfileAnnualShelf({
         host: annualEl,
         books,
-        sessionDays: [],
+        sessionDays,
         allowOpenDetails: isOwner,
         showRhythm: profile.showRhythm ?? true,
         isOwner,
@@ -817,7 +860,7 @@ function mountSections(
       const annual = new ProfileAnnualShelf({
         host: annualEl,
         books,
-        sessionDays: [],
+        sessionDays,
         allowOpenDetails: isOwner,
         showRhythm: profile.showRhythm ?? true,
       });
@@ -843,7 +886,7 @@ function mountSections(
       status: b.status,
     })),
     highlights: highlights.map((h) => ({ quote: h.quote, bookTitle: h.bookTitle })),
-    sessionDays: [],
+    sessionDays,
   });
 }
 
@@ -861,8 +904,7 @@ function renderPortrait(container: HTMLElement, _books: PublicBook[], _highlight
     return;
   }
 
-  const wsId: string = ENV.WORKSPACE_ID || 'default';
-  getDoc(doc(db, 'workspaces', wsId, 'users', uid, 'ai_results', 'reader-portrait'))
+  getDoc(doc(db, WsPaths.aiResult(getWorkspaceId(), uid, 'reader-portrait')))
     .then((snap: any) => {
       if (!snap.exists()) {
         container.innerHTML = '';
@@ -936,11 +978,12 @@ function renderResolvedProfile(
   actionsDoneCount: number,
   isOwner: boolean,
   showSettingsAction: boolean,
+  sessionDays: SessionDay[] = [],
 ): void {
   container.innerHTML = renderProfilePageShell(profileHTML(profileData, books, highlights, activityDays, notesCount, actionsDoneCount, isOwner, showSettingsAction));
   bindProfileChrome(container, false);
   bindProfileEvents(container, highlights, books);
-  mountSections(container, books, highlights, activityDays, profileData, isOwner);
+  mountSections(container, books, highlights, activityDays, profileData, isOwner, sessionDays);
   maybeSettleFrameFlyIn(container);
 }
 

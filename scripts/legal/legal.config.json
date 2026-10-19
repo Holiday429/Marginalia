@@ -1,0 +1,11 @@
+{
+  "_comment": "Edit these before launch. While draft is true every legal page shows a visible DRAFT notice.",
+  "draft": true,
+  "productName": "Marginalia",
+  "operatorName": "[Operator legal name — to be set]",
+  "operatorAddress": "[Operator address / country — to be set]",
+  "contactEmail": "[contact email — to be set]",
+  "governingLaw": "[Governing law and venue — to be set]",
+  "minimumAge": 16,
+  "lastUpdated": "2026-10-19"
+}

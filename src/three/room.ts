@@ -1,16 +1,15 @@
 import * as THREE from 'three';
 import { CSS3DObject, CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { loadGLB } from './gltf-loader.ts';
+import { modelUrl, textureUrl } from './asset-urls.ts';
 
 import { getRoomPose, type RoomPoseId } from './camera-paths.ts';
 import { getRoomSkinById } from './skins.ts';
 import type { RoomSlotId, SlotComponent } from './slots.ts';
 import { logError } from '../services/analytics.ts';
+import { getFramePhotoUrl, onFramePhotoChange } from './frame-photo.ts';
 
 interface RoomSceneOptions {
   host: HTMLElement;
@@ -18,11 +17,13 @@ interface RoomSceneOptions {
   onGlobeSelect?: () => void;
   onLaptopSelect?: () => void;
   onOrganizeSelect?: () => void;
-  onSapiensSelect?: () => void;
+  onDeskBookSelect?: () => void;
   onHeroBookSelect?: () => void;
   onPhotoFrameSelect?: () => void;
   onWebSelect?: () => void;
   onInteractiveHover?: (action: InteractiveAction | null, pointer?: { x: number; y: number }) => void;
+  /** Fires once the interactive objects are in the scene (the room is usable). */
+  onSceneReady?: () => void;
 }
 
 type CameraSpeedPreset = 'default' | 'quick';
@@ -45,7 +46,7 @@ interface SlotMount {
   component: SlotComponent;
 }
 
-type InteractiveAction = 'map' | 'shelf' | 'organize' | 'sapiens' | 'heroBook' | 'profile' | 'graph';
+type InteractiveAction = 'map' | 'shelf' | 'organize' | 'deskBook' | 'heroBook' | 'profile' | 'graph';
 
 interface DecorAssetSpec {
   id?: string;
@@ -61,6 +62,8 @@ interface DecorAssetSpec {
   preservePivotXZ?: boolean;
   clampDepth?: number;
   photoTextureUrl?: string;
+  /** Texture follows the user's avatar (see frame-photo.ts) instead of a fixed file. */
+  photoFromAvatar?: boolean;
   photoMaterialNameIncludes?: string;
   surfaceTextureSet?: SurfaceTextureSetSpec;
   interactiveAction?: InteractiveAction;
@@ -70,10 +73,8 @@ interface SurfaceTextureSetSpec {
   colorMap: string;
   normalMap?: string;
   roughnessMap?: string;
-  bumpMap?: string;
   repeat: [number, number];
   normalScale?: number;
-  bumpScale?: number;
 }
 
 type WindowBackdropPhase = 'morning' | 'afternoon' | 'dusk' | 'night';
@@ -102,7 +103,7 @@ const ROOM = {
 const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   {
     id: 'hero-book-shelf',
-    url: '/book.glb',
+    url: modelUrl('book'),
     position: [-4.5, 1.43, -0.35],
     rotationY: Math.PI,
     targetHeight: 0.38,
@@ -110,7 +111,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'bookshelf-a',
-    url: '/3d/book_shelf.glb',
+    url: modelUrl('book_shelf'),
     position: [-4.6, 0, 1.0],
     rotationY: Math.PI / 2,
     targetHeight: 2.46,
@@ -119,7 +120,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'bookshelf-b',
-    url: '/3d/bookshelf real.glb',
+    url: modelUrl('bookshelf real'),
     position: [-4.6, 0, 2.6],
     rotationY: Math.PI / 2,
     targetHeight: 2.46,
@@ -128,7 +129,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'globe',
-    url: '/3d/antique_globe.glb',
+    url: modelUrl('antique_globe'),
     position: [-1.28, ROOM.DESK_SURFACE_Y + 0.06, -1.86],
     rotationY: -1.08,
     targetHeight: 0.58,
@@ -136,7 +137,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'macbook',
-    url: '/3d/macbook.glb',
+    url: modelUrl('macbook'),
     position: [0.3, ROOM.DESK_SURFACE_Y + 0.06, -1.22],
     liftY: 0.02, // pivot compensation: model origin is not at base
     rotationY: -0.42,
@@ -144,8 +145,8 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     interactiveAction: 'shelf',
   },
   {
-    id: 'desk-book-sapiens',
-    url: '/book.glb',
+    id: 'desk-book',
+    url: modelUrl('book'),
     position: [-0.5, ROOM.DESK_SURFACE_Y + 0.14, -0.72],
     liftY: 0,
     rotationX: -Math.PI / 2,
@@ -153,17 +154,17 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     rotationZ: 0,
     targetHeight: 0.62,
     // Uses the GLB's own baked cover model — no per-book cover override. The
-    // click still opens the currently-reading book (see onSapiensSelect).
-    interactiveAction: 'sapiens',
+    // click still opens the currently-reading book (see onDeskBookSelect).
+    interactiveAction: 'deskBook',
   },
   {
     id: 'picture-frame',
-    url: '/3d/wooden_picture_frame.glb',
+    url: modelUrl('wooden_picture_frame'),
     position: [1.34, ROOM.DESK_SURFACE_Y + 0.06, -1.96],
     liftY: 0.17,
     rotationY: -0.42,
     targetHeight: 0.4,
-    photoTextureUrl: '/3d/profile-frame-photo.jpg',
+    photoFromAvatar: true,
     photoMaterialNameIncludes: 'Image',
     interactiveAction: 'profile',
   },
@@ -171,7 +172,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     // Messy tack board on the notes wall (right wall), near the window-side end.
     // Acts as the physical entry point into the Graph view.
     id: 'graph-board',
-    url: '/3d/messy_tack_board.glb',
+    url: modelUrl('messy_tack_board'),
     position: [5.18, 2.3, -2.1],
     rotationY: -Math.PI / 2,
     targetHeight: 1.7,
@@ -183,14 +184,14 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
 const FURNITURE_ASSETS: DecorAssetSpec[] = [
   {
     id: 'chair',
-    url: '/3d/chair.glb',
+    url: modelUrl('chair'),
     position: [0.62, 0, 0.3],
     rotationY: 0.5 - Math.PI / 2,
     targetHeight: 1.22,
   },
   {
     id: 'sofa',
-    url: '/3d/lounge_chair.glb',
+    url: modelUrl('lounge_chair'),
     position: [4.44, 0, 2.62],
     rotationY: -0.42,
     targetHeight: 0.96,
@@ -199,7 +200,7 @@ const FURNITURE_ASSETS: DecorAssetSpec[] = [
   {
     // Iron storage cart in front of the yellow sofa, against the notes wall.
     id: 'storage-cart',
-    url: '/3d/iron_art_storage_bookshelf.glb',
+    url: modelUrl('iron_art_storage_bookshelf'),
     position: [4.78, 0, 0.4],
     rotationY: -Math.PI / 2,
     targetHeight: 1.18,
@@ -210,7 +211,7 @@ const FURNITURE_ASSETS: DecorAssetSpec[] = [
 const PROP_ASSETS: DecorAssetSpec[] = [
   {
     id: 'floor-lamp',
-    url: '/3d/floor_lamp.glb',
+    url: modelUrl('floor_lamp'),
     position: [-3.94, 0, -3.06],
     liftY: 1.52, // pivot compensation: lamp GLB origin is mid-pole, not base
     rotationY: 0.68,
@@ -220,14 +221,14 @@ const PROP_ASSETS: DecorAssetSpec[] = [
   },
   {
     id: 'floor-plant',
-    url: '/3d/bamboo_with_plant_pot.glb',
+    url: modelUrl('bamboo_with_plant_pot'),
     position: [4.64, 0, -3.42],
     rotationY: -2.44,
     targetHeight: 3.02,
   },
   {
     id: 'ceiling-light',
-    url: '/3d/roomlight.glb',
+    url: modelUrl('roomlight'),
     position: [0, 3.1, -0.18],
     yAlign: 'top',
     rotationY: 0,
@@ -235,61 +236,56 @@ const PROP_ASSETS: DecorAssetSpec[] = [
   },
 ];
 
-const DECOR_ASSETS: DecorAssetSpec[] = [
-  ...INTERACTIVE_ASSETS,
-  ...FURNITURE_ASSETS,
-  ...PROP_ASSETS,
-];
-
+// 1K JPG maps (optimized by scripts/optimize-assets.mjs). Height/displacement maps were dropped:
+// the normal map carries the surface detail at a fraction of the bytes.
 const WALL_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/textures/wall/beige_wall_001_diff_2k.jpg',
-  normalMap: '/textures/wall/beige_wall_001_nor_gl_2k.exr',
-  roughnessMap: '/textures/wall/beige_wall_001_rough_2k.jpg',
-  bumpMap: '/textures/wall/beige_wall_001_disp_2k.png',
+  colorMap: textureUrl('wall/diff'),
+  normalMap: textureUrl('wall/nor'),
+  roughnessMap: textureUrl('wall/rough'),
   repeat: [4.2, 2.2],
   normalScale: 0.52,
-  bumpScale: 0.014,
 };
 
 const FLOOR_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/textures/floor/laminate_floor_03_diff_2k.jpg',
-  normalMap: '/textures/floor/laminate_floor_03_nor_gl_2k.exr',
-  roughnessMap: '/textures/floor/laminate_floor_03_rough_2k.exr',
-  bumpMap: '/textures/floor/laminate_floor_03_disp_2k.png',
+  colorMap: textureUrl('floor/diff'),
+  normalMap: textureUrl('floor/nor'),
+  roughnessMap: textureUrl('floor/rough'),
   repeat: [6.8, 4.8],
   normalScale: 0.7,
-  bumpScale: 0.03,
 };
 
 const CARPET_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/textures/carpet/Carpet014_2K-JPG_Color.jpg',
-  normalMap: '/textures/carpet/Carpet014_2K-JPG_NormalGL.jpg',
-  roughnessMap: '/textures/carpet/Carpet014_2K-JPG_Roughness.jpg',
-  bumpMap: '/textures/carpet/Carpet014_2K-JPG_Displacement.jpg',
+  colorMap: textureUrl('carpet/diff'),
+  normalMap: textureUrl('carpet/nor'),
+  roughnessMap: textureUrl('carpet/rough'),
   repeat: [2.2, 1.6],
   normalScale: 0.46,
-  bumpScale: 0.02,
 };
 
 const BOARD_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/textures/board/oriented_strand_board_diff_2k.jpg',
-  normalMap: '/textures/board/oriented_strand_board_nor_gl_2k.exr',
-  roughnessMap: '/textures/board/oriented_strand_board_rough_2k.exr',
-  bumpMap: '/textures/board/oriented_strand_board_disp_2k.png',
+  colorMap: textureUrl('board/diff'),
+  normalMap: textureUrl('board/nor'),
+  roughnessMap: textureUrl('board/rough'),
   repeat: [1.1, 0.9],
   normalScale: 0.62,
-  bumpScale: 0.02,
 };
 
 const DESK_TEXTURE_SET: SurfaceTextureSetSpec = {
-  colorMap: '/textures/desk/plywood_diff_2k.jpg',
-  normalMap: '/textures/desk/plywood_nor_gl_2k.exr',
-  roughnessMap: '/textures/desk/plywood_rough_2k.exr',
+  colorMap: textureUrl('desk/diff'),
+  normalMap: textureUrl('desk/nor'),
+  roughnessMap: textureUrl('desk/rough'),
   repeat: [2.0, 1.2],
   normalScale: 0.42,
 };
 
 const WINDOW_SCENE_MANIFEST_URL = '/window-scenes/manifest.json';
+
+/** Phones/tablets and machines with <= 4 logical cores get the lighter rendering path. */
+function isLowEndDevice(): boolean {
+  const cores = navigator.hardwareConcurrency || 8;
+  const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+  return cores <= 4 || mobile;
+}
 
 export class RoomScene {
   private host: HTMLElement;
@@ -349,10 +345,7 @@ export class RoomScene {
   private blindSlatHeight = 0.026;
   private currentBlindPreset: BlindPreset = 'half';
   private pullTween: { model: THREE.Object3D; startX: number; targetX: number; startedAt: number; durationMs: number; onComplete: () => void } | null = null;
-  private gltfLoader = new GLTFLoader();
-  private dracoLoader = new DRACOLoader();
   private textureLoader = new THREE.TextureLoader();
-  private exrLoader = new EXRLoader();
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private interactiveTargets: THREE.Object3D[] = [];
@@ -362,7 +355,9 @@ export class RoomScene {
   private onGlobeSelect: (() => void) | null = null;
   private onLaptopSelect: (() => void) | null = null;
   private onOrganizeSelect: (() => void) | null = null;
-  private onSapiensSelect: (() => void) | null = null;
+  private onDeskBookSelect: (() => void) | null = null;
+  private onSceneReady: (() => void) | null = null;
+  private unsubFramePhotos: Array<() => void> = [];
   private onHeroBookSelect: (() => void) | null = null;
   private onPhotoFrameSelect: (() => void) | null = null;
   private onWebSelect: (() => void) | null = null;
@@ -408,24 +403,23 @@ export class RoomScene {
     this.onGlobeSelect = typeof options.onGlobeSelect === 'function' ? options.onGlobeSelect : null;
     this.onLaptopSelect = typeof options.onLaptopSelect === 'function' ? options.onLaptopSelect : null;
     this.onOrganizeSelect = typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : null;
-    this.onSapiensSelect = typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : null;
+    this.onDeskBookSelect = typeof options.onDeskBookSelect === 'function' ? options.onDeskBookSelect : null;
     this.onHeroBookSelect = typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : null;
     this.onPhotoFrameSelect = typeof options.onPhotoFrameSelect === 'function' ? options.onPhotoFrameSelect : null;
     this.onWebSelect = typeof options.onWebSelect === 'function' ? options.onWebSelect : null;
     this.onInteractiveHover = typeof options.onInteractiveHover === 'function' ? options.onInteractiveHover : null;
+    this.onSceneReady = typeof options.onSceneReady === 'function' ? options.onSceneReady : null;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
-    this.dracoLoader.setDecoderPath('/draco/');
-    this.gltfLoader.setDRACOLoader(this.dracoLoader);
-    this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const lowEnd = isLowEndDevice();
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowEnd ? 1.5 : 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.04;
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = !lowEnd; // real-time shadows are the first thing to drop on weak GPUs
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.cssRenderer = new CSS3DRenderer();
@@ -676,7 +670,7 @@ export class RoomScene {
    *  or null if the model hasn't loaded yet. Used by the book fly-in to
    *  anchor the cover card exactly on top of the 3D object. */
   getDeskBookScreenRect(): { left: number; top: number; width: number; height: number } | null {
-    const model = this.namedModels.get('desk-book-sapiens');
+    const model = this.namedModels.get('desk-book');
     if (!model) return null;
     const canvas = this.renderer.domElement;
     const canvasRect = canvas.getBoundingClientRect();
@@ -726,6 +720,8 @@ export class RoomScene {
 
   destroy(): void {
     this.disposed = true;
+    this.unsubFramePhotos.forEach((off) => off());
+    this.unsubFramePhotos = [];
     window.cancelAnimationFrame(this.frameHandle);
 
     this.slotMounts.forEach((_, slotId) => this.unmountSlot(slotId));
@@ -754,7 +750,6 @@ export class RoomScene {
     this.orbitControls.dispose();
 
     this.renderer.dispose();
-    this.dracoLoader.dispose();
 
     this.host.innerHTML = '';
   }
@@ -854,20 +849,6 @@ export class RoomScene {
         },
       });
     }
-    if (textureSet.bumpMap) {
-      steps.push({
-        kind: 'height texture',
-        url: textureSet.bumpMap,
-        apply: (texture) => {
-          materials.forEach((material) => {
-            material.bumpMap = texture;
-            material.bumpScale = textureSet.bumpScale ?? 0.01;
-            material.needsUpdate = true;
-          });
-        },
-      });
-    }
-
     let remaining = steps.length;
     if (remaining === 0) {
       onReady?.();
@@ -883,9 +864,7 @@ export class RoomScene {
     };
 
     steps.forEach((step) => {
-      const loader = step.url.toLowerCase().endsWith('.exr')
-        ? this.loadExrTexture.bind(this)
-        : this.loadBitmapTexture.bind(this);
+      const loader = this.loadBitmapTexture.bind(this);
       const isColorTexture = step.kind === 'color texture';
       loader(
         step.url,
@@ -910,25 +889,6 @@ export class RoomScene {
     onError: (error: unknown) => void,
   ): void {
     this.textureLoader.load(
-      url,
-      (texture) => {
-        this.configureSurfaceTexture(texture, anisotropy, repeat, isColorTexture);
-        onLoad(texture);
-      },
-      undefined,
-      onError,
-    );
-  }
-
-  private loadExrTexture(
-    url: string,
-    anisotropy: number,
-    repeat: [number, number],
-    isColorTexture: boolean,
-    onLoad: (texture: THREE.Texture) => void,
-    onError: (error: unknown) => void,
-  ): void {
-    this.exrLoader.load(
       url,
       (texture) => {
         this.configureSurfaceTexture(texture, anisotropy, repeat, isColorTexture);
@@ -1289,24 +1249,29 @@ export class RoomScene {
     this.slotAnchors.set(slotId, anchor);
   }
 
+  /** Interactive objects first (they make the room usable), then furniture and props. */
   private mountDecorAssets(): void {
-    DECOR_ASSETS.forEach((asset) => this.mountDecorAsset(asset));
+    const interactive = INTERACTIVE_ASSETS;
+    const decorative = [...FURNITURE_ASSETS, ...PROP_ASSETS];
+    void Promise.allSettled(interactive.map((asset) => this.mountDecorAsset(asset)))
+      .then(() => {
+        if (this.disposed) return;
+        // Let one frame paint with the interactive objects before announcing readiness.
+        requestAnimationFrame(() => requestAnimationFrame(() => this.onSceneReady?.()));
+        decorative.forEach((asset) => void this.mountDecorAsset(asset));
+      });
   }
 
-  private mountDecorAsset(asset: DecorAssetSpec): void {
-    this.gltfLoader.load(
-      asset.url,
-      (gltf) => {
-        if (this.disposed) return;
-        const model = gltf.scene;
-        if (!model) return;
-        this.finalizeDecorAsset(model, asset);
-      },
-      undefined,
-      (error) => {
-        logError(error instanceof Error ? error : new Error(`[room] Failed to load decor model: ${asset.url}`), { context: 'room:decor-load', url: asset.url });
-      },
-    );
+  private async mountDecorAsset(asset: DecorAssetSpec): Promise<void> {
+    try {
+      const gltf = await loadGLB(asset.url);
+      if (this.disposed) return;
+      const model = gltf.scene;
+      if (!model) return;
+      this.finalizeDecorAsset(model, asset);
+    } catch (error) {
+      logError(error instanceof Error ? error : new Error(`[room] Failed to load decor model: ${asset.url}`), { context: 'room:decor-load', url: asset.url });
+    }
   }
 
   private finalizeDecorAsset(model: THREE.Object3D, asset: DecorAssetSpec): void {
@@ -1339,8 +1304,8 @@ export class RoomScene {
       this.registerInteractiveTarget(model, () => this.onLaptopSelect?.(), asset.interactiveAction);
     } else if (asset.interactiveAction === 'organize') {
       this.registerInteractiveTarget(model, () => this.onOrganizeSelect?.(), asset.interactiveAction);
-    } else if (asset.interactiveAction === 'sapiens') {
-      this.registerInteractiveTarget(model, () => this.onSapiensSelect?.(), asset.interactiveAction);
+    } else if (asset.interactiveAction === 'deskBook') {
+      this.registerInteractiveTarget(model, () => this.onDeskBookSelect?.(), asset.interactiveAction);
     } else if (asset.interactiveAction === 'heroBook') {
       this.registerInteractiveTarget(model, () => this.onHeroBookSelect?.(), asset.interactiveAction);
     } else if (asset.interactiveAction === 'profile') {
@@ -1362,6 +1327,11 @@ export class RoomScene {
 
     if (asset.photoTextureUrl) {
       this.applyDecorPhotoTexture(model, asset.photoTextureUrl, asset.photoMaterialNameIncludes || 'Image');
+    }
+    if (asset.photoFromAvatar) {
+      const hint = asset.photoMaterialNameIncludes || 'Image';
+      this.applyDecorPhotoTexture(model, getFramePhotoUrl(), hint);
+      this.unsubFramePhotos.push(onFramePhotoChange(() => this.applyDecorPhotoTexture(model, getFramePhotoUrl(), hint)));
     }
 
     if (asset.id === 'ceiling-light' || asset.id === 'floor-lamp') {

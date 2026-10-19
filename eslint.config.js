@@ -32,9 +32,12 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
+      'dist-consent/**',
+      'test-results/**',
       'node_modules/**',
       '.npm-cache/**',
       'functions/lib/**',
+      'functions/src/_shared/**',
       'functions/node_modules/**',
       'public/**',
       'tmp/**',

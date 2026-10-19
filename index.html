@@ -116,6 +116,13 @@
       <span id="loaderLabel">Reviewing the collection</span>
     </div>
 
+    <nav class="legal-links legal-links--landing" aria-label="Legal">
+      <a class="legal-links__link" href="./privacy/">Privacy</a>
+      <a class="legal-links__link" href="./terms/">Terms</a>
+      <a class="legal-links__link" href="./credits/">Credits</a>
+      <button class="legal-links__link legal-links__btn" type="button" data-consent-open>Analytics preferences</button>
+    </nav>
+
     <button class="skip"          id="skipBtn">Skip</button>
     <button class="tweaks-toggle" id="tweaksToggle">Tweaks</button>
 
@@ -260,7 +267,7 @@
   <!-- ============================================================
        ROOM SHELL — persistent, never hidden
        ============================================================ -->
-  <div id="view-room"></div>
+  <div id="view-room"><img class="room-poster" src="./room-poster.webp" alt="" aria-hidden="true" decoding="async" fetchpriority="low"></div>
 
   <!-- ============================================================
        OVERLAY PANELS — shown above the room shell

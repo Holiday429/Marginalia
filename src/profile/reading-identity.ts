@@ -533,52 +533,11 @@ function runReveal(host: HTMLElement, data: ReadingIdentityResult, options: RidR
   }, GENERATE_REVEAL_MS);
 }
 
-function buildLibraryPayload(
-  books: IdentityBook[],
-  highlights: IdentityHighlight[],
-  sessionDays: Array<{ date: string; sessions: number; minutes: number }> = [],
-): Record<string, unknown> {
-  const totalSessions = sessionDays.reduce((s, d) => s + d.sessions, 0);
-  const totalMinutes = sessionDays.reduce((s, d) => s + d.minutes, 0);
-  const activeDays = sessionDays.filter((d) => d.sessions > 0);
-  const avgMinutes = activeDays.length ? Math.round(totalMinutes / activeDays.length) : 0;
-
-  const hourBuckets: Record<string, number> = {};
-  sessionDays.forEach((d) => {
-    const h = new Date(d.date).getHours();
-    const bucket = h < 6 ? 'night' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'late-night';
-    hourBuckets[bucket] = (hourBuckets[bucket] ?? 0) + d.sessions;
-  });
-  const peakHour = Object.entries(hourBuckets).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'evening';
-  const rhythmNote = totalSessions
-    ? `${totalSessions} sessions · ${activeDays.length} active days · ~${avgMinutes} min/session · peak: ${peakHour}`
-    : '';
-
-  return {
-    books,
-    highlightSample: highlights.slice(0, 20).map((h) => ({ quote: h.quote })),
-    rhythmNote,
-  };
-}
-
-async function generateIdentityFromAI(
-  books: IdentityBook[],
-  highlights: IdentityHighlight[],
-  sessionDays: Array<{ date: string; sessions: number; minutes: number }> = [],
-): Promise<ReadingIdentityResult | null> {
+async function generateIdentityFromAI(): Promise<ReadingIdentityResult | null> {
   try {
     const { MarginaliaAI } = await import('../services/ai-gateway.ts');
-    const { AIFeatureRegistry } = await import('../ai/features/registry.ts');
-    await import('../ai/features/prompts/reader-identity.js');
-
-    const library = buildLibraryPayload(books, highlights, sessionDays);
-    const prompt = AIFeatureRegistry.buildPrompt('reader-identity', library);
-    if (!prompt) return null;
-
-    const result = await (MarginaliaAI as any).generateJSON({
-      featureId: 'reader-identity',
-      prompt,
-    }) as ReadingIdentityResult | null;
+    // The server builds the library summary from the signed-in user's own data.
+    const result = await MarginaliaAI.generateJSON({ featureId: 'reader-identity' }) as ReadingIdentityResult | null;
 
     if (!result?.archetype?.title || !Array.isArray(result?.axes)) return null;
     return result;
@@ -628,7 +587,7 @@ export function mountReadingIdentity(
       host.querySelector<HTMLElement>('.prof-rid-cta')?.classList.add('is-leaving');
       window.setTimeout(() => { heroBookByHost.get(host)?.open(); }, BOOK_CENTERING_MS);
 
-      generateIdentityFromAI(books, highlights, sessionDays).then((aiResult) => {
+      generateIdentityFromAI().then((aiResult) => {
         window.setTimeout(() => {
           heroBookByHost.get(host)?.unmount();
           heroBookByHost.delete(host);

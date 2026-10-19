@@ -4,16 +4,9 @@ import { test, expect, type Page } from '@playwright/test';
 // Walks the same tour a first-time visitor takes: preloader → room → search
 // (seed books) → book detail → map → graph. See docs/refactor-plan.md Phase 0.
 //
-// Known pre-existing issues tracked, not asserted away. These fire during the
-// room/preloader boot sequence independent of navigation and are allowed so the
-// gate doesn't mask *new* errors:
-//   - "reading 'image'": a boot-sequence TypeError, out of scope for P0.
-//   - "book.glb ... 404": the decorative hero-book GLB (a 7.3 MB asset served
-//     from /public) intermittently 404s under `vite preview` in CI. Loading a
-//     decorative 3D model is out of scope for a demo-path smoke test; the real
-//     fix belongs in the P3 asset-pipeline phase. The app renders and navigates
-//     correctly without it (all five nav assertions pass).
-const KNOWN_ERROR_SUBSTRINGS = ["reading 'image'", 'book.glb', '.glb" responded with 404'];
+// Phase 1.6 removed the two known boot errors (the broken .exr texture and the duplicate
+// book.glb request), so the gate is now strict: any uncaught page error fails the suite.
+const KNOWN_ERROR_SUBSTRINGS: string[] = [];
 
 function trackPageErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -27,6 +20,8 @@ function unexpectedErrors(errors: string[]): string[] {
 
 async function skipPreloader(page: Page) {
   await page.goto('/');
+  const decline = page.locator('[data-consent="denied"]'); // analytics consent banner (first visit)
+  if (await decline.isVisible().catch(() => false)) await decline.click();
   await page.click('#skipBtn');
   await expect(page.locator('body')).toHaveAttribute('data-view', 'room', { timeout: 10_000 });
 }
@@ -78,5 +73,33 @@ test('graph view loads', async ({ page }) => {
 
   await page.evaluate(() => { window.location.hash = '#graph'; });
   await expect(page.locator('body')).toHaveAttribute('data-view', 'web', { timeout: 10_000 });
+  expect(unexpectedErrors(errors)).toEqual([]);
+});
+
+// Phase 1 gate (docs/optimization-plan.md): one visit through every main view, in order, with zero page errors.
+test('phase 1 gate: landing, room, Search, Library, Map, Graph, Profile, Book — zero page errors', async ({ page }) => {
+  const errors = trackPageErrors(page);
+
+  await page.goto('/');
+  await expect(page.locator('#skipBtn')).toBeVisible(); // landing
+
+  await skipPreloader(page); // room
+
+  const visit = async (hash: string, view: string) => {
+    await page.evaluate((h) => { window.location.hash = h; }, hash);
+    await expect(page.locator('body')).toHaveAttribute('data-view', view, { timeout: 15_000 });
+    await page.waitForTimeout(1200); // let the view's own async work run (and fail, if it is going to)
+  };
+  await visit('#search', 'search');
+  await visit('#library', 'library-2d');
+  await visit('#map', 'map');
+  await visit('#graph', 'web');
+  await visit('#profile', 'profile');
+
+  await visit('#search', 'search');
+  await page.locator('.shelf-quick-card').first().click();
+  await expect(page.locator('body')).toHaveAttribute('data-view', 'book', { timeout: 15_000 });
+  await page.waitForTimeout(1200);
+
   expect(unexpectedErrors(errors)).toEqual([]);
 });

@@ -22,6 +22,8 @@ import { validateWrite, withMeta, withMetaCreate, isLegacyDoc } from '../service
 import { UserProfileSchema } from '../data/schema/user-profile.ts';
 import { logError, identifyUser } from '../services/analytics.ts';
 import { MARGINALIA_FIREBASE, firebaseApp, firebaseAuth, firestoreDb, firebaseStorage } from './config.ts';
+import { WsPaths } from './paths.ts';
+import { getWorkspaceId } from './workspace.ts';
 
 /* ==========================================================================
    Marginalia · Firebase auth gate (modular SDK)
@@ -345,7 +347,7 @@ export const MarginaliaAuth = (() => {
     if (!email.includes('@')) throw new Error('Registration requires email.');
     if (!firestoreDb || !firebaseAuth) throw new Error('Firebase is not initialized.');
 
-    const profilesCol = collection(firestoreDb, 'workspaces', getWorkspaceId(), 'userProfiles');
+    const profilesCol = collection(firestoreDb, WsPaths.userProfiles(getWorkspaceId()));
     const existing = await getDocs(query(profilesCol, where('usernameLower', '==', normalizedUsername), limit(1)));
     if (!existing.empty) throw new Error('Username is already used.');
 
@@ -363,7 +365,7 @@ export const MarginaliaAuth = (() => {
       return;
     }
 
-    const profilesCol = collection(firestoreDb, 'workspaces', getWorkspaceId(), 'userProfiles');
+    const profilesCol = collection(firestoreDb, WsPaths.userProfiles(getWorkspaceId()));
     const profileSnapshot = await getDocs(query(profilesCol, where('usernameLower', '==', normalizeUsername(identityInput)), limit(1)));
     if (profileSnapshot.empty) throw new Error('User not found.');
 
@@ -374,8 +376,7 @@ export const MarginaliaAuth = (() => {
 
   async function ensureUserProfile(user: User) {
     if (!firestoreDb) return;
-    const workspaceId = getWorkspaceId();
-    const profileRef = doc(firestoreDb, 'workspaces', workspaceId, 'userProfiles', user.uid);
+    const profileRef = doc(firestoreDb, WsPaths.userProfile(getWorkspaceId(), user.uid));
     const snap = await getDoc(profileRef);
     if (snap.exists()) {
       // Migrate-on-read: silently stamp _v on legacy docs on next write opportunity.
@@ -393,8 +394,7 @@ export const MarginaliaAuth = (() => {
 
   async function upsertUserProfile(user: User, { username, email }: { username: string; email: string }, isCreate = false) {
     if (!firestoreDb) return;
-    const workspaceId = getWorkspaceId();
-    const profileRef = doc(firestoreDb, 'workspaces', workspaceId, 'userProfiles', user.uid);
+    const profileRef = doc(firestoreDb, WsPaths.userProfile(getWorkspaceId(), user.uid));
 
     const raw = {
       uid: user.uid,
@@ -515,10 +515,6 @@ export const MarginaliaAuth = (() => {
     if (code.includes('popup-closed-by-user')) return 'Google login was canceled.';
     if (code.includes('popup-blocked')) return 'Browser blocked popup. Please allow popups and retry.';
     return (error as { message?: string })?.message || 'Authentication failed.';
-  }
-
-  function getWorkspaceId(): string {
-    return MARGINALIA_FIREBASE?.workspaceId || 'default';
   }
 
   function dispatchAuthState() {

@@ -12,7 +12,7 @@
 
    Use App.show('search', params) for the two views App owns (preloader,
    search). Every other panel (book, library, map, web, profile) is owned by
-   PanelManager — use PanelManager.open('book', { id: 'sapiens' }) for those.
+   PanelManager — use PanelManager.open('book', { id: bookId }) for those.
    ========================================================================== */
 
 import { PanelManager } from './panel-manager.ts';

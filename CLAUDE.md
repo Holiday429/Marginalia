@@ -2,14 +2,21 @@
 
 A personal reading-records platform. Marginalia owns the *after* of reading: cultural context, knowledge connection, and the conversion of insight into action.
 
-**Current state:** Foundation stable. Active work: Book detail page panels, Graph transition animation, spaced-repetition reminder system, and session data aggregation in Profile.
+**Current state:** Phase 1 (stabilize) is done on branch `phase-1-stabilize`, pending the owner's review and merge: billing is server-written, AI prompts are built server-side, signed-in users never see demo data, the room loads in ~11 MB, and consent / deletion / legal pages exist. Next: Phase 2 (core loop) in `docs/optimization-plan.md`. Open decisions live in `docs/open-questions.md`; evidence for Phase 1 in `docs/phase-reports/phase-1.md`.
 
 **Code rules:**
 - ES modules + explicit imports everywhere. No `window.X` globals — any remaining ones are bugs to fix, not patterns to follow.
 - `M` namespace (`src/core/namespace.ts`) is the migration target. When touching old globals, migrate them to the appropriate `M.*` branch.
 - No `<script>` tag ordering hacks.
-- Every Firestore write must go through `withMeta()` / `withMetaCreate()` from `services/db.ts` and be validated with a Zod schema first.
+- Every Firestore write must go through `withMeta()` / `withMetaCreate()` from `src/services/db.ts` and be validated with a Zod schema first.
 - Never check `plan === 'pro'`. Always use `hasEntitlement('feature-x')`.
+- **Firestore paths exist in one place:** `src/firebase/paths.ts` (`Paths`, `WsPaths`, `AuditPaths`, `GroupNames`). No literal path in a `collection()` / `doc()` call (`npm run check:paths` fails the build). The workspace id comes from `getWorkspaceId()` in `src/firebase/workspace.ts`. Adding a path means adding a rules test case in `tests/path-cases.ts`.
+- **Billing is server-only.** `billing/{uid}` and `usage/{uid}/months/*` are written by Cloud Functions; clients only read their own. `users/{uid}` is owner-only and never holds plan, entitlements or quota.
+- **AI requests carry no text.** The client sends `{ featureId, bookId? }`; prompts are built in `shared/ai-prompts/` by the `aiGenerate` function from the user's own Firestore data.
+- **Books come only from `BooksStore`**, which reads a `BookDataSource` (`src/store/book-data-source.ts`): Firestore when signed in (an empty library stays empty), the single demo library in `src/data/demo/` when signed out. Never import `src/data/demo` anywhere else. No special-casing of specific books.
+- **Static files** are referenced through `asset()` (`src/core/asset.ts`). 3D models and surface textures are optimized by `npm run assets:optimize` (originals live in the git-ignored `assets-src/`) and referenced through `src/three/asset-urls.ts`; GLBs load through `src/three/gltf-loader.ts`.
+- **Analytics only after consent:** PostHog/Sentry go through `src/services/analytics.ts`, which starts them only once the visitor accepted (`src/services/consent.ts`).
+- Run `npm run check:all` before every commit (see "Testing and gates").
 
 ---
 
@@ -29,7 +36,7 @@ Marginalia
 └── Book (panel-book)      — Single-book detail: panels vary by book type (AI features, highlights, actions)
 ```
 
-**Nav aliases** (handled in `app.js` `toCanonicalViewName`):
+**Nav aliases** (handled in `src/core/app.ts` `toCanonicalViewName`):
 - `graph` → `web` (internal id)
 - `shelf` → `search`
 - `studio` → `library`
@@ -44,9 +51,11 @@ Marginalia
 | 3D        | Three.js r145+ + CSS3DRenderer (hybrid 2D/3D)                       |
 | Backend   | Firebase: Auth, Firestore, Storage, Cloud Functions (gen2)          |
 | AI        | DeepSeek API via Cloud Function gateway only (`VITE_AI_GATEWAY_URL`)|
-| Payments  | Lemon Squeezy — `services/billing.ts` → `VITE_CHECKOUT_URL`        |
+| Payments  | Lemon Squeezy — `src/services/billing.ts` → `VITE_CHECKOUT_URL`    |
 | Analytics | PostHog (`VITE_POSTHOG_KEY`) + Sentry (`VITE_SENTRY_DSN`)          |
-| Hosting   | Vercel (`.vercel/project.json` present). PWA installable on iPad.   |
+| Hosting   | Vercel (`vercel.json`: immutable cache for hashed assets). PWA installable on iPad. |
+| Tests     | Vitest (unit, Firestore rules), Playwright (smoke + signed-in e2e on Firebase emulators) |
+| 3D assets | `@gltf-transform` + sharp pipeline → WebP textures, meshopt, content-hashed names |
 
 No Mac app. No native iOS/Android in v1. PWA + iPad Safari is the primary mobile target.
 
@@ -56,109 +65,142 @@ No Mac app. No native iOS/Android in v1. PWA + iPad Safari is the primary mobile
 
 ```
 src/
+├── main.js                 — app entry: wires stores to auth, analytics + consent, view registry
 ├── core/
-│   ├── app.js            — SPA router: App.show(), App.navigateTo(), nav rendering
-│   ├── panel-manager.js  — Overlay panel lifecycle (open/close/transition)
-│   ├── view-registry.ts  — Static map of viewId → { init?, enter?, enterPanel? }
-│   ├── namespace.ts      — M root object (migration target for all globals)
-│   ├── namespace.types.ts— TypeScript branches of M
-│   ├── env.ts            — Typed Vite env vars (VITE_*)
-│   ├── graph-data.js     — MarginaliaGraph: concept↔book link store
-│   ├── concept-ui.js     — Concept drawer open/close
-│   ├── primary-tabs.js   — Top nav tab bar renderer
-│   └── i18n.ts           — i18n helper (en + zh-CN)
+│   ├── app.ts              — SPA router: App.show(), App.navigateTo(), nav rendering
+│   ├── panel-manager.ts    — Overlay panel lifecycle (open/close/transition)
+│   ├── view-registry.ts    — Lazy map of viewId → { init?, enter?, enterPanel? }
+│   ├── namespace.ts        — M root object (migration target for all globals)
+│   ├── namespace.types.ts  — TypeScript branches of M
+│   ├── env.ts              — Typed Vite env vars (VITE_*)
+│   ├── asset.ts            — asset(): URL of a file in public/ (applies the Vite base)
+│   ├── graph-data.ts       — MarginaliaGraph: concept↔book link store
+│   ├── concept-ui.ts       — Concept drawer open/close
+│   ├── primary-tabs.ts     — Top nav tab bar renderer
+│   └── i18n.ts             — i18n helper (en + zh-CN)
 ├── data/
-│   ├── schema/           — Zod validators + TS types (book, highlight, action, reading-session, …)
-│   ├── schema/book-types.js — BOOK_TYPES registry: defaultPanels + defaultAiFeatures per type
-│   ├── mock/             — seed-spines.js (landing page mock data only)
-│   └── seed/             — Demo data for unauthenticated visitors only
+│   ├── schema/             — Zod validators + TS types (book, highlight, action, reading-session, empty-book, …)
+│   ├── schema/book-types.ts — BOOK_TYPES registry: defaultPanels + defaultAiFeatures per type
+│   └── demo/               — THE demo library (signed-out visitors only): index.ts + featured-book.js
 ├── services/
-│   ├── db.ts             — withMeta / withMetaCreate / validateWrite / isLegacyDoc
-│   ├── ai-gateway.ts     — MarginaliaAI.generate() / generateJSON() via Cloud Function
-│   ├── billing.ts        — getCheckoutUrl() → Lemon Squeezy
-│   └── analytics.ts      — logEvent / logError (PostHog + Sentry)
+│   ├── db.ts               — withMeta / withMetaCreate / validateWrite / isLegacyDoc
+│   ├── ai-gateway.ts       — MarginaliaAI.generate() / generateJSON(): sends { featureId, bookId }
+│   ├── billing.ts          — getCheckoutUrl() → Lemon Squeezy
+│   ├── analytics.ts        — logEvent / logError (PostHog + Sentry), consent-gated
+│   └── consent.ts          — analytics consent choice (localStorage)
 ├── store/
-│   ├── books-store.ts    — Firestore onSnapshot for all user books; emits marginalia:books-changed
+│   ├── book-data-source.ts — BookDataSource: Firestore (signed in) | demo (signed out)
+│   ├── books-store.ts      — the only source of books for views; emits marginalia:books-changed
 │   ├── highlights-store.ts — per-user highlights listener + save/remove; emits marginalia:highlights-changed
-│   ├── notes-store.js    — IndexedDB (+ Firestore flush): highlights, notes, actions, ai-results, user-books
-│   ├── actions-store.ts  — Firestore actions collection listener
+│   ├── notes-store.ts      — IndexedDB (+ Firestore flush): highlights, notes, actions, ai-results, user-books
+│   ├── actions-store.ts    — Firestore actions collection listener
 │   ├── ai-results-store.ts — Cached AI output store
-│   └── entitlements-store.ts — Plan → entitlement resolver
+│   └── entitlements-store.ts — reads billing/{uid} → entitlements (never writes)
 ├── firebase/
-│   ├── auth.js           — MarginaliaAuth (Firebase Auth wrapper)
-│   ├── config.js         — MARGINALIA_FIREBASE config from ENV
-│   └── db.js             — MarginaliaStorage, MarginaliaBooksCloud
+│   ├── paths.ts            — all Firestore path builders (shared with functions/)
+│   ├── workspace.ts        — getWorkspaceId()
+│   ├── auth.ts             — MarginaliaAuth (Firebase Auth wrapper)
+│   ├── config.ts           — MARGINALIA_FIREBASE config from ENV; emulator hookup in `emulator` mode
+│   └── db.ts               — MarginaliaStorage, MarginaliaBooksCloud
 ├── ai/
-│   ├── client/generate-ui.ts — AIGenerateUI (trigger AI, stream into panel)
-│   ├── features/registry.js  — AIFeatureRegistry: featureId → { panel, label, promptId, outputType }
-│   └── features/prompts/     — One .js per featureId; each calls AIFeatureRegistry.setPrompt(id, { build })
+│   ├── client/generate-ui.ts — AIGenerateUI (trigger AI, stream into panel, 402 → upgrade prompt)
+│   └── features/registry.ts  — AIFeatureRegistry: featureId → { panel, label, outputType } (no prompts)
 ├── components/
-│   ├── spine-card.js                    — SpineCard: reusable book spine tile
-│   ├── hero-book/hero-book.js           — HeroBook: 3D-flip currently-reading book component
-│   ├── notes-wall/notes-wall.js         — NotesWall: highlights as sticky cards (CSS3D slot)
+│   ├── spine-card.ts                    — SpineCard: reusable book spine tile
+│   ├── hero-book/hero-book.ts           — HeroBook: 3D-flip currently-reading book component
+│   ├── notes-wall/notes-wall.ts         — NotesWall: highlights as sticky cards (CSS3D slot)
 │   ├── pixel-avatar/pixel-avatar.ts     — PixelReader: pixel-art avatar renderer
 │   ├── reading-session/reading-session.ts — Focus timer controller (sessionStorage-backed)
 │   ├── reading-session/desk-slot.ts     — DeskSlotComponent: SlotComponent wrapper for desk
 │   ├── reading-session/focus-widget.ts  — Focus widget UI
-│   └── action-notifications/            — Action reminder notification component
+│   ├── consent-banner/consent-banner.ts — analytics consent banner
+│   ├── legal-links/legal-links.ts       — Privacy / Terms / Credits footer links
+│   └── action-notifications/action-notifications.ts — Action reminder notifications
 ├── three/
-│   ├── room.ts           — RoomScene class: loads all GLBs, CSS3DRenderer, raycasting, interactive targets
-│   ├── camera-paths.ts   — POSES: front | approach | shelf | notes (positions + FOV + idle amplitude)
-│   ├── slots.ts          — SlotComponent interface + createPlaceholderSlotComponent
-│   └── skins.ts          — ROOM_SKINS: warm-study | mist-morning | … (color + lighting presets)
+│   ├── room.ts             — RoomScene class: loads GLBs, CSS3DRenderer, raycasting, interactive targets
+│   ├── camera-paths.ts     — POSES: front | approach | shelf | notes (positions + FOV + idle amplitude)
+│   ├── slots.ts            — SlotComponent interface + createPlaceholderSlotComponent
+│   ├── skins.ts            — ROOM_SKINS: warm-study | mist-morning | … (color + lighting presets)
+│   ├── gltf-loader.ts      — shared GLB loader (meshopt, fetch-once cache)
+│   ├── asset-urls.ts       — modelUrl() / textureUrl() from the generated manifest
+│   └── frame-photo.ts      — picture-frame photo: user avatar or default pixel reader
 ├── three-room/
-│   ├── three-room-view.js — initRoom / enterRoom; all room→panel navigation logic
-│   ├── three-room.js      — createThreeRoomPreview(): mounts RoomScene + all slot components
-│   ├── frame-fly.js       — Profile transition: picture frame animation (playFrameFlyIn / settleFrameFlyIn)
-│   └── three-room.css
+│   ├── three-room-view.js  — initRoom / enterRoom; all room→panel navigation logic; room poster
+│   ├── three-room.js       — createThreeRoomPreview(): mounts RoomScene + all slot components
+│   ├── frame-fly.js        — Profile transition: picture frame animation (playFrameFlyIn / settleFrameFlyIn)
+│   └── room-audio.ts       — ambient room audio
 ├── search/
-│   ├── search.js          — initSearch / enterSearch / renderSearchSection
-│   └── search-decor-3d.js — Decorative open-book Three.js object on the search page
+│   ├── search.js           — initSearch / enterSearch / renderSearchSection
+│   ├── laptop-fly.js       — Search transition: macbook fly-in
+│   └── search-decor-3d.js  — Decorative open-book Three.js object on the search page
 ├── library-2d/
-│   ├── library-2d.js      — initLibrary / enterLibrary; drag-to-arrange shelf
+│   ├── library-2d.ts       — initLibrary / enterLibrary; drag-to-arrange shelf
 │   ├── library-2d-state.js
 │   └── library-2d-template.js
 ├── map/
-│   ├── map.js             — initMap / enterMap
-│   ├── map-globe.js       — Interactive Leaflet/SVG world map
-│   ├── globe-fly.js       — Map transition: globe animation (playGlobeFlyIn)
-│   └── geo-profiles.js    — Country → author/book data
+│   ├── map.ts              — initMap / enterMap
+│   ├── map-globe.js        — Interactive globe
+│   ├── globe-fly.js        — Map transition: globe animation (playGlobeFlyIn)
+│   └── geo-profiles.js     — Country → author/book data
 ├── web/
-│   └── web.js             — initWeb / enterWeb; D3 concept graph
+│   ├── web.js              — initWeb / enterWeb; D3 concept graph
+│   └── graph-fly.js        — Graph transition: tack board fly-in
 ├── profile/
-│   ├── profile.ts         — initProfile / enterProfile; public + own profile rendering
-│   ├── profile-heatmap.ts — Reading heatmap component
-│   ├── profile-map.ts     — ProfileMap: geographic reading footprint mini-map
-│   ├── profile-year-in-review.ts — ProfileAnnualShelf: yearly reading shelf
-│   ├── profile-settings.ts
-│   ├── profile-types.ts   — PublicProfileData, PublicBook, SessionDay, DemoPayload types
-│   ├── profile-demo-resolver.ts  — Demo profile builder (unauthenticated)
-│   ├── reading-identity.ts       — mountReadingIdentity (AI portrait section)
-│   ├── reading-identity-service.ts
-│   ├── reading-identity-types.ts
-│   └── annual-shelf-store.ts     — loadAnnualShelf()
+│   ├── profile.ts          — initProfile / enterProfile; public + own profile rendering
+│   ├── public-profile.ts   — publicProfiles/{slug} card sync (the only data anonymous visitors read)
+│   ├── profile-heatmap.ts  — Reading heatmap component
+│   ├── session-days.ts     — reading sessions → per-day heatmap data
+│   ├── profile-map.ts      — ProfileMap: geographic reading footprint mini-map
+│   ├── profile-year-in-review.ts — ProfileAnnualShelf: yearly reading shelf + streak heatmap
+│   ├── profile-settings.ts — settings panel (slug, visibility, export, delete account)
+│   ├── delete-account.ts   — Settings → Delete account flow
+│   ├── profile-types.ts    — PublicProfileData, PublicBook, SessionDay, DemoPayload types
+│   ├── profile-demo-resolver.ts — Demo profile payload (signed out)
+│   └── annual-shelf-store.ts    — loadAnnualShelf()
 ├── book/
-│   ├── book.js            — initBook / enterBook; merges store data + seed; renders panel tabs
-│   ├── book-detail.js     — buildBookDetailModel() / BOOK_SECTION_LABELS
+│   ├── book.js             — initBook / enterBook; store data + empty-book defaults; renders panel tabs
+│   ├── book-detail.js      — buildBookDetailModel() / BOOK_SECTION_LABELS
+│   ├── book-fly.js         — Book transition: desk book fly-in
+│   ├── reading-card.ts     — shareable reading card (AI takeaway via the gateway)
 │   └── panels/
-│       ├── registry.js    — PanelRegistry: panelId → { label, icon, render }
-│       ├── overview.js, highlights.js, notes.js, actions.js (universal)
-│       ├── characters.js, timeline.js (fiction)
-│       ├── mindmap.js, concept-cards.js (nonfiction / social)
-│       ├── geo-context.js (travel)
-│       └── claude-import.js (visual notes import)
+│       ├── registry.ts     — PanelRegistry: panelId → { label, icon, render }
+│       ├── notes.js
+│       ├── actions.js
+│       ├── characters.js
+│       ├── timeline.js
+│       ├── mindmap.js
+│       ├── concept-cards.js
+│       ├── geo-context.js
+│       └── claude-import.js
 ├── new-entry/
-│   └── new-entry.js       — NewEntry: Add Book form with spine customisation
+│   └── new-entry.ts        — NewEntry: Add Book form with spine customisation
 ├── api/
-│   ├── export.ts          — JSON export assembler (books + highlights)
-│   └── kindle-import.js   — KindleImport: My Clippings.txt parser + UI
+│   ├── export.ts           — JSON/Markdown export assembler (books + highlights)
+│   └── kindle-import.ts    — KindleImport: My Clippings.txt parser + UI
 ├── shared/
-│   ├── reading-status.ts  — ReadingStatus vocabulary (Add Book, book detail, Search, Library shelves)
-│   ├── shelf-utils.ts     — containsCJK, getUnifiedShelfSpineSize
-│   └── spine-colors.js    — SPINE_COLORS palette
+│   ├── reading-status.ts   — ReadingStatus vocabulary (Add Book, book detail, Search, Library shelves)
+│   ├── shelf-utils.ts      — containsCJK, getUnifiedShelfSpineSize
+│   └── spine-colors.ts     — SPINE_COLORS palette
 └── preloader/
-    ├── preloader.js       — Landing page (book-spine splash + Enter Library)
-    └── hero-glb.js        — mountHeroGLB(): Three.js book flip for hero-book exit
+    ├── preloader.js        — Landing page (book-spine splash + Enter Library)
+    ├── landing-books.js    — decorative spine parameters for the landing animation
+    └── hero-glb.js         — mountHeroGLB(): Three.js book flip for hero-book exit
+
+shared/                     — code shared by the web app and Cloud Functions
+├── entitlements.ts         — Plan → entitlement table (single source)
+└── ai-prompts/             — pure prompt builders + the AI feature whitelist (index.ts)
+
+functions/src/              — Cloud Functions (gen2)
+├── ai-generate.ts          — aiGenerate HTTP wrapper; ai-handler.ts / ai-context.ts / ai-quota.ts / ai-config.ts hold the logic
+├── billing-webhook.ts      — Lemon Squeezy webhook; billing-state.ts is the pure state machine
+├── create-checkout.ts      — checkout URL with the uid attached
+├── delete-account.ts       — deleteAccount callable
+├── action-reminders.ts     — scheduled action reminders
+└── profile-slug-check.ts   — slug availability
+
+scripts/                    — optimize-assets.mjs, build-legal-pages.mjs, measure-room-load.mjs, check-*.mjs, check-all.sh, migrations/
+tests/                      — unit + rules tests; e2e/ (production smoke), e2e-emulator/ (signed-in flows on emulators)
+docs/                       — optimization-plan.md, phase-reports/, open-questions.md, decisions/ (ADRs)
 ```
 
 ---
@@ -175,7 +217,7 @@ Every view follows the same shape. The view id used everywhere (router, panel-ma
 
 State, render, events may be in the same file or split — no strict file count requirement. The splitting pattern `{name}.state.ts / .render.ts / .events.ts` is aspirational, not enforced.
 
-Register the view in `src/core/view-registry.ts`. Add `<div id="panel-{name}" hidden>` in `index.html` (exception: `search` uses `view-search` as its element id; see `PANEL_ELEMENT_ID` in `panel-manager.js`).
+Register the view in `src/core/view-registry.ts`. Add `<div id="panel-{name}" hidden>` in `index.html` (exception: `search` uses `view-search` as its element id; see `PANEL_ELEMENT_ID` in `panel-manager.ts`).
 
 ---
 
@@ -185,16 +227,18 @@ The room (`src/three/room.ts` `RoomScene`) registers interactive 3D objects via 
 
 ### Current interactive objects
 
-| Object id       | GLB                          | interactiveAction | Triggers                    |
+| Object id       | Model (`MODEL_PATHS` name)   | interactiveAction | Triggers                    |
 |-----------------|------------------------------|-------------------|-----------------------------|
-| `hero-book-shelf` | `/book.glb` (left wall)    | `heroBook`        | `onHeroBookSelect`          |
-| `bookshelf-a`   | `/3d/book_shelf.glb`         | `organize`        | `onOrganizeSelect`          |
-| `bookshelf-b`   | `/3d/bookshelf real.glb`     | `organize`        | `onOrganizeSelect`          |
-| `globe`         | `/3d/antique_globe.glb`      | `map`             | `onGlobeSelect`             |
-| `macbook`       | `/3d/macbook.glb`            | `shelf`           | `onLaptopSelect`            |
-| `desk-book-sapiens` | `/book.glb` (desk)       | `sapiens`         | `onSapiensSelect`           |
-| `picture-frame` | `/3d/wooden_picture_frame.glb` | `profile`       | `onPhotoFrameSelect`        |
-| `graph-board`   | `/3d/messy_tack_board.glb`   | `graph`           | `onWebSelect`               |
+| `hero-book-shelf` | `book` (left wall)         | `heroBook`        | `onHeroBookSelect`          |
+| `bookshelf-a`   | `book_shelf`                 | `organize`        | `onOrganizeSelect`          |
+| `bookshelf-b`   | `bookshelf real`             | `organize`        | `onOrganizeSelect`          |
+| `globe`         | `antique_globe`              | `map`             | `onGlobeSelect`             |
+| `macbook`       | `macbook`                    | `shelf`           | `onLaptopSelect`            |
+| `desk-book`     | `book` (desk)                | `deskBook`        | `onDeskBookSelect` — opens the book being read, or Add Book when there is none |
+| `picture-frame` | `wooden_picture_frame` (photo = the user's avatar, `src/three/frame-photo.ts`) | `profile` | `onPhotoFrameSelect` |
+| `graph-board`   | `messy_tack_board`           | `graph`           | `onWebSelect`               |
+
+Model names resolve to content-hashed files through `src/three/asset-manifest.generated.ts` (generated by `npm run assets:optimize`; never edit by hand). Interactive objects load first, furniture and props after; the room shows `public/room-poster.webp` until `onSceneReady`.
 
 ### Camera poses (`src/three/camera-paths.ts`)
 
@@ -226,7 +270,7 @@ For detailed per-transition implementation instructions (Graph, Search/laptop, B
 | Library   | `bookshelf-a/b`     | `organize`        | ✅ Implemented   | `src/preloader/hero-glb.js`   |
 | Search    | `macbook`           | `shelf`           | ✅ Implemented   | `src/search/laptop-fly.js`    |
 | Graph     | `graph-board`       | `graph`           | ✅ Implemented   | `src/web/graph-fly.js`        |
-| Book      | `desk-book-sapiens` | `sapiens`         | ✅ Implemented   | `src/book/book-fly.js`        |
+| Book      | `desk-book`         | `deskBook`        | ✅ Implemented   | `src/book/book-fly.js`        |
 
 ### Reference
 
@@ -244,26 +288,42 @@ Before touching any transition code, read these files — they are the source of
 
 ### Firestore schema
 
+All paths are built in `src/firebase/paths.ts` (shared with `functions/`).
+
 ```
-workspaces/{wsId}/users/{uid}/
-├── meta/
-│   ├── user_profile   — displayName, email, profileSlug, bio, avatar
-│   ├── entitlements   — plan, features[], expiryDate
-│   └── settings       — language, theme, notifications
-└── data/
-    ├── books/{bookId}              — _v:1, BookSchema fields
-    ├── highlights/{id}             — HighlightSchema (_v:1, bookId, quote, source, kind, page) — flat, filter by bookId
-    ├── data/library_layout         — shelf positions + bookKeys per shelf (LibraryLayoutSchema)
-    ├── books/{bookId}/sessions/{id}    — ReadingSessionSchema (_v:1, bookId, startedAt, endedAt, durationMs)
-    ├── notes/{id}                  — book notes (free text)
-    ├── actions/{id}                — ActionSchema (_v:1, bookId, text, status, remind*At, reminded*)
-    ├── ai_results/{featureId}      — AiBlock<T>: { original, userEdited?, generatedAt, promptVersion }
-    └── library_layout              — shelf drag-to-arrange state
+users/{uid}                     — owner-only: settings (slug, profilePublic, language, sections), avatarUrl, publishedSlug.
+│                                 NEVER plan / entitlements / quota (rules reject them).
+└── rateLimits/ai               — server-only
+billing/{uid}                   — SERVER-WRITTEN, owner read: plan, status, currentPeriodEnd, cancelAtPeriodEnd,
+                                  provider, providerSubscriptionId, customerPortalUrl (+ webhook bookkeeping)
+usage/{uid}/months/{YYYY-MM}    — SERVER-WRITTEN, owner read: aiCalls
+publicProfiles/{slug}           — public read; created/updated by the owning uid only (the doc id makes slugs unique).
+                                  Derived card (displayName, avatarUrl, bio, sections); exists only while the profile is public.
+billing_orphans/{id}            — server-only: webhook events with no uid
+audit/ai_calls/{uid}/{id}       — SERVER-WRITTEN, owner read: featureId, token counts, status
+
+workspaces/{wsId}/
+├── userProfiles/{uid}          — username lookup + email
+├── notifications/{uid}/unread/{id} — action reminders (written by functions; owner may mark read)
+└── users/{uid}/
+    ├── books/{bookId}                 — BookSchema fields; public read only when shareInProfile + profile public
+    │   ├── notes/main                 — free-text book note
+    │   ├── ai/{featureId}             — AiBlock<T> per book
+    │   └── visualNotes/{id}           — imported visual notes
+    ├── highlights/{id}                — HighlightSchema (flat; filter by bookId)
+    ├── actions/{id}                   — ActionSchema
+    ├── sessions/{id}                  — ReadingSessionSchema (startedAt, endedAt, durationMs, bookId)
+    ├── ai_results/{featureId}         — profile-level AiBlock (reader portrait, …)
+    ├── annual_shelf/{year}            — Top-10 of the year
+    ├── graph/linkStatus               — concept link overrides
+    └── data/library_layout            — shelf drag-to-arrange state (LibraryLayoutSchema)
 ```
 
-**Schema versioning:** Every document has `_v: 1`. Use `isLegacyDoc()` to detect old documents; migrate in the store layer. Views never read raw Firestore docs — always go through stores.
+Every path has a rules test case in `tests/path-cases.ts` (owner-rw, owner-read/server-write, server-only, or public-read); `tests/firestore-rules.test.ts` fails if a builder has no case.
 
-**Seed data** (`src/data/seed/`) is used only for unauthenticated demo visitors. Never read seed data when `MarginaliaAuth.user` is set.
+**Schema versioning:** Every document has `_v: 1`. Use `isLegacyDoc()` to detect old documents; migrate in the store layer. Views never read raw Firestore docs — always go through stores. Migrations live in `scripts/migrations/` (dry run by default, `--apply` to write, dev project first).
+
+**Demo data** (`src/data/demo/`) exists only for signed-out visitors and is reachable only through `BookDataSource`'s demo source and `profile-demo-resolver.ts`. A signed-in user's library is exactly what is in their Firestore, including empty.
 
 ### Key Zod schemas (`src/data/schema/`)
 
@@ -274,8 +334,9 @@ workspaces/{wsId}/users/{uid}/
 | `action.ts`           | ActionSchema — text, status, remind*At |
 | `reading-session.ts`  | ReadingSessionSchema — startedAt, durationMs |
 | `ai-block.ts`         | AiBlock<T> wrapper                     |
-| `entitlements.ts`     | Entitlement union type + PLAN_ENTITLEMENTS |
-| `book-types.js`       | BOOK_TYPES: defaultPanels + defaultAiFeatures |
+| `empty-book.ts`       | createEmptyBook(): blank detail shell for a book with no notes yet |
+| `book-types.ts`       | BOOK_TYPES: defaultPanels + defaultAiFeatures |
+| `shared/entitlements.ts` | Entitlement union type + PLAN_ENTITLEMENTS (web + functions) |
 
 ### Mutable AI output
 
@@ -297,15 +358,20 @@ Views always render `userEdited ?? original`. Never overwrite `original` after f
 All AI calls go through `MarginaliaAI` in `src/services/ai-gateway.ts`. No API key on the client.
 
 ```
-Client: MarginaliaAI.generate({ featureId, prompt, onChunk, onDone })
-  → POST VITE_AI_GATEWAY_URL with Firebase ID token
-    → Cloud Function: verify auth + entitlements + quota → call DeepSeek → audit log → return
+Client: MarginaliaAI.generate({ featureId, bookId?, onChunk, onDone })
+  → POST VITE_AI_GATEWAY_URL { featureId, bookId? } with a Firebase ID token   (no prompt text, ever)
+    → aiGenerate (functions/src/ai-handler.ts): origin allow-list → verify token → validate body (whitelist,
+      custom `prompt` = 400) → rate limit → load THIS user's book/highlights/notes with the admin SDK
+      (capped) → build the prompt in shared/ai-prompts → reserve a monthly quota slot (402 when used up) →
+      stream DeepSeek → audit log with token counts → refund the slot if the call fails
 
 Client: AIGenerateUI (src/ai/client/generate-ui.ts)
-  → higher-level: resolves prompt via AIFeatureRegistry.buildPrompt(), streams into panel container
+  → renders the Generate button per feature, streams into the panel, shows an upgrade prompt on 402
 ```
 
-`src/ai/features/registry.js` `AIFeatureRegistry` is the single index of all AI features.
+`src/ai/features/registry.ts` `AIFeatureRegistry` lists the features per panel (label, panel, output type). The server-side whitelist and prompt text live in `shared/ai-prompts/index.ts` (`AI_FEATURES`).
+
+Quota: `FREE_AI_MONTHLY` / `PRO_AI_MONTHLY_FAIR_USE` in `functions/src/ai-config.ts`; plan comes only from `billing/{uid}`; usage counts live in `usage/{uid}/months/{YYYY-MM}`.
 
 ### AI features by book type
 
@@ -320,11 +386,12 @@ Client: AIGenerateUI (src/ai/client/generate-ui.ts)
 
 ### Adding a new AI feature
 
-1. Add entry to `AIFeatureRegistry._features` in `registry.js`.
-2. Create `src/ai/features/prompts/{id}.js` — call `AIFeatureRegistry.setPrompt('{id}', { build(book) { return promptString; } })`.
-3. Add panel entry to `PanelRegistry` in `src/book/panels/registry.js`.
+1. Add the prompt builder `shared/ai-prompts/{id}.ts` (a pure function of the capped context) and register it in `shared/ai-prompts/index.ts` (`AI_FEATURES`, kind `book` or `library`). Text sent to the model is covered by snapshot tests (`functions/test/prompts.snapshot.test.ts`): review any diff deliberately.
+2. Add the entry to `AIFeatureRegistry._features` in `src/ai/features/registry.ts` (label, panel, outputType).
+3. Add the panel entry to `PanelRegistry` in `src/book/panels/registry.ts`.
 4. Create `src/book/panels/{id}.js` — call `PanelRegistry.set('{id}', renderFn)`.
-5. Add feature to the appropriate book type in `BOOK_TYPES` `defaultAiFeatures`.
+5. Add the feature to the appropriate book type in `BOOK_TYPES` `defaultAiFeatures`.
+6. If the prompt needs data the loader does not read yet, extend `functions/src/ai-context.ts` (cap it with `PROMPT_LIMITS`).
 
 ---
 
@@ -342,9 +409,11 @@ type Entitlement =
   | 'reader.builtin';   // built-in reader (future)
 
 FREE:     ['export.json', 'profile.public']
-PRO:      [...FREE, 'ai.unlimited', 'export.pdf', 'profile.customDomain', 'sync.notion', 'library.3d']
+PRO:      [...FREE, 'ai.unlimited', 'export.pdf', 'profile.customDomain', 'sync.notion', 'library.3d', 'room.customAudio']
 LIFETIME: same as PRO
 ```
+
+The table is `shared/entitlements.ts` (one copy for the web app and `functions/`). `EntitlementsStore` only **reads** `billing/{uid}`; the Lemon Squeezy webhook (`functions/src/billing-state.ts`) is the only writer: a cancelled subscription stays Pro until `currentPeriodEnd` (`cancelAtPeriodEnd`), `past_due` keeps Pro, only the lifetime variant grants `lifetime`, and a refund reverts it.
 
 **Never** `if (plan === 'pro')`. Always `EntitlementsStore.hasEntitlement('feature-x')`.
 
@@ -380,10 +449,11 @@ Library 2D and the 3D shelf wall share the same underlying component. Drag-to-ar
 `src/components/reading-session/reading-session.ts` is the site-wide focus timer.
 
 - Active session stored in `sessionStorage` under key `marginalia:session`. Survives page reloads.
-- On start: writes a Firestore doc at `…/books/{bookId}/sessions/{sessionId}` via `ReadingSessionSchema`.
+- On start: writes `workspaces/{ws}/users/{uid}/sessions/{sessionId}` via `ReadingSessionSchema`; on stop it adds `endedAt` / `durationMs`.
 - Emits `marginalia:session-changed` custom event on state changes.
 - `bookId` attribution is optional — sessions without a book are allowed.
-- **Note:** `ReadingSessionSchema` marks itself "stub — sessions not yet written by the client (P1 feature)". The schema and write path are defined; the full aggregation pipeline is not yet implemented.
+- Stopping emits `marginalia:session-ended` `{ sessionId, bookId, durationMs }` — the hook for the "want to note something?" prompt (quick capture, plan task 2.1).
+- The Profile reads the owner's sessions (`src/profile/session-days.ts`) to colour the reading heatmap; public visitors cannot read sessions.
 
 ---
 
@@ -412,8 +482,8 @@ Library 2D and the 3D shelf wall share the same underlying component. Drag-to-ar
 ## Conventions
 
 - All code comments and docs in English.
-- Every async boundary: catch and forward to `logError(err, context)` from `services/analytics.ts`.
-- User-facing errors: `<error-banner>` component. No raw `alert()`.
+- Every async boundary: catch and forward to `logError(err, context)` from `src/services/analytics.ts`.
+- User-facing errors: show an inline message with `role="alert"` (the planned `<error-banner>` component does not exist yet). No raw `alert()`.
 - No `console.warn` / `console.log` in production paths.
 - Firestore Rules: deny by default; explicit `request.auth.uid == uid` per collection.
 - Inbound writes: validate with Zod → `withMeta/withMetaCreate` → Firestore. This order is mandatory.
@@ -422,9 +492,26 @@ Library 2D and the 3D shelf wall share the same underlying component. Drag-to-ar
 
 ---
 
+## Testing and gates
+
+Run before every commit (any failure blocks it): `npm run check:all`, which runs `lint`, `typecheck`, `typecheck:room`, `check:entitlements`, `check:hardcoded`, `check:paths`, `check:docs`, a build of `functions/`, `test:unit`, `test:rules:emu` (Firestore rules, quota and account-deletion tests on the Auth + Firestore emulators), `build`, `test:e2e` (production smoke, strict: any page error fails), `test:e2e:emu` (signed-in flows on the Auth/Firestore/Functions/Storage emulators, plus consent and legal pages on a production build), `size`, and the room-load budget (`scripts/measure-room-load.mjs`: ≤ 12 MB, 0 page errors).
+
+- Rules: `tests/firestore-rules.test.ts` + `tests/path-cases.ts`. Functions: `functions/test/` (shared helpers import the build-time copy `functions/src/_shared`, generated by `scripts/sync-shared.mjs`).
+- Signed-in e2e runs the app in Vite's `emulator` mode (`.env.emulator`); real Firebase projects are never touched by tests.
+- UI work needs screenshots at 390×844, 768×1024 and 1440×900 in `tests/screenshots/phase-1/` (and later phases).
+
+---
+
+## Compliance
+
+- Privacy, Terms and Credits are static pages generated by `npm run legal:build` (`scripts/build-legal-pages.mjs`, text in `scripts/legal/`). Credits come from the glTF `asset.extras` of the models that ship; a non-attribution-only (NC) model must never ship.
+- Analytics are consent-gated (see Code rules). Account deletion is the `deleteAccount` callable (`functions/src/delete-account.ts`) driven from Settings; any new per-user data path must be added to it and to its emulator test.
+
+---
+
 ## Import & Export
 
-- **Kindle:** `src/api/kindle-import.js` `KindleImport` — parses My Clippings.txt, saves to `NotesStore`.
+- **Kindle:** `src/api/kindle-import.ts` `KindleImport` — parses My Clippings.txt, saves to `NotesStore`.
 - **JSON export:** `src/api/export.ts` — assembles books + highlights from stores, returns Blob.
 - **PDF export:** entitlement-gated; not yet implemented (stub).
 - **Notion sync:** entitlement `sync.notion` defined; service not yet implemented.

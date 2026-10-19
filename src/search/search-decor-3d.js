@@ -9,26 +9,16 @@
  */
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { loadGLB } from '../three/gltf-loader.ts';
+import { modelUrl } from '../three/asset-urls.ts';
 
-const MODEL_URL = '/3d/book_open.glb';
+const MODEL_URL = modelUrl('book_open');
 
 let started = false;
 let teardown = null;
 
 function loadModel() {
-  const loader = new GLTFLoader();
-  const draco = new DRACOLoader();
-  draco.setDecoderPath('/draco/');
-  loader.setDRACOLoader(draco);
-  loader.setMeshoptDecoder(MeshoptDecoder);
-  return new Promise((resolve, reject) => {
-    loader.load(MODEL_URL, (g) => { draco.dispose(); resolve(g); },
-      undefined,
-      (err) => { draco.dispose(); reject(err); });
-  });
+  return loadGLB(MODEL_URL);
 }
 
 function mount(container) {

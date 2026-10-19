@@ -11,7 +11,8 @@ import {
 import { logError } from '../services/analytics.ts';
 import { validateWrite, withMeta } from '../services/db.ts';
 import { HighlightSchema } from '../data/schema/highlight.ts';
-import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
+import { WsPaths } from '../firebase/paths.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 
 type FirestoreDB = Firestore;
 
@@ -40,8 +41,7 @@ function _emit(): void {
 
 function _collectionRef(): CollectionReference | null {
   if (!_db || !_uid) return null;
-  const wsId = MARGINALIA_FIREBASE?.workspaceId || 'default';
-  return collection(_db, 'workspaces', wsId, 'users', _uid, 'highlights');
+  return collection(_db, WsPaths.highlights(getWorkspaceId(), _uid));
 }
 
 /** Validate, then drop undefined fields (Firestore rejects them). */

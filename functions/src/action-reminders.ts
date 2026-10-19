@@ -11,6 +11,7 @@
 
 import * as scheduler from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
+import { GroupNames, WsPaths } from './_shared/paths';
 
 // admin.initializeApp() is called once in ai-generate.ts — shared instance.
 const db = admin.firestore();
@@ -37,7 +38,7 @@ export const actionReminders = scheduler.onSchedule(
     // CollectionGroup query across all users' action subcollections.
     // Firestore rules allow Admin SDK unrestricted access.
     const openSnap = await db
-      .collectionGroup('actions')
+      .collectionGroup(GroupNames.actions)
       .where('status', 'in', ['open', 'snoozed'])
       .get();
 
@@ -70,10 +71,7 @@ export const actionReminders = scheduler.onSchedule(
         if (!remindAt || alreadyFired || remindAt > now) continue;
 
         // Write notification doc under the same workspace
-        const notifRef = db
-          .collection('workspaces').doc(wsId)
-          .collection('notifications').doc(uid)
-          .collection('unread').doc();
+        const notifRef = db.collection(WsPaths.notifications(wsId, uid)).doc();
 
         batch.set(notifRef, {
           type:      'action_reminder',

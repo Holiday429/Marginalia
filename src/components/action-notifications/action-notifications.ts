@@ -8,9 +8,9 @@
 
 import { collection, doc, onSnapshot, updateDoc, type Firestore, type Unsubscribe } from 'firebase/firestore';
 import { logError } from '../../services/analytics.ts';
-import { ENV } from '../../core/env.ts';
-import { MARGINALIA_FIREBASE } from '../../firebase/config.ts';
 import { App } from '../../core/app.ts';
+import { WsPaths } from '../../firebase/paths.ts';
+import { getWorkspaceId } from '../../firebase/workspace.ts';
 
 type FirestoreDB = Firestore;
 
@@ -42,8 +42,7 @@ export function mountActionNotifications(uid: string, db: FirestoreDB): void {
 
   _ensureContainer();
 
-  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
-  const col = collection(db, 'workspaces', wsId, 'notifications', uid, 'unread');
+  const col = collection(db, WsPaths.notifications(getWorkspaceId(), uid));
   _unsubscribe = onSnapshot(
     col,
     (snap) => {
@@ -181,9 +180,8 @@ function _bindEvents(root: HTMLElement): void {
 async function _markRead(notifId: string): Promise<void> {
   if (!_uid || !_db) return;
   try {
-    const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
     await updateDoc(
-      doc(_db, 'workspaces', wsId, 'notifications', _uid, 'unread', notifId),
+      doc(_db, WsPaths.notification(getWorkspaceId(), _uid, notifId)),
       { read: true },
     );
   } catch (err) {

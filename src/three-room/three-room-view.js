@@ -9,6 +9,8 @@ import { EntitlementsStore } from '../store/entitlements-store.ts';
 import { openCheckout } from '../services/billing.ts';
 import { NewEntry } from '../new-entry/new-entry.ts';
 import { RoomAudio } from './room-audio.ts';
+import { asset } from '../core/asset.ts';
+import { legalLinksHTML } from '../components/legal-links/legal-links.ts';
 
 const SPACE_ITEMS = [
   { id: 'library', label: 'Library', icon: 'library' },
@@ -32,7 +34,7 @@ const HOVER_META_BY_ACTION = {
   map: { icon: 'map', title: 'Map', description: 'Explore Reading Places' },
   shelf: { icon: 'search', title: 'Search', description: 'Find Books And Notes' },
   organize: { icon: 'library', title: 'Library', description: 'Organize Your Shelves' },
-  sapiens: { icon: 'reading-now', title: 'Keep Reading', description: 'Continue Current Book' },
+  deskBook: { icon: 'reading-now', title: 'Keep Reading', description: 'Continue Current Book' },
   heroBook: { icon: 'library', title: 'Open Library', description: 'Organize Your Library' },
   profile: { icon: 'profile', title: 'Profile', description: 'Public Reading Page' },
   graph: { icon: 'graph', title: 'Graph', description: 'Concept And Book Network' },
@@ -234,6 +236,10 @@ function buildRoomMarkup() {
             <button type="button" class="room-chip" data-room-effect="fireplace">Fireplace</button>
           </div>
         </div>
+      
+        <div class="room-settings-block">
+          ${legalLinksHTML()}
+        </div>
       </section>
 
       <section class="room-camera-toolbar" id="roomCameraToolbar" aria-label="Camera Angles">
@@ -408,7 +414,9 @@ function ensureRoomDom() {
     ROOM_VIEW_STATE.handle.destroy();
     ROOM_VIEW_STATE.handle = null;
   }
-  root.innerHTML = buildRoomMarkup();
+  // Keep the static poster (from index.html) while the room markup is (re)built around it.
+  root.querySelectorAll(':scope > :not(.room-poster)').forEach((node) => node.remove());
+  root.insertAdjacentHTML('beforeend', buildRoomMarkup());
 }
 
 function ensureFallbackPanels() {
@@ -654,16 +662,43 @@ function bindRoomEvents() {
 
 }
 
+/** The poster is a static <img> in index.html, painted the moment Enter is clicked; fade it out when the scene is ready. */
+function showRoomPoster(stage) {
+  const root = document.getElementById('view-room');
+  let poster = root?.querySelector(':scope > .room-poster') || null;
+  if (!poster && root) {
+    poster = document.createElement('img');
+    poster.className = 'room-poster';
+    poster.src = asset('room-poster.webp');
+    poster.alt = '';
+    poster.setAttribute('aria-hidden', 'true');
+    root.prepend(poster);
+  }
+  if (!poster) return () => {};
+  const still = poster;
+  let done = false;
+  const hide = () => {
+    if (done) return;
+    done = true;
+    still.classList.add('is-hidden');
+    window.setTimeout(() => still.remove(), 700);
+  };
+  window.setTimeout(hide, 20000); // never leave the still up if the scene cannot finish
+  return hide;
+}
+
 function mountRoomScene() {
   const stage = document.getElementById('roomExperienceStage');
   if (!stage) return;
 
   if (!ROOM_VIEW_STATE.handle) {
+    const hidePoster = showRoomPoster(stage);
     ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage, {
+      onSceneReady: hidePoster,
       onGlobeSelect: () => exitRoomViaGlobeFly(),
       onLaptopSelect: () => exitRoomViaLaptopFly(),
       onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),
-      onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
+      onDeskBookSelect: () => openCurrentBookOrAdd(),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),
       onPhotoFrameSelect: () => exitRoomViaFrameFly(),
       onWebSelect: () => exitRoomViaGraphFly(),
@@ -753,7 +788,7 @@ function runRoomAction(action) {
     return;
   }
   if (action === 'reading-now') {
-    openPanel('book', { id: getReadingNowBookId() });
+    openCurrentBookOrAdd();
     return;
   }
   if (action === 'todo') {
@@ -767,7 +802,18 @@ function renderRoomTopTabs(options = {}) {
 
 function getReadingNowBookId() {
   const reading = BooksStore.getAll().find((book) => String(book?.status || '').toLowerCase() === 'reading');
-  return reading?.id || 'sapiens';
+  return reading?.id || null;
+}
+
+/** The desk book opens the book being read; with none, it opens Add Book instead of a stand-in book. */
+function openCurrentBookOrAdd() {
+  const id = getReadingNowBookId();
+  if (id) {
+    openPanel('book', { id });
+    return;
+  }
+  openPanel('library', { mode: 'organize' });
+  window.setTimeout(() => NewEntry?.mount?.(), 140);
 }
 
 function applyRoomPose(pose) {

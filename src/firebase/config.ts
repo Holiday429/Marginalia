@@ -9,15 +9,16 @@
    ========================================================================== */
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getStorage, type FirebaseStorage } from 'firebase/storage';
-import { getFunctions, type Functions } from 'firebase/functions';
+import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator, type FirebaseStorage } from 'firebase/storage';
+import { getFunctions, connectFunctionsEmulator, type Functions } from 'firebase/functions';
 import { ENV } from '../core/env.ts';
+import { getWorkspaceId } from './workspace.ts';
 
 export const MARGINALIA_FIREBASE = {
   enabled: true,
-  workspaceId: ENV.WORKSPACE_ID || 'marginalia-main',
+  workspaceId: getWorkspaceId(),
   config: {
     apiKey:            ENV.FIREBASE_API_KEY,
     authDomain:        ENV.FIREBASE_AUTH_DOMAIN,
@@ -40,3 +41,13 @@ export const firebaseAuth: Auth | null = firebaseApp ? getAuth(firebaseApp) : nu
 export const firestoreDb: Firestore | null = firebaseApp ? getFirestore(firebaseApp) : null;
 export const firebaseStorage: FirebaseStorage | null = firebaseApp ? getStorage(firebaseApp) : null;
 export const firebaseFunctions: Functions | null = firebaseApp ? getFunctions(firebaseApp) : null;
+
+// Local Firebase Emulator Suite, for e2e runs only. Requires the dedicated `emulator` Vite mode
+// (`vite --mode emulator`, see .env.emulator) so a production or development build can never
+// point at localhost by accident.
+if (import.meta.env.MODE === 'emulator' && import.meta.env.VITE_USE_EMULATORS === 'true' && firebaseApp) {
+  if (firebaseAuth) connectAuthEmulator(firebaseAuth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  if (firestoreDb) connectFirestoreEmulator(firestoreDb, '127.0.0.1', 8080);
+  if (firebaseFunctions) connectFunctionsEmulator(firebaseFunctions, '127.0.0.1', 5001);
+  if (firebaseStorage) connectStorageEmulator(firebaseStorage, '127.0.0.1', 9199);
+}

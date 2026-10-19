@@ -8,8 +8,8 @@
 import { deleteDoc, deleteField, doc, getDoc, setDoc, updateDoc, type Firestore } from 'firebase/firestore';
 import type { AiBlock, AiBlockRaw } from '../data/schema/ai-block.ts';
 import { AiBlockSchema } from '../data/schema/ai-block.ts';
-import { ENV } from '../core/env.ts';
-import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
+import { WsPaths } from '../firebase/paths.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 
 let _uid: string | null = null;
 let _db: Firestore | null = null;
@@ -23,8 +23,7 @@ function cacheKey(bookId: string, featureId: string) {
 
 function aiDocRef(bookId: string, featureId: string) {
   if (!_uid || !_db) return null;
-  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
-  return doc(_db, 'workspaces', wsId, 'users', _uid, 'books', bookId, 'ai', featureId);
+  return doc(_db, WsPaths.bookAiResult(getWorkspaceId(), _uid, bookId, featureId));
 }
 
 // Called from main.js on auth-changed (signed in)

@@ -10,9 +10,10 @@
    ========================================================================== */
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { loadGLBCb } from '../three/gltf-loader.ts';
+import { modelUrl } from '../three/asset-urls.ts';
 
-const GLOBE_URL = '/3d/antique_globe.glb';
+const GLOBE_URL = modelUrl('antique_globe');
 
 /**
  * Play the fly-in. Returns a Promise that resolves when the animation has
@@ -96,8 +97,7 @@ export function playGlobeFlyIn(opts = {}) {
     // instant the model is ready, and only THEN fade the scrim in (below). The
     // user clicks the globe and immediately sees a spinning globe — no black gap.
 
-    const loader = new GLTFLoader();
-    loader.load(
+    loadGLBCb(
       GLOBE_URL,
       (gltf) => {
         const model = gltf.scene;

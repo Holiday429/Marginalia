@@ -1677,3 +1677,50 @@ body[data-view="search"] {
   opacity: 0;
   animation: none;
 }
+
+/* Placeholder spine that invites the next book on a short shelf. Solid border only (UI rules). */
+.shelf-spine--ghost {
+  background: transparent;
+  background-image: none;
+  border: 1px solid var(--muted-faint);
+  box-shadow: none;
+  color: var(--muted-soft);
+  opacity: 0.7;
+}
+
+.shelf-spine--ghost::before,
+.shelf-spine--ghost::after {
+  display: none;
+}
+
+.shelf-spine--ghost:hover,
+.shelf-spine--ghost:focus-visible {
+  opacity: 1;
+  color: var(--ink);
+  border-color: var(--muted-soft);
+}
+
+.shelf-spine__plus {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.shelf-empty--first {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.shelf-empty__add {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--muted-soft);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}

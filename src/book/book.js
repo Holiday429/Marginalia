@@ -26,9 +26,11 @@ import { MarginaliaGraph } from '../core/graph-data.ts';
 import { openConceptDrawer } from '../core/concept-ui.ts';
 import { AIGenerateUI } from '../ai/client/generate-ui.ts';
 import { KindleImport } from '../api/kindle-import.ts';
-import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
+import { createEmptyBook } from '../data/schema/empty-book.ts';
 import { generateReadingCardBlob, fetchReadingCardAI } from './reading-card.ts';
-import { ENV } from '../core/env.ts';
+import { Paths, WsPaths } from '../firebase/paths.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
+import { fetchPublicProfile } from '../profile/public-profile.ts';
 import { HeroBook } from '../components/hero-book/hero-book.ts';
 import '../components/hero-book/hero-book.css';
 import { NewEntry } from '../new-entry/new-entry.ts';
@@ -45,8 +47,11 @@ function syncTagsToStore(bookId, tags, fallbackBook) {
 }
 
 async function enterBook(params = {}) {
-  const fallbackId = BooksStore.getAll()[0]?.id || 'sapiens';
-  const id = params.id || __currentBookId || fallbackId;
+  const id = params.id || __currentBookId || BooksStore.getAll()[0]?.id;
+  if (!id) {
+    renderMissingBookState('Add a book to your shelf to see its page here.');
+    return;
+  }
   const publicSlug = String(params.publicSlug || '').trim().toLowerCase();
   const publicView = Boolean(publicSlug);
   let noteContent = '';
@@ -63,13 +68,9 @@ async function enterBook(params = {}) {
     liveHighlights = publicBook.highlights;
     noteContent = publicBook.noteContent;
   } else {
+    // BooksStore holds only this user's books (or the demo library when signed out).
     const storeBook = BooksStore.getById(id);
-    if (MarginaliaAuth.user) {
-      book = storeBook || null;
-    } else {
-      const seedBook = SEED_BOOK_BY_ID[id];
-      book = storeBook || seedBook || null;
-    }
+    book = storeBook ? { ...createEmptyBook(storeBook), ...storeBook } : null;
   }
 
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
@@ -759,7 +760,7 @@ async function enterBook(params = {}) {
         const allHighlights = dedupeHighlights([...(bookView.highlights || []), ...liveHighlights]);
         const selectedHighlights = selectReadingCardHighlights(allHighlights);
         const aiResult = await fetchReadingCardAI({
-          book: bookView,
+          book: { ...bookView, id },
           highlights: allHighlights,
           notes: noteText,
         });
@@ -1798,23 +1799,20 @@ async function fetchPublicBookContext(slug, bookId) {
   const db = MarginaliaAuth?.db;
   if (!db || !slug || !bookId) return null;
 
-  const userSnap = await getDocs(query(collection(db, 'users'), where('settings.slug', '==', slug), limit(1)));
-  if (userSnap.empty) return null;
+  const card = await fetchPublicProfile(db, slug);
+  if (!card) return null;
+  const ownerUid = card.uid;
 
-  const userDoc = userSnap.docs[0];
-  const userData = userDoc.data() || {};
-  if (userData.settings?.profilePublic === false) return null;
-
-  const workspaceId = ENV.WORKSPACE_ID || 'default';
-  const bookRef = doc(db, 'workspaces', workspaceId, 'users', userDoc.id, 'books', bookId);
+  const workspaceId = getWorkspaceId();
+  const bookRef = doc(db, WsPaths.book(workspaceId, ownerUid, bookId));
   const bookSnap = await getDoc(bookRef);
   if (!bookSnap.exists()) return null;
 
   const bookData = bookSnap.data() || {};
   const [noteSnap, highlightSnap] = await Promise.all([
-    getDoc(doc(bookRef, 'notes', 'main')).catch(() => null),
+    getDoc(doc(db, WsPaths.bookNote(workspaceId, ownerUid, bookId))).catch(() => null),
     getDocs(query(
-      collection(db, 'workspaces', workspaceId, 'users', userDoc.id, 'highlights'),
+      collection(db, WsPaths.highlights(workspaceId, ownerUid)),
       where('bookId', '==', bookId),
       limit(24),
     )).catch(() => null),
@@ -1906,7 +1904,7 @@ async function buildReadingCardShareUrl(bookId) {
   if (!db || !uid || !bookId) return fallback;
 
   try {
-    const snap = await getDoc(doc(db, 'users', uid));
+    const snap = await getDoc(doc(db, Paths.user(uid)));
     const slug = String(snap.data()?.settings?.slug || '').trim().toLowerCase();
     if (!slug) return fallback;
     return `${window.location.origin}${window.location.pathname}#/p/${slug}/book/${encodeURIComponent(bookId)}`;
@@ -2061,8 +2059,8 @@ function getBookGraphConcepts(bookId) {
   return MarginaliaGraph.getBookRelatedConcepts(bookId);
 }
 
-function coverArt(id) {
-  if (id === 'sapiens') {
+function coverArt(art) {
+  if (art === 'humankind') {
     return `
       <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
         <circle cx="36" cy="36" r="34" stroke="rgba(232,223,200,0.18)" stroke-width="1"/>

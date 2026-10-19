@@ -1,11 +1,10 @@
 /* Library view — room-organize workspace */
 
 import './library-2d.css';
-import { collection, doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
+import { doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
 import { validateWrite, withMeta } from '../services/db.ts';
 import { LibraryLayoutSchema } from '../data/schema/library-layout.ts';
-import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { renderLibraryShell } from './library-2d-template.js';
 import { PanelManager } from '../core/panel-manager.ts';
 import { BooksStore } from '../store/books-store.ts';
@@ -13,7 +12,6 @@ import { MarginaliaAuth } from '../firebase/auth.ts';
 import { MarginaliaBooksCloud } from '../firebase/db.ts';
 import { SpineCard } from '../components/spine-card.ts';
 import { NewEntry } from '../new-entry/new-entry.ts';
-import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { SPINE_COLORS } from '../shared/spine-colors.ts';
 import {
   LIBRARY_STORAGE_KEY,
@@ -44,6 +42,8 @@ import {
   clampInt,
   cssEscape,
 } from './library-2d-state.js';
+import { WsPaths } from '../firebase/paths.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 
 // `App` is referenced below (openLibraryPanel's PanelManager?.open fallback
 // branch) but is never imported by the original JS — a pre-existing bug
@@ -619,21 +619,9 @@ function syncLibraryRailState(): void {
   syncShelfCreateState();
 }
 
-function matchCanonicalBookId(book: Book): string {
-  const rawId = String(book?.id || '').toLowerCase();
-  if (rawId === 'sapiens') return 'sapiens';
-  const title = String(book?.title || '');
-  const normalized = title.toLowerCase();
-  if (normalized.includes('sapien') || title.includes('人类简史')) return 'sapiens';
-  return String(book?.id || '');
-}
-
 function getLibraryDetail(detailId: string | null): Book | null {
   if (!detailId) return null;
-  const storeBook = BooksStore.getById(detailId);
-  if (storeBook) return storeBook;
-  if (!MarginaliaAuth.user) return SEED_BOOK_BY_ID[detailId] || null;
-  return null;
+  return BooksStore.getById(detailId) ?? null;
 }
 
 function syncLibraryRecords(): void {
@@ -648,17 +636,11 @@ function syncLibraryRecords(): void {
     seen.set(base, count);
     const key = count === 1 ? base : `${base}-${count}`;
 
-    const detailId = matchCanonicalBookId(book);
+    const detailId = String(book.id || '');
     const detail = getLibraryDetail(detailId);
-    const resolvedStatus = detailId === 'sapiens'
-      ? 'finished'
-      : normalizeReadingStatus(book.status || 'confirmed-later');
-    const resolvedTitle = detailId === 'sapiens'
-      ? (detail?.title || 'Sapiens: A Brief History of Humankind')
-      : toTitleCase(book.title || `Book ${index + 1}`);
-    const resolvedAuthor = detailId === 'sapiens'
-      ? (detail?.author || toTitleCase(book.author || ''))
-      : toTitleCase(book.author || '');
+    const resolvedStatus = normalizeReadingStatus(book.status || 'confirmed-later');
+    const resolvedTitle = toTitleCase(book.title || `Book ${index + 1}`);
+    const resolvedAuthor = toTitleCase(book.author || '');
     const record: LibraryRecord = {
       key,
       id: detailId || book.id || '',
@@ -1808,8 +1790,8 @@ function buildOverlayActions(record: LibraryRecord, sourceShelfId: string): stri
   if (!record.id) {
     return '<button type="button" class="library-overlay-readmore" data-overlay-close="true">Close</button>';
   }
-  const isSeed = record.id === 'sapiens';
-  const deleteBtn = !isSeed
+  const isDemo = BooksStore.isDemoBook(record.id);
+  const deleteBtn = !isDemo
     ? `<button type="button" class="library-overlay-delete" data-delete-book="${escapeHTML(record.key)}" aria-label="Remove book from library">Remove</button>`
     : '';
   return `
@@ -2241,8 +2223,8 @@ function syncStatusToSource(bookKey: string, shelfId: string): void {
   const source = BooksStore.getShelfBooks()?.[record.sourceIndex] as { status?: string } | undefined;
   if (source) source.status = status;
 
-  // Demo visitors and the canonical Sapiens entry have no editable Firestore doc.
-  if (!MarginaliaAuth.user || !BooksStore.hasOwnBooks() || record.id === 'sapiens') return;
+  // Demo visitors and demo books have no editable Firestore doc.
+  if (!MarginaliaAuth.user || !BooksStore.hasOwnBooks() || BooksStore.isDemoBook(record.id)) return;
   const stored = BooksStore.getById(record.id);
   if (stored) BooksStore.addOptimisticBook({ ...stored, status });
   Promise.resolve(MarginaliaBooksCloud?.setBookStatus?.({ bookId: record.id, status }))
@@ -2369,8 +2351,8 @@ function saveLayout(): void {
 }
 
 function layoutDocRef(db: Firestore, uid: string) {
-  const wsId = MARGINALIA_FIREBASE?.workspaceId || 'default';
-  return doc(collection(db, 'workspaces', wsId, 'users', uid, 'data'), 'library_layout');
+  const wsId = getWorkspaceId();
+  return doc(db, WsPaths.libraryLayout(wsId, uid));
 }
 
 async function readStoredLayout(): Promise<StoredLayout | null> {

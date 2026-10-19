@@ -1,28 +1,22 @@
 /**
  * profile-demo-resolver.ts
  *
- * Single seam between seed data and the Profile view for unauthenticated visitors.
- * Do NOT import seed/profile-demo.ts from anywhere except this file.
+ * Single seam between the demo library and the Profile view for signed-out visitors.
+ * The books come from BooksStore (which holds the one demo library from src/data/demo
+ * when signed out), so every page shows the same numbers.
  */
 
 import type { PublicBook, DemoPayload } from './profile-types.ts';
-import {
-  DEMO_BOOKS,
-  DEMO_PROFILE,
-  buildDemoHighlights,
-  buildDemoSessionDays,
-} from '../data/seed/profile-demo.ts';
+import { DEMO_PROFILE, DEMO_HIGHLIGHTS, buildDemoSessionDays } from '../data/demo/index.ts';
 
 export { DEMO_PROFILE };
 
-/** Builds a demo payload for unauthenticated visitors. */
-export function buildDemoPayloadFromBooks(sourceBooks: PublicBook[]): DemoPayload {
-  const ids = new Set(sourceBooks.map((book) => book.id));
-  const books = [...sourceBooks, ...DEMO_BOOKS.filter((book) => !ids.has(book.id))];
+/** Builds a demo payload for unauthenticated visitors from the visible demo books. */
+export function buildDemoPayloadFromBooks(books: PublicBook[]): DemoPayload {
   return {
     profile: DEMO_PROFILE,
     books,
-    highlights: buildDemoHighlights(),
-    sessionDays: buildDemoSessionDays(books),
+    highlights: DEMO_HIGHLIGHTS,
+    sessionDays: buildDemoSessionDays(books.map((b) => ({ status: b.status === 'read' ? 'finished' : b.status, finishedAt: b.finishedAt }))),
   };
 }

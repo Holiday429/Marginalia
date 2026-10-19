@@ -1,5 +1,4 @@
 import QRCode from 'qrcode';
-import { ENV } from '../core/env.ts';
 import { MarginaliaAI } from '../services/ai-gateway.ts';
 
 export interface ReadingCardData {
@@ -24,6 +23,7 @@ export interface ReadingCardData {
 
 export interface ReadingCardInput {
   book: {
+    id?: string;
     title: string;
     titleZh?: string;
     author?: string;
@@ -58,40 +58,19 @@ const RULE = 'rgba(201,164,106,0.28)';
 export async function fetchReadingCardAI(
   input: ReadingCardInput,
 ): Promise<ReadingCardAIResult> {
-  const prompt = buildPrompt(input);
-  const gatewayResult = await tryGateway(prompt);
-  if (gatewayResult) return gatewayResult;
-
-  const apiKey = ENV.DEEPSEEK_API_KEY;
-  if (!apiKey) {
-    throw new Error('AI gateway is unavailable and VITE_DEEPSEEK_API_KEY is not set.');
-  }
-
-  const res = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'deepseek-chat',
-      messages: [
-        { role: 'system', content: 'Return only valid JSON. No markdown fences, no explanation.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 260,
-    }),
+  // Server assembles the prompt from this book's Firestore data; only the book id is sent.
+  const bookId = input.book.id;
+  if (!bookId) throw new Error('Reading card needs a saved book.');
+  let failure: Error | null = null;
+  const result = await MarginaliaAI.generateJSON({
+    featureId: 'reading-card',
+    bookId,
+    onError: (err) => { failure = err; },
   });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`DeepSeek API error ${res.status}: ${body.slice(0, 200)}`);
+  if (!result || typeof result !== 'object') {
+    throw failure ?? new Error('AI gateway returned no result.');
   }
-
-  const json = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-  const raw = json.choices?.[0]?.message?.content?.trim() || '';
-  return parseAIResult(raw);
+  return normalizeAIResult(result as Record<string, unknown>);
 }
 
 export async function generateReadingCardBlob(data: ReadingCardData): Promise<Blob> {
@@ -128,56 +107,6 @@ export async function generateReadingCardBlob(data: ReadingCardData): Promise<Bl
       'image/png',
     );
   });
-}
-
-async function tryGateway(prompt: string): Promise<ReadingCardAIResult | null> {
-  if (!ENV.AI_GATEWAY_URL) return null;
-  const result = await MarginaliaAI.generateJSON({
-    featureId: 'reading-card',
-    prompt,
-    onError: () => {},
-  });
-  if (!result || typeof result !== 'object') return null;
-  return normalizeAIResult(result as Record<string, unknown>);
-}
-
-function buildPrompt(input: ReadingCardInput): string {
-  const { book, highlights, notes } = input;
-  const summary = String(book.summary || '').trim();
-  const quotes = highlights
-    .slice(0, 8)
-    .map((item, index) => `${index + 1}. "${String(item.quote || '').trim()}"`)
-    .join('\n');
-  const cleanedNotes = String(notes || '').replace(/\s+/g, ' ').trim();
-  const tags = (book.tags || []).slice(0, 8).join(', ');
-
-  return `You are creating a polished Marginalia reading card for "${book.title}" by ${book.author || 'unknown'}.
-
-Use the reader's real book data below to write the MY TAKEAWAY section and propose concise keywords.
-
-Overview summary:
-${summary || '(none)'}
-
-Highlights:
-${quotes || '(none)'}
-
-Reader notes:
-${cleanedNotes || '(none)'}
-
-Existing tags:
-${tags || '(none)'}
-
-Return JSON only:
-{
-  "takeaway": "80-130 words. First-person if notes support it. Read like a thoughtful personal reflection, not marketing copy. Use the dominant language from the notes when obvious; otherwise use the book's main language.",
-  "keywords": ["3 to 6 short keywords or short phrases grounded in the real material"]
-}`;
-}
-
-function parseAIResult(raw: string): ReadingCardAIResult {
-  const clean = raw.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
-  const parsed = JSON.parse(clean) as Record<string, unknown>;
-  return normalizeAIResult(parsed);
 }
 
 function normalizeAIResult(value: Record<string, unknown>): ReadingCardAIResult {

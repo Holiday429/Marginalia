@@ -2,7 +2,7 @@ import './notes-wall.css';
 import { HighlightsStore } from '../../store/highlights-store.ts';
 import { BooksStore } from '../../store/books-store.ts';
 import { NotesStore } from '../../store/notes-store.ts';
-import { __SEED_SAPIENS } from '../../data/seed/sapiens.js';
+import { DEMO_HIGHLIGHTS } from '../../data/demo/index.ts';
 import type { SlotComponent } from '../../three/slots.ts';
 
 const WALL_WIDTH = 880;
@@ -148,18 +148,8 @@ export function createNotesWallComponent(): SlotComponent {
         });
     }
 
-    // Unauthenticated: fall back to seed highlights.
-    const sapiens = __SEED_SAPIENS;
-    if (sapiens?.highlights) {
-      return sapiens.highlights
-        .filter((h: { quote?: string }) => h.quote)
-        .map((h: { quote: string }) => ({
-          quote: h.quote,
-          bookTitle: sapiens.titleZh || sapiens.title || 'Sapiens',
-        }));
-    }
-
-    return [];
+    // Signed out: the demo library's highlights.
+    return DEMO_HIGHLIGHTS.map((h) => ({ quote: h.quote, bookTitle: h.bookTitle }));
   }
 
   async function loadData(): Promise<WallData> {

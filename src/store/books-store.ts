@@ -3,86 +3,31 @@
    --------------------------------------------------------------------------
    Single source of truth for book data visible to views.
 
-   Authenticated path:  Firestore onSnapshot on workspaces/{wsId}/users/{uid}/books.
-   Demo path:          Seed data is shown until the user has their own books.
+   Data comes only through a BookDataSource (./book-data-source.ts):
+     signed in  → Firestore books of that user (empty library = empty list, never demo data)
+     signed out → the single demo library from src/data/demo
 
    Views should read via BooksStore.getAll() / BooksStore.getById(id)
    and re-render on the 'marginalia:books-changed' event.
    ========================================================================== */
 
-import { collection, onSnapshot, type Firestore, type Unsubscribe } from 'firebase/firestore';
+import type { Firestore, Unsubscribe } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
-import { ENV } from '../core/env.ts';
 import { normalizeReadingStatus } from '../shared/reading-status.ts';
-import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
-import { BOOK_DETAILS as SEED_DETAILS, BOOK_BY_ID as SEED_BY_ID } from '../data/seed/index.js';
+import { createDemoSource, createFirestoreSource, type BookDataSource, type BookRecord } from './book-data-source.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 
 type FirestoreDB = Firestore;
-
-interface BookRecord {
-  id: string;
-  [key: string]: unknown;
-}
 
 let _books: BookRecord[] = [];
 let _byId: Record<string, BookRecord> = {};
 let _shelfBooks: Record<string, unknown>[] = [];
-let _unsubscribe: Unsubscribe | null = null;
+let _source: BookDataSource | null = null;
+let _unwatch: Unsubscribe | null = null;
 let _uid: string | null = null;
-let _hasOwnBooks = false;
-let _usingDemoData = true;
 
-function _isSapiensLike(book: BookRecord): boolean {
-  const rawId = String(book?.id || '').toLowerCase();
-  if (rawId === 'sapiens') return true;
-  const title = String((book as any)?.title || '');
-  const normalized = title.toLowerCase();
-  return normalized.includes('sapien') || title.includes('人类简史');
-}
-
-function _normalizeSapiens(book: BookRecord): BookRecord {
-  const seed = SEED_BY_ID.sapiens as BookRecord | undefined;
-  if (!seed) return { ...book, id: 'sapiens' };
-
-  const seedAny = seed as any;
-  const bookAny = book as any;
-  return {
-    ...bookAny,
-    ...seedAny,
-    id: 'sapiens',
-    status: 'finished',
-    title: seedAny.title,
-    author: seedAny.author,
-    titleZh: seedAny.titleZh,
-    authorZh: seedAny.authorZh,
-    tags: Array.isArray(seedAny.tags) ? [...seedAny.tags] : seedAny.tags,
-    cover: {
-      ...(bookAny.cover ?? {}),
-      ...(seedAny.cover ?? {}),
-    },
-    meta: {
-      ...(bookAny.meta ?? {}),
-      ...(seedAny.meta ?? {}),
-    },
-  } as BookRecord;
-}
-
-function _canonicalizeBooks(books: BookRecord[]): BookRecord[] {
-  const out: BookRecord[] = [];
-  let hasSapiens = false;
-
-  (books || []).forEach((book) => {
-    if (_isSapiensLike(book)) {
-      if (hasSapiens) return;
-      out.push(_normalizeSapiens(book));
-      hasSapiens = true;
-      return;
-    }
-    out.push(book);
-  });
-
-  return out;
-}
+const DEMO_ID_PREFIX = '__demo_';
+const _isDemoRecord = (b: BookRecord) => String(b.id).startsWith(DEMO_ID_PREFIX);
 
 function _toSpineRecord(b: BookRecord): Record<string, unknown> {
   // Shelf expects flat { title, author, spine, text, w, h, status, font, weight }.
@@ -115,58 +60,34 @@ function _emit() {
   }));
 }
 
-function _setVisibleBooks(books: BookRecord[], options: { hasOwnBooks: boolean; usingDemoData: boolean }) {
-  _books = _canonicalizeBooks(books);
+function _setVisibleBooks(books: BookRecord[]) {
+  _books = books;
   _byId = Object.fromEntries(_books.map((b) => [b.id, b]));
   _shelfBooks = _books.map(_toSpineRecord);
-  _hasOwnBooks = options.hasOwnBooks;
-  _usingDemoData = options.usingDemoData;
 }
 
-function _loadSeed() {
-  _setVisibleBooks(Array.isArray(SEED_DETAILS) ? [...SEED_DETAILS] : [], {
-    hasOwnBooks: false,
-    usingDemoData: true,
-  });
+function _watch(source: BookDataSource) {
+  if (_unwatch) { _unwatch(); _unwatch = null; }
+  _source = source;
+  _unwatch = source.watchBooks(
+    (books) => { _setVisibleBooks(books); _emit(); },
+    (error) => logError(error, { context: 'BooksStore watchBooks' }),
+  );
 }
 
-/** Called when user signs in. Starts the Firestore onSnapshot listener. */
+/** Called when a user signs in: from now on only their own Firestore books are visible. */
 function initWithUser(uid: string, db: FirestoreDB) {
   if (_uid === uid) return; // already listening for this user
-  teardown();
   _uid = uid;
-
-  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
-  const bookColRef = collection(db, 'workspaces', wsId, 'users', uid, 'books');
-
-  _unsubscribe = onSnapshot(
-    bookColRef,
-    (snapshot) => {
-      const userBooks = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      if (userBooks.length > 0) {
-        _setVisibleBooks(userBooks, { hasOwnBooks: true, usingDemoData: false });
-      } else {
-        _loadSeed();
-      }
-      _emit();
-    },
-    (error: Error) => {
-      logError(error, { context: 'BooksStore onSnapshot' });
-    },
-  );
-
+  _setVisibleBooks([]); // never show demo books to a signed-in user while the first snapshot loads
+  _watch(createFirestoreSource(db, getWorkspaceId(), uid));
   _emit();
 }
 
-/** Called when user signs out. Detaches listener and falls back to seed data. */
+/** Called when the user signs out (and at boot): back to the demo library. */
 function teardown() {
-  if (_unsubscribe) {
-    _unsubscribe();
-    _unsubscribe = null;
-  }
   _uid = null;
-  _loadSeed();
-  _emit();
+  _watch(createDemoSource());
 }
 
 /** Returns current uid being listened to, or null. */
@@ -178,30 +99,31 @@ function getShelfBooks(): Record<string, unknown>[] {
   return _shelfBooks;
 }
 
+/** True when the visible library contains books the visitor/user created (not demo books). */
 function hasOwnBooks(): boolean {
-  return _hasOwnBooks;
+  return _books.some((b) => !_isDemoRecord(b));
+}
+
+/** True for books from the demo library (they have no Firestore doc and cannot be edited or removed). */
+function isDemoBook(id: string): boolean {
+  return String(id).startsWith(DEMO_ID_PREFIX);
 }
 
 function isUsingDemoData(): boolean {
-  return _usingDemoData;
+  return _source?.kind !== 'firestore';
 }
 
 function addOptimisticBook(book: BookRecord): void {
-  const base = _usingDemoData ? [] : _books;
-  const next = base.filter((item) => item.id !== book.id);
+  const next = _books.filter((item) => item.id !== book.id);
   next.unshift(book);
-  _setVisibleBooks(next, { hasOwnBooks: true, usingDemoData: false });
+  _setVisibleBooks(next);
   _emit();
 }
 
 function removeBook(bookId: string): void {
   const next = _books.filter((b) => b.id !== bookId);
   if (next.length === _books.length) return;
-  if (next.length === 0) {
-    _loadSeed();
-  } else {
-    _setVisibleBooks(next, { hasOwnBooks: true, usingDemoData: false });
-  }
+  _setVisibleBooks(next);
   _emit();
 }
 
@@ -212,6 +134,7 @@ export const BooksStore = {
   getShelfBooks,
   hasOwnBooks,
   isUsingDemoData,
+  isDemoBook,
   addOptimisticBook,
   removeBook,
   getAll():                  BookRecord[]         { return _books; },
@@ -220,8 +143,8 @@ export const BooksStore = {
   getByType(type: string):   BookRecord[]          { return _books.filter((b) => b.bookType === type); },
 };
 
-// Unauthenticated default: seed data, loaded once on DOMContentLoaded.
-// This keeps demo visitors working even before auth resolves.
+// Signed-out default: the demo library, loaded once on DOMContentLoaded so demo visitors
+// work even before auth resolves. A signed-in user replaces it via initWithUser().
 document.addEventListener('DOMContentLoaded', () => {
-  if (!_uid) _loadSeed();
+  if (!_uid && !_source) teardown();
 });

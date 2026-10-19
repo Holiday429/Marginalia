@@ -1,32 +1,18 @@
 /* Hero book — Three.js GLB render (ES module) */
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { loadGLB } from '../three/gltf-loader.ts';
+import { modelUrl } from '../three/asset-urls.ts';
 import { logError } from '../services/analytics.ts';
 
-const MODEL_URL = '/book.glb';
+const MODEL_URL = modelUrl('book');
 
 let cachedGltf    = null;
 let cachedPromise = null;
 function loadModel() {
   if (cachedGltf)    return Promise.resolve(cachedGltf);
   if (cachedPromise) return cachedPromise;
-  const loader = new GLTFLoader();
-  const dracoLoader = new DRACOLoader();
-  dracoLoader.setDecoderPath('/draco/');
-  loader.setDRACOLoader(dracoLoader);
-  loader.setMeshoptDecoder(MeshoptDecoder);
-  cachedPromise = new Promise((resolve, reject) => {
-    loader.load(
-      MODEL_URL,
-      (g) => { cachedGltf = g; resolve(g); },
-      undefined,
-      (error) => { dracoLoader.dispose(); reject(error); }
-    );
-  });
-  cachedPromise.finally(() => dracoLoader.dispose());
+  cachedPromise = loadGLB(MODEL_URL).then((g) => { cachedGltf = g; return g; });
   return cachedPromise;
 }
 

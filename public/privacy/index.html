@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Marginalia</title>
+<meta name="robots" content="index,follow">
+<style>
+:root{--paper:#e8dfc8;--ink:#1a1714;--bg:#26231f;--muted:rgba(232,223,200,.68);--line:rgba(232,223,200,.22);--accent:#d9b877}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--paper);font:17px/1.65 Georgia,'Times New Roman',serif}
+main{max-width:760px;margin:0 auto;padding:40px 20px 80px}
+a{color:var(--accent)}
+h1{font-size:34px;line-height:1.2;margin:8px 0 4px}
+h2{font-size:21px;margin:36px 0 8px}
+p,li{margin:8px 0}
+ul{padding-left:22px}
+.meta,.back,footer{font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;color:var(--muted)}
+.draft{border:1px solid var(--accent);padding:10px 14px;margin:18px 0;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;vertical-align:top;border-top:1px solid var(--line);padding:10px 8px 10px 0}
+th{font:12px ui-monospace,Menlo,Consolas,monospace;color:var(--muted);border-top:0}
+nav.legal{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:48px;padding-top:14px;border-top:1px solid var(--line)}
+nav.legal a{display:inline-flex;align-items:center;min-height:44px;font:13px ui-monospace,Menlo,Consolas,monospace}
+</style>
+</head>
+<body>
+<main>
+<p class="back"><a href="../">← Marginalia</a></p>
+<h1>Privacy Policy</h1>
+<p class="meta">Last updated 2026-10-19</p>
+<p class="draft" role="note">Draft — this text has not been reviewed yet and may change before launch.</p>
+
+<h2>Who we are</h2>
+<p>Marginalia is a personal reading-records service operated by [Operator legal name — to be set], [Operator address / country — to be set] (&quot;we&quot;, &quot;us&quot;). You can reach us about anything in this policy at [contact email — to be set].</p>
+<h2>What we collect</h2>
+<ul><li><strong>Account data</strong> — email address, username and display name, optional avatar. If you sign in with Google we receive the name, email and photo Google shares with us.</li><li><strong>Your reading content</strong> — books, statuses, notes, highlights, actions and reminders, reading-session times, library layout, AI-generated blocks and cover images you upload. This is the point of the service, and it is private to you unless you publish it.</li><li><strong>Public profile (optional)</strong> — if you turn it on, a public page shows your display name, avatar, bio and the books and sections you choose, under the address you pick. Nothing is public by default.</li><li><strong>Payments</strong> — Lemon Squeezy takes payment. We never see card numbers. We store your plan, subscription status, renewal date and a customer-portal link.</li><li><strong>Technical data</strong> — IP address and request logs kept by our hosting and cloud providers, and basic rate-limit counters.</li><li><strong>Analytics and error reports</strong> — only if you accept them in the consent banner: events such as &quot;book added&quot; and error details, tied to a pseudonymous user id (not your email).</li></ul>
+<h2>How we use it</h2>
+<ul><li>To provide and secure the service: showing your library, syncing devices, reminders, exports.</li><li>To run AI features you ask for (see below) and to enforce fair-use limits.</li><li>To bill you and manage your subscription.</li><li>To improve the product, if you accepted analytics.</li><li>To comply with the law and to prevent abuse.</li></ul>
+<h2>AI features and DeepSeek</h2>
+<p>AI features run only when you press a Generate button. Our server builds the request from your own data for that book — title, author, summary, tags and the highlights, notes and actions you saved (a capped number of them) — or, for profile features, a summary of your library such as titles, authors, genres, a sample of highlights and your reading rhythm. We send that to DeepSeek and return the answer to you.</p>
+<p>DeepSeek is operated from China, so this is a transfer of personal data outside your country. We do not send your email, name or user id to DeepSeek. We keep a log of which feature ran and how many tokens it used, not the text. DeepSeek handles the text under its own privacy policy. If you do not want this, do not use the AI features; everything else works without them.</p>
+<h2>Who processes your data</h2>
+<table><thead><tr><th>Provider</th><th>Why</th><th>What they receive</th></tr></thead><tbody><tr><td><a href="https://policies.google.com/privacy" rel="noopener">Google (Firebase Authentication, Cloud Firestore, Cloud Storage, Cloud Functions)</a></td><td>Sign-in, storing your library and account data, file uploads, running our server code</td><td>Account details, everything you save in Marginalia, server logs</td></tr><tr><td><a href="https://www.deepseek.com/privacy_policy" rel="noopener">DeepSeek</a></td><td>Generating AI features when you press a Generate button</td><td>Book title, author, summary, tags, and the highlights, notes and actions you saved for that book (or, for profile features, a summary of your library). Never your email, name or user id.</td></tr><tr><td><a href="https://posthog.com/privacy" rel="noopener">PostHog</a></td><td>Product analytics (only if you accept analytics)</td><td>Pseudonymous user id and events such as &quot;book added&quot;</td></tr><tr><td><a href="https://sentry.io/privacy/" rel="noopener">Sentry</a></td><td>Error reports (only if you accept analytics)</td><td>Error details, browser and page information, pseudonymous user id</td></tr><tr><td><a href="https://www.lemonsqueezy.com/privacy" rel="noopener">Lemon Squeezy</a></td><td>Taking payments as merchant of record, subscriptions and invoices</td><td>Name, email, billing details and card data are handled by Lemon Squeezy; we receive your plan, status and renewal date</td></tr><tr><td><a href="https://vercel.com/legal/privacy-policy" rel="noopener">Vercel</a></td><td>Hosting and delivering the website</td><td>IP address and request logs</td></tr><tr><td><a href="https://developers.google.com/fonts/faq/privacy" rel="noopener">Google Fonts</a></td><td>Delivering web fonts (until fonts are self-hosted)</td><td>IP address and request information</td></tr></tbody></table>
+<h2>Cookies and local storage</h2>
+<p>We use your browser's local storage and IndexedDB for preferences, your analytics choice, notes kept offline and the active reading timer. We do not use advertising cookies. If you accept analytics, PostHog stores a pseudonymous id in local storage; if you decline or later withdraw (Analytics preferences link in the footer), PostHog and Sentry are not started and nothing is sent.</p>
+<h2>Sharing</h2>
+<p>We do not sell your data. We share it only with the processors above, when you publish a profile, or when the law requires.</p>
+<h2>How long we keep it</h2>
+<p>We keep your data until you delete your account. Deleting your account (Settings → Delete account) removes your library, profile, files and sign-in from our systems. Copies may remain in provider backups for a limited period before they are overwritten. Payment records are kept by Lemon Squeezy as the law requires.</p>
+<h2>Your choices and rights</h2>
+<ul><li><strong>Export</strong> — download your library as JSON or Markdown at any time (Settings).</li><li><strong>Delete</strong> — Settings → Delete account. A copy of your data downloads first. If you have a renewing subscription, cancel it first.</li><li><strong>Access, correction, objection, restriction, portability</strong> — available to you under laws such as the GDPR, UK GDPR, CCPA and PIPL; write to us and we will answer within the period the law gives us. Most of this you can do yourself in the app.</li><li><strong>Analytics</strong> — change your mind any time via &quot;Analytics preferences&quot; in the footer or room settings.</li><li>You may also complain to your data-protection authority.</li></ul>
+<h2>Children</h2>
+<p>Marginalia is not for people under 16. If you believe a child has an account, contact us and we will delete it.</p>
+<h2>International transfers</h2>
+<p>Our providers run servers in several countries, including the United States, and DeepSeek in China. Where required, we rely on standard contractual clauses or equivalent safeguards offered by those providers.</p>
+<h2>Changes</h2>
+<p>If we change this policy in a way that matters, we will tell you in the app and update the date above.</p>
+<nav class="legal" aria-label="Legal"><a href="../privacy/">Privacy</a><a href="../terms/">Terms</a><a href="../credits/">Credits</a></nav>
+<footer><p>Marginalia</p></footer>
+</main>
+</body>
+</html>
