@@ -8,6 +8,7 @@ import { buildArgumentBreakdownPrompt } from './argument-breakdown';
 import { buildCharacterMapPrompt } from './character-map';
 import { buildConceptCardsPrompt } from './concept-cards';
 import { buildGeoContextPrompt } from './geo-context';
+import { buildIntroCardPrompt } from './intro-card';
 import { buildMindmapGenPrompt } from './mindmap-gen';
 import { buildReaderIdentityPrompt } from './reader-identity';
 import { buildReaderPortraitPrompt } from './reader-portrait';
@@ -28,6 +29,7 @@ export const AI_FEATURES = {
   'character-map': { kind: 'book', build: (c: PromptCtx) => buildCharacterMapPrompt(c.book) },
   'concept-cards': { kind: 'book', build: (c: PromptCtx) => buildConceptCardsPrompt(c.book) },
   'geo-context': { kind: 'book', build: (c: PromptCtx) => buildGeoContextPrompt(c.book) },
+  'intro-card': { kind: 'book', build: (c: PromptCtx) => buildIntroCardPrompt(c.book) },
   'mindmap-gen': { kind: 'book', build: (c: PromptCtx) => buildMindmapGenPrompt(c.book) },
   'reader-identity': { kind: 'library', build: (c: PromptCtx) => buildReaderIdentityPrompt(c.library) },
   'reader-portrait': { kind: 'library', build: (c: PromptCtx) => buildReaderPortraitPrompt(c.library) },

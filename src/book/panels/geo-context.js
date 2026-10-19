@@ -2,6 +2,7 @@
    Marginalia · Geo-Context panel (travel)
    ========================================================================== */
 
+import { renderTabEmptyState } from '../../components/empty-state/empty-state.ts';
 import { PanelRegistry } from './registry.ts';
 
 function esc(s) {
@@ -12,9 +13,7 @@ function esc(s) {
 function renderGeoContext(book, container) {
   const data = book?._aiData?.['geo-context'];
   if (!Array.isArray(data) || data.length === 0) {
-    container.innerHTML = `<div class="panel-empty">
-      <p class="panel-empty__label">Geographic context not yet generated.</p>
-    </div>`;
+    container.innerHTML = renderTabEmptyState('geo-context');
     return;
   }
 

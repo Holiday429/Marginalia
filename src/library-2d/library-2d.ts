@@ -9,6 +9,7 @@ import { LibraryLayoutSchema } from '../data/schema/library-layout.ts';
 import { renderLibraryShell } from './library-2d-template.js';
 import { PanelManager } from '../core/panel-manager.ts';
 import { BooksStore } from '../store/books-store.ts';
+import { openActionCount, openActionLabel } from '../store/actions-store.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { MarginaliaBooksCloud } from '../firebase/db.ts';
 import { SpineCard } from '../components/spine-card.ts';
@@ -1777,7 +1778,10 @@ function playBookInteraction(sourceEl: HTMLElement, record: LibraryRecord, sourc
   title.textContent = primaryOverlayTitle(record.title);
   author.textContent = record.author;
   summary.textContent = firstOverlaySentence(record.summary);
-  tags.innerHTML = (record.tags || []).slice(0, 4).map((tag) => `<span>${escapeHTML(tag)}</span>`).join('');
+  const actionChip = record.id
+    ? `<span data-preview-actions>${escapeHTML(openActionLabel(openActionCount(record.id, getLibraryDetail(record.id)?.actions)))}</span>`
+    : '';
+  tags.innerHTML = actionChip + (record.tags || []).slice(0, 4).map((tag) => `<span>${escapeHTML(tag)}</span>`).join('');
   actions.innerHTML = buildOverlayActions(record, LIBRARY_STATE.overlay.sourceShelfId);
 
   requestAnimationFrame(() => {

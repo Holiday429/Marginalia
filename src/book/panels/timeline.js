@@ -8,6 +8,7 @@
         [{ chapter, period, event, characters[], significance, highlight }]
    ========================================================================== */
 
+import { renderTabEmptyState } from '../../components/empty-state/empty-state.ts';
 import { PanelRegistry } from './registry.ts';
 
 function esc(s) {
@@ -60,9 +61,7 @@ function renderBeats(items) {
 function renderTimeline(book, container) {
   const data = book?._aiData?.['timeline-gen'] || book?.mindmap?.timeline;
   if (!Array.isArray(data) || data.length === 0) {
-    container.innerHTML = `<div class="panel-empty">
-      <p class="panel-empty__label">Timeline not yet generated.</p>
-    </div>`;
+    container.innerHTML = renderTabEmptyState('timeline');
     return;
   }
 

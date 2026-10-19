@@ -107,7 +107,8 @@ test('signup, add, highlight, session, import, AI and finish each reach PostHog 
     if (await btn.count()) { await btn.click(); generated = true; break; }
   }
   expect(generated, 'a tab with an AI generate button exists').toBe(true);
-  await expect.poll(() => events.filter((e) => e.event === 'ai_generated').length, { timeout: 20_000 }).toBe(1);
+  // Adding the book already started the automatic pre-read card (2.2), so the manual click is the second generation.
+  await expect.poll(() => events.filter((e) => e.event === 'ai_generated').length, { timeout: 20_000 }).toBe(2);
 
   // Finish the book.
   await page.locator('.book-tab-btn[data-target="overview"]').click();
@@ -124,7 +125,8 @@ test('signup, add, highlight, session, import, AI and finish each reach PostHog 
   expect(count('import_completed')).toBe(1);
   expect(count('session_completed')).toBe(1);
   expect(count('book_finished')).toBe(1);
-  expect(count('ai_generated')).toBe(1);
+  expect(count('ai_generated')).toBe(2);
+  expect(events.filter((e) => e.event === 'ai_generated').map((e) => e.properties.featureId)).toContain('intro-card');
   expect(events.filter((e) => e.event === 'highlight_saved').map((e) => e.properties.source).sort()).toEqual(['book', 'import']);
   expect(events.find((e) => e.event === 'signup')!.properties.method).toBe('email');
   expect(events.find((e) => e.event === 'book_added')!.properties).toMatchObject({ source: 'manual', status: 'reading' });

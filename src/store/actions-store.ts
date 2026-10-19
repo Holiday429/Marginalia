@@ -22,6 +22,9 @@ import { logError, logEvent } from '../services/analytics.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import type { Action } from '../data/schema/action.ts';
 import { WsPaths } from '../firebase/paths.ts';
+import { countOpenActions } from './action-counts.ts';
+
+export { countOpenActions, openActionLabel } from './action-counts.ts';
 import { getWorkspaceId } from '../firebase/workspace.ts';
 
 type FirestoreDB = Firestore;
@@ -171,6 +174,12 @@ function getAll(): ActionRecord[] { return _actions; }
 function getById(id: string): ActionRecord | undefined { return _actions.find((a) => a.id === id); }
 function getByBook(bookId: string): ActionRecord[] { return _actions.filter((a) => a.bookId === bookId); }
 function getUid(): string | null { return _uid; }
+
+/** The one count shown by the shelf preview, the Library overlay, Overview and the Actions tab. */
+export function openActionCount(bookId: string, seedActions?: Array<{ status?: string }> | null): number {
+  return countOpenActions(_uid ? getByBook(bookId) : seedActions);
+}
+
 
 export const ActionsStore = {
   initWithUser,

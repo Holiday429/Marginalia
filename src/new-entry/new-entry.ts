@@ -6,6 +6,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { logEvent, logError } from '../services/analytics.ts';
 import { track } from '../services/events.ts';
 import { notifyBookStatusChange } from '../store/book-status-events.ts';
+import { prepareIntroCard } from '../ai/features/intro-card-service.ts';
 import { withMeta, withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { PanelManager } from '../core/panel-manager.ts';
@@ -1085,6 +1086,9 @@ export const NewEntry = (() => {
       notifyBookStatusChange(id, existingBook?.status, status);
     } else {
       track('book_added', { bookId: id, status, source: 'manual' });
+      // Pre-read card + cultural context, in the background. Only here (one book at a time), never from an
+      // import, because each card costs one of the free monthly generations.
+      if (uid && db) void prepareIntroCard(id);
     }
     renderSearchSection();
     // Dynamic import: keeps library-2d.ts (and its CSS) out of the eager

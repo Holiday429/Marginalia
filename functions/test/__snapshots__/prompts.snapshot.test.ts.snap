@@ -153,6 +153,36 @@ Rules:
 - Return ONLY the JSON array, no markdown, no explanation"
 `;
 
+exports[`AI prompt text is stable > intro-card 1`] = `
+"You are a thoughtful reading companion. A reader is about to start a book and wants a short pre-read card.
+
+Book: "Sapiens" by Harari
+Year: 2011
+Type: nonfiction
+Summary the reader saved: S
+Tags: a, b
+
+Return a JSON object with EXACTLY this shape:
+{
+  "premise": "string — two sentences on what the book is about or argues, without spoilers",
+  "audience": "string — one sentence on who this book suits",
+  "difficulty": "easy" | "moderate" | "demanding",
+  "difficultyNote": "string — one sentence on why it is that difficulty",
+  "readingTip": "string — one concrete suggestion for how to read it",
+  "context": {
+    "author": "string — one or two sentences on the author's background",
+    "period": "string — when it was written and what was going on then",
+    "place": "string — where it was written or is set, and why that matters",
+    "summary": "string — 60 to 90 words tying the author, the period and the place to the book"
+  }
+}
+
+Rules:
+- If you do not recognise this book, say so in "premise" and keep every other field general. Never invent plot details, quotes or biographical facts.
+- Write in the language of the book's title.
+- Return ONLY the JSON object, no markdown, no explanation"
+`;
+
 exports[`AI prompt text is stable > mindmap-gen 1`] = `
 "You are a rigorous reading analyst. Analyze the book below and produce a structured knowledge map.
 

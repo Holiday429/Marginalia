@@ -5,10 +5,12 @@
 import './book.css';
 import { logError } from '../services/analytics.ts';
 import { track } from '../services/events.ts';
+import { renderTabEmptyState } from '../components/empty-state/empty-state.ts';
+import { getIntroCardState, INTRO_CARD_CHANGED_EVENT } from '../ai/features/intro-card-service.ts';
 import { notifyBookStatusChange } from '../store/book-status-events.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { HighlightsStore } from '../store/highlights-store.ts';
-import { ActionsStore } from '../store/actions-store.ts';
+import { ActionsStore, openActionCount } from '../store/actions-store.ts';
 import { NotesStore } from '../store/notes-store.ts';
 import { renderSearchSection } from '../search/search.js';
 import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
@@ -40,7 +42,26 @@ import { READING_STATUS_OPTIONS, normalizeReadingStatus, readingStatusLabel } fr
 
 let __currentBookId = null;
 
-function initBook() {}
+function initBook() {
+  // The pre-read card is prepared in the background after Add Book; redraw the open book page when it lands.
+  window.addEventListener(INTRO_CARD_CHANGED_EVENT, (event) => {
+    const { bookId } = event.detail || {};
+    const panel = document.getElementById('panel-book');
+    if (!bookId || panel?.dataset.panelActive !== 'true' || panel.dataset.bookId !== bookId) return;
+    // Update only the card and its status line: a full re-render would throw away whatever the reader is typing.
+    const book = BooksStore.getById(bookId);
+    const slot = panel.querySelector('#overview .intro-card-status');
+    const state = getIntroCardState(bookId);
+    if (state === 'ready') {
+      slot?.remove();
+      if (book) AIGenerateUI?.refresh(book, panel, 'intro-card');
+      return;
+    }
+    const html = renderIntroCardStatus({ id: bookId });
+    if (slot) slot.outerHTML = html;
+    else panel.querySelector('#overview .book-overview')?.insertAdjacentHTML('afterbegin', html);
+  });
+}
 
 // Keep BooksStore in step with a tag edit so Add Book's edit form sees it immediately.
 function syncTagsToStore(bookId, tags, fallbackBook) {
@@ -930,13 +951,13 @@ function getBookSections(b) {
         return {
           id: sectionId,
           label: BOOK_SECTION_LABELS[sectionId],
-          html: b.culturalContext.length ? renderCulturalContext(b) : renderAiPlaceholder('Cultural Context'),
+          html: b.culturalContext.length ? renderCulturalContext(b) : renderTabEmptyState('cultural-context'),
         };
       case 'related-books':
         return {
           id: sectionId,
           label: BOOK_SECTION_LABELS[sectionId],
-          html: b.relatedBooks.length ? renderConnections(b) : renderAiPlaceholder('Related Books'),
+          html: b.relatedBooks.length ? renderConnections(b) : renderTabEmptyState('related-books'),
         };
       case 'notes':
         return renderNotesSection(b);
@@ -1182,11 +1203,12 @@ function renderOverview(b) {
     { id: 'highlights',   label: 'Highlights',   count: (b.highlights || []).length,    target: 'highlights'   },
     { id: 'notes',        label: 'Notes',         count: (b.readingContextBlocks || []).length, target: 'notes' },
     { id: 'connections',  label: 'Connections',   count: getBookGraphConcepts(b.id).length,     target: 'visual-notes' },
-    { id: 'actions',      label: 'Actions',        count: (b.actions || []).length,       target: 'actions'      },
+    { id: 'actions',      label: 'Actions',        count: openActionCount(b.id, b.actions), target: 'actions'      },
   ];
 
   return `
     <section class="book-overview">
+      ${renderIntroCardStatus(b)}
       <div class="book-overview-hero">
 
         <!-- Col 1: cover -->
@@ -1284,6 +1306,19 @@ function renderOverview(b) {
   `;
 }
 
+/** What the reader sees while the pre-read card is not on the page yet (the finished card is injected by AIGenerateUI). */
+function renderIntroCardStatus(b) {
+  if (b.isReadOnly) return '';
+  const state = getIntroCardState(b.id);
+  const text = {
+    pending: 'Preparing your pre-read card. It usually takes a few seconds.',
+    quota: 'This month\'s free AI generations are used up, so the pre-read card was not created. You can generate it with the AI button above after your quota renews, or upgrade.',
+    error: 'The pre-read card could not be prepared. Use the AI button above to try again.',
+  }[state];
+  if (!text) return '';
+  return `<p class="intro-card-status intro-card-status--${esc(state)}" data-intro-card-status="${esc(state)}" role="status">${esc(text)}</p>`;
+}
+
 function renderIntegration(b) {
   const insight = b.insight || {};
   const stanceCards = [
@@ -1375,7 +1410,9 @@ function renderHighlights(b) {
         <ul class="highlight-list" id="hlList">
           ${items.map((h, i) => renderHighlightItem(h, i, isReadOnly)).join('')}
         </ul>
-      ` : `<div class="ai-panel-placeholder"><span>${isReadOnly ? 'No highlights were shared for this book.' : 'No highlights yet — add one or import from Kindle using the buttons above.'}</span></div>`}
+      ` : isReadOnly
+        ? `<div class="ai-panel-placeholder"><span>No highlights were shared for this book.</span></div>`
+        : renderTabEmptyState('highlights')}
     </section>
   `;
 }
@@ -1622,13 +1659,9 @@ function renderActions(b) {
               <span class="action-tag">${esc(normalizeActionTag(a.tag) || statusLabel(a.status))}</span>
             </li>`).join('')}
         </ul>
-      ` : renderAiPlaceholder('Actions')}
+      ` : renderTabEmptyState('actions')}
     </section>
   `;
-}
-
-function renderAiPlaceholder(label) {
-  return `<div class="ai-panel-placeholder"><span>No ${esc(label)} yet — use the Generate button above to create one with AI.</span></div>`;
 }
 
 const NOTE_TEMPLATES = [
@@ -1773,7 +1806,7 @@ function renderVisualNotesSection(b) {
     book: b,
     panelId: 'visual-notes',
     leadingHtml: visualHtml,
-    fallbackHtml: b.mindmap ? '' : renderAiPlaceholder('Visual Notes'),
+    fallbackHtml: b.mindmap ? '' : renderTabEmptyState('visual-notes'),
   });
 }
 

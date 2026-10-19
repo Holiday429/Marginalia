@@ -8,6 +8,7 @@
    { title, subtitle, timeline[], revolutions[], ideas[], happiness{}, futurePaths[] }
    ========================================================================== */
 
+import { renderTabEmptyState } from '../../components/empty-state/empty-state.ts';
 import { PanelRegistry } from './registry.ts';
 
 function esc(s) {
@@ -18,9 +19,7 @@ function esc(s) {
 function renderMindmap(book, container) {
   const data = book?._aiData?.['mindmap-gen'] || book?.mindmap;
   if (!data) {
-    container.innerHTML = `<div class="panel-empty">
-      <p class="panel-empty__label">Knowledge structure not yet generated.</p>
-    </div>`;
+    container.innerHTML = renderTabEmptyState('mindmap');
     return;
   }
 

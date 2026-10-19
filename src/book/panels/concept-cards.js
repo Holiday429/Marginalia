@@ -5,6 +5,7 @@
    `concept-cards` (or `argument-breakdown`) AI features.
    ========================================================================== */
 
+import { renderTabEmptyState } from '../../components/empty-state/empty-state.ts';
 import { PanelRegistry } from './registry.ts';
 
 const RELATION_LABELS = {
@@ -24,9 +25,7 @@ function renderConceptCards(book, container) {
             || book?._aiData?.['argument-breakdown']
             || book?.graph?.concepts;
   if (!Array.isArray(data) || data.length === 0) {
-    container.innerHTML = `<div class="panel-empty">
-      <p class="panel-empty__label">Concepts not yet generated.</p>
-    </div>`;
+    container.innerHTML = renderTabEmptyState('concept-cards');
     return;
   }
 

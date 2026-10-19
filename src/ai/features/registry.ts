@@ -27,6 +27,14 @@ interface AiFeatureDef {
 export const AIFeatureRegistry = (() => {
   const _features: Record<string, AiFeatureDef> = {
 
+    /* ── Every book ───────────────────────────────────────────────────────── */
+
+    'intro-card': {
+      label: 'Generate pre-read card',
+      panel: 'overview',
+      outputType: 'json',   // premise, audience, difficulty, reading tip and a short cultural context
+    },
+
     /* ── Fiction ──────────────────────────────────────────────────────────── */
 
     'character-map': {
@@ -113,7 +121,9 @@ export const AIFeatureRegistry = (() => {
 
     /** Resolve the active AI features for a book. */
     forBook(book: Book): Array<{ id: string } & Partial<AiFeatureDef>> {
-      const ids = BookTypes.getAiFeatures(book);
+      // The pre-read card is offered on every book, including ones saved before it existed
+      // (their stored aiFeatures list does not name it).
+      const ids = ['intro-card', ...BookTypes.getAiFeatures(book).filter((id) => id !== 'intro-card')];
       return ids
         .map(id => ({ id, ...(_features[id] || {}) }))
         .filter(f => f.label);

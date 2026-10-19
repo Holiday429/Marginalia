@@ -1,0 +1,24 @@
+/* Marginalia · empty state */
+
+.empty-state {
+  box-sizing: border-box;
+  max-width: 560px;
+  margin: 32px 0;
+  padding: 20px 22px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font-family: var(--font-serif);
+}
+
+.empty-state__title {
+  margin: 0 0 8px;
+  font-size: var(--fs-18);
+  font-weight: 500;
+}
+
+.empty-state__body {
+  margin: 0;
+  font-size: var(--fs-15);
+  line-height: 1.55;
+  color: var(--muted);
+}

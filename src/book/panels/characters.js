@@ -2,6 +2,7 @@
    Marginalia · Characters panel (fiction)
    ========================================================================== */
 
+import { renderTabEmptyState } from '../../components/empty-state/empty-state.ts';
 import { PanelRegistry } from './registry.ts';
 
 const ROLE_ORDER = ['protagonist', 'antagonist', 'supporting', 'minor'];
@@ -14,9 +15,7 @@ function esc(s) {
 function renderCharacters(book, container) {
   const data = book?._aiData?.['character-map'];
   if (!Array.isArray(data) || data.length === 0) {
-    container.innerHTML = `<div class="panel-empty">
-      <p class="panel-empty__label">Character map not yet generated.</p>
-    </div>`;
+    container.innerHTML = renderTabEmptyState('characters');
     return;
   }
 

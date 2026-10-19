@@ -11,6 +11,7 @@
      Firebase:  users/{uid}/books/{bookId}/visualNotes/{id}  (content as string)
    ========================================================================== */
 
+import { renderTabEmptyState } from '../../components/empty-state/empty-state.ts';
 import { doc, setDoc } from 'firebase/firestore';
 import { MarginaliaAuth } from '../../firebase/auth.ts';
 import { PanelRegistry } from './registry.ts';
@@ -91,7 +92,7 @@ import { getWorkspaceId } from '../../firebase/workspace.ts';
         <section class="vn-panel">
           ${notes.length === 0 ? `
             <div class="vn-empty">
-              <p>No visual notes imported yet. Use the Import button above.</p>
+              ${renderTabEmptyState('visual-notes')}
             </div>
           ` : `
             <div class="vn-tabs">

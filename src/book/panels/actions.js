@@ -6,6 +6,7 @@
 
 import { ActionsStore } from '../../store/actions-store.ts';
 import { PanelRegistry } from './registry.ts';
+import { renderTabEmptyState } from '../../components/empty-state/empty-state.ts';
 
 (function registerActionsPanel() {
   PanelRegistry.set('actions', function renderActions(book, container) {
@@ -41,7 +42,8 @@ import { PanelRegistry } from './registry.ts';
             <h2 class="actions-panel-title book-section-title">Actions</h2>
           </div>
 
-          <ul class="actions-list" data-actions-list>
+          ${actions.length === 0 ? renderTabEmptyState('actions') : ''}
+          <ul class="actions-list" data-actions-list data-open-count="${open.length}">
             ${open.map(renderItem).join('')}
           </ul>
 

@@ -1,6 +1,7 @@
 /* Search view */
 
 import { BooksStore } from '../store/books-store.ts';
+import { openActionCount, openActionLabel } from '../store/actions-store.ts';
 import { createEmptyBook } from '../data/schema/empty-book.ts';
 import { renderUnifiedPanelHeader } from '../core/app.ts';
 import { PanelManager } from '../core/panel-manager.ts';
@@ -228,7 +229,7 @@ function buildShelfRecords() {
         : b.author,
       description: detail?.summary || `${title} is on your shelf. Select to preview notes and metadata.`,
       tags: translatedTags.slice(0, 4),
-      stats: buildPreviewStats(detail),
+      stats: [],
       coverSrc: resolveCoverSrc(b, detailId),
       tone: b.spine,
       text: b.text,
@@ -514,8 +515,9 @@ function renderShelfPreview(record) {
   title.textContent = p.title;
   subtitle.textContent = p.subtitle;
   author.textContent = p.author;
-  stats.innerHTML = p.stats.map((item) => `<span class="preview-stat">${escapeHTML(item)}</span>`).join('');
-  stats.hidden = p.stats.length === 0;
+  const previewStats = buildPreviewStats(record);
+  stats.innerHTML = previewStats.map((item) => `<span class="preview-stat" data-preview-actions>${escapeHTML(item)}</span>`).join('');
+  stats.hidden = previewStats.length === 0;
   description.textContent = p.description;
 
   tags.innerHTML = '';
@@ -553,9 +555,10 @@ function renderShelfPreview(record) {
   else panel.removeAttribute('role');
 }
 
-function buildPreviewStats(detail) {
-  void detail;
-  return [];
+// Same number as the Actions tab on the book page (openActionCount is the single source).
+function buildPreviewStats(record) {
+  const detail = getBookDetail(record.detailId);
+  return record.detailId ? [openActionLabel(openActionCount(record.detailId, detail?.actions))] : [];
 }
 
 function openSelectedBook() {

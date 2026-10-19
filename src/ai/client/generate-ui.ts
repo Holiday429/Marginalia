@@ -18,6 +18,7 @@ import { AIFeatureRegistry } from '../features/registry.ts';
 import { MarginaliaAI, AI_QUOTA_EXCEEDED } from '../../services/ai-gateway.ts';
 import { openCheckout } from '../../services/billing.ts';
 import { MarginaliaGraph } from '../../core/graph-data.ts';
+import { renderIntroCardHtml } from '../../book/intro-card-render.ts';
 
 const FALLBACK_PROMPT_VERSION = '1';
 const AI_MODEL_LABEL = 'deepseek-chat';
@@ -282,8 +283,10 @@ export const AIGenerateUI = (() => {
       });
     }
 
-    section.appendChild(block_el);
-    if (!fromCache) block_el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // The pre-read card belongs at the top of Overview, right under its toolbar.
+    if (feature.id === 'intro-card') section.querySelector('.ai-toolbar')?.after(block_el);
+    else section.appendChild(block_el);
+    if (!fromCache && feature.id !== 'intro-card') block_el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function openInlineEditor(
@@ -381,6 +384,9 @@ export const AIGenerateUI = (() => {
         `).join('')}</ul>`;
       }
 
+      case 'intro-card':
+        return renderIntroCardHtml(result);
+
       default:
         return `<pre class="ai-raw">${esc(JSON.stringify(result, null, 2))}</pre>`;
     }
@@ -418,5 +424,19 @@ export const AIGenerateUI = (() => {
     return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c] ?? c));
   }
 
-  return { mount };
+  /** Show a result that was saved after the page rendered (e.g. the pre-read card prepared in the background). */
+  async function refresh(book: any, root: HTMLElement, featureId: string) {
+    const feature: any = AIFeatureRegistry.forBook(book).find((f) => f.id === featureId);
+    const section = feature ? findTargetSection(root, feature) : null;
+    if (!section) return;
+    const saved = await getAiBlock(book.id, feature.id);
+    if (!saved) return;
+    injectResult(feature, book, section, resolveAiContent(saved), {
+      fromCache: false,
+      hasUserEdit: saved.userEdited !== undefined,
+      block: saved,
+    });
+  }
+
+  return { mount, refresh };
 })();

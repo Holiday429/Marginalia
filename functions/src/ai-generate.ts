@@ -11,6 +11,7 @@
 import * as Sentry from '@sentry/node';
 import * as functions from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import OpenAI from 'openai';
 import { AuditPaths, DEFAULT_WORKSPACE_ID, Paths } from './_shared/paths';
 import { handleGatewayRequest, type GatewayDeps } from './ai-handler';
@@ -55,13 +56,15 @@ export const aiGenerate = functions.onRequest(
         const { uid, ...rest } = entry as { uid: string } & Record<string, unknown>;
         if (auditPath.includes('/pending/')) auditPath = AuditPaths.aiCall(uid, String(Date.now()));
         db.doc(auditPath)
-          .set({ provider: AI_PROVIDER, model: AI_MODEL, ...rest, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true })
+          .set({ provider: AI_PROVIDER, model: AI_MODEL, ...rest, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
           .catch(() => undefined);
       },
       onModelError: (e, extra) => Sentry.captureException(e, { extra }),
       async stream(prompt, onDelta) {
         if (!apiKey) throw new Error('AI gateway not configured');
-        const client = new OpenAI({ apiKey, baseURL: 'https://api.deepseek.com' });
+        // Only the local emulator may redirect the model call (e2e uses a fake model server); a deployed function never does.
+        const baseURL = process.env.FUNCTIONS_EMULATOR === 'true' && process.env.AI_BASE_URL ? process.env.AI_BASE_URL : 'https://api.deepseek.com';
+        const client = new OpenAI({ apiKey, baseURL });
         const stream = await client.chat.completions.create({
           model: AI_MODEL,
           messages: [

@@ -123,3 +123,19 @@ export async function listHighlights(uid: string) {
     source: d.fields.source?.stringValue ?? '',
   }));
 }
+
+/** Writes (merges) integer/string fields into a Firestore emulator document, bypassing rules. */
+export async function writeDoc(path: string, fields: Record<string, number | string>): Promise<void> {
+  const body = {
+    fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, typeof v === 'number' ? { integerValue: String(v) } : { stringValue: v }])),
+  };
+  const mask = Object.keys(fields).map((k) => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+  const res = await fetch(`http://127.0.0.1:8080/v1/projects/demo-marginalia/databases/(default)/documents/${path}?${mask}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`writeDoc ${path} failed: ${res.status} ${await res.text()}`);
+}
+
+export const currentMonthKey = () => new Date().toISOString().slice(0, 7);

@@ -156,3 +156,12 @@ Room objects keep their fly-ins: laptop → Library (Browse), bookshelves → Li
 2. Phones: bottom tab bar (my recommendation: thumb reach, and it frees the top for the room) or keep a top bar?
 3. Year in review: move from Profile into Insights as proposed, or keep it on Profile?
 4. Should "Home" on the bottom bar be the room, or should phones (no 3D) land on a flat Today page instead? The plan says 3D is an iPad/desktop experience and the flat fallback already exists.
+
+### Q2.2-a — The pre-read card spends 1 of the 10 free generations on every book a reader adds (decision for you)
+Per the plan, adding a book starts one `intro-card` generation (pre-read card plus a short cultural context). A free reader who adds ten books in a month has then used the whole allowance before touching mind maps or concept cards. Imports never trigger it (2.5). Options: keep (matches the plan), give the card its own separate allowance (e.g. 20 a month, not counted against the 10), or only generate it for the first N books. I built the plan's version; changing it is one condition in `src/new-entry/new-entry.ts` plus the quota code.
+
+### Q2.2-b — Cultural context length (decision for you)
+`MARGINALIA_SPEC.md` says free users get a short version (~200 words) and Pro the full ~300-word context. The pre-read card carries one 60–90 word paragraph plus author / period / place lines for everyone. A longer Pro-only version is not built; say if you want it in this phase or with pricing.
+
+### Q2.2-c — The 30-second check was made against a fake model (needs one run by you)
+The e2e runs the real `aiGenerate` function (auth, server-built prompt, quota, audit log) but against a fake model server that answers after 0.6 s; the card appeared 4.6 s after saving the book. Real DeepSeek latency is not measured. On your dev project please add one book and check the card appears within 30 s.

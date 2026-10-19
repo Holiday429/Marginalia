@@ -10,6 +10,7 @@
 import * as crypto from 'crypto';
 import * as functions from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { Paths } from './_shared/paths';
 import { reduceBillingEvent, uidFromPayload, type BillingDoc, type LSPayload } from './billing-state';
 
@@ -108,7 +109,7 @@ export const billingWebhook = functions.onRequest(
     try {
       const outcome = await applyBillingEvent(admin.firestore() as unknown as BillingDb, payload, {
         lifetimeVariantId: process.env.LEMON_SQUEEZY_VARIANT_LIFETIME ?? '',
-        serverTime: admin.firestore.FieldValue.serverTimestamp(),
+        serverTime: FieldValue.serverTimestamp(),
       });
       console.info('[billing-webhook] event=%s outcome=%s', payload.meta?.event_name, outcome.status);
       res.status(200).json({ ok: true, ...outcome });

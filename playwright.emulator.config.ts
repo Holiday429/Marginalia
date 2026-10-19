@@ -20,6 +20,13 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' } }],
   webServer: [
     {
+      // Fake model for the real aiGenerate function running in the Functions emulator (see tests/support/mock-llm.mjs).
+      command: 'node tests/support/mock-llm.mjs',
+      url: 'http://127.0.0.1:5180/health',
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
+    {
       command: 'npx vite --mode emulator --port 5174 --strictPort',
       url: 'http://localhost:5174',
       reuseExistingServer: false,
