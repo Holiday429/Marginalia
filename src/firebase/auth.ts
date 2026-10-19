@@ -1,6 +1,7 @@
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  getAdditionalUserInfo,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -21,6 +22,7 @@ import {
 import { validateWrite, withMeta, withMetaCreate, isLegacyDoc } from '../services/db.ts';
 import { UserProfileSchema } from '../data/schema/user-profile.ts';
 import { logError, identifyUser } from '../services/analytics.ts';
+import { track } from '../services/events.ts';
 import { MARGINALIA_FIREBASE, firebaseApp, firebaseAuth, firestoreDb, firebaseStorage } from './config.ts';
 import { WsPaths } from './paths.ts';
 import { getWorkspaceId } from './workspace.ts';
@@ -332,6 +334,7 @@ export const MarginaliaAuth = (() => {
       provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(firebaseAuth, provider);
       if (result?.user) {
+        if (getAdditionalUserInfo(result)?.isNewUser) track('signup', { method: 'google' });
         await ensureUserProfile(result.user);
         clearAuthInputs();
         closeGate();
@@ -347,14 +350,13 @@ export const MarginaliaAuth = (() => {
     if (!email.includes('@')) throw new Error('Registration requires email.');
     if (!firestoreDb || !firebaseAuth) throw new Error('Firebase is not initialized.');
 
-    const profilesCol = collection(firestoreDb, WsPaths.userProfiles(getWorkspaceId()));
-    const existing = await getDocs(query(profilesCol, where('usernameLower', '==', normalizedUsername), limit(1)));
-    if (!existing.empty) throw new Error('Username is already used.');
-
+    // No username-uniqueness pre-check: it was a query over every user's profile, which the rules
+    // (owner-only reads) always refused, so nobody could register. See docs/open-questions.md Q2.0-a.
     const result = await createUserWithEmailAndPassword(firebaseAuth, email, password);
     if (!result.user) throw new Error('Unable to create account.');
     await updateProfile(result.user, { displayName: username });
     await upsertUserProfile(result.user, { username, email }, true);
+    track('signup', { method: 'email' });
   }
 
   async function loginWithIdentity({ identity, password }: { identity: string; password: string }) {
@@ -514,7 +516,7 @@ export const MarginaliaAuth = (() => {
     if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
     if (code.includes('popup-closed-by-user')) return 'Google login was canceled.';
     if (code.includes('popup-blocked')) return 'Browser blocked popup. Please allow popups and retry.';
-    return (error as { message?: string })?.message || 'Authentication failed.';
+    return (error as { message?: string })?.message?.replace(/^\[code=[^\]]*\]:\s*/, '').trim() || 'Something went wrong. Please try again.';
   }
 
   function dispatchAuthState() {

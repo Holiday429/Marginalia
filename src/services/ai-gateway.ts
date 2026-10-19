@@ -12,7 +12,7 @@
 */
 
 import { ENV } from '../core/env.ts';
-import { logEvent } from './analytics.ts';
+import { track } from './events.ts';
 import { getIdToken } from '../firebase/auth.ts';
 
 export const AI_QUOTA_EXCEEDED = 'AI_QUOTA_EXCEEDED';
@@ -98,7 +98,7 @@ export const MarginaliaAI = (() => {
           }
         }
       }
-      logEvent('ai_generated', { featureId, provider, model });
+      track('ai_generated', { featureId, provider, model });
       onDone?.(full);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));

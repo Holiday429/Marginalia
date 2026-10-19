@@ -3,7 +3,9 @@
    ========================================================================== */
 
 import './book.css';
-import { logEvent, logError } from '../services/analytics.ts';
+import { logError } from '../services/analytics.ts';
+import { track } from '../services/events.ts';
+import { notifyBookStatusChange } from '../store/book-status-events.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { HighlightsStore } from '../store/highlights-store.ts';
 import { ActionsStore } from '../store/actions-store.ts';
@@ -279,7 +281,7 @@ async function enterBook(params = {}) {
         if (saveBtn) saveBtn.disabled = false;
         return;
       }
-      logEvent('highlight_saved', { bookId: id });
+      track('highlight_saved', { source: 'book', bookId: id, count: 1 });
       // Re-enter to rebuild merged list; new entries land at the end, so scroll to them.
       enterBook({ id, keepTab: true, focusHighlight: savedRecord?.id });
     });
@@ -481,9 +483,11 @@ async function enterBook(params = {}) {
   root.querySelector('[data-status-select]')?.addEventListener('change', async (e) => {
     const newStatus = normalizeReadingStatus(e.target.value);
     const currentBook = BooksStore.getById(id) || book;
+    const previousStatus = currentBook.status;
     BooksStore.addOptimisticBook({ ...currentBook, status: newStatus });
     try {
       await MarginaliaBooksCloud?.setBookStatus?.({ bookId: id, status: newStatus });
+      notifyBookStatusChange(id, previousStatus, newStatus);
     } catch (err) { logError(err, { context: 'book status save', bookId: id }); }
   });
 

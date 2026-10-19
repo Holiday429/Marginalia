@@ -6,6 +6,7 @@
 import { doc, setDoc, type Firestore } from 'firebase/firestore';
 import { withMetaCreate, validateWrite } from '../../services/db.ts';
 import { logEvent, logError } from '../../services/analytics.ts';
+import { track } from '../../services/events.ts';
 import { ReadingSessionSchema } from '../../data/schema/reading-session.ts';
 import { WsPaths } from '../../firebase/paths.ts';
 import { getWorkspaceId } from '../../firebase/workspace.ts';
@@ -109,7 +110,7 @@ export async function stop(): Promise<{ durationMs: number } | null> {
   }
 
   _setActive(null);
-  logEvent('reading_session_ended', { bookId: session.bookId, durationMs });
+  track('session_completed', { bookId: session.bookId, durationMs });
   // Hook for the "want to note something?" prompt (quick capture, plan task 2.1).
   window.dispatchEvent(new CustomEvent('marginalia:session-ended', {
     detail: { sessionId: session.sessionId, bookId: session.bookId, durationMs },

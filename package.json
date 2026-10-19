@@ -30,6 +30,7 @@
     "assets:optimize": "node scripts/optimize-assets.mjs",
     "legal:build": "node scripts/build-legal-pages.mjs",
     "measure:room": "node scripts/measure-room-load.mjs",
+    "analytics:dashboards": "node --experimental-strip-types --no-warnings scripts/posthog/setup-dashboards.ts",
     "check:all": "bash scripts/check-all.sh"
   },
   "size-limit": [

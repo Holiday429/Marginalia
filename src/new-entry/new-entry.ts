@@ -4,6 +4,8 @@
 
 import { doc, setDoc } from 'firebase/firestore';
 import { logEvent, logError } from '../services/analytics.ts';
+import { track } from '../services/events.ts';
+import { notifyBookStatusChange } from '../store/book-status-events.ts';
 import { withMeta, withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { PanelManager } from '../core/panel-manager.ts';
@@ -1029,8 +1031,6 @@ export const NewEntry = (() => {
       actions: existingBook?.actions || [],
     };
 
-    logEvent(isEditing ? 'book_edited' : 'book_added', { bookId: id, status });
-
     const errorEl = dialog.querySelector('#neError') as HTMLElement | null;
     const submitBtn = dialog.querySelector('#neSubmitBtn') as HTMLButtonElement | null;
     if (errorEl) errorEl.hidden = true;
@@ -1078,6 +1078,13 @@ export const NewEntry = (() => {
     } else {
       NotesStore?.saveBook(fullBook);
       BooksStore.addOptimisticBook(fullBook);
+    }
+    // Reported only now that the save has gone through (it used to fire before the write).
+    if (isEditing) {
+      logEvent('book_edited', { bookId: id, status });
+      notifyBookStatusChange(id, existingBook?.status, status);
+    } else {
+      track('book_added', { bookId: id, status, source: 'manual' });
     }
     renderSearchSection();
     // Dynamic import: keeps library-2d.ts (and its CSS) out of the eager

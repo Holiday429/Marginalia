@@ -10,6 +10,7 @@
    ========================================================================== */
 
 import { NotesStore } from '../store/notes-store.ts';
+import { track } from '../services/events.ts';
 
 interface Clipping {
   quote: string;
@@ -91,6 +92,8 @@ export const KindleImport = (() => {
         source:   'kindle',
       }));
     await NotesStore.importHighlights(bookId, highlights);
+    track('import_completed', { source: 'kindle', books: 1, highlights: highlights.length });
+    track('highlight_saved', { source: 'import', bookId, count: highlights.length });
     return highlights.length;
   }
 

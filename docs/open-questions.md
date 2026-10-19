@@ -108,3 +108,23 @@ Public book pages and the public profile try to read highlights, notes and `ai_r
 
 ### Q1.9-c — Default workspace id is now `marginalia-main` everywhere (set the same value in functions)
 Client code had two different fallbacks (`marginalia-main` in `config.ts`, `default` in ~15 other places). It is now one function (`getWorkspaceId()`), defaulting to `marginalia-main` as in `.env.example`. Production should set `VITE_WORKSPACE_ID`, so nothing changes there — but please make sure the **functions** have `WORKSPACE_ID` set to the same value (`aiGenerate` and `deleteAccount` read it; the code default is also `marginalia-main`). If your production data lives under a different id, tell me now.
+
+## Phase 2 — core loop
+
+### Q2.0-a — Username uniqueness and username login do not work under the current rules (found by 2.10; decision needed)
+Registering by email failed for everyone: `registerWithUsername` first ran a query over **all** users' `userProfiles` docs to check the username is free, and the rules (correctly) allow only the owner to read their profile, so it always returned `permission-denied` — and the failure showed no message. The same query is how "log in with a username" works, so that path is dead too (email login works). The rules have been like this since the first commit, so this is not a Phase 1 regression.
+What I changed (minimum to make sign-up work, in 2.10): removed the uniqueness pre-check and made auth errors show a readable message. Usernames are now display names and may repeat; email login is unchanged; username login is still broken.
+**Needed from you:** do you want unique usernames / username login? If yes, the safe design is a `usernames/{lowercase}` doc (`{ uid }`, public `get`, create-only by the owner) for uniqueness, and login by username through a callable function so emails are never readable by strangers. If no, drop the username field from Register and the "Email or Username" label.
+
+### Q2.10-a — PostHog dashboards need a personal API key from you (blocks: the dashboards only)
+`npm run analytics:dashboards -- --apply` creates the funnel, the weekly-active tile, retention and event volume. It needs `POSTHOG_PERSONAL_API_KEY` and `POSTHOG_PROJECT_ID` (and `POSTHOG_HOST` if you use the EU cloud — also answers Q1.8-f). I could not run it against a real project, so please check the four tiles after the first run.
+Also: the e2e proves each event leaves the browser once, with a fake key. "Each event appears once in PostHog" on your dev project still needs one manual walkthrough with the real key.
+
+### Q2.10-b — Readers who decline analytics are invisible to the retention numbers (decision for the beta)
+PostHog only starts after consent (task 1.8). For the 20 beta users, the gate metric ("half saved a highlight or answered a resurface in week 4") is computed from PostHog, so anyone who clicked Decline counts as inactive. Options: tell beta users to accept analytics (simplest), or also store `lastActiveAt` on the server for the gate only. Not built.
+
+### Q2.10-c — `email_action_clicked` is sent from the server (decision before 2.4 ships)
+A click on an email button never has the browser's consent state. If it is sent to PostHog under the user's id, it is processing of someone who may have declined analytics. Default I will build: send it only for users whose stored consent is "granted" (consent will be mirrored to the user doc when the reader chooses). Say if you would rather never send it.
+
+### Q2.10-d — PostHog autocapture and session recording are now off (decision made; confirm)
+posthog-js was running with autocapture on: every click was sent with the clicked element's text (book titles, note buttons), and the click that withdraws consent was flushed after the withdrawal. The Phase 1 consent test did not catch this because posthog-js silently drops events from automated browsers, so that test never saw real traffic. I set `autocapture: false` and `disable_session_recording: true`; only the catalogue events are sent. Say if you want autocapture or recordings back (the privacy page would then need to describe them).

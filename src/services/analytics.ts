@@ -30,8 +30,15 @@ function start(): void {
     posthog.init(ENV.POSTHOG_KEY, {
       api_host: ENV.POSTHOG_HOST ?? 'https://us.i.posthog.com',
       capture_pageview: false,
+      // Only the catalogue events in shared/analytics-events.ts are sent. Autocapture would also ship the
+      // text of every clicked element (book titles, notes) and was flushing the click that withdraws consent.
+      autocapture: false,
+      disable_session_recording: true,
       persistence: 'localStorage',
       advanced_disable_feature_flags: true, // we use no feature flags; avoids /flags requests on identify/reset
+      // posthog-js drops events from automated browsers (navigator.webdriver). The emulator e2e build
+      // must be able to see what would be sent; real builds keep the filter.
+      opt_out_useragent_filter: import.meta.env.MODE === 'emulator',
     });
     _posthogReady = true;
   }

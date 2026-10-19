@@ -58,7 +58,8 @@ export async function bodyText(page: Page): Promise<string> {
 
 /** Clicks the nav button of `name` that is actually on top (each panel renders its own nav copy). */
 export async function openView(page: Page, name: 'Search' | 'Library' | 'Map' | 'Graph' | 'Profile') {
-  const clicked = await page.evaluate((label) => {
+  // A panel that is still animating in can cover the nav for a moment, so poll instead of trying once.
+  await expect.poll(() => page.evaluate((label) => {
     const buttons = Array.from(document.querySelectorAll<HTMLElement>('button, a, [role="button"]'))
       .filter((el) => (el.textContent || '').trim() === label);
     for (const el of buttons) {
@@ -68,8 +69,7 @@ export async function openView(page: Page, name: 'Search' | 'Library' | 'Map' | 
       if (top && (el === top || el.contains(top))) { el.click(); return true; }
     }
     return false;
-  }, name);
-  expect(clicked, `nav button "${name}" is reachable`).toBe(true);
+  }, name), { message: `nav button "${name}" is reachable`, timeout: 8000, intervals: [250] }).toBe(true);
   await page.waitForTimeout(1800);
 }
 

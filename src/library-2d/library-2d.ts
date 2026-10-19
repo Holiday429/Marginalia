@@ -3,6 +3,7 @@
 import './library-2d.css';
 import { doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
+import { notifyBookStatusChange } from '../store/book-status-events.ts';
 import { validateWrite, withMeta } from '../services/db.ts';
 import { LibraryLayoutSchema } from '../data/schema/library-layout.ts';
 import { renderLibraryShell } from './library-2d-template.js';
@@ -2226,8 +2227,10 @@ function syncStatusToSource(bookKey: string, shelfId: string): void {
   // Demo visitors and demo books have no editable Firestore doc.
   if (!MarginaliaAuth.user || !BooksStore.hasOwnBooks() || BooksStore.isDemoBook(record.id)) return;
   const stored = BooksStore.getById(record.id);
+  const previousStatus = stored?.status;
   if (stored) BooksStore.addOptimisticBook({ ...stored, status });
   Promise.resolve(MarginaliaBooksCloud?.setBookStatus?.({ bookId: record.id, status }))
+    .then(() => { notifyBookStatusChange(record.id, previousStatus, status); })
     .catch((err) => logError(err instanceof Error ? err : new Error(String(err)), { context: 'Library status save', bookId: record.id }));
 }
 
