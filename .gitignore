@@ -22,3 +22,11 @@ firebase-debug.log
 
 # Original (uncompressed) 3D sources; large, kept outside Git. Optimized output goes to public/.
 assets-src/
+
+# Local caches and scratch (never commit)
+.npm-cache/
+.vite/
+/tmp/
+/reference_*/
+.DS_Store
+**/.DS_Store

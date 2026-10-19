@@ -14,10 +14,10 @@ export default defineConfig({
     baseURL: 'http://localhost:5174',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    channel: 'chrome',
+    channel: process.env.CI ? undefined : 'chrome', // CI installs Playwright's Chromium
     launchOptions: { args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] },
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel: 'chrome' } }],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' } }],
   webServer: {
     command: 'npx vite --mode emulator --port 5174 --strictPort',
     url: 'http://localhost:5174',
