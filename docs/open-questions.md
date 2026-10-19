@@ -128,3 +128,31 @@ A click on an email button never has the browser's consent state. If it is sent 
 
 ### Q2.10-d — PostHog autocapture and session recording are now off (decision made; confirm)
 posthog-js was running with autocapture on: every click was sent with the clicked element's text (book titles, note buttons), and the click that withdraws consent was flushed after the withdrawal. The Phase 1 consent test did not catch this because posthog-js silently drops events from automated browsers, so that test never saw real traffic. I set `autocapture: false` and `disable_session_recording: true`; only the catalogue events are sent. Say if you want autocapture or recordings back (the privacy page would then need to describe them).
+
+### Q2.8-a — New navigation structure (task 2.8 is BLOCKED until you confirm; I have not changed any navigation)
+Today: the room is home. Top nav has five peers: Search · Library · Map · Graph · Profile. Search (browse + filter) and Library (drag to arrange) are two views of the same books. Camera buttons (Front / Desk / Shelf Wall / Notes Wall / Free Look) sit at the bottom of the room. At 390px the top nav shows only the Map icon (Phase 1 finding), so Profile and Library are unreachable on a phone.
+
+Proposed:
+```
+Room (home, Today panel)              Top nav (≥768px)           Bottom tab bar (<768px)
+├── Today panel (over the room)       Library · Insights · Profile   Home · Library · Insights · Profile
+│   ├── Currently reading → Book
+│   ├── 3 resurfaced highlights (respond in place)
+│   ├── Due action (1)
+│   └── Start timer
+├── Library  (one view, two modes)    modes: Browse (old Search: filter/list)  |  Arrange (old Library: drag shelves)
+├── Insights (one view, three tabs)   Map · Graph · Year in review   (annual shelf moves here from Profile)
+├── Profile                           public profile, reading identity, heatmap, Settings
+└── Book (panel, opened from anywhere; always starts on Overview)
+
+Global, on every page:  + capture button (bottom right, key C)  ·  ⌘K / Ctrl+K search  ·  focus timer pill
+Settings → "Camera": Front / Desk / Shelf Wall / Notes Wall / Free Look (moved out of the room UI)
+```
+Routes: `#search`, `#library` → Library (browse / arrange mode respectively); `#map`, `#graph` → Insights tab; `#shelf`, `#studio` keep working; `#profile`, `#room` unchanged.
+Room objects keep their fly-ins: laptop → Library (Browse), bookshelves → Library (Arrange), globe → Insights/Map, tack board → Insights/Graph, picture frame → Profile, desk book → current book (or Add a book when none is being read).
+
+**Needed from you, one answer per line:**
+1. Is the structure above right (Library / Insights / Profile, Today inside the room)?
+2. Phones: bottom tab bar (my recommendation: thumb reach, and it frees the top for the room) or keep a top bar?
+3. Year in review: move from Profile into Insights as proposed, or keep it on Profile?
+4. Should "Home" on the bottom bar be the room, or should phones (no 3D) land on a flat Today page instead? The plan says 3D is an iPad/desktop experience and the flat fallback already exists.
