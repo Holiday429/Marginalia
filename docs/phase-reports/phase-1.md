@@ -11,8 +11,8 @@ Baseline on `main` before any change: lint 0 errors / 156 warnings, unit 12 pass
 | --- | --- | --- |
 | Rules tests: user writes `users/{uid}.plan` denied; writes `billing/{uid}` denied; reads own billing OK / other's denied; anon reads `users/{uid}` denied and `publicProfiles/{slug}` OK | ✅ | `npm run test:rules:emu` → 18 passed (11 new, `tests/firestore-rules.test.ts`, blocks "billing fields (1.1)" and "users/{uid} privacy and publicProfiles (1.1)") |
 | `grep -rn plan src … \| grep -i setDoc` empty; `check:entitlements` passes | ✅ | grep returns nothing; `npm run check:entitlements` exit 0 |
-| Dev project: console write of plan → `permission-denied` | ⚠ | Not run — no dev project access from this session. Same rule exercised in the emulator test "owner cannot write plan, entitlements or quota on users/{uid}". Run once after deploying rules to dev. |
-| Public profile unauthenticated shows no email/plan in network | ⚠ | Not run in a browser. By construction: anonymous visitors read only `publicProfiles/{slug}`, whose rule is `hasOnly(uid, slug, displayName, avatarUrl, bio, location, joinedAt, sections, updatedAt)` (tested: extra `email`/`plan` fields rejected), and `users/{uid}` + `users` queries are denied (tested). |
+| Console write of plan → `permission-denied` | ✅ (emulator) / ⏳ real dev project | `tests/e2e-emulator/billing-lock.spec.ts`: with a signed-in user's real ID token, the same Firestore write the browser console would send — `plan`, `entitlements` on `users/{uid}`, `billing/{uid}`, `usage/…` — returns HTTP 403, while an ordinary settings write returns 200. Not run against a real dev project (no access from this session): repeat once after deploying the rules. |
+| Public profile unauthenticated shows no email/plan in network | ✅ (emulator) | Same spec: the owner publishes through the real Settings UI; the `publicProfiles/{slug}` card contains no `email`/`plan`/`entitlements`; an anonymous request for `users/{uid}` and `billing/{uid}` returns 403; a fresh anonymous browser opens `#/p/{slug}` and shows the profile with no `@example.com` text and no page error. By construction the card rule is `hasOnly(uid, slug, displayName, avatarUrl, bio, location, joinedAt, sections, updatedAt)` (extra fields rejected in the rules tests). Not a DevTools network-tab inspection of the deployed site. |
 
 Also verified: migration 001 against the emulator (3 seeded users incl. one with forged `plan: 'lifetime'`): forged user → `billing` free and legacy fields deleted; listed user → `pro`; public user → `publicProfiles/payer` created, no `email` in it. Unit tests in `tests/migration-001.test.ts` (3 pass).
 
@@ -179,3 +179,23 @@ What changed
 - **Real bugs the new tests found** (details in Q1.9-a/b/c): five paths the app writes had no rules and were silently denied (book notes, per-book AI results, visual notes, `ai_results`, annual shelf) — rules added for the owner; the workspace id had two different fallbacks — unified to `marginalia-main`; public-profile reads of highlights / notes / portrait are denied by design (decision for you).
 - `CLAUDE.md` rewritten where it had drifted: file names (`.js` → `.ts`), the project tree (`shared/`, `functions/`, `scripts/`, `src/three/*`, demo data), the Firestore schema, the AI request model and "add a feature" steps, entitlements and the billing model, reading-session path, plus new sections "Testing and gates" and "Compliance" and the Phase 1 code rules (paths, billing, AI, demo data, assets, consent).
 - Added the Phase 1 gate smoke (`tests/e2e/smoke.spec.ts`): landing → room → Search → Library → Map → Graph → Profile → Book in one run with zero page errors.
+
+
+## Phase 1 gate
+
+| Gate item | Status | Evidence |
+| --- | --- | --- |
+| 1.1–1.9 acceptance items ticked, with evidence | ✅ for everything that can be checked in code and on the emulators; the rest is listed below as "needs Holiday / a deployment" | the sections above |
+| Playwright smoke: landing → room → Search → Library → Map → Graph → Profile → Book, `pageerror` = 0 | ✅ | `tests/e2e/smoke.spec.ts` "phase 1 gate: …" (production build, strict), in `npm run check:all` |
+| Holiday walks the subscription lifecycle with a test card, states correct | ⏳ Holiday | needs the deployed webhook + Lemon Squeezy test mode (task 1.3). Expected states = the unit tests in `functions/test/billing-webhook.test.ts` |
+
+Final `npm run check:all` on this branch: exit 0 — lint 0 errors, typecheck + room typecheck, entitlement/hard-coded/paths/docs checks, functions build, unit 82, rules + quota + deletion on emulators 61, production smoke 6, signed-in e2e on emulators 11, size budgets, `dist` 21 MB, room load 10.7 MB with 0 page errors.
+
+### Needs Holiday (nothing here has been done, deployed or merged)
+1. **Decide / answer** the items in `docs/open-questions.md` (Q1.1-a paid-user list, Q1.2-a Pro cap, Q1.3-a/b past_due/paused, Q1.5-a/b, Q1.6-a visual sign-off, Q1.7-a git history, Q1.8-a legal text, Q1.9-b/c).
+2. **Back up `assets-src/`** (≈460 MB of original 3D files; only on this machine) — Q1.6-b.
+3. **Deploy, in this order**: functions (set `ALLOWED_ORIGINS`, `WORKSPACE_ID`, secret `LEMON_SQUEEZY_VARIANT_LIFETIME`) → run `scripts/migrations/001-billing.ts` on dev, then production with `--apply` (give it your paid-user list) → deploy `firestore.rules` together with the new web build. Rules first would break the old client's public profiles; see Q1.1-b.
+4. **Run the Lemon Squeezy test-mode lifecycle** (subscribe → cancel → expire; lifetime → refund) and check `billing/{uid}` against the table in the plan.
+5. **Review and finish the Privacy / Terms text**, then set `"draft": false` in `scripts/legal/legal.config.json` and `npm run legal:build`.
+6. After the first Vercel deploy: check the `Cache-Control: immutable` headers on `/3d/*`, `/textures/*`, `/assets/*`; open the real site and confirm the consent banner, a room load and an account deletion on a throwaway account.
+7. Review the branch and tell me to merge to `main` and push (I have done neither).
