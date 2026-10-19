@@ -2,6 +2,9 @@ import './notes-wall.css';
 import { HighlightsStore } from '../../store/highlights-store.ts';
 import { BooksStore } from '../../store/books-store.ts';
 import { NotesStore } from '../../store/notes-store.ts';
+import { ResurfaceStore, type DueHighlight } from '../../store/resurface-store.ts';
+import { TIER_LABEL } from '../../../shared/resurface.ts';
+import { logError } from '../../services/analytics.ts';
 import { DEMO_HIGHLIGHTS } from '../../data/demo/index.ts';
 import type { SlotComponent } from '../../three/slots.ts';
 
@@ -45,6 +48,8 @@ interface WallFollowUp {
 interface WallData {
   now: Date;
   quote: WallQuote | null;
+  /** Up to three highlights due for another look today (spaced resurface, plan 2.4). */
+  resurface: DueHighlight[];
   todos: WallTodo[];
   activeTodos: WallTodo[];
   followUps: WallFollowUp[];
@@ -133,6 +138,7 @@ export function createNotesWallComponent(): SlotComponent {
   let pendingFocusTodoId: string | null = null;
   let removingIds = new Set<string>();
   let renderToken = 0;
+  let thoughtFor: string | null = null;
 
   function loadHighlights(): WallQuote[] {
     // Authenticated: read live highlights from HighlightsStore, join bookTitle from BooksStore.
@@ -178,6 +184,7 @@ export function createNotesWallComponent(): SlotComponent {
     return {
       now,
       quote: pickTodayQuote(allHighlights),
+      resurface: ResurfaceStore.due(3),
       todos,
       activeTodos: todos.filter((todo) => todo.status !== 'done' && !isFollowUp(todo)),
       followUps,
@@ -199,12 +206,13 @@ export function createNotesWallComponent(): SlotComponent {
   function renderQuoteZone(data: WallData): string {
     const date = formatBoardDate(data.now);
     const quote = data.quote;
+    const due = data.resurface;
 
     return `
       <section class="notes-zone notes-zone--quote">
-        ${renderZoneTag('Quotes of the Day', 'quote')}
+        ${renderZoneTag(due.length ? 'Worth another look' : 'Quotes of the Day', 'quote')}
         <button
-          class="calendar-card${quote ? '' : ' is-empty'}"
+          class="calendar-card${quote || due.length ? '' : ' is-empty'}"
           type="button"
           data-open-card="quote"
         >
@@ -215,7 +223,14 @@ export function createNotesWallComponent(): SlotComponent {
           <span class="calendar-card__day">${esc(date.day)}</span>
           <span class="calendar-card__weekday">${esc(date.weekday)}</span>
           ${
-            quote
+            due.length
+              ? `
+                <ul class="calendar-card__due" data-resurface-list>
+                  ${due.map((h) => `<li class="calendar-card__due-item" data-resurface-id="${esc(h.id)}">${esc(h.quote.length > 70 ? `${h.quote.slice(0, 67)}…` : h.quote)}</li>`).join('')}
+                </ul>
+                <p class="calendar-card__source">${esc(due.length === 1 ? '1 to revisit' : `${due.length} to revisit`)}</p>
+              `
+              : quote
               ? `
                 <p class="calendar-card__quote">${esc(quote.quote)}</p>
                 <p class="calendar-card__source">— ${esc(quote.bookTitle)}</p>
@@ -316,7 +331,9 @@ export function createNotesWallComponent(): SlotComponent {
             </div>
           </div>
           ${
-            quote
+            data.resurface.length
+              ? renderResurfaceList(data.resurface)
+              : quote
               ? `
                 <p class="quote-detail__body">${esc(quote.quote)}</p>
                 <p class="quote-detail__source">— ${esc(quote.bookTitle)}</p>
@@ -328,6 +345,34 @@ export function createNotesWallComponent(): SlotComponent {
         </div>
       </article>
     `;
+  }
+
+  function renderResurfaceList(items: DueHighlight[]): string {
+    return `
+      <ul class="rs-list" data-resurface-overlay>
+        ${items.map((h) => `
+          <li class="rs-item" data-rs-id="${esc(h.id)}" data-rs-tier="${esc(h.tier)}">
+            <p class="rs-tier">${esc(TIER_LABEL[h.tier])}</p>
+            <p class="rs-quote">${esc(h.quote)}</p>
+            <p class="rs-source">${h.bookTitle ? `— ${esc(h.bookTitle)}` : 'Not attributed to a book yet'}</p>
+            ${
+              thoughtFor === h.id
+                ? `
+                  <form class="rs-thought" data-rs-thought-form>
+                    <textarea class="rs-thought__input" rows="2" maxlength="400" placeholder="What do you think now?" aria-label="Add a thought"></textarea>
+                    <button type="submit" class="rs-btn rs-btn--primary">Save thought</button>
+                    <button type="button" class="rs-btn" data-rs-thought-cancel>Cancel</button>
+                  </form>`
+                : `
+                  <div class="rs-actions">
+                    <button type="button" class="rs-btn" data-rs-rate="resonates">Still holds</button>
+                    <button type="button" class="rs-btn" data-rs-rate="thought">Add a thought</button>
+                    <button type="button" class="rs-btn" data-rs-rate="action">Turn into action</button>
+                    <button type="button" class="rs-btn" data-rs-rate="dismiss">Stop reminding</button>
+                  </div>`
+            }
+          </li>`).join('')}
+      </ul>`;
   }
 
   function renderTodoOverlay(data: WallData): string {
@@ -563,6 +608,17 @@ export function createNotesWallComponent(): SlotComponent {
       return;
     }
 
+    const rateBtn = target.closest('[data-rs-rate]') as HTMLElement | null;
+    if (rateBtn) {
+      const item = rateBtn.closest('[data-rs-id]') as HTMLElement | null;
+      if (!item) return;
+      const rating = rateBtn.dataset.rsRate as 'resonates' | 'thought' | 'action' | 'dismiss';
+      if (rating === 'thought') { thoughtFor = item.dataset.rsId || null; render(); return; }
+      void answerResurface(item, rating, '');
+      return;
+    }
+    if (target.closest('[data-rs-thought-cancel]')) { thoughtFor = null; render(); return; }
+
     const completeTrigger = target.closest('[data-complete-followup]') as HTMLElement | null;
     if (completeTrigger) {
       completeFollowUp(completeTrigger.dataset.completeFollowup || '');
@@ -591,6 +647,27 @@ export function createNotesWallComponent(): SlotComponent {
       };
       render();
     }
+  }
+
+  async function answerResurface(item: HTMLElement, rating: 'resonates' | 'thought' | 'action' | 'dismiss', thought: string): Promise<void> {
+    const id = item.dataset.rsId || '';
+    const tier = item.dataset.rsTier as '7d' | '30d' | '90d';
+    try {
+      await ResurfaceStore.respond(id, tier, rating, thought);
+    } catch (err) {
+      logError(err, { context: 'resurface respond', id, rating });
+    }
+    thoughtFor = null;
+    render();
+  }
+
+  function handleSubmit(event: Event): void {
+    const form = event.target as HTMLElement;
+    if (!form.matches('[data-rs-thought-form]')) return;
+    event.preventDefault();
+    const item = form.closest('[data-rs-id]') as HTMLElement | null;
+    const text = (form.querySelector('textarea') as HTMLTextAreaElement | null)?.value ?? '';
+    if (item) void answerResurface(item, 'thought', text);
   }
 
   function handleKeyDown(event: KeyboardEvent): void {
@@ -628,6 +705,7 @@ export function createNotesWallComponent(): SlotComponent {
       containerRef = container;
       containerRef.classList.add('notes-wall-root');
       containerRef.addEventListener('click', handleClick);
+      containerRef.addEventListener('submit', handleSubmit);
       containerRef.addEventListener('keydown', handleKeyDown as EventListener);
       containerRef.addEventListener('focusout', handleFocusOut as EventListener);
       render();
@@ -648,6 +726,7 @@ export function createNotesWallComponent(): SlotComponent {
       }
       if (containerRef) {
         containerRef.removeEventListener('click', handleClick);
+        containerRef.removeEventListener('submit', handleSubmit);
         containerRef.removeEventListener('keydown', handleKeyDown as EventListener);
         containerRef.removeEventListener('focusout', handleFocusOut as EventListener);
         containerRef.innerHTML = '';

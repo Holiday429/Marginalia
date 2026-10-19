@@ -6,5 +6,5 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const file = resolve(dirname(fileURLToPath(import.meta.url)), '../functions/.secret.local');
-writeFileSync(file, 'AI_API_KEY=fake-key-for-emulator-tests\n');
+writeFileSync(file, 'AI_API_KEY=fake-key-for-emulator-tests\nEMAIL_LINK_SECRET=emulator-link-secret\n');
 process.stdout.write(`wrote ${file}\n`);

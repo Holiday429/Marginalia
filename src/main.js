@@ -58,6 +58,7 @@ import { initReadingSession, teardownReadingSession } from './components/reading
 import { mountFocusWidget } from './components/reading-session/focus-widget.ts';
 import { mountQuickCapture } from './components/quick-capture/quick-capture.ts';
 import { mountFinishRitual } from './components/finish-ritual/finish-ritual.ts';
+import { startConsentSync } from './services/consent-sync.ts';
 import { mountCapturesPill } from './components/quick-capture/captures-drawer.ts';
 import './components/reading-session/reading-session.css';
 import './components/action-notifications/action-notifications.css';
@@ -133,4 +134,4 @@ window.addEventListener('marginalia:auth-changed', (event) => {
 });
 
 // Mount global focus widget once on DOM ready
-document.addEventListener('DOMContentLoaded', () => { mountFocusWidget(); mountQuickCapture(); mountCapturesPill(); mountFinishRitual(); });
+document.addEventListener('DOMContentLoaded', () => { mountFocusWidget(); mountQuickCapture(); mountCapturesPill(); mountFinishRitual(); startConsentSync(); });

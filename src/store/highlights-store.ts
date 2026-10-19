@@ -13,6 +13,7 @@ import { validateWrite, withMeta } from '../services/db.ts';
 import { HighlightSchema } from '../data/schema/highlight.ts';
 import { WsPaths } from '../firebase/paths.ts';
 import { getWorkspaceId } from '../firebase/workspace.ts';
+import { backfillSchedule, scheduleFrom } from '../../shared/resurface.ts';
 
 type FirestoreDB = Firestore;
 
@@ -44,9 +45,36 @@ function _collectionRef(): CollectionReference | null {
   return collection(_db, WsPaths.highlights(getWorkspaceId(), _uid));
 }
 
+const RESURFACE_KEYS = [
+  'resurface7At', 'resurface30At', 'resurface90At', 'resurfaced7', 'resurfaced30', 'resurfaced90',
+  'resurfaceRating', 'resurfaceRespondedAt', 'lastSurfacedAt',
+];
+
+/**
+ * The review schedule (plan 2.4) is written once, when a highlight is first saved here. A save of a
+ * highlight that already has one (editing its comment, answering a resurface) must never reset it, so the
+ * stored schedule wins over whatever copy the caller holds; `explicit` lets the resurface store write answers.
+ */
+function _withSchedule(record: Record<string, unknown>, explicit: boolean): Record<string, unknown> {
+  if (explicit) return record;
+  const id = String(record.id);
+  const existing = _highlights.find((h) => h.id === id);
+  const out = { ...record };
+  if (existing && typeof existing.resurface7At === 'number') {
+    RESURFACE_KEYS.forEach((k) => delete out[k]);
+    return out;
+  }
+  if (typeof out.resurface7At === 'number') return out;
+  const now = Date.now();
+  const created = Number(out.createdAt) || now;
+  // A fresh manual or quick highlight comes back a week after it was saved; imported and older ones are spread out.
+  const fresh = now - created < 5 * 60_000 && (out.source === 'manual' || out.source === 'quick' || out.source === undefined);
+  return { ...out, ...(fresh ? scheduleFrom(created) : backfillSchedule(id, now)) };
+}
+
 /** Validate, then drop undefined fields (Firestore rejects them). */
-function _toPayload(record: Record<string, unknown>) {
-  const validated = validateWrite(HighlightSchema, record) as Record<string, unknown>;
+function _toPayload(record: Record<string, unknown>, explicit = false) {
+  const validated = validateWrite(HighlightSchema, _withSchedule(record, explicit)) as Record<string, unknown>;
   const clean = Object.fromEntries(Object.entries(validated).filter(([, v]) => v !== undefined));
   return withMeta(clean);
 }
@@ -77,10 +105,10 @@ function initWithUser(uid: string, db: FirestoreDB): void {
 }
 
 /** Upsert one highlight. No-op when signed out (local IndexedDB copy is the record). */
-async function save(record: Record<string, unknown> & { id: string }): Promise<void> {
+async function save(record: Record<string, unknown> & { id: string }, opts: { explicitResurface?: boolean } = {}): Promise<void> {
   const ref = _collectionRef();
   if (!ref) return;
-  await setDoc(doc(ref, record.id), _toPayload(record), { merge: true });
+  await setDoc(doc(ref, record.id), _toPayload(record, opts.explicitResurface === true), { merge: true });
 }
 
 /** Upsert many highlights (Kindle import). */

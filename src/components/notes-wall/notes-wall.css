@@ -707,3 +707,57 @@
     transform: scale(0.94);
   }
 }
+
+/* Spaced resurface (plan 2.4): the wall card lists what is due, the overlay answers it. */
+.calendar-card__due {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.calendar-card__due-item {
+  font-family: var(--font-serif);
+  font-size: var(--fs-13);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.rs-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 18px; max-height: 340px; overflow-y: auto; }
+
+.rs-item { padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+
+.rs-tier { margin: 0 0 4px; font-family: var(--font-mono); font-size: var(--fs-11); color: var(--muted); }
+
+.rs-quote { margin: 0 0 4px; font-family: var(--font-serif); font-size: var(--fs-16); line-height: 1.5; }
+
+.rs-source { margin: 0 0 10px; font-family: var(--font-mono); font-size: var(--fs-11); color: var(--muted); }
+
+.rs-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.rs-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  cursor: pointer;
+}
+
+.rs-btn--primary { background: var(--color-ink); color: var(--color-paper); }
+
+.rs-thought { display: grid; gap: 8px; }
+
+.rs-thought__input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  font-family: var(--font-serif);
+  font-size: 16px;
+}

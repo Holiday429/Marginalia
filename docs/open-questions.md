@@ -171,3 +171,27 @@ The e2e runs the real `aiGenerate` function (auth, server-built prompt, quota, a
 - The ritual opens for every move into "finished" except a book that already has a record: finishing (answered or skipped) is remembered per book, so marking it finished again never asks again. Adding a book that is already marked finished is not a transition and does not ask. Escape or a click outside counts as Skip.
 - The ritual is for signed-in readers with their own books (it needs the AI gateway); signed-out demo visitors never see it.
 - No migration for `moments/{bookId}`: it is a new collection with no existing data.
+
+### Q2.4-a — Email provider and sender domain: what I need from you (blocks: real sending only)
+Everything except the actual delivery is built and tested: the four answers, signed one-time links (14 days; unsubscribe links 180 days), the weekly content (up to 3 due highlights + 1 due action), unsubscribe, the send-day setting, and the action reminders now travelling in the same email. Delivery goes through an `EmailSender` interface (`functions/src/digest/types.ts`); a mock sender is used locally and in tests. **The place to plug in a real provider is `createEmailSender()` in `functions/src/digest/senders.ts`** (commented cases for Resend and Postmark). Until `EMAIL_PROVIDER` names a real, wired provider the scheduled function logs "no email provider configured" and sends nothing, so deploying it is safe.
+
+Please provide / decide:
+1. **Provider** (Resend or Postmark are the usual picks) and an account; then tell me, and I write the ~30-line sender.
+2. **Sender address and domain** (`EMAIL_FROM`, e.g. `hello@yourdomain`) and the **DNS records** your provider asks for (SPF, DKIM, and a DMARC policy). Without them mail lands in spam.
+3. **Secrets** (Firebase secrets, never in git): `EMAIL_API_KEY` and `EMAIL_LINK_SECRET` (a long random string; it signs every link, rotating it invalidates links already sent).
+4. **URLs** for the function environment: `EMAIL_ACTION_BASE_URL` (the public URL of the deployed `emailAction` function) and `APP_BASE_URL` (the web app).
+5. **A postal address** for the email footer (`EMAIL_POSTAL_ADDRESS`); CAN-SPAM and similar laws expect one in commercial email.
+6. Optional: `POSTHOG_KEY` / `POSTHOG_HOST` for the server-side `email_action_clicked` event (Q2.10-c).
+7. The **privacy page** must name the email provider as a processor (Q1.8-a); I will add the row once you pick one.
+
+### Q2.4-b — Weekly email is opt-in, off by default (decision made; confirm)
+A reader has to switch it on in Profile → Settings → Weekly email. I chose opt-in because it is the safe default legally and for trust. The cost for the beta: nobody gets the email until they turn it on, so the retention loop depends on the first-run guide (2.9) asking for it, or on you telling the 20 beta users to switch it on. Say if you want it on by default for new accounts (then a consent line at sign-up is advisable).
+
+### Q2.4-c — Link scanners can "click" the buttons (known limitation, your call)
+Some corporate mail scanners open every link in an email. A prefetch of "Still holds" would answer it for the reader, and because links are single-use the reader's real click then says "already handled". The plan asks for one-click answers, so I built it that way (the "Add a thought" link is safe: it only shows a form first). If this shows up in the beta, the fix is to show a confirm button on the page before applying; it costs one extra click.
+
+### Q2.4-d — "Send on" is a UTC weekday; no per-reader time zone yet
+The daily job runs at 07:00 UTC and sends to readers whose chosen weekday (UTC) is today, at most once every 5 days. Readers far from UTC may get it on the evening before or the morning after their chosen day. The user document has no time zone today; say if you want one captured (the browser knows it).
+
+### Q2.4-e — Existing highlights and the production run of migration 002 (needs you)
+`scripts/migrations/002-resurface-fields.ts` gives every existing highlight a schedule (first review spread over the next 7 days by highlight id, so 300 old highlights do not become 300 things on day one). It is idempotent, never overwrites a schedule that exists, and defaults to a dry run. I ran it only against the emulator. Run it on dev first, then production with `--apply`, **after** deploying the new web build (highlights saved by the old build have no schedule until the script runs).

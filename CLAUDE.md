@@ -95,6 +95,8 @@ src/
 │   ├── notes-store.ts      — IndexedDB (+ Firestore flush): highlights, notes, actions, ai-results, user-books
 │   ├── actions-store.ts    — Firestore actions collection listener
 │   ├── captures-store.ts   — quick captures = highlights with source 'quick' and bookId '' until attributed; device-first with an outbox (capture-outbox.ts)
+│   ├── resurface-store.ts  — due highlights (up to 3) + the four answers (shared/resurface.ts has the schedule logic)
+│   ├── moments-store.ts    — finish ritual record per book (moments/{bookId})
 │   ├── book-status-events.ts — notifyBookStatusChange(): the one hook for "moved into finished" (analytics now, finish ritual in 2.3)
 │   ├── ai-results-store.ts — Cached AI output store
 │   └── entitlements-store.ts — reads billing/{uid} → entitlements (never writes)

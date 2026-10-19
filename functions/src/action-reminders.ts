@@ -1,4 +1,6 @@
 /* Marginalia · Action Reminders — scheduled Cloud Function
+   IN-APP ONLY: this writes notification documents for the in-app badge and never sends email. Email
+   reminders for actions come through the weekly digest (weekly-digest.ts), which includes one due action.
    Runs daily. Scans all open/snoozed actions across all users and fires
    tiered reminders at 7 / 30 / 90 days after creation (or after last snooze).
 

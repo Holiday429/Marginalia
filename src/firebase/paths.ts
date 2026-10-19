@@ -17,6 +17,8 @@ export const GroupNames = {
 export const Paths = {
   /** Account-level metadata the user may edit (settings, avatar). Never holds billing fields. */
   user: (uid: string) => `users/${uid}`,
+  /** The collection of account documents (queried by Cloud Functions, e.g. the weekly digest). */
+  users: () => 'users',
   /** Server-only AI/rate-limit state under the user doc. */
   rateLimit: (uid: string) => `users/${uid}/rateLimits/ai`,
   /** Server-written billing state. Clients may only read their own. */
@@ -29,6 +31,10 @@ export const Paths = {
   publicProfiles: () => 'publicProfiles',
   /** Webhook events that could not be mapped to a user (server-only, support use). */
   billingOrphans: () => 'billing_orphans',
+  /** One-time email-link ledger: a document per link already used (server-only). */
+  emailToken: (jti: string) => `email_tokens/${jti}`,
+  /** Local/dev mailbox written by the mock email sender (server-only; never used in production). */
+  mailOutbox: (id: string) => `mail_outbox/${id}`,
 } as const;
 
 /** Per-user data lives under workspaces/{ws}/users/{uid}. */

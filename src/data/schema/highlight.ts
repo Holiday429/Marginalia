@@ -12,6 +12,16 @@ export const HighlightSchema = z.object({
   source:    z.enum(['manual', 'quick', 'kindle', 'notion', 'apple-books']).default('manual'),
   createdAt: z.number().optional(),
   updatedAt: z.number().optional(),
+  // Spaced resurface (plan 2.4); see shared/resurface.ts. Written when a highlight is first saved.
+  resurface7At:   z.number().optional(),
+  resurface30At:  z.number().optional(),
+  resurface90At:  z.number().optional(),
+  resurfaced7:    z.boolean().optional(),
+  resurfaced30:   z.boolean().optional(),
+  resurfaced90:   z.boolean().optional(),
+  resurfaceRating:      z.enum(['resonates', 'thought', 'action', 'dismiss']).optional(),
+  resurfaceRespondedAt: z.number().optional(),
+  lastSurfacedAt:       z.number().optional(),
 }).passthrough();
 
 export type Highlight = z.infer<typeof HighlightSchema>;

@@ -114,6 +114,19 @@ async function saveProfilePublic(value: boolean): Promise<void> {
   logEvent('profile_visibility_changed', { public: value });
 }
 
+export interface DigestPrefs { enabled: boolean; day: number }
+const DEFAULT_DIGEST: DigestPrefs = { enabled: false, day: 1 };
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+async function saveDigestPrefs(prefs: DigestPrefs): Promise<void> {
+  const db = getDb();
+  const uid = getUserId();
+  if (!db || !uid) return;
+  const day = Math.min(6, Math.max(0, Math.trunc(prefs.day)));
+  await setDoc(doc(db, Paths.user(uid)), { settings: { digest: { enabled: prefs.enabled === true, day } } }, { merge: true });
+  logEvent('digest_preferences_changed', { enabled: prefs.enabled, day });
+}
+
 async function saveShareInProfile(bookId: string, value: boolean): Promise<void> {
   const auth = getAuth();
   const uid = getUserId();
@@ -137,6 +150,7 @@ interface UserSettings {
   slug?: string;
   profilePublic?: boolean;
   language?: string;
+  digest?: DigestPrefs;
   profileSections?: {
     map?: boolean;
     portrait?: boolean;
@@ -157,6 +171,7 @@ async function loadUserSettings(): Promise<UserSettings> {
       profilePublic: settings.profilePublic ?? false,
       language: settings.language ?? 'en',
       profileSections: settings.profileSections ?? {},
+      digest: { ...DEFAULT_DIGEST, ...(settings.digest ?? {}) },
     };
   } catch (err) {
     logError(err instanceof Error ? err : new Error(String(err)), { context: 'loadUserSettings' });
@@ -178,7 +193,7 @@ export async function renderProfileSettings(container: HTMLElement): Promise<voi
   ]);
 
   const lang = settings.language ?? 'en';
-  container.innerHTML = settingsHTML(settings.slug ?? '', settings.profilePublic ?? false, books, lang, settings.profileSections ?? {});
+  container.innerHTML = settingsHTML(settings.slug ?? '', settings.profilePublic ?? false, books, lang, settings.profileSections ?? {}, settings.digest ?? DEFAULT_DIGEST);
   bindSettingsEvents(container, settings.slug ?? '');
 }
 
@@ -196,6 +211,7 @@ function settingsHTML(
   books: ReturnType<typeof BooksStore.getAll>,
   lang: string,
   sections: Record<string, boolean>,
+  digest: DigestPrefs,
 ): string {
   const bookRows = books
     .slice()
@@ -283,6 +299,23 @@ function settingsHTML(
         </div>
       </section>
 
+      <section class="prof-settings__section" id="profDigestSection">
+        <h3 class="prof-settings__subheading">Weekly email</h3>
+        <label class="prof-settings__label prof-toggle-label">
+          <span>Send me a weekly reminder</span>
+          <span class="prof-toggle-wrap">
+            <input type="checkbox" class="prof-toggle-input" id="profDigestToggle" ${digest.enabled ? 'checked' : ''}>
+            <span class="prof-toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
+        <p class="prof-settings__hint">One email a week with up to three highlights worth another look and one action that is due. Nothing is sent in a week when nothing is due. Every email has an unsubscribe link.</p>
+        <label class="prof-settings__label" for="profDigestDay">Send it on</label>
+        <select class="prof-lang-select" id="profDigestDay" ${digest.enabled ? '' : 'disabled'}>
+          ${WEEKDAYS.map((name, i) => `<option value="${i}" ${digest.day === i ? 'selected' : ''}>${name}</option>`).join('')}
+        </select>
+        <p class="prof-settings__hint" id="profDigestStatus" aria-live="polite"></p>
+      </section>
+
       <section class="prof-settings__section">
         <h3 class="prof-settings__subheading">Library export</h3>
         <p class="prof-settings__hint">Download your full library and notes from the settings menu instead of the old booklist page.</p>
@@ -323,6 +356,23 @@ function bindSettingsEvents(container: HTMLElement, initialSlug: string): void {
       langSelect.value = prev; // revert
     }
   });
+
+  const digestToggle = container.querySelector<HTMLInputElement>('#profDigestToggle');
+  const digestDay = container.querySelector<HTMLSelectElement>('#profDigestDay');
+  const digestStatus = container.querySelector<HTMLElement>('#profDigestStatus');
+  const persistDigest = async () => {
+    if (!digestToggle || !digestDay) return;
+    digestDay.disabled = !digestToggle.checked;
+    try {
+      await saveDigestPrefs({ enabled: digestToggle.checked, day: Number(digestDay.value) });
+      if (digestStatus) digestStatus.textContent = digestToggle.checked ? `Saved. Your next email comes on ${WEEKDAYS[Number(digestDay.value)]} (UTC), if something is due.` : 'Saved. No weekly email.';
+    } catch (err) {
+      logError(err instanceof Error ? err : new Error(String(err)), { context: 'saveDigestPrefs' });
+      if (digestStatus) digestStatus.textContent = 'Could not save. Check your connection and try again.';
+    }
+  };
+  digestToggle?.addEventListener('change', () => { void persistDigest(); });
+  digestDay?.addEventListener('change', () => { void persistDigest(); });
 
   container.querySelector('#profExportJsonBtn')?.addEventListener('click', () => {
     handleExport('json', exportNote);

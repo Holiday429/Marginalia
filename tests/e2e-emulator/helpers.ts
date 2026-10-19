@@ -125,9 +125,9 @@ export async function listHighlights(uid: string) {
 }
 
 /** Writes (merges) integer/string fields into a Firestore emulator document, bypassing rules. */
-export async function writeDoc(path: string, fields: Record<string, number | string>): Promise<void> {
+export async function writeDoc(path: string, fields: Record<string, number | string | boolean>): Promise<void> {
   const body = {
-    fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, typeof v === 'number' ? { integerValue: String(v) } : { stringValue: v }])),
+    fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, typeof v === 'number' ? { integerValue: String(v) } : typeof v === 'boolean' ? { booleanValue: v } : { stringValue: v }])),
   };
   const mask = Object.keys(fields).map((k) => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
   const res = await fetch(`http://127.0.0.1:8080/v1/projects/demo-marginalia/databases/(default)/documents/${path}?${mask}`, {
@@ -139,3 +139,25 @@ export async function writeDoc(path: string, fields: Record<string, number | str
 }
 
 export const currentMonthKey = () => new Date().toISOString().slice(0, 7);
+
+/** Plain values of a Firestore REST document (integers, strings, booleans only). */
+export function plain(fields: Record<string, any> | undefined): Record<string, number | string | boolean> {
+  const out: Record<string, number | string | boolean> = {};
+  for (const [k, v] of Object.entries(fields ?? {})) {
+    if ('integerValue' in v) out[k] = Number(v.integerValue);
+    else if ('stringValue' in v) out[k] = v.stringValue;
+    else if ('booleanValue' in v) out[k] = v.booleanValue;
+  }
+  return out;
+}
+
+/** Seeds a highlight whose first review moment is already due. */
+export async function seedDueHighlight(uid: string, id: string, bookId: string, quote: string, over: Record<string, number | string | boolean> = {}): Promise<void> {
+  const DAY = 86_400_000;
+  const now = Date.now();
+  await writeDoc(`workspaces/${WS}/users/${uid}/highlights/${id}`, {
+    bookId, quote, source: 'manual', createdAt: now - 8 * DAY, updatedAt: now - 8 * DAY,
+    resurface7At: now - DAY, resurface30At: now + 22 * DAY, resurface90At: now + 82 * DAY,
+    resurfaced7: false, resurfaced30: false, resurfaced90: false, ...over,
+  });
+}

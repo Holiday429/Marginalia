@@ -21,6 +21,7 @@ const U = OWNER;
 export const CASES = {
   Paths: {
     user: { doc: Paths.user(U), access: 'owner-rw', data: { settings: { language: 'en' } } },
+    users: { doc: `${Paths.users()}/${U}`, access: 'owner-rw', data: { settings: { language: 'en' } } },
     rateLimit: { doc: Paths.rateLimit(U), access: 'server-only' },
     billing: { doc: Paths.billing(U), access: 'owner-read-server-write' },
     usageMonth: { doc: Paths.usageMonth(U, '2026-10'), access: 'owner-read-server-write' },
@@ -28,6 +29,8 @@ export const CASES = {
     publicProfile: { doc: Paths.publicProfile('probe-slug'), access: 'public-read-owner-write', data: { uid: U, displayName: 'P' } },
     publicProfiles: { doc: `${Paths.publicProfiles()}/probe-two`, access: 'public-read-owner-write', data: { uid: U, displayName: 'P' } },
     billingOrphans: { doc: `${Paths.billingOrphans()}/o1`, access: 'server-only' },
+    emailToken: { doc: Paths.emailToken('j1'), access: 'server-only' },
+    mailOutbox: { doc: Paths.mailOutbox('m1'), access: 'server-only' },
   },
   WsPaths: {
     user: { doc: WsPaths.user(WS, U), access: 'server-only' },
