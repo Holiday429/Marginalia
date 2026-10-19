@@ -17,11 +17,17 @@ export async function createUser(email: string, password: string): Promise<strin
 
 /** Lists documents of a collection through the Firestore emulator REST API (bypasses rules). */
 export async function listDocs(path: string): Promise<Array<{ id: string; fields: Record<string, any> }>> {
-  const res = await fetch(`http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/${path}`, {
-    headers: { Authorization: 'Bearer owner' },
-  });
-  const json = (await res.json()) as { documents?: Array<{ name: string; fields: Record<string, any> }> };
-  return (json.documents ?? []).map((d) => ({ id: d.name.split('/').pop()!, fields: d.fields }));
+  const out: Array<{ id: string; fields: Record<string, any> }> = [];
+  let pageToken = '';
+  do {
+    const res = await fetch(`http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/${path}?pageSize=300${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`, {
+      headers: { Authorization: 'Bearer owner' },
+    });
+    const json = (await res.json()) as { documents?: Array<{ name: string; fields: Record<string, any> }>; nextPageToken?: string };
+    for (const d of json.documents ?? []) out.push({ id: d.name.split('/').pop()!, fields: d.fields });
+    pageToken = json.nextPageToken ?? '';
+  } while (pageToken);
+  return out;
 }
 
 export async function skipPreloader(page: Page) {

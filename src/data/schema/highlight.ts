@@ -9,7 +9,7 @@ export const HighlightSchema = z.object({
   page:      z.number().nullable().optional(),
   chapter:   z.string().nullable().optional(),
   kind:      z.enum(['highlight', 'note', 'bookmark', 'concept', 'argument', 'critique', 'action']).nullable().optional(),
-  source:    z.enum(['manual', 'quick', 'kindle', 'notion', 'apple-books']).default('manual'),
+  source:    z.enum(['manual', 'quick', 'kindle', 'readwise', 'weread', 'notion', 'apple-books']).default('manual'),
   createdAt: z.number().optional(),
   updatedAt: z.number().optional(),
   // Spaced resurface (plan 2.4); see shared/resurface.ts. Written when a highlight is first saved.

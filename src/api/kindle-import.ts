@@ -11,70 +11,16 @@
 
 import { NotesStore } from '../store/notes-store.ts';
 import { track } from '../services/events.ts';
+import { parseClippingsRaw, type KindleBookEntry, type KindleClipping } from './import/kindle.ts';
 
-interface Clipping {
-  quote: string;
-  page: number | null;
-  location: string | null;
-  kind: 'note' | 'bookmark' | 'highlight';
-  source: 'kindle';
-}
-
-interface BookEntry {
-  title: string;
-  author: string;
-  clippings: Clipping[];
-}
+type Clipping = KindleClipping;
+type BookEntry = KindleBookEntry;
 
 export const KindleImport = (() => {
-  const SEPARATOR = '==========';
-
   // ── Parser ───────────────────────────────────────────────────────────────
 
   function parse(text: string): { books: Map<string, BookEntry> } {
-    const entries = text.split(SEPARATOR).map(s => s.trim()).filter(Boolean);
-    const books = new Map<string, BookEntry>();
-
-    for (const entry of entries) {
-      const lines = entry.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length < 2) continue;
-
-      const titleLine  = lines[0];
-      const metaLine   = lines[1];  // e.g. "- Your Highlight on page 12 | location 123-125 | Added on ..."
-      const quoteLines = lines.slice(2);
-      const quote      = quoteLines.join(' ').trim();
-      if (!quote) continue;
-
-      const { title, author } = parseTitleLine(titleLine);
-      const { page, location, kind } = parseMetaLine(metaLine);
-      const clipping: Clipping = { quote, page, location, kind, source: 'kindle' };
-
-      if (!books.has(title)) books.set(title, { title, author, clippings: [] });
-      books.get(title)!.clippings.push(clipping);
-    }
-
-    return { books };
-  }
-
-  function parseTitleLine(line: string): { title: string; author: string } {
-    // Format: "Title (Author Name)" or "Title - Author Name"
-    const parenMatch = line.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
-    if (parenMatch) return { title: parenMatch[1].trim(), author: parenMatch[2].trim() };
-    const dashMatch  = line.match(/^(.+?)\s*[-–—]\s*(.+)$/);
-    if (dashMatch)  return { title: dashMatch[1].trim(),  author: dashMatch[2].trim() };
-    return { title: line.trim(), author: '' };
-  }
-
-  function parseMetaLine(line: string): { page: number | null; location: string | null; kind: Clipping['kind'] } {
-    const pageMatch = line.match(/page\s+(\d+)/i);
-    const locMatch  = line.match(/location\s+([\d-]+)/i);
-    const isNote    = /your note/i.test(line);
-    const isBookmark = /your bookmark/i.test(line);
-    return {
-      page:     pageMatch  ? parseInt(pageMatch[1])  : null,
-      location: locMatch   ? locMatch[1]             : null,
-      kind:     isNote ? 'note' : isBookmark ? 'bookmark' : 'highlight',
-    };
+    return { books: parseClippingsRaw(text) };
   }
 
   // ── Import ───────────────────────────────────────────────────────────────

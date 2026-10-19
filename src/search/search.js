@@ -85,6 +85,10 @@ function bindShelfEvents() {
     refreshShelfFromSource();
   });
 
+  document.getElementById('searchImportBtn')?.addEventListener('click', () => {
+    import('../api/import/import-ui.ts').then(({ openImportDialog }) => openImportDialog());
+  });
+
   const newEntryBtn = document.getElementById('searchNewEntryBtn');
   if (newEntryBtn) {
     newEntryBtn.addEventListener('click', () => NewEntry?.mount());
@@ -284,7 +288,11 @@ function renderShelfSectionInternal() {
       <div class="shelf-empty shelf-empty--first">
         <p>Your shelf is empty. Add the first book you are reading or want to read.</p>
         <button class="shelf-empty__add" id="shelfEmptyAdd" type="button">Add a book</button>
+        <button class="shelf-empty__add" id="shelfEmptyImport" type="button">Import from Goodreads, Kindle and more</button>
       </div>`;
+    shelfHost.querySelector('#shelfEmptyImport')?.addEventListener('click', () => {
+      import('../api/import/import-ui.ts').then(({ openImportDialog }) => openImportDialog());
+    });
     shelfHost.querySelector('#shelfEmptyAdd')?.addEventListener('click', () => NewEntry?.mount());
     SHELF_STATE.selectedKey = null;
     SHELF_STATE.isExpanded = false;

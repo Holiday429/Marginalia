@@ -181,7 +181,8 @@ src/
 │   └── new-entry.ts        — NewEntry: Add Book form with spine customisation
 ├── api/
 │   ├── export.ts           — JSON/Markdown export assembler (books + highlights)
-│   └── kindle-import.ts    — KindleImport: My Clippings.txt parser + UI
+│   ├── kindle-import.ts    — KindleImport: per-book Kindle import (uses import/kindle.ts)
+│   └── import/             — unified import: pure parsers (goodreads, storygraph, readwise, weread, kindle), detect.ts, plan.ts (dedupe), build.ts, run.ts (writes), import-ui.ts (preview + confirm dialog)
 ├── shared/
 │   ├── reading-status.ts   — ReadingStatus vocabulary (Add Book, book detail, Search, Library shelves)
 │   ├── shelf-utils.ts      — containsCJK, getUnifiedShelfSpineSize

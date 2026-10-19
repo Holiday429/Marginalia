@@ -120,6 +120,14 @@ function addOptimisticBook(book: BookRecord): void {
   _emit();
 }
 
+/** Add many books with one re-render (an import of a few hundred must not redraw the shelf for each). */
+function addOptimisticBooks(books: BookRecord[]): void {
+  if (!books.length) return;
+  const incoming = new Set(books.map((b) => b.id));
+  _setVisibleBooks([...books, ..._books.filter((item) => !incoming.has(item.id))]);
+  _emit();
+}
+
 function removeBook(bookId: string): void {
   const next = _books.filter((b) => b.id !== bookId);
   if (next.length === _books.length) return;
@@ -136,6 +144,7 @@ export const BooksStore = {
   isUsingDemoData,
   isDemoBook,
   addOptimisticBook,
+  addOptimisticBooks,
   removeBook,
   getAll():                  BookRecord[]         { return _books; },
   getById(id: string):       BookRecord | undefined { return _byId[id]; },
