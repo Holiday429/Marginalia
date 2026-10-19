@@ -1,18 +1,15 @@
-/* Marginalia · unattributed captures drawer (plan 2.1)
-   A small pill ("3 unattributed") appears whenever quick captures have no book yet. It opens a list;
-   each capture can be dragged onto any book spine (Search or Library) or attributed with the picker.
+/* Marginalia · unattributed captures drawer (plan 2.1; loaded when the pill is first clicked)
+   Lists the quick captures that have no book yet; each capture can be dragged onto any book spine (Search or Library) or attributed with the picker.
    Dragging uses pointer events, so it works with a mouse, a finger and the Apple Pencil alike.
 */
 
 import './captures-drawer.css';
 import { BooksStore } from '../../store/books-store.ts';
-import { CapturesStore, CAPTURES_CHANGED_EVENT } from '../../store/captures-store.ts';
+import { CapturesStore } from '../../store/captures-store.ts';
 import { logError } from '../../services/analytics.ts';
-import { showToast } from './quick-capture.ts';
+import { showToast } from './quick-capture-sheet.ts';
 
-let pill: HTMLButtonElement | null = null;
 let drawer: HTMLElement | null = null;
-let count = 0;
 
 const esc = (value: unknown) => String(value ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
 
@@ -45,21 +42,6 @@ async function renderDrawer(): Promise<void> {
         <ul class="cd-books" data-cd-books hidden></ul>
       </li>`).join('')
     : '<li class="cd-empty">Nothing waiting. Every capture has a book.</li>';
-}
-
-function updatePill(): void {
-  if (!pill) return;
-  pill.hidden = count === 0;
-  pill.textContent = `${count} unattributed`;
-}
-
-async function refresh(): Promise<void> {
-  count = (await CapturesStore.list()).length;
-  updatePill();
-  if (drawer) {
-    if (count === 0) closeCapturesDrawer();
-    else await renderDrawer();
-  }
 }
 
 export function closeCapturesDrawer(): void {
@@ -143,17 +125,13 @@ export function openCapturesDrawer(): void {
   void renderDrawer();
 }
 
-/** Mount the pill. Call once on DOM ready. */
-export function mountCapturesPill(): void {
-  if (pill) return;
-  pill = document.createElement('button');
-  pill.type = 'button';
-  pill.className = 'cd-pill';
-  pill.hidden = true;
-  pill.setAttribute('aria-label', 'Unattributed captures');
-  pill.addEventListener('click', () => (drawer ? closeCapturesDrawer() : openCapturesDrawer()));
-  document.body.appendChild(pill);
-  window.addEventListener(CAPTURES_CHANGED_EVENT, () => { void refresh(); });
-  window.addEventListener('marginalia:auth-changed', () => { void refresh(); });
-  void refresh();
+export function isCapturesDrawerOpen(): boolean {
+  return drawer !== null;
+}
+
+/** Called by the pill whenever the number of unattributed captures changes. */
+export async function refreshCapturesDrawer(count: number): Promise<void> {
+  if (!drawer) return;
+  if (count === 0) closeCapturesDrawer();
+  else await renderDrawer();
 }

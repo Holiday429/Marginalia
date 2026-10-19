@@ -6,6 +6,7 @@ import './book.css';
 import { logError } from '../services/analytics.ts';
 import { track } from '../services/events.ts';
 import { renderTabEmptyState } from '../components/empty-state/empty-state.ts';
+import { regionName } from '../map/geo-helpers.ts';
 import { MomentsStore } from '../store/moments-store.ts';
 import { renderFinishCardBlock, buildFinishReadingCardData } from './finish-card.ts';
 import './finish-card.css';
@@ -171,6 +172,14 @@ async function enterBook(params = {}) {
   if (keepTab) root.querySelector(`.book-tab-btn[data-target="${CSS.escape(keepTab)}"]`)?.click();
   // An explicit tab only comes from the finish ritual and the Profile shelf; every other way in starts on Overview.
   if (params.tab) root.querySelector(`.book-tab-btn[data-target="${CSS.escape(String(params.tab))}"]`)?.click();
+
+  // ── Author origin (2.6) ──
+  root.querySelector('[data-geo-confirm]')?.addEventListener('click', async () => {
+    const { confirmGeo } = await import('../map/geo-resolve.ts');
+    await confirmGeo(id);
+    enterBook({ id, keepTab: true });
+  });
+  root.querySelector('[data-geo-edit]')?.addEventListener('click', () => NewEntry?.mountForEdit?.(BooksStore.getById(id) || book));
 
   // ── Finish card (2.3) ──
   root.querySelector('[data-fc-start]')?.addEventListener('click', () => {
@@ -1154,6 +1163,11 @@ function renderOverview(b) {
       k: 'Edition',
       v: esc(b.meta.edition)
     },
+    b.geo?.authorOrigin?.country && {
+      icon: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12"/></svg>`,
+      k: 'Author origin',
+      v: renderAuthorOrigin(b, isReadOnly),
+    },
     b.year && {
       icon: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5l2.5 1.5"/></svg>`,
       k: 'Published',
@@ -1361,6 +1375,17 @@ function renderOverview(b) {
 
     </section>
   `;
+}
+
+/** Where the author comes from, with a "to confirm" state for places the server worked out (plan 2.6). */
+function renderAuthorOrigin(b, isReadOnly) {
+  const origin = b.geo?.authorOrigin || {};
+  const place = [origin.city, regionName(origin.country)].filter(Boolean).join(', ');
+  const pending = !isReadOnly && b.geoStatus === 'pending';
+  return `<span data-author-origin>${esc(place)}</span>${pending ? `
+    <span class="ov-geo-pending" data-geo-pending>To confirm</span>
+    <button class="ov-field-add-btn" type="button" data-geo-confirm>Confirm</button>
+    <button class="ov-field-edit-btn" type="button" data-geo-edit>Change</button>` : ''}`;
 }
 
 /** What the reader sees while the pre-read card is not on the page yet (the finished card is injected by AIGenerateUI). */

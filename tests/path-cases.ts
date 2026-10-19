@@ -29,6 +29,8 @@ export const CASES = {
     publicProfile: { doc: Paths.publicProfile('probe-slug'), access: 'public-read-owner-write', data: { uid: U, displayName: 'P' } },
     publicProfiles: { doc: `${Paths.publicProfiles()}/probe-two`, access: 'public-read-owner-write', data: { uid: U, displayName: 'P' } },
     billingOrphans: { doc: `${Paths.billingOrphans()}/o1`, access: 'server-only' },
+    geoCache: { doc: Paths.geoCache('a-test'), access: 'server-only' },
+    geoRateLimit: { doc: Paths.geoRateLimit(U), access: 'server-only' },
     emailToken: { doc: Paths.emailToken('j1'), access: 'server-only' },
     mailOutbox: { doc: Paths.mailOutbox('m1'), access: 'server-only' },
   },

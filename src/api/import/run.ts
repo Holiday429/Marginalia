@@ -16,7 +16,9 @@ import { buildBookDoc, buildHighlightRecords, newBookId } from './build.ts';
 import { planImport, type ImportPlan, type PlanEntry } from './plan.ts';
 import type { ImportSource, ParseResult } from './types.ts';
 
-export const BOOKS_IMPORTED_EVENT = 'marginalia:books-imported';
+import { BOOKS_IMPORTED_EVENT } from './events.ts';
+
+export { BOOKS_IMPORTED_EVENT };
 const BATCH = 400;
 
 /** What the library holds right now, in the shape the planner needs. */

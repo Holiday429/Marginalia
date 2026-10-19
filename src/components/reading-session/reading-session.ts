@@ -58,7 +58,7 @@ function _setActive(session: ActiveSession | null): void {
 }
 
 /** Start a site-wide focus session. bookId is optional attribution. */
-export async function start(bookId: string | null = null): Promise<ActiveSession | null> {
+export async function start(bookId: string | null = null, opts: { withPlace?: boolean } = {}): Promise<ActiveSession | null> {
   const existing = getActive();
   if (existing) return existing;
 
@@ -83,7 +83,21 @@ export async function start(bookId: string | null = null): Promise<ActiveSession
   const session: ActiveSession = { sessionId, bookId, startedAt };
   _setActive(session);
   logEvent('reading_session_started', { bookId, startedAt });
+  if (opts.withPlace) void notePlace(sessionId, bookId);
   return session;
+}
+
+/** Optional city-level place for this session (needs the reader's permission); never blocks the timer. */
+async function notePlace(sessionId: string, bookId: string | null): Promise<void> {
+  try {
+    const { captureReadingPlace, rememberReadingPlace } = await import('./reading-place.ts');
+    const place = await captureReadingPlace();
+    if (!place) return;
+    if (_uid && _db) await setDoc(sessionRef(_db, _uid, sessionId), { place: { country: place.country, city: place.city }, _updatedAt: Date.now() }, { merge: true });
+    await rememberReadingPlace(bookId, place);
+  } catch (err) {
+    logError(err, { context: 'ReadingSession.notePlace' });
+  }
 }
 
 /** Stop the active session and return durationMs. */

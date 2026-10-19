@@ -41,6 +41,7 @@ export const BookSchema = z.object({
   updatedAt:      z.unknown().optional(), // FieldValue or number
   location:       BookLocationSchema.nullable().optional(),
   geo:            BookGeoSchema.nullable().optional(),
+  geoStatus:      z.enum(['pending', 'confirmed']).optional(), // 'pending' = placed automatically, waiting for the reader (plan 2.6)
   shareInProfile: z.boolean().optional(), // opt-in: show this book on public profile
   userNote:       z.string().max(280).optional(), // one-line personal take; shown on map bubble and overview
 }).passthrough();

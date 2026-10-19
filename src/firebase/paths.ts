@@ -31,6 +31,10 @@ export const Paths = {
   publicProfiles: () => 'publicProfiles',
   /** Webhook events that could not be mapped to a user (server-only, support use). */
   billingOrphans: () => 'billing_orphans',
+  /** Shared lookup cache for book geography (authors' birthplaces, books' settings). Server-only. */
+  geoCache: (key: string) => `geoCache/${key}`,
+  /** Server-only call counter for the geography functions. */
+  geoRateLimit: (uid: string) => `users/${uid}/rateLimits/geo`,
   /** One-time email-link ledger: a document per link already used (server-only). */
   emailToken: (jti: string) => `email_tokens/${jti}`,
   /** Local/dev mailbox written by the mock email sender (server-only; never used in production). */

@@ -57,9 +57,10 @@ import { mountActionNotifications, unmountActionNotifications } from './componen
 import { initReadingSession, teardownReadingSession } from './components/reading-session/reading-session.ts';
 import { mountFocusWidget } from './components/reading-session/focus-widget.ts';
 import { mountQuickCapture } from './components/quick-capture/quick-capture.ts';
-import { mountFinishRitual } from './components/finish-ritual/finish-ritual.ts';
+import { mountFinishRitual } from './components/finish-ritual/finish-ritual-boot.ts';
 import { startConsentSync } from './services/consent-sync.ts';
-import { mountCapturesPill } from './components/quick-capture/captures-drawer.ts';
+import { startGeoResolver } from './map/geo-resolve.ts';
+import { mountCapturesPill } from './components/quick-capture/captures-pill.ts';
 import './components/reading-session/reading-session.css';
 import './components/action-notifications/action-notifications.css';
 
@@ -134,4 +135,4 @@ window.addEventListener('marginalia:auth-changed', (event) => {
 });
 
 // Mount global focus widget once on DOM ready
-document.addEventListener('DOMContentLoaded', () => { mountFocusWidget(); mountQuickCapture(); mountCapturesPill(); mountFinishRitual(); startConsentSync(); });
+document.addEventListener('DOMContentLoaded', () => { mountFocusWidget(); mountQuickCapture(); mountCapturesPill(); mountFinishRitual(); startConsentSync(); startGeoResolver(); });

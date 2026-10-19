@@ -1241,3 +1241,32 @@ body:not(.map-stats-hidden):not(.map-panel-open) #mapChart {
     display: none;
   }
 }
+
+/* Automatic placement (plan 2.6) */
+.mb-info-pending {
+  padding: 1px 8px;
+  border: 1px solid var(--color-accent);
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  color: var(--color-accent);
+}
+
+.mb-confirm {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  cursor: pointer;
+}
+
+.map-stats-pending {
+  margin: 10px 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  color: var(--color-accent);
+}

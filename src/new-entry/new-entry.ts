@@ -1027,6 +1027,7 @@ export const NewEntry = (() => {
         contentLocation: { country: isoCode, city: originRaw },
         readerLocation:  null,
       } : (existingBook?.geo || null),
+      ...(isoCode ? { geoStatus: 'confirmed' } : {}),
       meta: existingBook?.meta || { startedAt: new Date().toISOString().slice(0, 10) },
       highlights: existingBook?.highlights || [],
       actions: existingBook?.actions || [],
@@ -1058,6 +1059,8 @@ export const NewEntry = (() => {
             location: fullBook.location,
             externalLink: fullBook.externalLink,
             geo: fullBook.geo,
+            // The reader typed a place: it is theirs now, no longer an automatic guess.
+            ...(isoCode ? { geoStatus: 'confirmed' } : {}),
           };
           const validated = validateWrite(BookSchema, patch);
           await setDoc(docRef, withMeta(validated), { merge: true });
@@ -1088,7 +1091,11 @@ export const NewEntry = (() => {
       track('book_added', { bookId: id, status, source: 'manual' });
       // Pre-read card + cultural context, in the background. Only here (one book at a time), never from an
       // import, because each card costs one of the free monthly generations.
-      if (uid && db) void prepareIntroCard(id);
+      if (uid && db) {
+        void prepareIntroCard(id);
+        // No place typed in: let the server work out the author's origin (shown as "to confirm").
+        if (!isoCode) import('../map/geo-resolve.ts').then((m) => m.resolveGeoFor([id])).catch(() => {});
+      }
     }
     renderSearchSection();
     // Dynamic import: keeps library-2d.ts (and its CSS) out of the eager

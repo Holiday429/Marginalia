@@ -9,6 +9,8 @@ export const ReadingSessionSchema = z.object({
   endedAt:    z.number().nullable().optional(),
   durationMs: z.number().nullable().optional(),
   endPage:    z.number().nullable().optional(),
+  // City-level place, only when the reader allowed it (plan 2.6)
+  place:      z.object({ country: z.string(), city: z.string().nullable() }).optional(),
 }).passthrough();
 
 export type ReadingSession = z.infer<typeof ReadingSessionSchema>;

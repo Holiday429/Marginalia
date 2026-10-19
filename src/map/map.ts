@@ -8,6 +8,7 @@ import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { renderUnifiedPanelHeader, renderToolPageShell } from '../core/app.ts';
 import { PanelManager } from '../core/panel-manager.ts';
+import { insightText, locatedCount } from './geo-helpers.ts';
 import { loadProfile, prefetchProfiles, getCachedProfile, buildFallbackProfile } from './geo-profiles.js';
 
 type Book = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
@@ -106,6 +107,8 @@ interface MapBook {
   province: string | null;
   city: string | null;
   geo: MapBookGeo;
+  /** placed automatically and not yet confirmed by the reader (plan 2.6) */
+  geoPending: boolean;
 }
 
 function deriveMapGeo(book: Book): MapBookGeo {
@@ -137,6 +140,7 @@ function buildMapLibrary(books: Book[]): MapBook[] {
     province:   book.location?.province ?? book.province ?? null,
     city:       book.location?.city ?? book.city ?? null,
     geo:        deriveMapGeo(book),
+    geoPending: book.geoStatus === 'pending',
   }));
 }
 
@@ -477,6 +481,8 @@ function enterMap(params: EnterMapParams = {}): void {
   const fromGlobe = params?.__roomTransition?.source === 'room';
 
   mountGlobeWidget();
+  // Books that were never placed (added before this feature, or by hand without a place) are placed now, quietly.
+  import('./geo-resolve.ts').then((m) => m.resolveGeoFor()).catch(() => {});
 
   if (!__mapBooted) {
     __mapStagedEntry = fromGlobe;   // stage on first paint via datavalidated
@@ -956,9 +962,12 @@ function renderMapStats(): void {
       <span class="map-stats-row-count">${c.count}</span>
     </li>`).join('');
 
-  const insight = stats.topRegions.length
+  // The "you read most from" line needs enough placed books to mean something (plan 2.6).
+  const located = locatedCount(BooksStore.getAll() as never[]);
+  const insight = located >= 10 && stats.topRegions.length
     ? `You read most from <strong>${escapeHTML(stats.topRegions.join(' & '))}</strong>.`
-    : 'Your reading map is just beginning.';
+    : escapeHTML(insightText(located, stats.topRegions));
+  const pendingCount = (BooksStore.getAll() as Array<{ geoStatus?: string }>).filter((b) => b.geoStatus === 'pending').length;
 
   const recentCard = stats.recent.length ? `
     <section class="map-stats-card">
@@ -988,7 +997,8 @@ function renderMapStats(): void {
     ${recentCard}
     <section class="map-stats-card">
       <div class="map-stats-kicker">Reading insight</div>
-      <p class="map-stats-insight">${insight}</p>
+      <p class="map-stats-insight" data-map-insight>${insight}</p>
+      ${pendingCount ? `<p class="map-stats-pending" data-map-pending>${pendingCount} ${pendingCount === 1 ? 'place' : 'places'} placed automatically. Open a country to confirm them.</p>` : ''}
     </section>`;
 }
 
@@ -2174,10 +2184,17 @@ function renderBookRow(b: MapBook): HTMLElement {
       <div class="mb-info-meta">
         <span class="mb-info-year">${yearLabel}</span>
         ${b.tags.slice(0,2).map(t=>`<span class="mb-info-tag">${escapeHTML(t)}</span>`).join('')}
+        ${b.geoPending ? '<span class="mb-info-pending" data-geo-pending>To confirm</span>' : ''}
       </div>
     </div>
+    ${b.geoPending ? '<button class="mb-confirm" type="button" data-geo-confirm>Confirm place</button>' : ''}
     <div class="mb-arrow">→</div>`;
-  row.addEventListener('click', () => {
+  row.addEventListener('click', (event) => {
+    if ((event.target as HTMLElement).closest('[data-geo-confirm]')) {
+      event.stopPropagation();
+      import('./geo-resolve.ts').then((m) => m.confirmGeo(b.id)).catch((err) => logError(err, { context: 'confirm place', bookId: b.id }));
+      return;
+    }
     if (BooksStore.getById(b.id)) PanelManager.open('book', { id: b.id });
   });
   return row;

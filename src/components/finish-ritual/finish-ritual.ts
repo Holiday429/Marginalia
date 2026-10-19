@@ -8,7 +8,6 @@
 import './finish-ritual.css';
 import { BooksStore } from '../../store/books-store.ts';
 import { MomentsStore } from '../../store/moments-store.ts';
-import { BOOK_STATUS_CHANGED_EVENT, type BookStatusChange } from '../../store/book-status-events.ts';
 import { generateFinishCard } from '../../ai/features/finish-synthesis-service.ts';
 import { PanelManager } from '../../core/panel-manager.ts';
 import { MarginaliaAuth } from '../../firebase/auth.ts';
@@ -123,12 +122,4 @@ export async function openFinishRitual(bookId: string, { force = false }: { forc
   });
   backdrop.addEventListener('click', () => { void skip(); });
   renderStep();
-}
-
-/** Call once at startup: offers the ritual whenever a book moves into "finished". */
-export function mountFinishRitual(): void {
-  window.addEventListener(BOOK_STATUS_CHANGED_EVENT, (event) => {
-    const { bookId, to } = (event as CustomEvent<BookStatusChange>).detail;
-    if (to === 'finished') void openFinishRitual(bookId).catch((err) => logError(err, { context: 'finish ritual open', bookId }));
-  });
 }

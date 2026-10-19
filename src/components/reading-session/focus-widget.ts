@@ -9,6 +9,7 @@ import {
 } from './reading-session.ts';
 import { BooksStore } from '../../store/books-store.ts';
 import { logError } from '../../services/analytics.ts';
+import { getPlaceOptIn, setPlaceOptIn } from './reading-place.ts';
 
 const POMODORO_MS = 25 * 60 * 1000;
 
@@ -206,6 +207,12 @@ function render(host: HTMLElement): void {
             `
           }
 
+          ${isActive ? '' : `
+            <label class="fw-place">
+              <input type="checkbox" data-fw-place ${getPlaceOptIn() ? 'checked' : ''}>
+              <span>Note where I read (city only)</span>
+            </label>`}
+
           <div class="fw-actions">
             ${isActive
               ? `<button class="fw-stop-btn" type="button" data-fw-stop>Stop</button>`
@@ -242,7 +249,9 @@ function _wireEvents(host: HTMLElement): void {
   host.querySelector('[data-fw-start]')?.addEventListener('click', async () => {
     const bookSelect = host.querySelector<HTMLSelectElement>('[data-fw-book]');
     const bookId = bookSelect?.value || null;
-    await sessionStart(bookId);
+    const withPlace = host.querySelector<HTMLInputElement>('[data-fw-place]')?.checked === true;
+    setPlaceOptIn(withPlace);
+    await sessionStart(bookId, { withPlace });
     if (state.mode === 'pomodoro') {
       state.pomodoroEnd = Date.now() + POMODORO_MS;
       state.pomTimerId = setTimeout(() => _onPomodoroEnd(host), POMODORO_MS);

@@ -146,7 +146,9 @@ src/
 │   ├── map.ts              — initMap / enterMap
 │   ├── map-globe.js        — Interactive globe
 │   ├── globe-fly.js        — Map transition: globe animation (playGlobeFlyIn)
-│   └── geo-profiles.js     — Country → author/book data
+│   ├── geo-profiles.js     — Country → author/book data
+│   ├── geo-resolve.ts      — automatic placement: resolveBookGeo callable → book.geo ("pending" until the reader confirms)
+│   └── geo-helpers.ts      — pure helpers: placement patch (never replaces a reader's place), located count, insight threshold
 ├── web/
 │   ├── web.js              — initWeb / enterWeb; D3 concept graph
 │   └── graph-fly.js        — Graph transition: tack board fly-in
