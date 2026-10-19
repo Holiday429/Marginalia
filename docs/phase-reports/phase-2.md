@@ -74,7 +74,60 @@ Also: quota exhausted keeps the answers and the Notes tab can write the card lat
 ### Gate numbers after 2.3 (`npm run check:all`, exit 0)
 lint 0 errors / 160 warnings (baseline 156), unit 100, rules 63, smoke e2e 6, signed-in e2e on emulators 27, room load 10.7 MB with 0 page errors.
 
+## Progress after tasks 2.4, 2.5, 2.6
+
+### 2.4 Resurface and weekly email — done; real sending waits for your email provider
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| Emulator: build due data, trigger the scheduled job, the test mailbox receives a correct email (HTML screenshot) | ✅ | `functions/test/weekly-digest.emulator.test.ts` (9 tests, Firestore + Auth emulators, mock sender) and `tests/e2e-emulator/email-digest.spec.ts` (runs the digest against the emulators, reads the mock mailbox in `mail_outbox/`). 5 readers: only the right one gets an email; it has 3 due highlights + 1 due action. Screenshots of the email: `tests/screenshots/phase-2/2.4-digest-email-{390,768,1440}.png`. The scheduled wrapper itself (`weeklyDigest`) is not invoked by the emulator; the run logic it calls is |
+| "Still holds" updates the field; same link again → "already handled"; expired link refused | ✅ | e2e opens the links in a browser against the real `emailAction` function: first click "Done", second "Already handled", a changed link "not valid", an expired link (14 days) "expired" and nothing changes. Also tested: "add a thought" (form first, recorded on submit), "turn into action" (creates the action), action buttons (done / remind next week), a highlight answered in the app meanwhile is reported as handled |
+| Unsubscribe stops sending; no empty emails | ✅ | Unsubscribe link (GET, and the one-click POST mail clients send, valid 180 days) switches the setting off, the next run sends nothing. A reader with nothing due, one who emailed within 5 days, one on another weekday, one with the email off and one with no address all get nothing |
+| The room shows 3 due highlights daily; answering updates | ✅ | `resurface-home.spec.ts`: four due → the wall shows three; each of the four answers (still holds / add a thought / turn into action / stop reminding) writes the highlight, and the wall refills. Screenshot `2.4-wall-1440.png` |
+
+Also: settings (Profile → Settings → Weekly email: on/off and weekday; screenshot `2.4-settings-weekly-email.png`), `action-reminders.ts` is now documented in-app only and the due action travels in the weekly email, migration `scripts/migrations/002-resurface-fields.ts` (backfills a review schedule for existing highlights; dev/emulator run: dry run 2 to schedule, apply, second apply 0 — idempotent; production run is yours), server-side `email_action_clicked` only for readers whose stored consent is "granted" (the browser mirrors its choice to the account).
+
+Design notes
+- Schedule logic is one pure module, `shared/resurface.ts`, used by the browser and the server (10 unit tests). A highlight's schedule is written once and never reset by later saves (the store keeps the stored schedule; a test edits a comment on an answered highlight and checks the answer survives). Answering pushes the following moments at least a week apart, so a highlight never comes back on consecutive days.
+- Single-use links: signed payload (HMAC), expiry in the payload, a ledger document `email_tokens/{jti}` written on first use.
+- Real provider: `createEmailSender()` in `functions/src/digest/senders.ts` is the one place to add it; without `EMAIL_PROVIDER` the scheduled job logs and sends nothing, so deploying is safe. The list of what I need from you is Q2.4-a.
+
+Open for your decision: Q2.4-b (opt-in by default), Q2.4-c (mail scanners can click buttons), Q2.4-d (UTC weekday), Q2.4-e (run migration 002 on dev, then production, after deploying the new build).
+
+### 2.5 Import — done (sample files are mine, not real exports)
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| A sample file and unit tests per format; book and highlight counts correct | ✅ | `tests/fixtures/imports/{goodreads.csv,storygraph.csv,readwise.csv,kindle-clippings.txt,weread.txt}` and `tests/imports.test.ts` (17 tests): statuses, ratings, ISBNs (incl. Goodreads' `="…"` wrapping), dates, shelves, quoted commas and line breaks, Kindle notes vs bookmarks, ISBN-10/13 and title+author matching |
+| 200-book Goodreads CSV in 10 s; re-importing adds no books | ✅ | `imports.spec.ts`: 200 books written in 1.1 s on the emulator; the same file again → preview says "0 new, 200 already in your library" and Import is disabled; Firestore still has 200. Unit test: a 200-row file parses and plans in well under a second |
+| WeChat Read chapters and thoughts map to `chapter` and the comment | ✅ with a caveat | `weread.txt` fixture: chapter on each highlight, the thought on the highlight above it, a thought with nothing above becomes its own highlight, plain lines continue a highlight. **The comment is stored as `annotation`, the field the book page shows, not `note`** (Q2.5-b). **The sample is my reconstruction of the app's copy-all format, not a real export** (Q2.5-a) |
+
+Also: one dialog for all five sources (choose or detect, file or paste, preview with per-book checkboxes, progress, summary), reachable from the Search page and from the empty shelf; imported highlights get stable ids (importing again adds nothing) and a review schedule; `import_completed` and `highlight_saved` (source import) are reported once per import; no automatic pre-read card for imports (it would spend a free generation per book). Screenshots `2.5-import-preview-{390,768,1440}.png`, `2.5-search-import-button-1440.png`.
+
+Found on the way: the Firestore emulator REST listing returns only the first page, which made a 200-document assertion see 30; the test helper now pages through.
+
+### 2.6 Automatic map placement — done; the model part is not measured
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| 30-book list (15 Chinese, 15 English, with answers): author-origin country ≥ 80% | ✅ **30/30** live | `tests/fixtures/geo-books.json`; `node --experimental-strip-types scripts/measure-geo-accuracy.mjs` against the real wikidata.org on 2026-10-20: 30/30 (first run 29/30, one hyphenated transliteration; fixed with a fallback). `tests/geo-wikidata.test.ts` replays the recorded responses offline (`tests/fixtures/wikidata-recorded.json`, ~400 KB). It is my own list, so treat it as an upper bound |
+| Import 20 books → markers appear without manual steps | ✅ | `geo-map.spec.ts`: after the import, with no other action, all 20 books get an author origin and a setting (real `resolveBookGeo` against a fake Wikidata and fake model), are marked pending, and the map shows 20 books mapped. Screenshots `2.6-map-20-books-{390,768,1440}.png` |
+| Fewer than 10 placed books: no "You read most from…" | ✅ | same spec with 5 books: "Place 5 more books on the map…" and no insight line (`2.6-map-5-books-1440.png`); unit test of the gate |
+| Internal AI call not counted against the reader, but logged | ✅ | the spec reads `audit/ai_calls/{uid}`: 20 documents with `internal: true`, `countedAgainstQuota: false`, token counts; `usage/{uid}/months` stays empty. Author lookups are cached globally per author (`geoCache/`), settings per book |
+
+Also: "to confirm" on the map's book rows and stats card and on the book page (Confirm / Change); a place the reader typed is never replaced (tested); optional "Note where I read (city only)" beside Start, off by default, behind the browser's permission, coordinates cut to two decimals and not stored (tested both with permission and when declined). New server-only paths `geoCache/`, `users/{uid}/rateLimits/geo`, `email_tokens/`, `mail_outbox/` have rules cases.
+Not measured: the story-setting inference (no model key here) — Q2.6-b. Needed from you: `WIKIDATA_CONTACT`, privacy page rows for Wikimedia and OpenStreetMap (Q2.6-a).
+
+Found on the way / cross-cutting
+- The entry bundle went over its 135 KB budget (136.1 KB); the capture sheet, the unattributed drawer and the finish dialog are now loaded on demand (131.9 KB). That briefly broke offline capture (a chunk never loaded cannot be fetched offline), so the sheet is preloaded when the browser is idle; the offline e2e caught it.
+- `check:paths` caught a literal `collection('users')` in the digest; the path now comes from `paths.ts` (`Paths.users()`).
+
+### Gate numbers after 2.6 (`npm run check:all`, exit 0)
+lint 0 errors / 171 warnings (baseline 156), unit 157 across 17 files, rules and emulator suites incl. digest and geo (85 + 9 geo), smoke e2e 6, signed-in e2e on emulators 42, entry chunk 131.9 KB of 135, room load 10.7 MB with 0 page errors.
+
+**Gate defect found and fixed after the 2.6 commit:** while writing this report I noticed that the `test:unit` line in `package.json` had lost an `--exclude` when I added the geo emulator test, so for the 2.6 gate it ran only one (skipped) file instead of the whole unit suite. After the fix `npm run test:unit` runs 157 tests in 17 files and all pass, so nothing was hiding; but the 2.6 commit's gate did not include the unit suite. The fix is in the commit with this report, and every later gate runs the full unit suite.
+
 ### Needs you so far
-- Q2.0-a (usernames), Q2.2-a/b/c, Q2.3-a, Q2.8-a (navigation; blocks 2.8), Q2.10-a/b/c/d — all in `docs/open-questions.md`.
+- Q2.0-a (usernames), Q2.2-a/b/c, Q2.3-a, Q2.4-a…e, Q2.5-a…c, Q2.6-a…c, Q2.8-a (navigation; blocks 2.8), Q2.10-a/b/c/d — all in `docs/open-questions.md`.
 - A real-device look at the capture sheet with the keyboard open, and one real-model run for the pre-read card and the finish card.
 - PostHog personal API key to create the dashboards.
