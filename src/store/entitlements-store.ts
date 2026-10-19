@@ -6,9 +6,10 @@
 //   if (EntitlementsStore.hasEntitlement('library.3d')) { ... }
 //   const unsub = EntitlementsStore.subscribe(() => rerender());
 
-import { doc, onSnapshot, setDoc, type Firestore, type Unsubscribe } from 'firebase/firestore';
-import type { Entitlement, Plan } from '../data/schema/entitlements.js';
-import { PLAN_ENTITLEMENTS } from '../data/schema/entitlements.js';
+import { doc, onSnapshot, type Firestore, type Unsubscribe } from 'firebase/firestore';
+import type { Entitlement, Plan } from '../../shared/entitlements.ts';
+import { PLAN_ENTITLEMENTS, isPlan } from '../../shared/entitlements.ts';
+import { Paths } from '../firebase/paths.ts';
 import { logError } from '../services/analytics.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 
@@ -38,28 +39,19 @@ function emit() {
 // Unsubscribe fn for the active Firestore listener (replaced on each sign-in).
 let unsubSnapshot: Unsubscribe | null = null;
 
+// Billing state lives in billing/{uid}, written only by the billing webhook.
+// A missing doc means the user has never paid → free. The client never writes it.
 function subscribeForUser(uid: string, db: Firestore): void {
-  const userRef = doc(db, 'users', uid);
+  const billingRef = doc(db, Paths.billing(uid));
 
   unsubSnapshot = onSnapshot(
-    userRef,
-    async (snap) => {
+    billingRef,
+    (snap) => {
       const data = snap.data() as Record<string, unknown> | undefined;
-
-      let plan: Plan = 'free';
-      if (data?.plan === 'pro' || data?.plan === 'lifetime') {
-        plan = data.plan as Plan;
-      }
-
-      const entitlements = PLAN_ENTITLEMENTS[plan];
-
-      // Write plan + entitlements on first sign-in (or when the doc is missing them).
-      if (!data?.plan || !data?.entitlements) {
-        await setDoc(userRef, { plan, entitlements }, { merge: true });
-      }
+      const plan: Plan = isPlan(data?.plan) ? data.plan : 'free';
 
       state.plan = plan;
-      state.entitlements = entitlements;
+      state.entitlements = PLAN_ENTITLEMENTS[plan];
       state.ready = true;
       emit();
     },

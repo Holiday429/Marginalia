@@ -38,6 +38,7 @@ import './ai/features/registry.ts';
 
 // 2. Firebase layer
 import { doc, getDoc } from 'firebase/firestore';
+import { Paths } from './firebase/paths.ts';
 import { MarginaliaAuth } from './firebase/auth.ts';
 import { MarginaliaBooksCloud, MarginaliaStorage } from './firebase/db.ts';
 
@@ -117,7 +118,7 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     mountActionNotifications(user.uid, db);
     initReadingSession(user.uid, db);
     // Load user's language preference and apply immediately.
-    getDoc(doc(db, 'users', user.uid)).then((snap) => {
+    getDoc(doc(db, Paths.user(user.uid))).then((snap) => {
       const lang = snap.data()?.settings?.language;
       if (lang) setLanguage(lang);
     }).catch(() => {});

@@ -17,6 +17,8 @@ import { ProfileMap } from './profile-map.ts';
 import { ProfileAnnualShelf } from './profile-year-in-review.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { ENV } from '../core/env.ts';
+import { Paths } from '../firebase/paths.ts';
+import { fetchPublicProfile, syncPublicProfile } from './public-profile.ts';
 import { BooksStore } from '../store/books-store.ts';
 import {
   DEMO_PROFILE,
@@ -178,16 +180,30 @@ async function lookupByUid(db: FirestoreDB, uid: string): Promise<PublicProfileD
   const auth = MarginaliaAuth as any;
   const creationTime: string | undefined = auth.user?.metadata?.creationTime;
   const joinedAt = creationTime ? Date.parse(creationTime) : undefined;
-  const snap = await getDoc(doc(db, 'users', uid));
+  const snap = await getDoc(doc(db, Paths.user(uid)));
   if (!snap.exists()) return null;
   return buildProfileData(uid, snap.data() as Record<string, any>, joinedAt);
 }
 
+// Anonymous visitors only ever see the derived publicProfiles/{slug} card — never users/{uid}.
 async function lookupBySlug(db: FirestoreDB, slug: string): Promise<PublicProfileData | null> {
-  const snap = await getDocs(query(collection(db, 'users'), where('settings.slug', '==', slug), limit(1)));
-  if (snap.empty) return null;
-  const userDoc = snap.docs[0];
-  return buildProfileData(userDoc.id, userDoc.data() as Record<string, any>);
+  const card = await fetchPublicProfile(db, slug);
+  if (!card) return null;
+  const sections = card.sections ?? {};
+  return {
+    uid: card.uid,
+    slug: card.slug,
+    profilePublic: true,
+    displayName: card.displayName || card.slug,
+    avatarUrl: card.avatarUrl ?? undefined,
+    bio: card.bio ?? undefined,
+    location: card.location ? countryName(card.location) : undefined,
+    joinedAt: card.joinedAt,
+    showMap: sections.map !== false,
+    showPortrait: sections.portrait === true,
+    showRhythm: sections.rhythm !== false,
+    showDesk: sections.desk !== false,
+  };
 }
 
 async function fetchPublicBooks(db: FirestoreDB, uid: string, ownerPreview = false): Promise<PublicBook[]> {
@@ -749,7 +765,9 @@ function bindAvatarUpload(container: HTMLElement): void {
         const db = auth.db;
         const uid = auth.user?.uid;
         if (db && uid) {
-          setDoc(doc(db, 'users', uid), { avatarUrl: dataUrl }, { merge: true }).catch(() => {});
+          setDoc(doc(db, Paths.user(uid)), { avatarUrl: dataUrl }, { merge: true })
+            .then(() => syncPublicProfile(db, uid, String(auth.user?.displayName || auth.user?.email || '').split('@')[0]))
+            .catch(() => {});
         }
       } catch { /* best-effort */ }
     };

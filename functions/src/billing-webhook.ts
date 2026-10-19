@@ -1,5 +1,5 @@
 /* Marginalia · Lemon Squeezy billing webhook
-   Validates the LS webhook signature and updates users/{uid}.plan + .entitlements
+   Validates the LS webhook signature and updates billing/{uid} (server-only; clients can only read it)
    on subscription lifecycle events.
 
    POST /billingWebhook
@@ -15,29 +15,8 @@ import * as admin from 'firebase-admin';
 
 const db = admin.firestore();
 
-type Plan = 'free' | 'pro' | 'lifetime';
-
-const PLAN_ENTITLEMENTS: Record<Plan, string[]> = {
-  free: ['export.json', 'profile.public'],
-  pro: [
-    'export.json',
-    'profile.public',
-    'ai.unlimited',
-    'export.pdf',
-    'profile.customDomain',
-    'sync.notion',
-    'library.3d',
-  ],
-  lifetime: [
-    'export.json',
-    'profile.public',
-    'ai.unlimited',
-    'export.pdf',
-    'profile.customDomain',
-    'sync.notion',
-    'library.3d',
-  ],
-};
+import { type Plan } from './_shared/entitlements';
+import { Paths } from './_shared/paths';
 
 // Lemon Squeezy event types we care about.
 type LSEvent =
@@ -163,10 +142,9 @@ export const billingWebhook = functions.onRequest(
     }
 
     const plan = planFromPayload(payload);
-    const entitlements = PLAN_ENTITLEMENTS[plan];
 
-    await db.doc(`users/${uid}`).set(
-      { plan, entitlements, _updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+    await db.doc(Paths.billing(uid)).set(
+      { plan, provider: 'lemonsqueezy', updatedAt: admin.firestore.FieldValue.serverTimestamp() },
       { merge: true }
     );
 

@@ -29,6 +29,8 @@ import { KindleImport } from '../api/kindle-import.ts';
 import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { generateReadingCardBlob, fetchReadingCardAI } from './reading-card.ts';
 import { ENV } from '../core/env.ts';
+import { Paths } from '../firebase/paths.ts';
+import { fetchPublicProfile } from '../profile/public-profile.ts';
 import { HeroBook } from '../components/hero-book/hero-book.ts';
 import '../components/hero-book/hero-book.css';
 import { NewEntry } from '../new-entry/new-entry.ts';
@@ -1798,15 +1800,12 @@ async function fetchPublicBookContext(slug, bookId) {
   const db = MarginaliaAuth?.db;
   if (!db || !slug || !bookId) return null;
 
-  const userSnap = await getDocs(query(collection(db, 'users'), where('settings.slug', '==', slug), limit(1)));
-  if (userSnap.empty) return null;
-
-  const userDoc = userSnap.docs[0];
-  const userData = userDoc.data() || {};
-  if (userData.settings?.profilePublic === false) return null;
+  const card = await fetchPublicProfile(db, slug);
+  if (!card) return null;
+  const ownerUid = card.uid;
 
   const workspaceId = ENV.WORKSPACE_ID || 'default';
-  const bookRef = doc(db, 'workspaces', workspaceId, 'users', userDoc.id, 'books', bookId);
+  const bookRef = doc(db, 'workspaces', workspaceId, 'users', ownerUid, 'books', bookId);
   const bookSnap = await getDoc(bookRef);
   if (!bookSnap.exists()) return null;
 
@@ -1814,7 +1813,7 @@ async function fetchPublicBookContext(slug, bookId) {
   const [noteSnap, highlightSnap] = await Promise.all([
     getDoc(doc(bookRef, 'notes', 'main')).catch(() => null),
     getDocs(query(
-      collection(db, 'workspaces', workspaceId, 'users', userDoc.id, 'highlights'),
+      collection(db, 'workspaces', workspaceId, 'users', ownerUid, 'highlights'),
       where('bookId', '==', bookId),
       limit(24),
     )).catch(() => null),
@@ -1906,7 +1905,7 @@ async function buildReadingCardShareUrl(bookId) {
   if (!db || !uid || !bookId) return fallback;
 
   try {
-    const snap = await getDoc(doc(db, 'users', uid));
+    const snap = await getDoc(doc(db, Paths.user(uid)));
     const slug = String(snap.data()?.settings?.slug || '').trim().toLowerCase();
     if (!slug) return fallback;
     return `${window.location.origin}${window.location.pathname}#/p/${slug}/book/${encodeURIComponent(bookId)}`;

@@ -1,5 +1,6 @@
 // Marginalia · Entitlements schema
 // Single source of truth for plan → entitlement mapping.
+// Shared by the web client and Cloud Functions (functions/src/_shared is a build-time copy).
 
 export type Entitlement =
   | 'ai.unlimited'
@@ -31,3 +32,9 @@ export const PLAN_ENTITLEMENTS: Record<Plan, Entitlement[]> = {
   pro: PRO,
   lifetime: PRO,
 };
+
+export const PLANS: readonly Plan[] = ['free', 'pro', 'lifetime'];
+
+export function isPlan(value: unknown): value is Plan {
+  return typeof value === 'string' && (PLANS as readonly string[]).includes(value);
+}

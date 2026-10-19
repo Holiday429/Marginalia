@@ -11,17 +11,59 @@ service cloud.firestore {
     }
 
     // Public profile check: user doc must exist and profilePublic must be true.
+    // get() runs with rules privileges, so it works even though /users/{uid} is owner-only.
     function isPublicProfile(uid) {
       let userDoc = get(/databases/$(database)/documents/users/$(uid));
       return userDoc != null && userDoc.data.settings.profilePublic == true;
     }
 
-    // /users/{uid} — account-level metadata (plan, entitlements, settings incl. slug/profilePublic)
-    // Read: self always; anyone if profilePublic is true (slug lookup for public profiles).
-    // Write: self only.
+    // Fields only the server may set. Clients can never write these on /users/{uid}.
+    function billingKeys() {
+      return ['plan', 'entitlements', 'quota', 'billing'];
+    }
+
+    // /users/{uid} — account-level metadata (settings incl. slug/profilePublic, avatar).
+    // Owner-only. Billing fields live in /billing/{uid} and can never be written from the client.
     match /users/{uid} {
-      allow read: if isSelf(uid) || resource.data.settings.profilePublic == true;
-      allow write: if isSelf(uid);
+      allow read: if isSelf(uid);
+      allow create: if isSelf(uid)
+        && !request.resource.data.keys().hasAny(billingKeys());
+      allow update: if isSelf(uid)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(billingKeys());
+      allow delete: if false;
+    }
+
+    // /billing/{uid} — plan, status, currentPeriodEnd, … Written by the billing webhook only.
+    match /billing/{uid} {
+      allow read: if isSelf(uid);
+      allow write: if false;
+    }
+
+    // /usage/{uid}/months/{YYYY-MM} — AI usage counters. Written by Cloud Functions only.
+    match /usage/{uid}/months/{month} {
+      allow read: if isSelf(uid);
+      allow write: if false;
+    }
+
+    // /publicProfiles/{slug} — the only user data anonymous visitors can read.
+    // The doc id is the slug, so Firestore itself guarantees uniqueness: only the uid that
+    // created a slug can update or delete it. Exists only while the profile is public.
+    match /publicProfiles/{slug} {
+      allow read: if true;
+      allow create: if isAuthed()
+        && request.resource.data.uid == request.auth.uid
+        && slug.matches('^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$|^[a-z0-9]{1,32}$')
+        && !(slug in ['admin', 'api', 'app', 'auth', 'billing', 'help', 'home', 'login', 'logout',
+                      'me', 'profile', 'settings', 'signup', 'support', 'terms', 'privacy',
+                      'credits', 'about', 'contact', 'p', 'u'])
+        && request.resource.data.keys().hasOnly(['uid', 'slug', 'displayName', 'avatarUrl', 'bio',
+                                                 'location', 'joinedAt', 'sections', 'updatedAt']);
+      allow update: if isAuthed()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'slug', 'displayName', 'avatarUrl', 'bio',
+                                                 'location', 'joinedAt', 'sections', 'updatedAt']);
+      allow delete: if isAuthed() && resource.data.uid == request.auth.uid;
     }
 
     // /workspaces/{workspaceId}/userProfiles/{uid}

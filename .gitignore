@@ -15,3 +15,7 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+functions/src/_shared/
+firestore-debug.log
+firebase-debug.log

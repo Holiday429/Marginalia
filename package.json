@@ -14,12 +14,14 @@
     "check:entitlements": "! grep -rn \"plan === '\" src/ --exclude='entitlements-store.ts'",
     "lint": "eslint .",
     "test:rules": "vitest run tests/firestore-rules.test.ts",
+    "test:rules:emu": "firebase emulators:exec --only firestore --project demo-marginalia \"npm run test:rules\"",
     "test:unit": "vitest run --exclude tests/firestore-rules.test.ts",
     "test:e2e": "playwright test",
     "i18n:sync": "npx tsx scripts/i18n-sync.ts",
     "data:export": "npx tsx scripts/export-user-data.ts",
     "data:import": "npx tsx scripts/import-user-data.ts",
-    "size": "size-limit"
+    "size": "size-limit",
+    "check:all": "bash scripts/check-all.sh"
   },
   "size-limit": [
     {

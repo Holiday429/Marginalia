@@ -10,7 +10,8 @@
     "shell": "npm run build && firebase functions:shell",
     "lint": "eslint --ext .js,.ts .",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "prebuild": "node ../scripts/sync-shared.mjs"
   },
   "engines": {
     "node": "20"

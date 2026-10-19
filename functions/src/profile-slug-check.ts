@@ -11,6 +11,7 @@
 
 import * as functions from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { Paths } from './_shared/paths';
 
 // admin.initializeApp() is called once in ai-generate.ts — shared instance.
 const db = admin.firestore();
@@ -21,7 +22,7 @@ const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$|^[a-z0-9]{1,32}$/;
 const RESERVED = new Set([
   'admin', 'api', 'app', 'auth', 'billing', 'help', 'home',
   'login', 'logout', 'me', 'profile', 'settings', 'signup',
-  'support', 'terms', 'privacy', 'about', 'contact', 'p',
+  'support', 'terms', 'privacy', 'credits', 'about', 'contact', 'p', 'u',
 ]);
 
 export const profileSlugCheck = functions.onCall(async (request) => {
@@ -39,18 +40,15 @@ export const profileSlugCheck = functions.onCall(async (request) => {
     return { available: false, reason: 'reserved' };
   }
 
-  const snap = await db
-    .collection('users')
-    .where('settings.slug', '==', slug)
-    .limit(1)
-    .get();
+  // Slugs are claimed by publishing publicProfiles/{slug}; the doc id is the slug.
+  const snap = await db.doc(Paths.publicProfile(slug)).get();
 
-  if (snap.empty) {
+  if (!snap.exists) {
     return { available: true };
   }
 
   // Taken by this user already — still available (idempotent re-save).
-  if (snap.docs[0].id === uid) {
+  if (snap.data()?.uid === uid) {
     return { available: true };
   }
 

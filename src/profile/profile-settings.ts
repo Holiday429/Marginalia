@@ -6,6 +6,7 @@
    Writes to:
      users/{uid}.settings.slug
      users/{uid}.settings.profilePublic
+     publicProfiles/{slug}                (derived card, readable by anyone)
      users/{uid}/data/books/{bookId}.shareInProfile  (per-book toggle)
 
    Slug uniqueness is verified via the profileSlugCheck Cloud Function
@@ -22,6 +23,8 @@ import { exportJSON, exportMarkdown, triggerDownload } from '../api/export.ts';
 import { openCheckout } from '../services/billing.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { firebaseFunctions, MARGINALIA_FIREBASE } from '../firebase/config.ts';
+import { Paths } from '../firebase/paths.ts';
+import { syncPublicProfile } from './public-profile.ts';
 
 interface SlugCheckResult {
   available: boolean;
@@ -41,6 +44,17 @@ function getDb(): Firestore | null {
 
 function getUserId(): string | null {
   return getAuth()?.user?.uid ?? null;
+}
+
+/** Re-derives publicProfiles/{slug} from users/{uid} after any change that affects it. */
+async function republish(): Promise<void> {
+  const db = getDb();
+  const uid = getUserId();
+  if (!db || !uid) return;
+  const user = getAuth()?.user as { displayName?: string; email?: string; metadata?: { creationTime?: string } } | null;
+  const created = user?.metadata?.creationTime ? Date.parse(user.metadata.creationTime) : undefined;
+  const name = String(user?.displayName || user?.email || '').split('@')[0];
+  await syncPublicProfile(db, uid, name, created);
 }
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$|^[a-z0-9]{1,32}$/;
@@ -74,7 +88,8 @@ async function saveSlug(slug: string): Promise<void> {
   const db = getDb();
   const uid = getUserId();
   if (!db || !uid) return;
-  await setDoc(doc(db, 'users', uid), { settings: { slug } }, { merge: true });
+  await setDoc(doc(db, Paths.user(uid)), { settings: { slug } }, { merge: true });
+  await republish();
   logEvent('profile_slug_set', {});
 }
 
@@ -82,7 +97,7 @@ async function saveLanguage(lang: string): Promise<void> {
   const db = getDb();
   const uid = getUserId();
   if (!db || !uid) return;
-  await setDoc(doc(db, 'users', uid), { settings: { language: lang } }, { merge: true });
+  await setDoc(doc(db, Paths.user(uid)), { settings: { language: lang } }, { merge: true });
   logEvent('language_changed', { language: lang });
   // Trigger a full UI re-render so all views pick up the new locale.
   window.dispatchEvent(new Event('marginalia:ui-refresh'));
@@ -92,7 +107,8 @@ async function saveProfilePublic(value: boolean): Promise<void> {
   const db = getDb();
   const uid = getUserId();
   if (!db || !uid) return;
-  await setDoc(doc(db, 'users', uid), { settings: { profilePublic: value } }, { merge: true });
+  await setDoc(doc(db, Paths.user(uid)), { settings: { profilePublic: value } }, { merge: true });
+  await republish();
   logEvent('profile_visibility_changed', { public: value });
 }
 
@@ -112,7 +128,8 @@ async function saveProfileSections(sections: Record<string, boolean>): Promise<v
   const db = getDb();
   const uid = getUserId();
   if (!db || !uid) return;
-  await setDoc(doc(db, 'users', uid), { settings: { profileSections: sections } }, { merge: true });
+  await setDoc(doc(db, Paths.user(uid)), { settings: { profileSections: sections } }, { merge: true });
+  await republish();
 }
 
 interface UserSettings {
@@ -132,7 +149,7 @@ async function loadUserSettings(): Promise<UserSettings> {
   const uid = getUserId();
   if (!db || !uid) return {};
   try {
-    const snap = await getDoc(doc(db, 'users', uid));
+    const snap = await getDoc(doc(db, Paths.user(uid)));
     const settings = snap.data()?.settings ?? {};
     return {
       slug: settings.slug ?? '',
