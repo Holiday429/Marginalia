@@ -137,7 +137,8 @@ src/
 ├── search/
 │   ├── search.js           — initSearch / enterSearch / renderSearchSection
 │   ├── laptop-fly.js       — Search transition: macbook fly-in
-│   └── search-decor-3d.js  — Decorative open-book Three.js object on the search page
+│   ├── search-decor-3d.js  — Decorative open-book Three.js object on the search page
+│   └── global/             — cross-book search (⌘K / Ctrl+K): index.ts (pure MiniSearch index; CJK as characters + pairs), snippet.ts, data.ts (what is indexed), panel.ts, boot.ts (the shortcut; the rest loads on first use)
 ├── library-2d/
 │   ├── library-2d.ts       — initLibrary / enterLibrary; drag-to-arrange shelf
 │   ├── library-2d-state.js

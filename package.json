@@ -95,6 +95,7 @@
     "d3-zoom": "^3.0.0",
     "firebase": "^12.16.0",
     "html-to-image": "^1.11.13",
+    "minisearch": "^7.2.0",
     "posthog-js": "^1.372.6",
     "qrcode": "^1.5.4",
     "three": "^0.160.1",

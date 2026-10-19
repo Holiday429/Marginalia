@@ -85,6 +85,10 @@ function bindShelfEvents() {
     refreshShelfFromSource();
   });
 
+  document.getElementById('searchAllBtn')?.addEventListener('click', () => {
+    import('./global/boot.ts').then(({ openGlobalSearch }) => openGlobalSearch());
+  });
+
   document.getElementById('searchImportBtn')?.addEventListener('click', () => {
     import('../api/import/import-ui.ts').then(({ openImportDialog }) => openImportDialog());
   });
