@@ -1,7 +1,7 @@
 /* Snapshots were generated from prompts verified byte-identical to the pre-1.2 client prompts.
    A diff here means the text sent to the model changed — review it deliberately. */
 import { describe, it, expect } from 'vitest';
-import { AI_FEATURES } from '../src/_shared/ai-prompts';
+import { AI_FEATURES } from '../../shared/ai-prompts';
 
 const book = {
   title: 'Sapiens', author: 'Harari', year: 2011, bookType: 'nonfiction', summary: 'S', tags: ['a', 'b'],
