@@ -11,9 +11,10 @@
    ========================================================================== */
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { loadGLBCb } from '../three/gltf-loader.ts';
+import { modelUrl } from '../three/asset-urls.ts';
 
-const BOARD_URL = '/3d/messy_tack_board.glb';
+const BOARD_URL = modelUrl('messy_tack_board');
 
 // D3 graph node palette colours
 const NODE_COLORS = ['#c9a96e', '#8ab4a0', '#b8a0c8', '#a0b4c8', '#c8a0a0', '#b4c8a0'];
@@ -126,8 +127,7 @@ export function playGraphFlyIn(opts = {}) {
 
     const easeInOut = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-    const loader = new GLTFLoader();
-    loader.load(
+    loadGLBCb(
       BOARD_URL,
       (gltf) => {
         const model = gltf.scene;

@@ -8,7 +8,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1, // software-GL Chrome tests are heavy; run them one at a time
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: 'http://localhost:4173',
@@ -16,7 +16,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Locally use the installed Chrome (no browser download needed); CI installs Playwright's Chromium.
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome', launchOptions: { args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] } } },
   ],
   webServer: {
     command: 'npm run build && npm run preview -- --port 4173',

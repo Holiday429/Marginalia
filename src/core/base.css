@@ -667,3 +667,21 @@ body {
   color: var(--text);
   border-color: var(--text-secondary);
 }
+
+/* Still image of the room, shown while the 3D scene loads (see showRoomPoster). */
+/* Eager (not in the room chunk) so the still paints before any room JS has loaded. */
+#view-room > .room-poster {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+
+#view-room > .room-poster.is-hidden {
+  opacity: 0;
+}

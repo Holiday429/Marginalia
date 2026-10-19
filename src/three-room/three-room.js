@@ -17,6 +17,7 @@ export function createThreeRoomPreview(host, options = {}) {
     onPhotoFrameSelect: typeof options.onPhotoFrameSelect === 'function' ? options.onPhotoFrameSelect : undefined,
     onWebSelect: typeof options.onWebSelect === 'function' ? options.onWebSelect : undefined,
     onInteractiveHover: typeof options.onInteractiveHover === 'function' ? options.onInteractiveHover : undefined,
+    onSceneReady: typeof options.onSceneReady === 'function' ? options.onSceneReady : undefined,
   });
 
   // Mount notes wall component

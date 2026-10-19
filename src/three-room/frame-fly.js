@@ -19,10 +19,11 @@
    ========================================================================== */
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { loadGLBCb } from '../three/gltf-loader.ts';
+import { modelUrl } from '../three/asset-urls.ts';
 import { getFramePhotoUrl } from '../three/frame-photo.ts';
 
-const FRAME_URL = '/3d/wooden_picture_frame.glb';
+const FRAME_URL = modelUrl('wooden_picture_frame');
 const OVERLAY_ID = 'profileFrameTransitionOverlay';
 const CIRCLE_ID = 'profileFrameTransitionCircle';
 const SPINES_ID = 'profileFrameTransitionSpines';
@@ -230,8 +231,7 @@ export function playFrameFlyIn(opts = {}) {
 
     requestAnimationFrame(() => overlay.classList.add('is-active'));
 
-    const loader = new GLTFLoader();
-    loader.load(
+    loadGLBCb(
       FRAME_URL,
       (gltf) => {
         const frame = gltf.scene;

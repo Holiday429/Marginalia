@@ -22,7 +22,7 @@ test('a brand-new account sees empty states, never demo books', async ({ page })
 
   await openView(page, 'Profile');
   expect(await brokenImages(page)).toEqual([]);
-  expect(errors.filter((e) => !/book\.glb|404|reading 'image'/.test(e))).toEqual([]);
+  expect(errors).toEqual([]);
 });
 
 test('a signed-in user adds 人类简史 as reading, writes a highlight, and both survive a reload', async ({ page }) => {

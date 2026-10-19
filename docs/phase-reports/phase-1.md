@@ -110,3 +110,23 @@ Not verified / follow-ups
 - Not exercised in a real browser against a deployed dev project (only the emulator).
 - `assets/` (repo root, duplicates `public/`) still contains the Chinese-named covers; it is deleted in 1.7.
 - Open questions Q1.5-a…e in `docs/open-questions.md`.
+
+## 1.6 Room asset compression — done (visual sign-off and live headers are Holiday's / need a deploy)
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| Landing → room: total response bytes ≤ 12 MB (was 243.9 MB) | ✅ **10.7 MB** | `node scripts/measure-room-load.mjs` (CDP `encodedDataLength` over 47 responses, served by `vite preview`, i.e. no brotli on JS/CSS; GLB/WebP/JPEG do not compress further, so production is the same or lower). Baseline reproduced first: 243.9 MB, 51 responses, 1 pageerror. Now part of `npm run check:all` (fails above 12 MB) |
+| Same script: `pageerror` = 0 | ✅ | 0 (baseline 1: the `.exr` "reading 'image'" error). The smoke e2e (`tests/e2e/smoke.spec.ts`) and the emulator specs no longer tolerate any page error |
+| `du -sh dist` < 60 MB (was 481 MB) | ✅ **25 MB** | `npm run check:all` output (`du -sh dist` after `npm run build`; 508 MB at the start of this phase on this checkout) |
+| Fast 4G: poster visible within 2 s of clicking Enter | ✅ **52 ms** (emulated) | Playwright CDP network throttling with the DevTools "Fast 4G" preset (562.5 ms latency, 1.6 Mbit/s down); `measure-room-load.mjs --throttle=fast4g` → "poster 57 ms after the click". The 67 KB WebP is a static `<img>` in `index.html` fetched while the landing page is up and painted the moment Enter is clicked, before any room JS loads. Even if it had not been fetched yet: ≈ 0.56 s latency + 67 KB at 200 KB/s ≈ 0.9 s. Screenshot: `tests/screenshots/phase-1/room-poster-fast4g.png`. Not a manual DevTools session. |
+| Before/after screenshots side by side, Holiday confirms | ⏳ Holiday | `tests/screenshots/phase-1/room-compare.png` (4 poses). See Q1.6-a |
+
+What changed
+- `scripts/optimize-assets.mjs` (`npm run assets:optimize`, deps `@gltf-transform/*`, `sharp`, `meshoptimizer`): `assets-src/3d/*.glb` → `public/3d/<name>.<hash>.glb` with WebP textures (cap 2048 / 1024 / 512), meshopt compression, no simplification; surface maps → `public/textures/<set>/<map>.<hash>.jpg`; writes `src/three/asset-manifest.generated.ts`. Models 163 MB → 8.2 MB.
+- Surfaces now use Poly Haven (CC0) 1K JPG diffuse/normal/roughness for wall, floor, desk, OSB board; carpet from the existing ambientCG set downscaled. All `.exr` and displacement PNGs deleted, `EXRLoader` removed from `room.ts`.
+- `src/three/gltf-loader.ts`: one loader with the Meshopt decoder for all eight GLB call sites (room, hero book, map globe, fly-ins, search decor); each URL is fetched once (the hero `book.glb` used to be downloaded twice), each caller parses its own copy so overlays never dispose the room's resources. Draco removed (nothing uses it).
+- Load order: interactive objects first, furniture/props after; `onSceneReady` fades the poster out.
+- Low-end path: `hardwareConcurrency <= 4` or a touch device → no real-time shadows, pixel ratio ≤ 1.5.
+- `vercel.json`: `Cache-Control: public, max-age=31536000, immutable` for `/3d/*`, `/textures/*`, `/assets/*` (all content-hashed). **Not verified against a live deployment** — check the response headers after the first Vercel deploy.
+- Removed from `public/`: 16 unused models (incl. the 3 CC-BY-NC ones: `bankers_lamp`, `sofa_pink`, `world_map_color_3d_scan`), unused texture sets (sofa, shelf), `public/book.glb` (now hashed), draco decoders, two unused frame JPGs. All 14 shipped models are CC-BY-4.0 and the GLB `asset.extras` (author/source/licence) survived optimization — verified with `node scripts/list-model-licenses.mjs public/3d` (input for the Credits page in 1.8). The Poly Haven/ambientCG textures are CC0 (no attribution required).
+- Also: smoke e2e and the Playwright config use the installed Chrome locally (no browser download) with `workers: 1`.

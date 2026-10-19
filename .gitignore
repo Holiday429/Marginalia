@@ -19,3 +19,6 @@ playwright/.cache/
 functions/src/_shared/
 firestore-debug.log
 firebase-debug.log
+
+# Original (uncompressed) 3D sources; large, kept outside Git. Optimized output goes to public/.
+assets-src/

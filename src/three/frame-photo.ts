@@ -4,7 +4,7 @@
 
 import { asset } from '../core/asset.ts';
 
-const DEFAULT_PHOTO = asset('3d/frame-photo-default.png');
+const DEFAULT_PHOTO = asset('frame-photo-default.png');
 
 let custom: string | null = null;
 const listeners = new Set<() => void>();

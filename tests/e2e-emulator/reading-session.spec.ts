@@ -41,7 +41,6 @@ test('reading session is stored and colours today in the Profile heatmap', async
 
   await page.locator('.prof-year__heatmap').first().screenshot({ path: 'tests/screenshots/phase-1/1.4-profile-heatmap.png' });
 
-  // "reading 'image'" is the broken .exr texture that task 1.6 removes; drop it from this list then.
-  expect(errors.filter((e) => !/book\.glb|404|reading 'image'/.test(e))).toEqual([]);
+  expect(errors).toEqual([]);
   expect(consoleErrors.filter((e) => /ReadingSession\.(start|stop)/.test(e))).toEqual([]);
 });

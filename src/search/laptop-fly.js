@@ -29,9 +29,10 @@
    ========================================================================== */
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { loadGLBCb } from '../three/gltf-loader.ts';
+import { modelUrl } from '../three/asset-urls.ts';
 
-const MACBOOK_URL = '/3d/macbook.glb';
+const MACBOOK_URL = modelUrl('macbook');
 const PLACEHOLDER = 'Search your shelf by title, author, or tag';
 
 // Pivot scale at the end of Act 1 (laptop framed) and Act 3 (screen fills
@@ -207,8 +208,7 @@ export function playLaptopFlyIn(opts = {}) {
       };
     }
 
-    const loader = new GLTFLoader();
-    loader.load(
+    loadGLBCb(
       MACBOOK_URL,
       (gltf) => {
         const model = gltf.scene;

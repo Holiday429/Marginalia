@@ -55,3 +55,14 @@ Clicking the desk book used to open Sapiens as a stand-in. It now opens the book
 
 ### Q1.5-e — Brief demo flash at page load for signed-in users (known limitation)
 On a hard reload the app starts in demo mode until Firebase restores the session (a few hundred ms), so a signed-in user can glimpse demo books before their own load. Fixing it means holding the first render until auth resolves; that touches boot ordering, so I left it. Once signed in, demo data is never read.
+
+## Phase 1 — room assets (1.6)
+
+### Q1.6-a — Please confirm the compressed room still looks right (needs your eyes)
+Side-by-side before | after for the four camera poses: `tests/screenshots/phase-1/room-compare.png` (left before, right after). What changed visually: wall/floor/desk/board/carpet now use 1K JPG maps and **no displacement map** (slightly smoother surfaces, fewer scuffs on the desk edge), model textures are WebP capped at 2048 (interactive objects), 1024 (furniture) or 512 (`book_shelf`, the shelf full of tiny books — this was the one cut I made to fit the budget). If anything looks worse, tell me which object and I will raise its cap (the budget has ~1.3 MB of headroom).
+
+### Q1.6-b — Where do the original 3D files live now? (needs you)
+The uncompressed originals (~460 MB: models + textures) are in `assets-src/` on this machine and are git-ignored, as the plan intends. They are not backed up anywhere else. Please copy `assets-src/` to cloud storage; `npm run assets:optimize` rebuilds `public/3d` and `public/textures` from it.
+
+### Q1.6-c — Poster needs regenerating when the room changes (informational)
+`public/room-poster.webp` is a still of the default room (front camera). The notes wall in it shows a demo quote for about half a second before the live scene fades in, including for signed-in users. Regenerate after any room change with `node scripts/capture-room.mjs --poster=1 --out=poster.png` then `cwebp -q 72 poster.png -o public/room-poster.webp`. Task 3.5 (themes) should make this per-theme.

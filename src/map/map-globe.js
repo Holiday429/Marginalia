@@ -9,10 +9,11 @@
    ========================================================================== */
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { loadGLBCb } from '../three/gltf-loader.ts';
+import { modelUrl } from '../three/asset-urls.ts';
 import { logError } from '../services/analytics.ts';
 
-const GLOBE_URL = '/3d/antique_globe.glb';
+const GLOBE_URL = modelUrl('antique_globe');
 
 let _renderer = null;
 let _scene = null;
@@ -57,8 +58,7 @@ export function mountMapGlobe(container) {
   _scene.add(fill);
   _scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 
-  const loader = new GLTFLoader();
-  loader.load(
+  loadGLBCb(
     GLOBE_URL,
     (gltf) => {
       const model = gltf.scene;
