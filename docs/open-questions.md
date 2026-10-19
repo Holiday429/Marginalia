@@ -21,7 +21,7 @@ Origin allow-list + auth + quota already close the abuse paths the review found,
 **Needed from you:** yes/no, and when.
 
 ### Q1.2-c — Set `ALLOWED_ORIGINS` when deploying functions (informational, needed to deploy)
-Comma-separated list, e.g. `https://marginalia-reading.vercel.app`. If unset the function allows only `http://localhost:5173` / `127.0.0.1:5173`, so production calls would be refused until it is set. Also set `WORKSPACE_ID` if it is not `default`.
+Comma-separated list, e.g. `https://marginalia-reading.vercel.app`. If unset the function allows only `http://localhost:5173` / `127.0.0.1:5173`, so production calls would be refused until it is set. Also set `WORKSPACE_ID` to the same value as `VITE_WORKSPACE_ID` (see Q1.9-c).
 
 ## Phase 1 — billing webhook (1.3)
 
@@ -97,3 +97,14 @@ The main app loads fonts from Google Fonts until task 3.1 self-hosts them; the p
 
 ### Q1.8-f — Which PostHog region?
 The code defaults to the US PostHog host unless `VITE_POSTHOG_HOST` is set; the privacy page does not name a region. Tell me the one you use so it can be stated.
+
+## Phase 1 — unified paths and docs (1.9)
+
+### Q1.9-a — Deploy the new `firestore.rules` BEFORE users notice data "appearing" (heads-up, needs you at deploy time)
+The table-driven rules test found five paths the app writes that the old rules silently denied (the writes were wrapped in `.catch(() => {})`, so nothing was reported): book notes (`books/{id}/notes/main`), per-book AI results (`books/{id}/ai/*`), imported visual notes, profile-level `ai_results`, and the annual Top-10 shelf. They were therefore **never saved to the cloud**; only the local IndexedDB copy existed. The new rules allow owner access to all five, so after deploy those features start syncing. No user data is deleted or rewritten by this; things that exist only locally will upload on their next save.
+
+### Q1.9-b — Public visitors cannot see highlights, notes or the reader portrait of a public profile (product decision)
+Public book pages and the public profile try to read highlights, notes and `ai_results/reader-portrait` of the profile owner. The rules only allow public reads of the profile card and of books with `shareInProfile`; reading highlights/notes would need per-book rules (`get(book).shareInProfile`). Today those sections are silently empty for visitors. Decide whether public pages should show highlights/notes of shared books; I did not widen what strangers can read.
+
+### Q1.9-c — Default workspace id is now `marginalia-main` everywhere (set the same value in functions)
+Client code had two different fallbacks (`marginalia-main` in `config.ts`, `default` in ~15 other places). It is now one function (`getWorkspaceId()`), defaulting to `marginalia-main` as in `.env.example`. Production should set `VITE_WORKSPACE_ID`, so nothing changes there — but please make sure the **functions** have `WORKSPACE_ID` set to the same value (`aiGenerate` and `deleteAccount` read it; the code default is also `marginalia-main`). If your production data lives under a different id, tell me now.

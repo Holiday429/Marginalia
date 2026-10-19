@@ -48,7 +48,7 @@ export async function applyBillingEvent(
   const uid = uidFromPayload(payload);
   if (!uid) {
     // Cannot map to a user. Park it for manual resolution; acknowledge so LS stops retrying.
-    await db.collection('billing_orphans').add({
+    await db.collection(Paths.billingOrphans()).add({
       event: payload.meta?.event_name ?? null,
       resourceType: payload.data?.type ?? null,
       resourceId: String(payload.data?.id ?? ''),

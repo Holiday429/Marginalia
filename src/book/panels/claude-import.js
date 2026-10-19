@@ -13,9 +13,10 @@
 
 import { doc, setDoc } from 'firebase/firestore';
 import { MarginaliaAuth } from '../../firebase/auth.ts';
-import { MARGINALIA_FIREBASE } from '../../firebase/config.ts';
 import { PanelRegistry } from './registry.ts';
 import { NotesStore } from '../../store/notes-store.ts';
+import { WsPaths } from '../../firebase/paths.ts';
+import { getWorkspaceId } from '../../firebase/workspace.ts';
 
 (function registerVisualNotesPanel() {
 
@@ -66,14 +67,7 @@ import { NotesStore } from '../../store/notes-store.ts';
   function syncVisualNoteToFirebase(bookId, note) {
     const auth = MarginaliaAuth;
     if (!auth?.user || !auth?.db) return;
-    const workspaceId = MARGINALIA_FIREBASE?.workspaceId || 'default';
-    const docRef = doc(
-      auth.db,
-      'workspaces', workspaceId,
-      'users', auth.user.uid,
-      'books', bookId,
-      'visualNotes', note.id,
-    );
+    const docRef = doc(auth.db, WsPaths.bookVisualNote(getWorkspaceId(), auth.user.uid, bookId, note.id));
     setDoc(docRef, { title: note.title, content: note.content, createdAt: note.createdAt }, { merge: true })
       .catch(() => {});
   }

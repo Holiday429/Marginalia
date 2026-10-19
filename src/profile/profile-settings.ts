@@ -22,8 +22,9 @@ import { t, setLanguage, getSupportedLocales, getLocaleKeys } from '../core/i18n
 import { exportJSON, exportMarkdown, triggerDownload } from '../api/export.ts';
 import { openCheckout } from '../services/billing.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
-import { firebaseFunctions, MARGINALIA_FIREBASE } from '../firebase/config.ts';
-import { Paths } from '../firebase/paths.ts';
+import { firebaseFunctions } from '../firebase/config.ts';
+import { Paths, WsPaths } from '../firebase/paths.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 import { syncPublicProfile } from './public-profile.ts';
 import { bindDeleteAccount, deleteAccountSectionHTML } from './delete-account.ts';
 
@@ -117,9 +118,8 @@ async function saveShareInProfile(bookId: string, value: boolean): Promise<void>
   const auth = getAuth();
   const uid = getUserId();
   if (!auth?.db || !uid) return;
-  const wsId: string = MARGINALIA_FIREBASE?.workspaceId ?? 'default';
   await setDoc(
-    doc(auth.db, 'workspaces', wsId, 'users', uid, 'books', bookId),
+    doc(auth.db, WsPaths.book(getWorkspaceId(), uid, bookId)),
     { shareInProfile: value },
     { merge: true },
   );

@@ -26,8 +26,9 @@ import { GraphLinkStatusSchema } from '../data/schema/graph-link-status.ts';
 import { logError } from '../services/analytics.ts';
 import { MarginaliaAuth } from './auth.ts';
 import { normalizeReadingStatus } from '../shared/reading-status.ts';
-import { MARGINALIA_FIREBASE } from './config.ts';
 import { MarginaliaGraph } from '../core/graph-data.ts';
+import { WsPaths } from './paths.ts';
+import { getWorkspaceId } from './workspace.ts';
 
 /* ── Books sync ─────────────────────────────────────────────────────────── */
 
@@ -49,7 +50,7 @@ export const MarginaliaBooksCloud = (() => {
   const state = {
     enabled: true,
     uid: '',
-    workspaceId: MARGINALIA_FIREBASE?.workspaceId || 'default',
+    workspaceId: getWorkspaceId(),
     unsubscribe: null as Unsubscribe | null,
   };
 
@@ -122,7 +123,7 @@ export const MarginaliaBooksCloud = (() => {
 
   function booksCollectionRef() {
     if (!MarginaliaAuth.db) throw new Error('Firestore is not initialized.');
-    return collection(MarginaliaAuth.db, 'workspaces', state.workspaceId, 'users', state.uid, 'books');
+    return collection(MarginaliaAuth.db, WsPaths.books(state.workspaceId, state.uid));
   }
 
   function detachListener() {
@@ -170,9 +171,8 @@ export const MarginaliaBooksCloud = (() => {
   });
 
   function getLinkStatusDocRef(uid: string) {
-    const workspaceId = MARGINALIA_FIREBASE?.workspaceId || 'default';
     if (!MarginaliaAuth.db) throw new Error('Firestore is not initialized.');
-    return doc(MarginaliaAuth.db, 'workspaces', workspaceId, 'users', uid, 'graph', 'linkStatus');
+    return doc(MarginaliaAuth.db, WsPaths.graphLinkStatus(getWorkspaceId(), uid));
   }
 
   function detachSnapshot() {
@@ -212,7 +212,7 @@ export const MarginaliaStorage = (() => {
   }
 
   function buildPath(subPath: string, file: { name?: string; type?: string }): string {
-    return `workspaces/${getWorkspaceId()}/users/${getUid()}/${subPath}/${Date.now()}-${randomId(6)}.${guessExt(file)}`;
+    return `${WsPaths.storagePrefix(getWorkspaceId(), getUid())}${subPath}/${Date.now()}-${randomId(6)}.${guessExt(file)}`;
   }
 
   function requireAuth() {
@@ -221,7 +221,6 @@ export const MarginaliaStorage = (() => {
   }
 
   function getUid()         { return MarginaliaAuth.user!.uid; }
-  function getWorkspaceId() { return MARGINALIA_FIREBASE?.workspaceId || 'default'; }
 
   function sanitize(value: string): string {
     return String(value || '').trim().toLowerCase()

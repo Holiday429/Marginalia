@@ -13,10 +13,9 @@
 
 import type { Firestore, Unsubscribe } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
-import { ENV } from '../core/env.ts';
 import { normalizeReadingStatus } from '../shared/reading-status.ts';
-import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { createDemoSource, createFirestoreSource, type BookDataSource, type BookRecord } from './book-data-source.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 
 type FirestoreDB = Firestore;
 
@@ -81,8 +80,7 @@ function initWithUser(uid: string, db: FirestoreDB) {
   if (_uid === uid) return; // already listening for this user
   _uid = uid;
   _setVisibleBooks([]); // never show demo books to a signed-in user while the first snapshot loads
-  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
-  _watch(createFirestoreSource(db, wsId, uid));
+  _watch(createFirestoreSource(db, getWorkspaceId(), uid));
   _emit();
 }
 

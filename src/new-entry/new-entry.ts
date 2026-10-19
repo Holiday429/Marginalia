@@ -2,7 +2,7 @@
    Marginalia · Add Book — add a book + DIY spine/cover
    ========================================================================== */
 
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { logEvent, logError } from '../services/analytics.ts';
 import { withMeta, withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
@@ -11,10 +11,11 @@ import { BooksStore } from '../store/books-store.ts';
 import { NotesStore } from '../store/notes-store.ts';
 import { renderSearchSection } from '../search/search.js';
 import { MarginaliaAuth } from '../firebase/auth.ts';
-import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { BOOK_TYPES } from '../data/schema/book-types.ts';
 import { SPINE_COLORS } from '../shared/spine-colors.ts';
 import { READING_STATUS_OPTIONS, normalizeReadingStatus } from '../shared/reading-status.ts';
+import { WsPaths } from '../firebase/paths.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 
 type Book = { id: string; [key: string]: any }; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
 
@@ -1046,8 +1047,7 @@ export const NewEntry = (() => {
 
     if (uid && db) {
       try {
-        const wsId = MARGINALIA_FIREBASE?.workspaceId || 'default';
-        const docRef = doc(collection(db, 'workspaces', wsId, 'users', uid, 'books'), id);
+        const docRef = doc(db, WsPaths.book(getWorkspaceId(), uid, id));
         if (isEditing) {
           // Patch only the fields that changed
           const patch = {

@@ -75,3 +75,31 @@ test('graph view loads', async ({ page }) => {
   await expect(page.locator('body')).toHaveAttribute('data-view', 'web', { timeout: 10_000 });
   expect(unexpectedErrors(errors)).toEqual([]);
 });
+
+// Phase 1 gate (docs/optimization-plan.md): one visit through every main view, in order, with zero page errors.
+test('phase 1 gate: landing, room, Search, Library, Map, Graph, Profile, Book — zero page errors', async ({ page }) => {
+  const errors = trackPageErrors(page);
+
+  await page.goto('/');
+  await expect(page.locator('#skipBtn')).toBeVisible(); // landing
+
+  await skipPreloader(page); // room
+
+  const visit = async (hash: string, view: string) => {
+    await page.evaluate((h) => { window.location.hash = h; }, hash);
+    await expect(page.locator('body')).toHaveAttribute('data-view', view, { timeout: 15_000 });
+    await page.waitForTimeout(1200); // let the view's own async work run (and fail, if it is going to)
+  };
+  await visit('#search', 'search');
+  await visit('#library', 'library-2d');
+  await visit('#map', 'map');
+  await visit('#graph', 'web');
+  await visit('#profile', 'profile');
+
+  await visit('#search', 'search');
+  await page.locator('.shelf-quick-card').first().click();
+  await expect(page.locator('body')).toHaveAttribute('data-view', 'book', { timeout: 15_000 });
+  await page.waitForTimeout(1200);
+
+  expect(unexpectedErrors(errors)).toEqual([]);
+});

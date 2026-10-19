@@ -4,7 +4,7 @@
    Then: npm run test:rules
 */
 
-import { describe, it, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import {
   initializeTestEnvironment,
   assertFails,
@@ -12,6 +12,7 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'fs';
+import { BUILDERS, CASES, OTHER, OWNER, type PathCase } from './path-cases.ts';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -225,4 +226,50 @@ describe('Firestore rules — reading sessions (1.4)', () => {
     const db = testEnv.authenticatedContext(uidA).firestore();
     await assertFails(db.doc(`users/${uidA}/data/s1`).set({ startedAt: 1 }));
   });
+});
+
+describe('Firestore rules — every path in src/firebase/paths.ts (1.9)', () => {
+  it('has a case for every path builder (add one when you add a path)', () => {
+    for (const group of Object.keys(BUILDERS) as Array<keyof typeof BUILDERS>) {
+      expect(Object.keys(CASES[group]).sort(), `cases for ${group}`).toEqual(Object.keys(BUILDERS[group]).sort());
+    }
+  });
+
+  const all = (Object.entries(CASES) as Array<[string, Record<string, PathCase>]>)
+    .flatMap(([group, cases]) => Object.entries(cases).map(([name, c]) => [`${group}.${name}`, c] as const));
+
+  for (const [label, c] of all) {
+    if (c.access === 'not-firestore') continue;
+    it(`${label} (${c.access}): ${c.doc}`, async () => {
+      const data = c.data ?? { probe: true };
+      const owner = testEnv.authenticatedContext(OWNER).firestore();
+      const other = testEnv.authenticatedContext(OTHER).firestore();
+      const anon = testEnv.unauthenticatedContext().firestore();
+      await testEnv.withSecurityRulesDisabled(async (ctx) => { await ctx.firestore().doc(c.doc).set(data); });
+
+      if (c.access === 'owner-rw') {
+        await assertSucceeds(owner.doc(c.doc).get());
+        await assertSucceeds(owner.doc(c.doc).set(data, { merge: true }));
+        await assertFails(other.doc(c.doc).get());
+        await assertFails(other.doc(c.doc).set(data, { merge: true }));
+        await assertFails(anon.doc(c.doc).get());
+      } else if (c.access === 'owner-read-server-write') {
+        await assertSucceeds(owner.doc(c.doc).get());
+        await assertFails(owner.doc(c.doc).set(data, { merge: true }));
+        await assertFails(other.doc(c.doc).get());
+        await assertFails(other.doc(c.doc).set(data, { merge: true }));
+        await assertFails(anon.doc(c.doc).get());
+      } else if (c.access === 'server-only') {
+        await assertFails(owner.doc(c.doc).get());
+        await assertFails(owner.doc(c.doc).set(data, { merge: true }));
+        await assertFails(other.doc(c.doc).get());
+        await assertFails(anon.doc(c.doc).get());
+      } else if (c.access === 'public-read-owner-write') {
+        await assertSucceeds(anon.doc(c.doc).get());
+        await assertSucceeds(owner.doc(c.doc).set(data, { merge: true }));
+        await assertFails(other.doc(c.doc).set({ ...data, uid: OTHER }, { merge: true }));
+        await assertFails(other.doc(c.doc).delete());
+      }
+    });
+  }
 });

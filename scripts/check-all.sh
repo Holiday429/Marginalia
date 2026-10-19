@@ -7,6 +7,8 @@ npm run typecheck
 npm run typecheck:room
 npm run check:entitlements
 npm run check:hardcoded
+npm run check:paths
+npm run check:docs
 npm --prefix functions run build
 npm run test:unit
 npm run test:rules:emu

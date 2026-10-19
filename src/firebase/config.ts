@@ -14,10 +14,11 @@ import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase
 import { getStorage, connectStorageEmulator, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator, type Functions } from 'firebase/functions';
 import { ENV } from '../core/env.ts';
+import { getWorkspaceId } from './workspace.ts';
 
 export const MARGINALIA_FIREBASE = {
   enabled: true,
-  workspaceId: ENV.WORKSPACE_ID || 'marginalia-main',
+  workspaceId: getWorkspaceId(),
   config: {
     apiKey:            ENV.FIREBASE_API_KEY,
     authDomain:        ENV.FIREBASE_AUTH_DOMAIN,

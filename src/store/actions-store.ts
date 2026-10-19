@@ -19,10 +19,10 @@ import {
 import { validateWrite, withMeta, withMetaCreate } from '../services/db.ts';
 import { ActionSchema } from '../data/schema/action.ts';
 import { logError, logEvent } from '../services/analytics.ts';
-import { ENV } from '../core/env.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
-import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import type { Action } from '../data/schema/action.ts';
+import { WsPaths } from '../firebase/paths.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 
 type FirestoreDB = Firestore;
 
@@ -57,8 +57,7 @@ function _colRef(): CollectionReference {
     }
   }
   if (!_uid || !_db) throw new Error('[ActionsStore] Not initialised');
-  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
-  return collection(_db, 'workspaces', wsId, 'users', _uid, 'actions');
+  return collection(_db, WsPaths.actions(getWorkspaceId(), _uid));
 }
 
 /** Called when user signs in. Starts the Firestore onSnapshot listener. */
@@ -68,8 +67,7 @@ function initWithUser(uid: string, db: FirestoreDB): void {
   _uid = uid;
   _db = db;
 
-  const wsId = ENV.WORKSPACE_ID || MARGINALIA_FIREBASE?.workspaceId || 'default';
-  const col = collection(db, 'workspaces', wsId, 'users', uid, 'actions');
+  const col = collection(db, WsPaths.actions(getWorkspaceId(), uid));
   _unsubscribe = onSnapshot(
     col,
     (snapshot) => {

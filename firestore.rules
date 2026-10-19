@@ -84,6 +84,21 @@ service cloud.firestore {
       allow write: if isSelf(uid);
     }
 
+    // Everything below a book: notes/main, ai/{featureId}, visualNotes/{id}. Owner only.
+    match /workspaces/{workspaceId}/users/{uid}/books/{bookId}/{sub=**} {
+      allow read, write: if isSelf(uid);
+    }
+
+    // /workspaces/{workspaceId}/users/{uid}/ai_results/{featureId} — profile-level AI output (reader portrait, …)
+    match /workspaces/{workspaceId}/users/{uid}/ai_results/{featureId} {
+      allow read, write: if isSelf(uid);
+    }
+
+    // /workspaces/{workspaceId}/users/{uid}/annual_shelf/{year} — Top-10 of the year
+    match /workspaces/{workspaceId}/users/{uid}/annual_shelf/{year} {
+      allow read, write: if isSelf(uid);
+    }
+
     // /workspaces/{workspaceId}/users/{uid}/data/{docId} — library_layout (shelf arrangement)
     match /workspaces/{workspaceId}/users/{uid}/data/{docId} {
       allow read, write: if isSelf(uid);

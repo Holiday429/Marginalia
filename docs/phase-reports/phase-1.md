@@ -164,3 +164,18 @@ Not verified
 - The `<error-banner>` component named in CLAUDE.md does not exist in the codebase; deletion errors use an inline `role="alert"` message like the rest of Settings.
 - Nothing ran against a deployed Firebase project: Storage deletion is exercised only as a call (the e2e run uses the Storage emulator without any uploaded files).
 - Text review: Q1.8-a…f in `docs/open-questions.md`.
+
+## 1.9 One source for data paths, and accurate docs — done
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| `grep -rnE "collection\(\|doc\(" src \| grep -v paths.ts` shows no literal path strings | ✅ | `npm run check:paths` (`scripts/check-paths.mjs`, part of `check:all`): flags any `collection()` / `collectionGroup()` / `doc()` call in `src/` or `functions/src/` whose arguments contain a string literal; passes with 0 findings. Run against the tree before this refactor (commit `3707472`) it flagged 40 call sites. The plain grep still shows `collection(db, WsPaths…)` calls — those take a builder, not text. |
+| Rules tests: for every path in `paths.ts`, owner can / others cannot | ✅ | `tests/path-cases.ts` has one case per builder (8 in `Paths`, 22 in `WsPaths` — one of them a Storage prefix, covered by `storage.rules` — and 2 in `AuditPaths`) with its access class; `tests/firestore-rules.test.ts` runs 31 table-driven Firestore tests (owner-rw: owner get+set ok, other get+set denied, anonymous denied; server-written: owner read ok / write denied; server-only: all denied; public-read: anonymous reads, only the owner writes) and a test that fails if a builder has no case. 61 rules tests pass. |
+| Every file path in CLAUDE.md exists (script) | ✅ | `npm run check:docs` (`scripts/check-claude-md.mjs`, part of `check:all`) walks the Project Structure tree and every backticked path. On the old file it reported 38 missing; now 0. |
+
+What changed
+- `src/firebase/paths.ts` is the single source (shared with `functions/` through the build-time copy); added builders for every path the app uses (user profile, notifications, book notes / AI results / visual notes, `ai_results`, annual shelf, library layout, graph link status, storage prefix, collection-group names). `src/firebase/workspace.ts` is the one `getWorkspaceId()`.
+- All ~20 client files and the functions (`action-reminders`, `ai-generate`, `delete-account`, `billing-webhook`) now use the builders.
+- **Real bugs the new tests found** (details in Q1.9-a/b/c): five paths the app writes had no rules and were silently denied (book notes, per-book AI results, visual notes, `ai_results`, annual shelf) — rules added for the owner; the workspace id had two different fallbacks — unified to `marginalia-main`; public-profile reads of highlights / notes / portrait are denied by design (decision for you).
+- `CLAUDE.md` rewritten where it had drifted: file names (`.js` → `.ts`), the project tree (`shared/`, `functions/`, `scripts/`, `src/three/*`, demo data), the Firestore schema, the AI request model and "add a feature" steps, entitlements and the billing model, reading-session path, plus new sections "Testing and gates" and "Compliance" and the Phase 1 code rules (paths, billing, AI, demo data, assets, consent).
+- Added the Phase 1 gate smoke (`tests/e2e/smoke.spec.ts`): landing → room → Search → Library → Map → Graph → Profile → Book in one run with zero page errors.

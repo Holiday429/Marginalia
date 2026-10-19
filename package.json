@@ -13,6 +13,8 @@
     "typecheck:room": "tsc --noEmit -p tsconfig.room-check.json",
     "check:entitlements": "! grep -rn \"plan === '\" src/ --exclude='entitlements-store.ts'",
     "check:hardcoded": "! grep -rni sapiens src --exclude-dir=data",
+    "check:paths": "node scripts/check-paths.mjs",
+    "check:docs": "node scripts/check-claude-md.mjs",
     "lint": "eslint .",
     "pretest:rules": "node scripts/sync-shared.mjs",
     "test:rules": "vitest run tests/firestore-rules.test.ts functions/test/quota.emulator.test.ts functions/test/delete-account.emulator.test.ts",

@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/node';
 import * as functions from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import OpenAI from 'openai';
-import { AuditPaths } from './_shared/paths';
+import { AuditPaths, DEFAULT_WORKSPACE_ID, Paths } from './_shared/paths';
 import { handleGatewayRequest, type GatewayDeps } from './ai-handler';
 import { AI_MODEL, AI_PROVIDER, RATE_LIMIT_PER_DAY, RATE_LIMIT_PER_MINUTE, allowedOrigins } from './ai-config';
 
@@ -26,7 +26,7 @@ const db = admin.firestore();
 
 // Token bucket state stored in Firestore under users/{uid}/rateLimits/ai (server-only path).
 async function checkRateLimit(uid: string): Promise<{ ok: boolean; reason?: string }> {
-  const ref = db.doc(AuditPaths.rateLimit(uid));
+  const ref = db.doc(Paths.rateLimit(uid));
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const now = Date.now();
@@ -47,7 +47,7 @@ export const aiGenerate = functions.onRequest(
 
     const deps: GatewayDeps = {
       db: db as unknown as GatewayDeps['db'],
-      workspaceId: process.env.WORKSPACE_ID || 'default',
+      workspaceId: process.env.WORKSPACE_ID || DEFAULT_WORKSPACE_ID,
       allowedOrigins: allowedOrigins(),
       verifyToken: async (token) => (await admin.auth().verifyIdToken(token)).uid,
       checkRateLimit,

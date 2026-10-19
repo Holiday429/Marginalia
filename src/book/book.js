@@ -28,8 +28,8 @@ import { AIGenerateUI } from '../ai/client/generate-ui.ts';
 import { KindleImport } from '../api/kindle-import.ts';
 import { createEmptyBook } from '../data/schema/empty-book.ts';
 import { generateReadingCardBlob, fetchReadingCardAI } from './reading-card.ts';
-import { ENV } from '../core/env.ts';
-import { Paths } from '../firebase/paths.ts';
+import { Paths, WsPaths } from '../firebase/paths.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 import { fetchPublicProfile } from '../profile/public-profile.ts';
 import { HeroBook } from '../components/hero-book/hero-book.ts';
 import '../components/hero-book/hero-book.css';
@@ -1803,16 +1803,16 @@ async function fetchPublicBookContext(slug, bookId) {
   if (!card) return null;
   const ownerUid = card.uid;
 
-  const workspaceId = ENV.WORKSPACE_ID || 'default';
-  const bookRef = doc(db, 'workspaces', workspaceId, 'users', ownerUid, 'books', bookId);
+  const workspaceId = getWorkspaceId();
+  const bookRef = doc(db, WsPaths.book(workspaceId, ownerUid, bookId));
   const bookSnap = await getDoc(bookRef);
   if (!bookSnap.exists()) return null;
 
   const bookData = bookSnap.data() || {};
   const [noteSnap, highlightSnap] = await Promise.all([
-    getDoc(doc(bookRef, 'notes', 'main')).catch(() => null),
+    getDoc(doc(db, WsPaths.bookNote(workspaceId, ownerUid, bookId))).catch(() => null),
     getDocs(query(
-      collection(db, 'workspaces', workspaceId, 'users', ownerUid, 'highlights'),
+      collection(db, WsPaths.highlights(workspaceId, ownerUid)),
       where('bookId', '==', bookId),
       limit(24),
     )).catch(() => null),

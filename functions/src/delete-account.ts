@@ -8,7 +8,7 @@
 
 import * as functions from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { Paths, WsPaths } from './_shared/paths';
+import { AuditPaths, DEFAULT_WORKSPACE_ID, Paths, WsPaths } from './_shared/paths';
 import { allowedOrigins } from './ai-config';
 
 export class AccountDeleteError extends Error {
@@ -60,25 +60,25 @@ export async function deleteAccountData(deps: DeleteDeps, uid: string): Promise<
 
   // Support records that only carry the email (webhook events that could not be mapped to a uid).
   if (email) {
-    const orphans = await db.collection('billing_orphans').where('userEmail', '==', email).get();
+    const orphans = await db.collection(Paths.billingOrphans()).where('userEmail', '==', email).get();
     for (const o of orphans.docs) { await db.recursiveDelete(o.ref); done.push('billing_orphans'); }
   }
 
   const targets: Array<[string, unknown]> = [
     [WsPaths.user(ws, uid), db.doc(WsPaths.user(ws, uid))],
-    [`workspaces/${ws}/userProfiles/${uid}`, db.doc(`workspaces/${ws}/userProfiles/${uid}`)],
-    [`workspaces/${ws}/notifications/${uid}`, db.doc(`workspaces/${ws}/notifications/${uid}`)],
+    [WsPaths.userProfile(ws, uid), db.doc(WsPaths.userProfile(ws, uid))],
+    [WsPaths.notificationsRoot(ws, uid), db.doc(WsPaths.notificationsRoot(ws, uid))],
     [Paths.user(uid), db.doc(Paths.user(uid))],
     [Paths.billing(uid), db.doc(Paths.billing(uid))],
-    [`usage/${uid}`, db.doc(`usage/${uid}`)],
-    [`audit/ai_calls/${uid}`, db.collection(`audit/ai_calls/${uid}`)],
+    [Paths.usageMonths(uid), db.collection(Paths.usageMonths(uid))],
+    [AuditPaths.aiCalls(uid), db.collection(AuditPaths.aiCalls(uid))],
   ];
   for (const [label, ref] of targets) {
     await db.recursiveDelete(ref);
-    done.push(label.replace(uid, '{uid}'));
+    done.push(label.split(uid).join('{uid}'));
   }
 
-  await deps.deleteStoragePrefix(`workspaces/${ws}/users/${uid}/`);
+  await deps.deleteStoragePrefix(WsPaths.storagePrefix(ws, uid));
   done.push('storage');
   await deps.deleteAuthUser(uid);
   done.push('auth');
@@ -95,7 +95,7 @@ export const deleteAccount = functions.onCall({ cors: allowedOrigins() }, async 
   const db = admin.firestore();
   try {
     const deleted = await deleteAccountData({
-      workspaceId: process.env.WORKSPACE_ID || 'default',
+      workspaceId: process.env.WORKSPACE_ID || DEFAULT_WORKSPACE_ID,
       db: db as unknown as DeleteDeps['db'],
       getEmail: async (id) => (await admin.auth().getUser(id).catch(() => null))?.email ?? null,
       deleteStoragePrefix: (prefix) => admin.storage().bucket().deleteFiles({ prefix, force: true }).then(() => undefined),

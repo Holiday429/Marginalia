@@ -8,7 +8,7 @@ import { withMetaCreate, validateWrite } from '../../services/db.ts';
 import { logEvent, logError } from '../../services/analytics.ts';
 import { ReadingSessionSchema } from '../../data/schema/reading-session.ts';
 import { WsPaths } from '../../firebase/paths.ts';
-import { MARGINALIA_FIREBASE } from '../../firebase/config.ts';
+import { getWorkspaceId } from '../../firebase/workspace.ts';
 
 type FirestoreDB = Firestore;
 
@@ -22,8 +22,7 @@ const SESSION_KEY = 'marginalia:active-session';
 
 // workspaces/{ws}/users/{uid}/sessions/{sessionId} — same root as every other user collection.
 function sessionRef(db: FirestoreDB, uid: string, sessionId: string) {
-  const ws = MARGINALIA_FIREBASE?.workspaceId || 'default';
-  return doc(db, `${WsPaths.sessions(ws, uid)}/${sessionId}`);
+  return doc(db, WsPaths.session(getWorkspaceId(), uid, sessionId));
 }
 
 let _uid: string | null = null;

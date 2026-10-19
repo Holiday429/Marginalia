@@ -1,11 +1,10 @@
 /* Library view — room-organize workspace */
 
 import './library-2d.css';
-import { collection, doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
+import { doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
 import { validateWrite, withMeta } from '../services/db.ts';
 import { LibraryLayoutSchema } from '../data/schema/library-layout.ts';
-import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { renderLibraryShell } from './library-2d-template.js';
 import { PanelManager } from '../core/panel-manager.ts';
 import { BooksStore } from '../store/books-store.ts';
@@ -43,6 +42,8 @@ import {
   clampInt,
   cssEscape,
 } from './library-2d-state.js';
+import { WsPaths } from '../firebase/paths.ts';
+import { getWorkspaceId } from '../firebase/workspace.ts';
 
 // `App` is referenced below (openLibraryPanel's PanelManager?.open fallback
 // branch) but is never imported by the original JS — a pre-existing bug
@@ -2350,8 +2351,8 @@ function saveLayout(): void {
 }
 
 function layoutDocRef(db: Firestore, uid: string) {
-  const wsId = MARGINALIA_FIREBASE?.workspaceId || 'default';
-  return doc(collection(db, 'workspaces', wsId, 'users', uid, 'data'), 'library_layout');
+  const wsId = getWorkspaceId();
+  return doc(db, WsPaths.libraryLayout(wsId, uid));
 }
 
 async function readStoredLayout(): Promise<StoredLayout | null> {
