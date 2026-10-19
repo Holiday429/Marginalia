@@ -25,6 +25,7 @@ import { BookSchema } from '../data/schema/book.ts';
 import { GraphLinkStatusSchema } from '../data/schema/graph-link-status.ts';
 import { logError } from '../services/analytics.ts';
 import { MarginaliaAuth } from './auth.ts';
+import { normalizeReadingStatus } from '../shared/reading-status.ts';
 import { MARGINALIA_FIREBASE } from './config.ts';
 import { MarginaliaGraph } from '../core/graph-data.ts';
 
@@ -38,9 +39,8 @@ export const MarginaliaBooksCloud = (() => {
       setBookCover: _noop,
       setUserNote: _noop,
       setBookRating: _noop,
-      setBookProgress: _noop,
+      setBookStatus: _noop,
       setBookTags: _noop,
-      setBookDouban: _noop,
       updateBook: _noop,
       deleteBook: _noop,
     };
@@ -92,13 +92,12 @@ export const MarginaliaBooksCloud = (() => {
     await setDoc(docRef, withMeta({ rating: Number(rating) }), { merge: true });
   }
 
-  async function setBookProgress({ bookId, readingProgress }: { bookId: string; readingProgress: string }) {
+  async function setBookStatus({ bookId, status }: { bookId: string; status: string }) {
     if (!state.uid) throw new Error('User is not signed in.');
     if (!bookId) throw new Error('bookId is required.');
-    const statusMap: Record<string, string> = { 'done': 'read', 'in-progress': 'reading', 'not-started': 'confirmed-later' };
-    const status = statusMap[readingProgress] || 'confirmed-later';
     const docRef = doc(booksCollectionRef(), bookId);
-    await setDoc(docRef, withMeta({ status, meta: { readingProgress: String(readingProgress) } }), { merge: true });
+    const payload = withMeta(validateWrite(BookSchema, { status: normalizeReadingStatus(status) }));
+    await setDoc(docRef, payload, { merge: true });
   }
 
   async function setBookTags({ bookId, tags }: { bookId: string; tags: string[] }) {
@@ -106,13 +105,6 @@ export const MarginaliaBooksCloud = (() => {
     if (!bookId) throw new Error('bookId is required.');
     const docRef = doc(booksCollectionRef(), bookId);
     await setDoc(docRef, withMeta({ tags: Array.isArray(tags) ? tags : [] }), { merge: true });
-  }
-
-  async function setBookDouban({ bookId, douban }: { bookId: string; douban: string }) {
-    if (!state.uid) throw new Error('User is not signed in.');
-    if (!bookId) throw new Error('bookId is required.');
-    const docRef = doc(booksCollectionRef(), bookId);
-    await setDoc(docRef, withMeta({ meta: { douban: String(douban || '') } }), { merge: true });
   }
 
   async function updateBook({ bookId, patch }: { bookId: string; patch: Record<string, unknown> }) {
@@ -142,9 +134,8 @@ export const MarginaliaBooksCloud = (() => {
     setBookCover,
     setUserNote,
     setBookRating,
-    setBookProgress,
+    setBookStatus,
     setBookTags,
-    setBookDouban,
     updateBook,
     deleteBook,
   };

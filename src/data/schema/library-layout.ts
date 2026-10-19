@@ -23,6 +23,7 @@ export const LibraryLayoutSchema = z.object({
   view: z.object({ x: z.number(), y: z.number(), scale: z.number() }),
   camera: z.object({ yaw: z.number(), pitch: z.number() }).optional(),
   sceneMode: z.string().optional(),
+  bookStatus: z.record(z.string(), z.string()).optional(),
 }).passthrough();
 
 export type LibraryLayout = z.infer<typeof LibraryLayoutSchema>;

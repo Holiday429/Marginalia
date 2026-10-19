@@ -1,4 +1,5 @@
-// Marginalia · Highlight document schema (Firestore: .../books/{bookId}/highlights/{highlightId})
+// Marginalia · Highlight document schema
+// Firestore: workspaces/{ws}/users/{uid}/highlights/{highlightId}  (flat; bookId is a field)
 import { z } from 'zod';
 
 export const HighlightSchema = z.object({
@@ -7,7 +8,7 @@ export const HighlightSchema = z.object({
   quote:     z.string().min(1),
   page:      z.number().nullable().optional(),
   chapter:   z.string().nullable().optional(),
-  kind:      z.enum(['highlight', 'note', 'bookmark', 'concept']).nullable().optional(),
+  kind:      z.enum(['highlight', 'note', 'bookmark', 'concept', 'argument', 'critique', 'action']).nullable().optional(),
   source:    z.enum(['manual', 'kindle', 'notion', 'apple-books']).default('manual'),
   createdAt: z.number().optional(),
   updatedAt: z.number().optional(),

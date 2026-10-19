@@ -503,9 +503,10 @@
   flex-shrink: 0;
   border: 1.5px solid currentColor;
 }
-.ov-progress-dot--not-started { color: var(--muted); }
-.ov-progress-dot--in-progress { color: var(--accent); background: var(--accent); }
-.ov-progress-dot--done { color: #5a9e6f; background: #5a9e6f; }
+.ov-progress-dot--confirmed-later { color: var(--muted); }
+.ov-progress-dot--want { color: var(--muted); }
+.ov-progress-dot--reading { color: var(--accent); background: var(--accent); }
+.ov-progress-dot--finished { color: #5a9e6f; background: #5a9e6f; }
 .ov-progress-text {
   font-family: var(--font-serif);
   font-size: var(--fs-14);
@@ -1721,6 +1722,12 @@
   color: var(--muted);
 }
 .hl-form-req { color: var(--accent); }
+.hl-form-error {
+  margin: 0 0 10px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-14);
+  color: var(--color-rose);
+}
 .hl-form-textarea,
 .hl-form-input,
 .hl-form-select {

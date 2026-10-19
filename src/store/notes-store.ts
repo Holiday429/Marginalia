@@ -17,6 +17,7 @@
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
+import { HighlightsStore } from './highlights-store.ts';
 
 type Book = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
 
@@ -202,31 +203,35 @@ export const NotesStore = (() => {
       await _idbPut(_tx(STORE_HIGHLIGHTS, 'readwrite'), record);
     }
     _emit();
+    // Signed-in readers use the Firestore listener, so the write must reach it.
+    await HighlightsStore.save(record);
     return record;
   }
 
   async function deleteHighlight(bookId: string, highlightId: string): Promise<void> {
     if (_db) await _idbDelete(_tx(STORE_HIGHLIGHTS, 'readwrite'), highlightId);
     _emit();
+    await HighlightsStore.remove(highlightId);
   }
 
   // Batch import — used by Kindle parser; skips duplicates by id
   async function importHighlights(bookId: string, highlights: Array<Record<string, any>>): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any -- caller-supplied partial highlight shapes
-    if (!_db) return;
-    const tx = _db.transaction(STORE_HIGHLIGHTS, 'readwrite');
-    const store = tx.objectStore(STORE_HIGHLIGHTS);
-    for (const h of highlights) {
-      const record = {
-        ...h,
-        bookId,
-        source:    'kindle',
-        createdAt: h.createdAt || Date.now(),
-        updatedAt: Date.now(),
-      };
-      store.put(record);
+    const records = highlights.map((h) => ({
+      ...h,
+      id:        h.id || `hl-${bookId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      bookId,
+      source:    'kindle',
+      createdAt: h.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    }));
+    if (_db) {
+      const tx = _db.transaction(STORE_HIGHLIGHTS, 'readwrite');
+      const store = tx.objectStore(STORE_HIGHLIGHTS);
+      records.forEach((record) => store.put(record));
+      await new Promise<void>((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
     }
-    await new Promise<void>((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
     _emit();
+    await HighlightsStore.saveMany(records);
   }
 
   /* ── Book notes ──────────────────────────────────────────────────────────── */

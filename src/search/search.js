@@ -8,6 +8,7 @@ import { PanelManager } from '../core/panel-manager.ts';
 import { SpineCard } from '../components/spine-card.ts';
 import { NewEntry } from '../new-entry/new-entry.ts';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
+import { normalizeReadingStatus, readingStatusLabel } from '../shared/reading-status.ts';
 import { maybeSettleLaptopFlyIn } from './laptop-fly.js';
 
 const SHELF_STATE = {
@@ -407,8 +408,9 @@ function renderShelfSummary(visibleCount) {
     if (book.status === 'finished') acc.finished += 1;
     else if (book.status === 'reading') acc.reading += 1;
     else if (book.status === 'want') acc.want += 1;
+    else if (book.status === 'confirmed-later') acc.later += 1;
     return acc;
-  }, { finished: 0, reading: 0, want: 0 });
+  }, { finished: 0, reading: 0, want: 0, later: 0 });
 
   const base = `
     <span class="count-item"><strong>${totals.finished}</strong> finished</span>
@@ -416,6 +418,8 @@ function renderShelfSummary(visibleCount) {
     <span class="count-item"><strong>${totals.reading}</strong> reading</span>
     <span class="count-sep">·</span>
     <span class="count-item"><strong>${totals.want}</strong> to read</span>
+    <span class="count-sep">·</span>
+    <span class="count-item"><strong>${totals.later}</strong> confirm later</span>
   `;
   if (SHELF_STATE.query) {
     countEl.innerHTML = `
@@ -707,6 +711,7 @@ function getFilteredBooks() {
     if (SHELF_STATE.filter === 'finished' && status !== 'finished') return false;
     if (SHELF_STATE.filter === 'reading' && status !== 'reading') return false;
     if (SHELF_STATE.filter === 'to read' && status !== 'want') return false;
+    if (SHELF_STATE.filter === 'confirm later' && status !== 'confirmed-later') return false;
     if (tag && !(b.preview?.tags || []).some((t) => t.toLowerCase() === tag)) return false;
     if (SHELF_STATE.query && !b.searchText.includes(SHELF_STATE.query)) return false;
     return true;
@@ -770,19 +775,11 @@ function toTitleCase(str) {
 }
 
 function statusToLabel(status) {
-  status = normalizeShelfStatus(status);
-  if (status === 'finished') return 'Finished';
-  if (status === 'reading') return 'Reading';
-  if (status === 'want') return 'To read';
-  return 'Shelf';
+  return readingStatusLabel(status);
 }
 
 function normalizeShelfStatus(status) {
-  const raw = String(status || '').trim();
-  if (raw === 'read' || raw === 'finished') return 'finished';
-  if (raw === 'reading') return 'reading';
-  if (raw === 'want' || raw === 'wishlist' || raw === 'unread' || raw === 'confirmed-later') return 'want';
-  return 'want';
+  return normalizeReadingStatus(status);
 }
 
 function toEnglishTag(tag) {

@@ -169,6 +169,7 @@ interface StoredLayout {
   shelves?: StoredLayoutShelf[];
   pool?: string[];
   view?: { x?: number; y?: number; scale?: number };
+  bookStatus?: Record<string, string>;
 }
 
 // LIBRARY_STATE is a plain mutable object literal exported by the still-untyped
@@ -210,6 +211,9 @@ interface LibraryState {
 const LIBRARY_STATE = LIBRARY_STATE_UNTYPED as unknown as LibraryState;
 
 let _layoutHydrated = false;
+// Status each book had when the layout was last reconciled; a difference means
+// the status changed elsewhere (book detail, Add Book) and the book must follow.
+const _statusSnapshot = new Map<string, string>();
 
 function initLibrary(params: EnterLibraryParams = {}): void {
   const host = document.getElementById('panel-library');
@@ -702,7 +706,8 @@ async function hydrateLibraryLayout(initParams: EnterLibraryParams = {}): Promis
       color: shelf.color || '#7a6040',
       rows: clampInt(shelf.rows, 1, LIBRARY_MAX_ROWS, 2),
       viewMode: normalizeShelfMode(shelf.viewMode || 'spine'),
-      status: normalizeReadingStatus(shelf.status || ''),
+      // Only the built-in shelves carry a reading status; custom shelves never do.
+      status: LIBRARY_DEFAULT_SHELVES.find((base) => base.id === normalizeShelfId(shelf.id))?.status || '',
       x: Number(shelf.x) || 0,
       y: Number(shelf.y) || 0,
       tilt: 0,
@@ -712,6 +717,8 @@ async function hydrateLibraryLayout(initParams: EnterLibraryParams = {}): Promis
     }));
 
     LIBRARY_STATE.shelves = dedupeShelvesById(LIBRARY_STATE.shelves);
+    _statusSnapshot.clear();
+    Object.entries(saved.bookStatus || {}).forEach(([key, status]) => _statusSnapshot.set(key, String(status)));
     LIBRARY_STATE.pool = [];
     const rawViewX = Number(saved.view?.x) || 0;
     const rawViewY = Number(saved.view?.y) || 0;
@@ -790,6 +797,21 @@ function mergeLayoutWithRecords(): boolean {
     if (!target) return;
     target.bookKeys.push(record.key);
     placed = true;
+  });
+
+  LIBRARY_STATE.records.forEach((record) => {
+    const previous = _statusSnapshot.get(record.key);
+    if (previous && previous !== record.status) {
+      const target = getShelfById(mapStatusToShelfId(record.status));
+      if (target) {
+        LIBRARY_STATE.shelves.forEach((shelf) => {
+          shelf.bookKeys = shelf.bookKeys.filter((key) => key !== record.key);
+        });
+        target.bookKeys.push(record.key);
+        placed = true;
+      }
+    }
+    _statusSnapshot.set(record.key, record.status);
   });
   return placed;
 }
@@ -2156,7 +2178,6 @@ function applyArrangement(mode: string): void {
       .forEach((record: LibraryRecord, index: number) => {
         const shelf = shelves[index % shelves.length];
         shelf.bookKeys.push(record.key);
-        syncStatusToSource(record.key, shelf.id);
       });
     return;
   }
@@ -2170,7 +2191,6 @@ function applyArrangement(mode: string): void {
       .forEach((record: LibraryRecord, index: number) => {
         const shelf = shelves[index % shelves.length];
         shelf.bookKeys.push(record.key);
-        syncStatusToSource(record.key, shelf.id);
       });
   }
 }
@@ -2183,6 +2203,7 @@ function arrangeByStatus(): void {
     const targetId = mapStatusToShelfId(record.status);
     const shelf = getShelfById(targetId);
     if (shelf) shelf.bookKeys.push(record.key);
+    _statusSnapshot.set(record.key, record.status);
   });
 }
 
@@ -2206,17 +2227,26 @@ function getShelfById(shelfId: string): LibraryShelf | null {
   return LIBRARY_STATE.shelves.find((shelf: LibraryShelf) => shelf.id === shelfId) || null;
 }
 
+/** A book was dragged onto a status shelf: make that its reading status everywhere. */
 function syncStatusToSource(bookKey: string, shelfId: string): void {
   const shelf = getShelfById(shelfId);
   const status = shelf?.status || '';
   if (!status) return;
 
   const record = LIBRARY_STATE.recordByKey.get(bookKey);
-  if (!record) return;
+  if (!record || record.status === status) return;
   record.status = status;
+  _statusSnapshot.set(bookKey, status);
 
   const source = BooksStore.getShelfBooks()?.[record.sourceIndex] as { status?: string } | undefined;
   if (source) source.status = status;
+
+  // Demo visitors and the canonical Sapiens entry have no editable Firestore doc.
+  if (!MarginaliaAuth.user || !BooksStore.hasOwnBooks() || record.id === 'sapiens') return;
+  const stored = BooksStore.getById(record.id);
+  if (stored) BooksStore.addOptimisticBook({ ...stored, status });
+  Promise.resolve(MarginaliaBooksCloud?.setBookStatus?.({ bookId: record.id, status }))
+    .catch((err) => logError(err instanceof Error ? err : new Error(String(err)), { context: 'Library status save', bookId: record.id }));
 }
 
 function splitRows(bookKeys: string[], rowCount: number, shelf: LibraryShelf): RowGroup[] {
@@ -2312,6 +2342,7 @@ function saveLayout(): void {
     },
     camera: { yaw: 0, pitch: 0 },
     sceneMode: 'flat',
+    bookStatus: Object.fromEntries(_statusSnapshot),
   };
 
   // Always write localStorage as a fast local cache.

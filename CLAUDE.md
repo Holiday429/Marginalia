@@ -79,7 +79,7 @@ src/
 │   └── analytics.ts      — logEvent / logError (PostHog + Sentry)
 ├── store/
 │   ├── books-store.ts    — Firestore onSnapshot for all user books; emits marginalia:books-changed
-│   ├── highlights-store.ts — collectionGroup('highlights') listener; emits marginalia:highlights-changed
+│   ├── highlights-store.ts — per-user highlights listener + save/remove; emits marginalia:highlights-changed
 │   ├── notes-store.js    — IndexedDB (+ Firestore flush): highlights, notes, actions, ai-results, user-books
 │   ├── actions-store.ts  — Firestore actions collection listener
 │   ├── ai-results-store.ts — Cached AI output store
@@ -153,6 +153,7 @@ src/
 │   ├── export.ts          — JSON export assembler (books + highlights)
 │   └── kindle-import.js   — KindleImport: My Clippings.txt parser + UI
 ├── shared/
+│   ├── reading-status.ts  — ReadingStatus vocabulary (Add Book, book detail, Search, Library shelves)
 │   ├── shelf-utils.ts     — containsCJK, getUnifiedShelfSpineSize
 │   └── spine-colors.js    — SPINE_COLORS palette
 └── preloader/
@@ -251,7 +252,8 @@ workspaces/{wsId}/users/{uid}/
 │   └── settings       — language, theme, notifications
 └── data/
     ├── books/{bookId}              — _v:1, BookSchema fields
-    ├── books/{bookId}/highlights/{id}  — HighlightSchema (_v:1, bookId, quote, source, kind, page)
+    ├── highlights/{id}             — HighlightSchema (_v:1, bookId, quote, source, kind, page) — flat, filter by bookId
+    ├── data/library_layout         — shelf positions + bookKeys per shelf (LibraryLayoutSchema)
     ├── books/{bookId}/sessions/{id}    — ReadingSessionSchema (_v:1, bookId, startedAt, endedAt, durationMs)
     ├── notes/{id}                  — book notes (free text)
     ├── actions/{id}                — ActionSchema (_v:1, bookId, text, status, remind*At, reminded*)

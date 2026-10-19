@@ -32,10 +32,17 @@ import { ENV } from '../core/env.ts';
 import { HeroBook } from '../components/hero-book/hero-book.ts';
 import '../components/hero-book/hero-book.css';
 import { NewEntry } from '../new-entry/new-entry.ts';
+import { READING_STATUS_OPTIONS, normalizeReadingStatus, readingStatusLabel } from '../shared/reading-status.ts';
 
 let __currentBookId = null;
 
 function initBook() {}
+
+// Keep BooksStore in step with a tag edit so Add Book's edit form sees it immediately.
+function syncTagsToStore(bookId, tags, fallbackBook) {
+  const current = BooksStore.getById(bookId) || fallbackBook;
+  if (current) BooksStore.addOptimisticBook({ ...current, tags });
+}
 
 async function enterBook(params = {}) {
   const fallbackId = BooksStore.getAll()[0]?.id || 'sapiens';
@@ -71,9 +78,10 @@ async function enterBook(params = {}) {
   // Merge live user highlights from HighlightsStore (Firestore) with any
   // seed highlights baked into the book object. View-local copy — seed never mutated.
   if (!publicView) {
+    const localHighlights = (await NotesStore?.getHighlights(id)) || [];
     liveHighlights = HighlightsStore.getUid()
-      ? HighlightsStore.getAll().filter((h) => h.bookId === id)
-      : ((await NotesStore?.getHighlights(id)) || []);
+      ? [...HighlightsStore.getAll().filter((h) => h.bookId === id), ...localHighlights]
+      : localHighlights;
   }
   const mergedHighlights = dedupeHighlights([...(book.highlights || []), ...liveHighlights]);
 
@@ -95,6 +103,8 @@ async function enterBook(params = {}) {
 
   const root = document.getElementById('panel-book');
   const sections = getBookSections(bookView);
+  // In-place refreshes (save highlight, edit tags…) must not bounce back to Overview.
+  const keepTab = params.keepTab ? root.querySelector('.book-tab-btn.is-active')?.dataset.target || '' : '';
   root.innerHTML = renderBook(bookView, sections);
 
   // Re-mount registered panels onto their live DOM nodes so event listeners
@@ -127,6 +137,8 @@ async function enterBook(params = {}) {
       });
     });
   });
+
+  if (keepTab) root.querySelector(`.book-tab-btn[data-target="${CSS.escape(keepTab)}"]`)?.click();
 
   // Sidebar collapse toggle — triangle button switches between
   // expanded (full section labels) and collapsed (triangle only).
@@ -178,10 +190,24 @@ async function enterBook(params = {}) {
         chapter:    hlForm.querySelector('#hlFormChapter')?.value.trim() || null,
         annotation: hlForm.querySelector('#hlFormNote')?.value.trim() || null,
       };
-      await NotesStore?.saveHighlight(id, highlight);
+      const errorEl = hlForm.querySelector('#hlFormError');
+      const saveBtn = hlForm.querySelector('.hl-form-save');
+      if (errorEl) errorEl.hidden = true;
+      if (saveBtn) saveBtn.disabled = true;
+      try {
+        await NotesStore?.saveHighlight(id, highlight);
+      } catch (err) {
+        logError(err, { context: 'highlight save', bookId: id });
+        if (errorEl) {
+          errorEl.textContent = 'Could not save this highlight. Check your connection and try again.';
+          errorEl.hidden = false;
+        }
+        if (saveBtn) saveBtn.disabled = false;
+        return;
+      }
       logEvent('highlight_saved', { bookId: id });
       // Re-enter to rebuild merged list
-      enterBook({ id });
+      enterBook({ id, keepTab: true });
     });
   }
 
@@ -197,7 +223,7 @@ async function enterBook(params = {}) {
         hlKindleZone.dataset.mounted = '1';
       }
     });
-    hlKindleZone.addEventListener('kindle:imported', () => enterBook({ id }));
+    hlKindleZone.addEventListener('kindle:imported', () => enterBook({ id, keepTab: true }));
   }
 
   // Highlight delete (user-created only)
@@ -207,7 +233,7 @@ async function enterBook(params = {}) {
       const hlId = btn.dataset.hlDelete;
       if (!hlId) return;
       await NotesStore?.deleteHighlight(id, hlId);
-      enterBook({ id });
+      enterBook({ id, keepTab: true });
     });
   });
 
@@ -290,7 +316,7 @@ async function enterBook(params = {}) {
 
         await MarginaliaBooksCloud?.setBookCover({ bookId: id, imageUrl, storagePath });
         if (uploadStatus) uploadStatus.textContent = 'Saved';
-        enterBook({ id });
+        enterBook({ id, keepTab: true });
       } catch (error) {
         logError(error, { context: 'book cover upload', bookId: id });
         if (uploadStatus) uploadStatus.textContent = 'Upload failed';
@@ -331,20 +357,22 @@ async function enterBook(params = {}) {
     const current = Array.from(root.querySelectorAll('.ov-tag')).map(el => el.firstChild?.textContent?.trim()).filter(Boolean);
     if (current.includes(newTag)) { tagForm.hidden = true; return; }
     const updated = [...current, newTag];
+    syncTagsToStore(id, updated, book);
     try {
       await MarginaliaBooksCloud?.setBookTags?.({ bookId: id, tags: updated });
     } catch (err) { logError(err, { context: 'book tags save', bookId: id }); }
-    enterBook({ id });
+    enterBook({ id, keepTab: true });
   });
   root.querySelectorAll('[data-remove-tag]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const remove = btn.dataset.removeTag;
       const current = Array.from(root.querySelectorAll('.ov-tag')).map(el => el.firstChild?.textContent?.trim()).filter(Boolean);
       const updated = current.filter(t => t !== remove);
+      syncTagsToStore(id, updated, book);
       try {
         await MarginaliaBooksCloud?.setBookTags?.({ bookId: id, tags: updated });
       } catch (err) { logError(err, { context: 'book tag remove', bookId: id }); }
-      enterBook({ id });
+      enterBook({ id, keepTab: true });
     });
   });
 
@@ -375,36 +403,14 @@ async function enterBook(params = {}) {
     } catch (err) { logError(err, { context: 'book rating save', bookId: id }); }
   });
 
-  // ── Overview: reading progress ────────────────────────────────────────
-  root.querySelector('[data-progress-select]')?.addEventListener('change', async (e) => {
-    const val = e.target.value;
-    const statusMap = { 'done': 'read', 'in-progress': 'reading', 'not-started': 'confirmed-later' };
-    const newStatus = statusMap[val] || 'confirmed-later';
+  // ── Overview: reading status (same vocabulary as Add Book + Library shelves) ──
+  root.querySelector('[data-status-select]')?.addEventListener('change', async (e) => {
+    const newStatus = normalizeReadingStatus(e.target.value);
     const currentBook = BooksStore.getById(id) || book;
-    BooksStore.addOptimisticBook({ ...currentBook, status: newStatus, meta: { ...(currentBook.meta || {}), readingProgress: val } });
+    BooksStore.addOptimisticBook({ ...currentBook, status: newStatus });
     try {
-      await MarginaliaBooksCloud?.setBookProgress?.({ bookId: id, readingProgress: val });
-    } catch (err) { logError(err, { context: 'book progress save', bookId: id }); }
-  });
-
-  // ── Overview: Douban link ─────────────────────────────────────────────
-  root.querySelector('[data-edit-douban]')?.addEventListener('click', () => {
-    root.querySelector('[data-douban-field]').querySelector('a, button')?.setAttribute('hidden', '');
-    root.querySelector('[data-edit-douban]')?.setAttribute('hidden', '');
-    root.querySelector('[data-douban-form]').hidden = false;
-    root.querySelector('[data-douban-input]')?.focus();
-  });
-  root.querySelector('[data-cancel-douban]')?.addEventListener('click', () => {
-    root.querySelector('[data-douban-form]').hidden = true;
-    root.querySelector('[data-edit-douban]')?.removeAttribute('hidden');
-  });
-  root.querySelector('[data-douban-form]')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const url = root.querySelector('[data-douban-input]')?.value.trim() || '';
-    try {
-      await MarginaliaBooksCloud?.setBookDouban?.({ bookId: id, douban: url });
-    } catch (err) { logError(err, { context: 'book douban save', bookId: id }); }
-    enterBook({ id });
+      await MarginaliaBooksCloud?.setBookStatus?.({ bookId: id, status: newStatus });
+    } catch (err) { logError(err, { context: 'book status save', bookId: id }); }
   });
 
   // ── Overview: external link ────────────────────────────────────────────
@@ -424,7 +430,7 @@ async function enterBook(params = {}) {
     try {
       await MarginaliaBooksCloud?.updateBook?.({ bookId: id, patch: { externalLink: url || null } });
     } catch (err) { logError(err, { context: 'book ext-link save', bookId: id }); }
-    enterBook({ id });
+    enterBook({ id, keepTab: true });
   });
 
   // ── Overview: Wire up knowledge structure inner tabs
@@ -1038,27 +1044,20 @@ function renderOverview(b) {
       </div>
     </div>`;
 
-  // ── Reading progress ──────────────────────────────────────────────────
-  const PROGRESS_OPTIONS = [
-    { value: 'not-started', label: 'Not started' },
-    { value: 'in-progress', label: 'In progress' },
-    { value: 'done',        label: 'Done' },
-  ];
-  const currentProgress = b.meta?.readingProgress || (
-    b.status === 'read' ? 'done' : b.status === 'reading' ? 'in-progress' : 'not-started'
-  );
-  const progressHtml = `
+  // ── Reading status ────────────────────────────────────────────────────
+  const currentStatus = normalizeReadingStatus(b.status);
+  const statusHtml = `
     <div class="ov-field">
       <div class="ov-field-icon">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
       </div>
-      <span class="ov-field-label">Progress</span>
+      <span class="ov-field-label">Status</span>
       <div class="ov-field-val">
         ${isReadOnly
-          ? `<span class="ov-progress-dot ov-progress-dot--${esc(currentProgress)}"></span>
-             <span>${esc(PROGRESS_OPTIONS.find(o => o.value === currentProgress)?.label || 'Not started')}</span>`
-          : `<select class="ov-progress-select" data-progress-select>
-               ${PROGRESS_OPTIONS.map(o => `<option value="${o.value}"${o.value === currentProgress ? ' selected' : ''}>${o.label}</option>`).join('')}
+          ? `<span class="ov-progress-dot ov-progress-dot--${esc(currentStatus)}"></span>
+             <span>${esc(readingStatusLabel(currentStatus))}</span>`
+          : `<select class="ov-progress-select" data-status-select>
+               ${READING_STATUS_OPTIONS.map(o => `<option value="${o.value}"${o.value === currentStatus ? ' selected' : ''}>${o.label}</option>`).join('')}
              </select>`}
       </div>
     </div>`;
@@ -1077,7 +1076,7 @@ function renderOverview(b) {
     </div>`;
 
   // ── External link ─────────────────────────────────────────────────────
-  const extUrl = b.externalLink || '';
+  const extUrl = b.externalLink || b.meta?.douban || '';
   const extHtml = (extUrl || !isReadOnly) ? `
     <div class="ov-field">
       <div class="ov-field-icon">
@@ -1098,29 +1097,6 @@ function renderOverview(b) {
           </form>`}
       </div>
     </div>` : '';
-
-  // ── Douban link ───────────────────────────────────────────────────────
-  const doubanUrl = b.meta?.douban || '';
-  const doubanHtml = `
-    <div class="ov-field">
-      <div class="ov-field-icon">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7 9a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M13 15l-3.5-3.5"/></svg>
-      </div>
-      <span class="ov-field-label">Douban</span>
-      <div class="ov-field-val" data-douban-field>
-        ${doubanUrl
-          ? `<a class="ov-link" href="${esc(doubanUrl)}" target="_blank" rel="noopener">${esc(doubanUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 38))}${doubanUrl.length > 42 ? '…' : ''}</a>
-             ${isReadOnly ? '' : '<button class="ov-field-edit-btn" type="button" data-edit-douban>Edit</button>'}`
-          : (isReadOnly ? '<span class="ov-field-empty">—</span>' : '<button class="ov-field-add-btn" type="button" data-edit-douban>Add link</button>')
-        }
-        ${isReadOnly ? '' : `
-          <form class="ov-douban-form" data-douban-form hidden>
-            <input class="ov-douban-input" type="url" placeholder="https://book.douban.com/…" value="${esc(doubanUrl)}" data-douban-input>
-            <button class="ov-tag-form-save" type="submit">Save</button>
-            <button class="ov-tag-form-cancel" type="button" data-cancel-douban>Cancel</button>
-          </form>`}
-      </div>
-    </div>`;
 
   // ── Stat cards (count + jump, no content) ────────────────────────────
   const statCards = [
@@ -1173,10 +1149,9 @@ function renderOverview(b) {
                 <span class="ov-field-label">${r.k}</span>
                 <div class="ov-field-val">${r.v}</div>
               </div>`).join('')}
-            ${progressHtml}
+            ${statusHtml}
             ${tagsHtml}
             ${extHtml}
-            ${doubanHtml}
           </div>
 
           ${!isReadOnly ? `
@@ -1316,6 +1291,7 @@ function renderHighlights(b) {
             <label class="hl-form-label">Note (optional)</label>
             <textarea class="hl-form-textarea" id="hlFormNote" rows="2" placeholder="Your own annotation…"></textarea>
           </div>
+          <p class="hl-form-error" id="hlFormError" role="alert" hidden></p>
           <div class="hl-form-actions">
             <button class="hl-form-save" type="submit">Save</button>
             <button class="hl-form-cancel" type="button" id="hlFormCancel">Cancel</button>

@@ -13,6 +13,7 @@
 import { collection, onSnapshot, type Firestore, type Unsubscribe } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
 import { ENV } from '../core/env.ts';
+import { normalizeReadingStatus } from '../shared/reading-status.ts';
 import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { BOOK_DETAILS as SEED_DETAILS, BOOK_BY_ID as SEED_BY_ID } from '../data/seed/index.js';
 
@@ -90,7 +91,7 @@ function _toSpineRecord(b: BookRecord): Record<string, unknown> {
   const meta: any   = (b as any).meta  ?? {};
   const cover: any  = (b as any).cover ?? {};
   const user: any   = (b as any).user  ?? {};
-  const status = _normalizeShelfStatus(b.status ?? user.status);
+  const status = normalizeReadingStatus(b.status ?? user.status);
   return {
     id:     b.id,
     title:  b.title  ?? meta.title  ?? String(b.id),
@@ -106,14 +107,6 @@ function _toSpineRecord(b: BookRecord): Record<string, unknown> {
     font:   (b as any).font   ?? cover.font   ?? "'Fraunces', serif",
     weight: (b as any).weight ?? cover.weight ?? 500,
   };
-}
-
-function _normalizeShelfStatus(status: unknown): string {
-  const raw = String(status || '').trim();
-  if (raw === 'read' || raw === 'finished') return 'finished';
-  if (raw === 'reading') return 'reading';
-  if (raw === 'want' || raw === 'wishlist' || raw === 'unread' || raw === 'confirmed-later') return 'want';
-  return 'want';
 }
 
 function _emit() {

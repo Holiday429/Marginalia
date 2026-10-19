@@ -1,3 +1,5 @@
+import { normalizeReadingStatus } from '../shared/reading-status.ts';
+
 export const LIBRARY_STORAGE_KEY = 'marginalia:library-layout:v6';
 export const LIBRARY_WORLD_WIDTH = 3200;
 export const LIBRARY_WORLD_HEIGHT = 3200;
@@ -58,13 +60,7 @@ export function normalizeShelfMode(value) {
   return 'spine';
 }
 
-export function normalizeReadingStatus(status) {
-  if (status === 'reading') return 'reading';
-  if (status === 'finished') return 'finished';
-  if (status === 'want' || status === 'to-read') return 'want';
-  if (status === 'confirmed-later' || status === 'confirm-later') return 'confirmed-later';
-  return 'confirmed-later';
-}
+export { normalizeReadingStatus };
 
 export function normalizeShelfId(id) {
   if (id === 'reading-now') return 'reading';
@@ -87,13 +83,7 @@ export function mapStatusToShelfId(status) {
   return 'confirm-later';
 }
 
-export function statusToLabel(status) {
-  const normalized = normalizeReadingStatus(status);
-  if (normalized === 'reading') return 'Reading';
-  if (normalized === 'finished') return 'Finished';
-  if (normalized === 'want') return 'To Read';
-  return 'Confirm Later';
-}
+export { readingStatusLabel as statusToLabel } from '../shared/reading-status.ts';
 
 export function escapeHTML(value) {
   return String(value || '')

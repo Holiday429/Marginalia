@@ -47,6 +47,11 @@ service cloud.firestore {
       allow read, write: if isSelf(uid);
     }
 
+    // /workspaces/{workspaceId}/users/{uid}/highlights/{highlightId}
+    match /workspaces/{workspaceId}/users/{uid}/highlights/{highlightId} {
+      allow read, write: if isSelf(uid);
+    }
+
     // /workspaces/{workspaceId}/users/{uid}/actions/{actionId}
     match /workspaces/{workspaceId}/users/{uid}/actions/{actionId} {
       allow read, write: if isSelf(uid);

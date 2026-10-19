@@ -15,6 +15,7 @@ import { MarginaliaAuth } from '../firebase/auth.ts';
 import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { BOOK_TYPES } from '../data/schema/book-types.ts';
 import { SPINE_COLORS } from '../shared/spine-colors.ts';
+import { READING_STATUS_OPTIONS, normalizeReadingStatus } from '../shared/reading-status.ts';
 
 type Book = { id: string; [key: string]: any }; // eslint-disable-line @typescript-eslint/no-explicit-any -- merged from inconsistent seed/store/cloud sources
 
@@ -426,10 +427,7 @@ export const NewEntry = (() => {
               <div class="ne-field">
                 <label class="ne-label" for="neStatus">Status</label>
                 <select class="ne-select" id="neStatus">
-                  <option value="confirmed-later" selected>Confirmed Later</option>
-                  <option value="reading">Reading</option>
-                  <option value="finished">Finished</option>
-                  <option value="want">To Read</option>
+                  ${READING_STATUS_OPTIONS.map((o) => `<option value="${o.value}"${o.value === 'confirmed-later' ? ' selected' : ''}>${o.label}</option>`).join('')}
                 </select>
               </div>
               <div class="ne-field">
@@ -923,11 +921,7 @@ export const NewEntry = (() => {
   }
 
   function toEntryStatus(status: unknown): string {
-    const raw = String(status || '').trim();
-    if (raw === 'read') return 'finished';
-    if (raw === 'unread' || raw === 'wishlist') return 'want';
-    if (raw === 'reading' || raw === 'finished' || raw === 'want' || raw === 'confirmed-later') return raw;
-    return 'confirmed-later';
+    return normalizeReadingStatus(status);
   }
 
   function normalizeUrl(raw: string): string {

@@ -1,11 +1,17 @@
 // Marginalia · Highlights Store
-// Firestore collectionGroup listener on all highlights under the current user's books.
-// Authenticated path:   onSnapshot(collectionGroup('highlights')) — filtered to user's path by Firestore rules.
+// Firestore listener + writer for the signed-in user's highlights.
+// Path: workspaces/{ws}/users/{uid}/highlights/{id} (flat; each doc carries its bookId).
 // Unauthenticated path: empty; notes-wall falls back to seed data.
 // Views subscribe via 'marginalia:highlights-changed' or HighlightsStore.subscribe().
 
-import { collectionGroup, onSnapshot, orderBy, query, where, type Firestore, type Unsubscribe } from 'firebase/firestore';
+import {
+  collection, doc, deleteDoc, onSnapshot, setDoc, writeBatch,
+  type CollectionReference, type Firestore, type Unsubscribe,
+} from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
+import { validateWrite, withMeta } from '../services/db.ts';
+import { HighlightSchema } from '../data/schema/highlight.ts';
+import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 
 type FirestoreDB = Firestore;
 
@@ -17,9 +23,12 @@ export interface HighlightRecord {
   [key: string]: unknown;
 }
 
+const BATCH_LIMIT = 400;
+
 let _highlights: HighlightRecord[] = [];
 let _unsubscribe: Unsubscribe | null = null;
 let _uid: string | null = null;
+let _db: FirestoreDB | null = null;
 const _listeners: Array<() => void> = [];
 
 function _emit(): void {
@@ -29,26 +38,35 @@ function _emit(): void {
   _listeners.forEach((fn) => fn());
 }
 
-/** Called when user signs in. Starts the Firestore collectionGroup listener. */
+function _collectionRef(): CollectionReference | null {
+  if (!_db || !_uid) return null;
+  const wsId = MARGINALIA_FIREBASE?.workspaceId || 'default';
+  return collection(_db, 'workspaces', wsId, 'users', _uid, 'highlights');
+}
+
+/** Validate, then drop undefined fields (Firestore rejects them). */
+function _toPayload(record: Record<string, unknown>) {
+  const validated = validateWrite(HighlightSchema, record) as Record<string, unknown>;
+  const clean = Object.fromEntries(Object.entries(validated).filter(([, v]) => v !== undefined));
+  return withMeta(clean);
+}
+
+/** Called when user signs in. Starts the Firestore listener. */
 function initWithUser(uid: string, db: FirestoreDB): void {
   if (_uid === uid) return;
   teardown();
   _uid = uid;
+  _db = db;
 
-  // collectionGroup('highlights') matches all subcollections named 'highlights'.
-  // Firestore rules restrict reads to users/{uid}/**, so only this user's highlights are returned.
-  const highlightsQuery = query(
-    collectionGroup(db, 'highlights'),
-    where('bookId', '>=', ''),  // ensures only docs with a bookId field are included
-    orderBy('bookId'),
-  );
+  const ref = _collectionRef();
+  if (!ref) return;
 
   _unsubscribe = onSnapshot(
-    highlightsQuery,
+    ref,
     (snapshot) => {
-      _highlights = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      _highlights = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
       })) as HighlightRecord[];
       _emit();
     },
@@ -58,6 +76,32 @@ function initWithUser(uid: string, db: FirestoreDB): void {
   );
 }
 
+/** Upsert one highlight. No-op when signed out (local IndexedDB copy is the record). */
+async function save(record: Record<string, unknown> & { id: string }): Promise<void> {
+  const ref = _collectionRef();
+  if (!ref) return;
+  await setDoc(doc(ref, record.id), _toPayload(record), { merge: true });
+}
+
+/** Upsert many highlights (Kindle import). */
+async function saveMany(records: Array<Record<string, unknown> & { id: string }>): Promise<void> {
+  const ref = _collectionRef();
+  if (!ref || !_db) return;
+  for (let i = 0; i < records.length; i += BATCH_LIMIT) {
+    const batch = writeBatch(_db);
+    records.slice(i, i + BATCH_LIMIT).forEach((record) => {
+      batch.set(doc(ref, record.id), _toPayload(record), { merge: true });
+    });
+    await batch.commit();
+  }
+}
+
+async function remove(id: string): Promise<void> {
+  const ref = _collectionRef();
+  if (!ref) return;
+  await deleteDoc(doc(ref, id));
+}
+
 /** Called when user signs out. Detaches listener and clears highlights. */
 function teardown(): void {
   if (_unsubscribe) {
@@ -65,6 +109,7 @@ function teardown(): void {
     _unsubscribe = null;
   }
   _uid = null;
+  _db = null;
   _highlights = [];
   _emit();
 }
@@ -82,6 +127,9 @@ export const HighlightsStore = {
   initWithUser,
   teardown,
   subscribe,
+  save,
+  saveMany,
+  remove,
   getAll(): HighlightRecord[] { return _highlights; },
   getUid(): string | null { return _uid; },
 };
