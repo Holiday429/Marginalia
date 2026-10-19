@@ -5,12 +5,10 @@
 
    version: 3
 */
-import { AIFeatureRegistry } from '../registry.ts';
+import type { LibraryCtx } from './types';
 
-AIFeatureRegistry.setPrompt('reader-identity', {
-  version: '3',
-
-  build(library) {
+// NOTE: template-literal text below is sent to the model verbatim; do not re-indent it.
+export function buildReaderIdentityPrompt(library: LibraryCtx): string {
     const bookList = (library.books || [])
       .slice(0, 60)
       .map(b => {
@@ -116,5 +114,4 @@ Rules:
 - provenance.bookCount and provenance.highlightCount must be numeric counts derived from input
 - tone: a thoughtful literary editor who has studied the shelf, not an algorithm
 - Return ONLY the JSON object`;
-  }
-});
+}

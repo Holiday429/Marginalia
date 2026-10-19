@@ -35,6 +35,7 @@ export default tseslint.config(
       'node_modules/**',
       '.npm-cache/**',
       'functions/lib/**',
+      'functions/src/_shared/**',
       'functions/node_modules/**',
       'public/**',
       'tmp/**',

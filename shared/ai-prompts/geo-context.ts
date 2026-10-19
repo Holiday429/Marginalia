@@ -2,10 +2,10 @@
    Target panel: geo-context (travel)
    Output: JSON array of place objects
 */
-import { AIFeatureRegistry } from "../registry.ts";
+import type { BookCtx } from './types';
 
-AIFeatureRegistry.setPrompt('geo-context', {
-  build(book) {
+// NOTE: template-literal text below is sent to the model verbatim; do not re-indent it.
+export function buildGeoContextPrompt(book: BookCtx): string {
     const highlights = (book.highlights || []).map(h => `- "${h.quote}"`).join('\n');
     return `You are a cultural geographer. Identify the key places in this travel or geography-focused book and provide cultural context.
 
@@ -31,5 +31,4 @@ Rules:
 - Include 4–8 key places mentioned significantly in the book
 - If you're confident of lat/lng coordinates, include them; otherwise null
 - Return ONLY the JSON array, no markdown, no explanation`;
-  }
-});
+}

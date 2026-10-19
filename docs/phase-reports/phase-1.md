@@ -25,3 +25,22 @@ Design notes
 - Book-level public reads (`shareInProfile`) still use rules `get(users/{uid}).settings.profilePublic`, which works because rules bypass read restrictions.
 
 Open items: see `docs/open-questions.md` (Q1.1-a, Q1.1-b).
+
+## 1.2 AI gateway lockdown — code done; items marked ⚠ need a dev project / real DeepSeek key
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| Valid token + custom `prompt` → 400; unknown `featureId` → 400; no token → 401 | ✅ (handler level) | `functions/test/ai-handler.test.ts` ("rejects a custom prompt with 400", "unknown featureId", "401 without a token and with a bad token"); also `system`/`messages` overrides → 400, path-like `bookId` → 400 |
+| Free user's 11th call in a month → 402; failed call does not increase the count (unit test) | ✅ | Same file: "call 11 returns 402 and the counter stays at 10", "a failed generation does not increase the count", "an empty model response … is refunded". Real transaction semantics checked on the Firestore emulator in `functions/test/quota.emulator.test.ts` (11th refused; release gives a slot back; 12 parallel reservations → exactly 10 succeed) |
+| Non-allow-listed origin rejected by CORS | ✅ (server) / ⚠ (browser) | Function declares `cors: allowedOrigins()` (from `ALLOWED_ORIGINS`) **and** the handler returns 403 for a non-listed `Origin` (unit test "rejects browser requests from non-allow-listed origins"). Not exercised from a real browser against a deployed function. |
+| Every registry AI feature generates once in dev, same output format (screenshots) | ⚠ | Not run — needs a deployed dev function and a DeepSeek key. Substitute evidence: the 9 ported prompts were compared byte-for-byte against the pre-change client prompts for the same input (identical; my first port had changed template indentation and the comparison caught it), and are now locked by snapshot tests (`functions/test/prompts.snapshot.test.ts`, 10 snapshots). `reading-card` previously used a client-built prompt (`takeaway`/`keywords`); its server prompt is that same text. The old registry-only `reading-card` "oneliner" prompt was unused and was dropped. |
+
+Gate: `npm run check:all` exit 0 (unit 36 pass, rules+emulator quota 20 pass).
+
+What changed
+- Request is `{ featureId, bookId? }`; whitelist is `shared/ai-prompts/index.ts` (`AI_FEATURES`). Prompts are pure functions in `shared/ai-prompts/`; the function loads the signed-in user's own book/highlights(≤60, 600 chars each)/actions/notes via the admin SDK (`functions/src/ai-context.ts`) and caps the final prompt at 30,000 chars. The client prompt files and `AIFeatureRegistry.setPrompt/buildPrompt` are removed.
+- Quota: `usage/{uid}/months/{YYYY-MM}.aiCalls`, plan from `billing/{uid}` only (a forged `users.plan` is ignored — tested). Free = 10, paid = `PRO_AI_MONTHLY_FAIR_USE` (placeholder, Q1.2-a). Reserved in a transaction before the call, released on failure.
+- Audit log now records `inputTokens` / `outputTokens` (DeepSeek `stream_options.include_usage`).
+- Client: `ai-gateway.ts` sends only `featureId`/`bookId`; a 402 shows an **Upgrade** button in the AI toolbar (`generate-ui.ts`). `reading-card.ts` no longer has a direct-to-DeepSeek fallback and `VITE_DEEPSEEK_API_KEY` is gone from `env.ts` (an API key must never be in the client bundle).
+- Behaviour change to be aware of: AI features now work only for books that exist in Firestore (server reads them); demo/seed-only books get a 404 "Book not found". Reader identity is built from Firestore books/highlights/sessions instead of the profile view's in-memory arrays.
+- `test:unit` / `test:rules` now run `scripts/sync-shared.mjs` first (generates the git-ignored `functions/src/_shared`).

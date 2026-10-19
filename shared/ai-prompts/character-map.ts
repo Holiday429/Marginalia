@@ -2,10 +2,10 @@
    Target panel: characters (fiction)
    Output: JSON array of character objects
 */
-import { AIFeatureRegistry } from "../registry.ts";
+import type { BookCtx } from './types';
 
-AIFeatureRegistry.setPrompt('character-map', {
-  build(book) {
+// NOTE: template-literal text below is sent to the model verbatim; do not re-indent it.
+export function buildCharacterMapPrompt(book: BookCtx): string {
     const highlights = (book.highlights || []).map(h => `- "${h.quote}"`).join('\n');
     return `You are a literary analyst. Map the characters from this fiction book.
 
@@ -33,5 +33,4 @@ Rules:
 - Include protagonist + 3–6 significant characters
 - relationships only reference other characters in the list
 - Return ONLY the JSON array, no markdown, no explanation`;
-  }
-});
+}

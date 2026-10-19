@@ -71,16 +71,6 @@ import { NewEntry } from './new-entry/new-entry.ts';
 // 6a. AI layer
 import './services/ai-gateway.ts';
 import './ai/client/generate-ui.ts';
-import './ai/features/prompts/mindmap-gen.js';
-import './ai/features/prompts/concept-cards.js';
-import './ai/features/prompts/argument-breakdown.js';
-import './ai/features/prompts/timeline-gen.js';
-import './ai/features/prompts/action-suggest.js';
-import './ai/features/prompts/reader-portrait.js';
-import './ai/features/prompts/reader-identity.js';
-import './ai/features/prompts/character-map.js';
-import './ai/features/prompts/geo-context.js';
-import './ai/features/prompts/reading-card.js';
 
 // 6b. Panel scripts
 import './book/panels/notes.js';

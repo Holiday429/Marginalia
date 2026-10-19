@@ -2,9 +2,10 @@
    Target panel: actions
    Output: JSON array matching book.actions schema
 */
-import { AIFeatureRegistry } from "../registry.ts";
-AIFeatureRegistry.setPrompt('action-suggest', {
-  build(book) {
+import type { BookCtx } from './types';
+
+// NOTE: template-literal text below is sent to the model verbatim; do not re-indent it.
+export function buildActionSuggestPrompt(book: BookCtx): string {
     const highlights = (book.highlights || []).map(h => `- "${h.quote}"`).join('\n');
     const existing = (book.actions || []).map(a => `- ${a.text}`).join('\n');
 
@@ -35,5 +36,4 @@ Rules:
 - Don't duplicate actions already in the reader's existing list
 - Tailor actions to this specific book's themes and the reader's own highlights
 - Return ONLY the JSON array`;
-  }
-});
+}

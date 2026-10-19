@@ -2,9 +2,10 @@
    Target panel: mindmap (timeline tab)
    Output: JSON array of timeline groups matching book.mindmap.timeline schema
 */
-import { AIFeatureRegistry } from "../registry.ts";
-AIFeatureRegistry.setPrompt('timeline-gen', {
-  build(book) {
+import type { BookCtx } from './types';
+
+// NOTE: template-literal text below is sent to the model verbatim; do not re-indent it.
+export function buildTimelineGenPrompt(book: BookCtx): string {
     return `You are a historian and reading analyst. Extract the chronological structure from this book.
 
 Book: "${book.title}" by ${book.author} (${book.year || 'n.d.'})
@@ -33,5 +34,4 @@ Rules:
 - Each era should have 2–6 items
 - tags should capture WHY this moment matters, not just what happened
 - Return ONLY the JSON array`;
-  }
-});
+}

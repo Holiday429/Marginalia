@@ -2,9 +2,10 @@
    Target panel: Knowledge Structure (mindmap)
    Output: JSON matching the book.mindmap schema used by renderMindmap()
 */
-import { AIFeatureRegistry } from "../registry.ts";
-AIFeatureRegistry.setPrompt('mindmap-gen', {
-  build(book) {
+import type { BookCtx } from './types';
+
+// NOTE: template-literal text below is sent to the model verbatim; do not re-indent it.
+export function buildMindmapGenPrompt(book: BookCtx): string {
     const highlights = (book.highlights || []).map(h => `- [p.${h.page || '?'}] "${h.quote}"`).join('\n');
     const tags = (book.tags || []).join(', ');
 
@@ -63,5 +64,4 @@ Rules:
 - revolutions = major structural themes or arguments, not literal revolutions
 - futurePaths = implications or open questions the book raises
 - Return ONLY the JSON object, no markdown, no explanation`;
-  }
-});
+}

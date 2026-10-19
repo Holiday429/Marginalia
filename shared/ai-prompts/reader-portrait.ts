@@ -5,14 +5,10 @@
 
    version: 1
 */
-import { AIFeatureRegistry } from '../registry.ts';
+import type { LibraryCtx } from './types';
 
-AIFeatureRegistry.setPrompt('reader-portrait', {
-  version: '1',
-
-  // Called with a synthetic "book" object that is actually the full library summary.
-  // profile.ts constructs this object before calling ai-gateway.
-  build(library) {
+// NOTE: template-literal text below is sent to the model verbatim; do not re-indent it.
+export function buildReaderPortraitPrompt(library: LibraryCtx): string {
     const bookList = (library.books || [])
       .slice(0, 60)
       .map(b => `- "${b.title}" by ${b.author}${b.genre ? ` [${b.genre}]` : ''}${b.language ? ` (${b.language})` : ''}${b.year ? `, ${b.year}` : ''}`)
@@ -56,5 +52,4 @@ Rules:
 - theme: 4–5 inferred themes from the highlight sample, sum to 100
 - narrative must be based on the actual books and highlights given — no invented details
 - Return ONLY the JSON object, no explanation`;
-  }
-});
+}

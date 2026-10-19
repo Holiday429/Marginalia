@@ -761,7 +761,7 @@ async function enterBook(params = {}) {
         const allHighlights = dedupeHighlights([...(bookView.highlights || []), ...liveHighlights]);
         const selectedHighlights = selectReadingCardHighlights(allHighlights);
         const aiResult = await fetchReadingCardAI({
-          book: bookView,
+          book: { ...bookView, id },
           highlights: allHighlights,
           notes: noteText,
         });

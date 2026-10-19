@@ -2,9 +2,10 @@
    Target panel: concept-cards (shared panel, renders as argument cards)
    Output: JSON array of argument objects
 */
-import { AIFeatureRegistry } from "../registry.ts";
-AIFeatureRegistry.setPrompt('argument-breakdown', {
-  build(book) {
+import type { BookCtx } from './types';
+
+// NOTE: template-literal text below is sent to the model verbatim; do not re-indent it.
+export function buildArgumentBreakdownPrompt(book: BookCtx): string {
     const highlights = (book.highlights || []).map(h =>
       `- [${h.kind || 'note'}] "${h.quote}" (p.${h.page || '?'})`
     ).join('\n');
@@ -36,5 +37,4 @@ Rules:
 - Focus on arguments, not summaries — what is the author trying to prove?
 - description must include: the claim, the supporting evidence, and any acknowledged limitation
 - Return ONLY the JSON array`;
-  }
-});
+}

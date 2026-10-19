@@ -2,9 +2,10 @@
    Target panel: Related Concepts
    Output: JSON array of concept objects matching graph.concepts schema
 */
-import { AIFeatureRegistry } from "../registry.ts";
-AIFeatureRegistry.setPrompt('concept-cards', {
-  build(book) {
+import type { BookCtx } from './types';
+
+// NOTE: template-literal text below is sent to the model verbatim; do not re-indent it.
+export function buildConceptCardsPrompt(book: BookCtx): string {
     const highlights = (book.highlights || []).map(h => `- "${h.quote}" (p.${h.page || '?'})`).join('\n');
     const summary = book.summary || book.insight?.oneLiner || '';
 
@@ -37,5 +38,4 @@ Rules:
 - relationType reflects the concept's role: core-thesis = central argument, questions = challenges assumptions, action-trigger = motivates behavior change
 - readerUnderstanding should feel personal and specific, not generic
 - Return ONLY the JSON array, no markdown fences, no explanation`;
-  }
-});
+}

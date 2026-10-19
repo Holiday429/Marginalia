@@ -15,7 +15,8 @@ import { resolveAiContent } from '../../data/schema/ai-block.ts';
 import { PanelRegistry } from '../../book/panels/registry.ts';
 import { EntitlementsStore } from '../../store/entitlements-store.ts';
 import { AIFeatureRegistry } from '../features/registry.ts';
-import { MarginaliaAI } from '../../services/ai-gateway.ts';
+import { MarginaliaAI, AI_QUOTA_EXCEEDED } from '../../services/ai-gateway.ts';
+import { openCheckout } from '../../services/billing.ts';
 import { MarginaliaGraph } from '../../core/graph-data.ts';
 
 const FALLBACK_PROMPT_VERSION = '1';
@@ -105,13 +106,6 @@ export const AIGenerateUI = (() => {
     feature: any, book: any, section: Element,
     btn: HTMLButtonElement, statusEl: HTMLElement,
   ) {
-    const prompt = AIFeatureRegistry.buildPrompt(feature.id, book);
-    if (!prompt) {
-      showError(statusEl, 'Prompt not loaded yet — try again.',
-        () => run(feature, book, section, btn, statusEl));
-      return;
-    }
-
     // Wire abort: while running, the Generate button becomes a Cancel button.
     const controller = new AbortController();
     const originalLabel = feature.label;
@@ -130,8 +124,7 @@ export const AIGenerateUI = (() => {
 
     await MarginaliaAI.generate({
       featureId: feature.id,
-      prompt,
-      system: 'Return only valid JSON. No markdown fences, no explanation.',
+      bookId: book.id,
       signal: controller.signal,
       onChunk(delta: string) {
         fullText += delta;
@@ -144,8 +137,12 @@ export const AIGenerateUI = (() => {
           aborted = true;
         } else {
           errored = true;
-          showError(statusEl, err.message,
-            () => run(feature, book, section, btn, statusEl));
+          if ((err as Error & { code?: string }).code === AI_QUOTA_EXCEEDED) {
+            showUpgrade(statusEl, err.message);
+          } else {
+            showError(statusEl, err.message,
+              () => run(feature, book, section, btn, statusEl));
+          }
         }
       },
     });
@@ -403,6 +400,18 @@ export const AIGenerateUI = (() => {
       <button class="ai-retry-btn" type="button">Retry</button>
     `;
     el.querySelector('.ai-retry-btn')?.addEventListener('click', retryFn, { once: true });
+  }
+
+  function showUpgrade(el: HTMLElement, msg: string) {
+    el.hidden = false;
+    el.className = 'ai-toolbar-status ai-status-error';
+    el.innerHTML = `
+      <span class="ai-status-text">${esc(msg)}</span>
+      <button class="ai-retry-btn" type="button">Upgrade</button>
+    `;
+    el.querySelector('.ai-retry-btn')?.addEventListener('click', () => {
+      openCheckout('pro_monthly', (e) => { if (e) showStatus(el, e, ''); });
+    }, { once: true });
   }
 
   function esc(s: unknown): string {
