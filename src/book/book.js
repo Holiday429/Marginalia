@@ -26,7 +26,7 @@ import { MarginaliaGraph } from '../core/graph-data.ts';
 import { openConceptDrawer } from '../core/concept-ui.ts';
 import { AIGenerateUI } from '../ai/client/generate-ui.ts';
 import { KindleImport } from '../api/kindle-import.ts';
-import { SEED_BOOK_BY_ID } from '../data/seed/index.js';
+import { createEmptyBook } from '../data/schema/empty-book.ts';
 import { generateReadingCardBlob, fetchReadingCardAI } from './reading-card.ts';
 import { ENV } from '../core/env.ts';
 import { Paths } from '../firebase/paths.ts';
@@ -47,8 +47,11 @@ function syncTagsToStore(bookId, tags, fallbackBook) {
 }
 
 async function enterBook(params = {}) {
-  const fallbackId = BooksStore.getAll()[0]?.id || 'sapiens';
-  const id = params.id || __currentBookId || fallbackId;
+  const id = params.id || __currentBookId || BooksStore.getAll()[0]?.id;
+  if (!id) {
+    renderMissingBookState('Add a book to your shelf to see its page here.');
+    return;
+  }
   const publicSlug = String(params.publicSlug || '').trim().toLowerCase();
   const publicView = Boolean(publicSlug);
   let noteContent = '';
@@ -65,13 +68,9 @@ async function enterBook(params = {}) {
     liveHighlights = publicBook.highlights;
     noteContent = publicBook.noteContent;
   } else {
+    // BooksStore holds only this user's books (or the demo library when signed out).
     const storeBook = BooksStore.getById(id);
-    if (MarginaliaAuth.user) {
-      book = storeBook || null;
-    } else {
-      const seedBook = SEED_BOOK_BY_ID[id];
-      book = storeBook || seedBook || null;
-    }
+    book = storeBook ? { ...createEmptyBook(storeBook), ...storeBook } : null;
   }
 
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
@@ -2060,8 +2059,8 @@ function getBookGraphConcepts(bookId) {
   return MarginaliaGraph.getBookRelatedConcepts(bookId);
 }
 
-function coverArt(id) {
-  if (id === 'sapiens') {
+function coverArt(art) {
+  if (art === 'humankind') {
     return `
       <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
         <circle cx="36" cy="36" r="34" stroke="rgba(232,223,200,0.18)" stroke-width="1"/>

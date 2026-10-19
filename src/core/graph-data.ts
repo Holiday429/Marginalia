@@ -2,14 +2,13 @@
    Marginalia · Graph data facade
    --------------------------------------------------------------------------
    Cloud-ready graph layer that derives Concept / BookConceptLink /
-   CulturalContext entities from the current static BOOK_DETAILS seed.
-   Future Firebase sync should replace the seed adapter, not the view code.
+   CulturalContext entities from the books in BooksStore (demo library when
+   signed out, the user's own books when signed in).
    ========================================================================== */
 
 import { logError } from '../services/analytics.ts';
 import { BooksStore } from '../store/books-store.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
-import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { NotesStore } from '../store/notes-store.ts';
 
 // Book records come from three sources (BooksStore, seed data, ad-hoc AI
@@ -176,11 +175,8 @@ export const MarginaliaGraph = (() => {
   let graphState: GraphState = buildGraphState();
 
   function buildGraphState(): GraphState {
-    const auth = MarginaliaAuth;
-    const isAuthenticated = Boolean(auth?.user);
-    const books: Book[] = isAuthenticated
-      ? BooksStore.getAll()
-      : (BooksStore.getAll().length ? BooksStore.getAll() : SEED_BOOK_DETAILS);
+    // BooksStore already holds the demo library when signed out and only the user's books when signed in.
+    const books: Book[] = BooksStore.getAll();
     const statusOverrides = getStatusOverrides();
     const conceptsById = new Map<string, Concept>();
     const contextsById = new Map<string, CulturalContext>();
@@ -482,9 +478,7 @@ export const MarginaliaGraph = (() => {
    * contextTag, relationType, strength, description, readerUnderstanding.
    */
   function addConceptsFromAI(bookId: string, concepts: ConceptSeed[]): boolean {
-    const auth = MarginaliaAuth;
-    const book: Book | undefined = graphState.booksById[bookId] || BooksStore.getById(bookId)
-      || (!auth?.user ? SEED_BOOK_BY_ID[bookId] : null);
+    const book: Book | undefined = graphState.booksById[bookId] || BooksStore.getById(bookId);
     if (!book) return false;
 
     if (!book.graph) book.graph = {};

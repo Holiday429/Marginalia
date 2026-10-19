@@ -37,3 +37,21 @@ The webhook stores `urls.customer_portal`, but Lemon Squeezy signs those URLs an
 
 ### Q1.3-d — Deploy requirement
 `billingWebhook` now also needs the secret `LEMON_SQUEEZY_VARIANT_LIFETIME` (same value `createCheckout` already uses). Without it every `order_created` is ignored (lifetime purchases would not unlock).
+
+## Phase 1 — demo data removal (1.5)
+
+### Q1.5-a — Placeholder spines use a solid border, not the dashed one the plan names (decision made; confirm)
+Plan 1.5 asks for "虚线书脊 + 添加一本" on a short shelf. `CLAUDE.md` forbids dashed/dotted borders on interactive elements, and these spines are buttons, so I used a faint **solid** 1px outline with a "+". Say if you want an explicit exception for dashed.
+
+### Q1.5-b — What the signed-out demo should contain (decision made; confirm)
+I merged the three old demo sets into `src/data/demo/`: the Sapiens detail book (only demo book with written notes, highlights, mind map), the 12 Chinese-language reads that have covers/geography, and the 22 shelf spines (two "reading", seven "to read", rest finished) = 35 books. Every demo page derives its numbers from that one list. Open demo books other than Sapiens now show an empty book page (honest) instead of a clone of Sapiens. Two invented quote attributions from the old Profile demo ("人是可以被消灭的…" credited to 刀锋, "一切存在皆短暂…" credited to 活山) were dropped; demo highlights are now only Sapiens' real ones.
+**Needed from you:** keep this scope, or tell me which demo books should get richer content.
+
+### Q1.5-c — Default picture-frame photo (placeholder art by me)
+`public/3d/frame-photo-default.png` is a small pixel-art reader I generated (32×32 scaled ×8). Signed-in users with an avatar see their avatar on the desk frame; everyone else sees this. Replace the file if you have a preferred pixel avatar.
+
+### Q1.5-d — Desk book with nothing being read (behaviour until 2.8)
+Clicking the desk book used to open Sapiens as a stand-in. It now opens the book with status "reading", and if there is none it opens the Add Book dialog. Task 2.8 redefines this ("当前在读" panel), so this is a stopgap.
+
+### Q1.5-e — Brief demo flash at page load for signed-in users (known limitation)
+On a hard reload the app starts in demo mode until Firebase restores the session (a few hundred ms), so a signed-in user can glimpse demo books before their own load. Fixing it means holding the first render until auth resolves; that touches boot ordering, so I left it. Once signed in, demo data is never read.

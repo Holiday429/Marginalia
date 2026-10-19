@@ -11,6 +11,7 @@ import { getRoomPose, type RoomPoseId } from './camera-paths.ts';
 import { getRoomSkinById } from './skins.ts';
 import type { RoomSlotId, SlotComponent } from './slots.ts';
 import { logError } from '../services/analytics.ts';
+import { getFramePhotoUrl, onFramePhotoChange } from './frame-photo.ts';
 
 interface RoomSceneOptions {
   host: HTMLElement;
@@ -18,7 +19,7 @@ interface RoomSceneOptions {
   onGlobeSelect?: () => void;
   onLaptopSelect?: () => void;
   onOrganizeSelect?: () => void;
-  onSapiensSelect?: () => void;
+  onDeskBookSelect?: () => void;
   onHeroBookSelect?: () => void;
   onPhotoFrameSelect?: () => void;
   onWebSelect?: () => void;
@@ -45,7 +46,7 @@ interface SlotMount {
   component: SlotComponent;
 }
 
-type InteractiveAction = 'map' | 'shelf' | 'organize' | 'sapiens' | 'heroBook' | 'profile' | 'graph';
+type InteractiveAction = 'map' | 'shelf' | 'organize' | 'deskBook' | 'heroBook' | 'profile' | 'graph';
 
 interface DecorAssetSpec {
   id?: string;
@@ -61,6 +62,8 @@ interface DecorAssetSpec {
   preservePivotXZ?: boolean;
   clampDepth?: number;
   photoTextureUrl?: string;
+  /** Texture follows the user's avatar (see frame-photo.ts) instead of a fixed file. */
+  photoFromAvatar?: boolean;
   photoMaterialNameIncludes?: string;
   surfaceTextureSet?: SurfaceTextureSetSpec;
   interactiveAction?: InteractiveAction;
@@ -144,7 +147,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     interactiveAction: 'shelf',
   },
   {
-    id: 'desk-book-sapiens',
+    id: 'desk-book',
     url: '/book.glb',
     position: [-0.5, ROOM.DESK_SURFACE_Y + 0.14, -0.72],
     liftY: 0,
@@ -153,8 +156,8 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     rotationZ: 0,
     targetHeight: 0.62,
     // Uses the GLB's own baked cover model — no per-book cover override. The
-    // click still opens the currently-reading book (see onSapiensSelect).
-    interactiveAction: 'sapiens',
+    // click still opens the currently-reading book (see onDeskBookSelect).
+    interactiveAction: 'deskBook',
   },
   {
     id: 'picture-frame',
@@ -163,7 +166,7 @@ const INTERACTIVE_ASSETS: DecorAssetSpec[] = [
     liftY: 0.17,
     rotationY: -0.42,
     targetHeight: 0.4,
-    photoTextureUrl: '/3d/profile-frame-photo.jpg',
+    photoFromAvatar: true,
     photoMaterialNameIncludes: 'Image',
     interactiveAction: 'profile',
   },
@@ -362,7 +365,8 @@ export class RoomScene {
   private onGlobeSelect: (() => void) | null = null;
   private onLaptopSelect: (() => void) | null = null;
   private onOrganizeSelect: (() => void) | null = null;
-  private onSapiensSelect: (() => void) | null = null;
+  private onDeskBookSelect: (() => void) | null = null;
+  private unsubFramePhotos: Array<() => void> = [];
   private onHeroBookSelect: (() => void) | null = null;
   private onPhotoFrameSelect: (() => void) | null = null;
   private onWebSelect: (() => void) | null = null;
@@ -408,7 +412,7 @@ export class RoomScene {
     this.onGlobeSelect = typeof options.onGlobeSelect === 'function' ? options.onGlobeSelect : null;
     this.onLaptopSelect = typeof options.onLaptopSelect === 'function' ? options.onLaptopSelect : null;
     this.onOrganizeSelect = typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : null;
-    this.onSapiensSelect = typeof options.onSapiensSelect === 'function' ? options.onSapiensSelect : null;
+    this.onDeskBookSelect = typeof options.onDeskBookSelect === 'function' ? options.onDeskBookSelect : null;
     this.onHeroBookSelect = typeof options.onHeroBookSelect === 'function' ? options.onHeroBookSelect : null;
     this.onPhotoFrameSelect = typeof options.onPhotoFrameSelect === 'function' ? options.onPhotoFrameSelect : null;
     this.onWebSelect = typeof options.onWebSelect === 'function' ? options.onWebSelect : null;
@@ -676,7 +680,7 @@ export class RoomScene {
    *  or null if the model hasn't loaded yet. Used by the book fly-in to
    *  anchor the cover card exactly on top of the 3D object. */
   getDeskBookScreenRect(): { left: number; top: number; width: number; height: number } | null {
-    const model = this.namedModels.get('desk-book-sapiens');
+    const model = this.namedModels.get('desk-book');
     if (!model) return null;
     const canvas = this.renderer.domElement;
     const canvasRect = canvas.getBoundingClientRect();
@@ -726,6 +730,8 @@ export class RoomScene {
 
   destroy(): void {
     this.disposed = true;
+    this.unsubFramePhotos.forEach((off) => off());
+    this.unsubFramePhotos = [];
     window.cancelAnimationFrame(this.frameHandle);
 
     this.slotMounts.forEach((_, slotId) => this.unmountSlot(slotId));
@@ -1339,8 +1345,8 @@ export class RoomScene {
       this.registerInteractiveTarget(model, () => this.onLaptopSelect?.(), asset.interactiveAction);
     } else if (asset.interactiveAction === 'organize') {
       this.registerInteractiveTarget(model, () => this.onOrganizeSelect?.(), asset.interactiveAction);
-    } else if (asset.interactiveAction === 'sapiens') {
-      this.registerInteractiveTarget(model, () => this.onSapiensSelect?.(), asset.interactiveAction);
+    } else if (asset.interactiveAction === 'deskBook') {
+      this.registerInteractiveTarget(model, () => this.onDeskBookSelect?.(), asset.interactiveAction);
     } else if (asset.interactiveAction === 'heroBook') {
       this.registerInteractiveTarget(model, () => this.onHeroBookSelect?.(), asset.interactiveAction);
     } else if (asset.interactiveAction === 'profile') {
@@ -1362,6 +1368,11 @@ export class RoomScene {
 
     if (asset.photoTextureUrl) {
       this.applyDecorPhotoTexture(model, asset.photoTextureUrl, asset.photoMaterialNameIncludes || 'Image');
+    }
+    if (asset.photoFromAvatar) {
+      const hint = asset.photoMaterialNameIncludes || 'Image';
+      this.applyDecorPhotoTexture(model, getFramePhotoUrl(), hint);
+      this.unsubFramePhotos.push(onFramePhotoChange(() => this.applyDecorPhotoTexture(model, getFramePhotoUrl(), hint)));
     }
 
     if (asset.id === 'ceiling-light' || asset.id === 'floor-lamp') {

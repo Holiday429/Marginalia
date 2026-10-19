@@ -7,7 +7,6 @@ import { logEvent, logError } from '../services/analytics.ts';
 import { withMeta, withMetaCreate, validateWrite } from '../services/db.ts';
 import { BookSchema } from '../data/schema/book.ts';
 import { PanelManager } from '../core/panel-manager.ts';
-import { SEED_BOOK_DETAILS, SEED_BOOK_BY_ID } from '../data/seed/index.js';
 import { BooksStore } from '../store/books-store.ts';
 import { NotesStore } from '../store/notes-store.ts';
 import { renderSearchSection } from '../search/search.js';
@@ -1077,8 +1076,6 @@ export const NewEntry = (() => {
         return; // Keep the dialog open — nothing was actually saved.
       }
     } else {
-      SEED_BOOK_DETAILS.unshift(fullBook as any); // eslint-disable-line @typescript-eslint/no-explicit-any -- seed/index.js is untyped; TS over-infers its element shape from seed literals
-      SEED_BOOK_BY_ID[id] = fullBook as any; // eslint-disable-line @typescript-eslint/no-explicit-any -- see above
       NotesStore?.saveBook(fullBook);
       BooksStore.addOptimisticBook(fullBook);
     }

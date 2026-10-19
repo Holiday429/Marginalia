@@ -1,13 +1,15 @@
 /* ==========================================================================
-   Marginalia · Seed data — Sapiens: A Brief History of Humankind
+   Marginalia · Demo data — the one hand-authored demo book (full detail)
    --------------------------------------------------------------------------
-   One file per book. This is hand-authored mock content used until real
-   user data is imported from Notion / Firestore.
+   Part of src/data/demo/. Shown to signed-out visitors only; never merged
+   into a signed-in user's library.
    bookType: 'science' → AI modules: mind map, concept graph, chapter outline
    ========================================================================== */
 
-export const __SEED_SAPIENS = window.__SEED_SAPIENS = {
-  id: 'sapiens',
+import { asset } from '../../core/asset.ts';
+
+export const DEMO_FEATURED_BOOK = {
+  id: '__demo_sapiens',
 
   // ── Type system (Phase 4A) ────────────────────────────────────────────────
   // 'nonfiction' maps to: overview, highlights, notes, mindmap, timeline, claude-import
@@ -30,8 +32,8 @@ export const __SEED_SAPIENS = window.__SEED_SAPIENS = {
     text:   '#e8dfc8',
     font:   "'Bodoni Moda', serif",
     weight: 700,
-    art:    'sapiens',
-    image:  '/covers/sapiens-real.jpg'
+    art:    'humankind',
+    image:  asset('covers/sapiens-real.jpg')
   },
   meta: {
     publisher:    '中信出版社',

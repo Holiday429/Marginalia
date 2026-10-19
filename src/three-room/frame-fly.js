@@ -20,10 +20,9 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { SHELF_BOOKS } from '../data/mock/seed-spines.js';
+import { getFramePhotoUrl } from '../three/frame-photo.ts';
 
 const FRAME_URL = '/3d/wooden_picture_frame.glb';
-const PHOTO_URL = '/3d/profile-frame-photo.jpg';
 const OVERLAY_ID = 'profileFrameTransitionOverlay';
 const CIRCLE_ID = 'profileFrameTransitionCircle';
 const SPINES_ID = 'profileFrameTransitionSpines';
@@ -86,7 +85,7 @@ function ensureOverlay() {
     <div class="profile-frame-transition__stage" id="${OVERLAY_ID}Stage"></div>
     <div class="profile-frame-transition__spines" id="${SPINES_ID}" aria-hidden="true"></div>
     <div class="profile-frame-transition__circle" id="${CIRCLE_ID}" aria-hidden="true">
-      <img class="profile-frame-transition__circle-img" src="${PHOTO_URL}" alt="">
+      <img class="profile-frame-transition__circle-img" src="${getFramePhotoUrl()}" alt="">
       <img class="profile-frame-transition__circle-avatar" alt="">
     </div>
   `;
@@ -218,7 +217,7 @@ export function playFrameFlyIn(opts = {}) {
       tex.needsUpdate = true;
       return tex;
     };
-    const photoTex = prepTex(textureLoader.load(PHOTO_URL));
+    const photoTex = prepTex(textureLoader.load(getFramePhotoUrl()));
 
     activeTransition.rendererState = {
       renderer,
@@ -380,15 +379,26 @@ export function playFrameFlyIn(opts = {}) {
   });
 }
 
+/* Fixed decorative spines for the transition only — props, not user data. */
+const TRANSITION_SPINES = [
+  { title: 'Dune', spine: '#c68b4a', text: '#1a1714', w: 48, h: 0.92, font: "'Bodoni Moda', serif" },
+  { title: 'The Odyssey', spine: '#d4c4a0', text: '#2a2018', w: 40, h: 0.94, font: "'Bodoni Moda', serif" },
+  { title: '1984', spine: '#1a1714', text: '#c68b4a', w: 30, h: 0.82, font: "'Bodoni Moda', serif" },
+  { title: 'A Little Life', spine: '#8a6a2a', text: '#1a1714', w: 52, h: 0.99, font: "'Bodoni Moda', serif" },
+  { title: 'Middlemarch', spine: '#5c4a2a', text: '#e8dfc8', w: 42, h: 0.98, font: "'Bodoni Moda', serif" },
+  { title: 'Pale Fire', spine: '#c94a3a', text: '#f3e8d0', w: 36, h: 0.80, font: "'Bodoni Moda', serif" },
+  { title: 'Beloved', spine: '#3d2a20', text: '#d4c4a0', w: 36, h: 0.86, font: "'Fraunces', serif" },
+  { title: 'The Waves', spine: '#4a5a6a', text: '#e8dfc8', w: 32, h: 0.82, font: "'Fraunces', serif" },
+  { title: 'East Of Eden', spine: '#8f6f2a', text: '#1a1714', w: 46, h: 0.93, font: "'Fraunces', serif" },
+  { title: 'Atlas', spine: '#14263e', text: '#e8dfc8', w: 40, h: 0.92, font: "'Bodoni Moda', serif" },
+];
+
 /* Build the temporary decorative spine row the circle hops across — pure
    transition props (mock data), torn down with the overlay. */
 function buildSpineRow(spinesHost) {
   if (!(spinesHost instanceof HTMLElement)) return [];
   // A fuller shelf — the ball needs several keys to hop across, left → right.
-  const picks = [
-    SHELF_BOOKS[1], SHELF_BOOKS[6], SHELF_BOOKS[3], SHELF_BOOKS[14], SHELF_BOOKS[9],
-    SHELF_BOOKS[11], SHELF_BOOKS[7], SHELF_BOOKS[15], SHELF_BOOKS[10], SHELF_BOOKS[5],
-  ].filter(Boolean);
+  const picks = TRANSITION_SPINES;
   spinesHost.innerHTML = '';
   const row = document.createElement('div');
   row.className = 'profile-frame-transition__spine-row';

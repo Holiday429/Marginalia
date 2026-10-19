@@ -1,8 +1,7 @@
 /* Search view */
 
 import { BooksStore } from '../store/books-store.ts';
-import { SEED_BOOK_BY_ID, SEED_BOOK_DETAILS } from '../data/seed/index.js';
-import { SHELF_BOOKS as MOCK_SPINES } from '../data/mock/seed-spines.js';
+import { createEmptyBook } from '../data/schema/empty-book.ts';
 import { renderUnifiedPanelHeader } from '../core/app.ts';
 import { PanelManager } from '../core/panel-manager.ts';
 import { SpineCard } from '../components/spine-card.ts';
@@ -20,6 +19,7 @@ const SHELF_STATE = {
   isExpanded: false,
 };
 
+const MIN_SHELF_SPINES = 8;
 let SHELF_RECORDS = [];
 let SHELF_RESIZE_TIMER = null;
 let SHELF_BOUND = false;
@@ -205,40 +205,21 @@ function bindShelfEvents() {
   });
 }
 
-function buildMockSpines() {
-  const userTitles = new Set(
-    (BooksStore.getShelfBooks() || []).map((b) => slugify(b.title))
-  );
-  return (Array.isArray(MOCK_SPINES) ? MOCK_SPINES : [])
-    .filter((s) => s.id !== 'sapiens' && !userTitles.has(slugify(s.title)))
-    .map((s, i) => ({ ...s, id: `mock-${i}`, _isMock: true }));
-}
-
 function buildShelfRecords() {
   const records = [];
-  const userSpines = BooksStore.getShelfBooks() || [];
-  const allSpines = [...userSpines, ...buildMockSpines()];
-  allSpines.forEach((b, index) => {
-    let detailId = resolveCanonicalBookId(b) || b.id || matchBookId(b.title);
-    let detail = getBookDetail(detailId);
-    if (!detailId || !detail) {
-      detailId = ensureShelfDetailRecord(b, index);
-      detail = getBookDetail(detailId);
-    }
-    const resolvedStatus = detailId === 'sapiens'
-      ? 'finished'
-      : normalizeShelfStatus(b.status);
+  // Only the books BooksStore holds: the user's own, or the demo library when signed out.
+  const spines = BooksStore.getShelfBooks() || [];
+  spines.forEach((b, index) => {
+    const detailId = String(b.id || '');
+    const detail = getBookDetail(detailId) || createEmptyBook(b);
+    const resolvedStatus = normalizeShelfStatus(b.status);
     const key = `${slugify(b.title)}-${index}`;
-    const title = detailId === 'sapiens'
-      ? (detail?.title || 'Sapiens: A Brief History of Humankind')
-      : toTitleCase(b.title);
+    const title = toTitleCase(b.title);
     const statusText = statusToLabel(resolvedStatus);
     const rawTags = Array.isArray(detail?.tags) && detail.tags.length
       ? detail.tags
       : (Array.isArray(b.tags) ? b.tags : []);
-    const translatedTags = detailId === 'sapiens'
-      ? ['Anthropology', 'Macro History', 'Cognitive Revolution', 'Narrative']
-      : (rawTags.length ? rawTags.map(toEnglishTag) : [statusText, 'Global shelf']);
+    const translatedTags = rawTags.length ? rawTags.map(toEnglishTag) : [statusText];
     const preview = {
       title: detail?.titleZh || title,
       subtitle: detail?.titleZh ? detail.title : statusText,
@@ -251,7 +232,7 @@ function buildShelfRecords() {
       coverSrc: resolveCoverSrc(b, detailId),
       tone: b.spine,
       text: b.text,
-      canOpen: Boolean(detailId && detail),
+      canOpen: Boolean(detailId),
     };
     const searchText = [
       title,
@@ -275,54 +256,6 @@ function buildShelfRecords() {
   return records;
 }
 
-function ensureShelfDetailRecord(shelfBook, index) {
-  const explicitId = shelfBook.id && String(shelfBook.id).trim();
-  const baseId = explicitId || slugify(shelfBook.title || `book-${index + 1}`);
-  let detailId = baseId;
-  let dedupe = 2;
-  while (BooksStore.getById(detailId)?.title !== undefined &&
-         BooksStore.getById(detailId).title !== shelfBook.title) {
-    detailId = `${baseId}-${dedupe++}`;
-  }
-  if (BooksStore.getById(detailId)) return detailId;
-
-  const template = SEED_BOOK_BY_ID.sapiens || SEED_BOOK_DETAILS[0];
-  if (!template) return null;
-
-  const detail = deepClone(template);
-  detail.id = detailId;
-  detail.title = toTitleCase(shelfBook.title || template.title || detailId);
-  detail.titleZh = detail.title;
-  detail.author = shelfBook.author || template.author || 'Unknown';
-  detail.authorZh = '';
-  detail.status = mapShelfStatusToDetailStatus(shelfBook.status || 'want');
-  detail.rating = null;
-  detail.tags = [statusToLabel(shelfBook.status || 'want'), 'Shelf Template'];
-  if (!detail.cover) detail.cover = {};
-  detail.cover.bg = shelfBook.spine || detail.cover.bg || '#14263e';
-  detail.cover.text = shelfBook.text || detail.cover.text || '#e8dfc8';
-  detail.cover.image = '';
-  if (!detail.meta) detail.meta = {};
-  detail.meta.publisher = detail.meta.publisher || 'Personal shelf';
-  detail.meta.edition = detail.meta.edition || 'Template entry';
-  detail.summary = `${detail.title} uses the current Sapiens note architecture as a placeholder entry.`;
-
-  SEED_BOOK_DETAILS.push(detail);
-  SEED_BOOK_BY_ID[detail.id] = detail;
-  return detail.id;
-}
-
-function mapShelfStatusToDetailStatus(status) {
-  if (status === 'finished') return 'finished';
-  if (status === 'reading') return 'reading';
-  return 'wishlist';
-}
-
-function deepClone(value) {
-  if (typeof structuredClone === 'function') return structuredClone(value);
-  return JSON.parse(JSON.stringify(value));
-}
-
 function resolveCoverSrc(book, detailId) {
   if (book?.coverImage) return book.coverImage;
   if (book?.cover?.image) return book.cover.image;
@@ -331,20 +264,8 @@ function resolveCoverSrc(book, detailId) {
   return '';
 }
 
-function resolveCanonicalBookId(book) {
-  if (!book) return null;
-  const rawId = String(book.id || '').toLowerCase();
-  if (rawId === 'sapiens') return 'sapiens';
-  if (matchBookId(book.title) === 'sapiens') return 'sapiens';
-  return null;
-}
-
 function getBookDetail(detailId) {
-  if (!detailId) return null;
-  if (detailId === 'sapiens') {
-    return SEED_BOOK_BY_ID.sapiens || BooksStore.getById(detailId) || null;
-  }
-  return BooksStore.getById(detailId) || SEED_BOOK_BY_ID[detailId] || null;
+  return detailId ? BooksStore.getById(detailId) || null : null;
 }
 
 function renderShelfSectionInternal() {
@@ -355,6 +276,21 @@ function renderShelfSectionInternal() {
 
   const visible = getFilteredBooks();
   renderShelfSummary(visible.length);
+
+  if (!SHELF_RECORDS.length) {
+    // Nothing on the shelf at all (a brand-new account): invite the first book.
+    shelfHost.innerHTML = `
+      <div class="shelf-empty shelf-empty--first">
+        <p>Your shelf is empty. Add the first book you are reading or want to read.</p>
+        <button class="shelf-empty__add" id="shelfEmptyAdd" type="button">Add a book</button>
+      </div>`;
+    shelfHost.querySelector('#shelfEmptyAdd')?.addEventListener('click', () => NewEntry?.mount());
+    SHELF_STATE.selectedKey = null;
+    SHELF_STATE.isExpanded = false;
+    applyShelfLayoutState();
+    renderShelfPreview(null);
+    return;
+  }
 
   if (!visible.length) {
     const emptyText = SHELF_STATE.query
@@ -375,7 +311,13 @@ function renderShelfSectionInternal() {
 
   applyShelfLayoutState();
   shelfHost.innerHTML = '';
-  const rows = layoutShelfRows(visible, Math.round(shelfHost.getBoundingClientRect().width) || window.innerWidth);
+  const narrowing = Boolean(SHELF_STATE.query) || SHELF_STATE.filter !== 'all' || Boolean(SHELF_STATE.tag);
+  // A real user's short shelf gets ghost spines that invite the next book (never fake books).
+  const ghostCount = !BooksStore.isUsingDemoData() && !narrowing
+    ? Math.max(0, MIN_SHELF_SPINES - visible.length)
+    : 0;
+  const ghosts = Array.from({ length: ghostCount }, (_, i) => ({ _ghost: true, key: `ghost-${i}`, w: 34, h: 0.86 }));
+  const rows = layoutShelfRows([...visible, ...ghosts], Math.round(shelfHost.getBoundingClientRect().width) || window.innerWidth);
 
   rows.forEach((row) => {
     const rowEl = document.createElement('div');
@@ -385,8 +327,7 @@ function renderShelfSectionInternal() {
     rowBooks.className = 'shelf-row-books';
 
     row.forEach((record) => {
-      const btn = createSpineButton(record);
-      rowBooks.appendChild(btn);
+      rowBooks.appendChild(record._ghost ? createGhostSpine(record) : createSpineButton(record));
     });
 
     rowEl.appendChild(rowBooks);
@@ -404,7 +345,6 @@ function renderShelfSummary(visibleCount) {
   if (!countEl) return;
 
   const totals = SHELF_RECORDS.reduce((acc, book) => {
-    if (book._isMock) return acc;
     if (book.status === 'finished') acc.finished += 1;
     else if (book.status === 'reading') acc.reading += 1;
     else if (book.status === 'want') acc.want += 1;
@@ -429,6 +369,20 @@ function renderShelfSummary(visibleCount) {
     return;
   }
   countEl.innerHTML = `<span class="count-wrap">${base}</span>`;
+}
+
+function createGhostSpine(record) {
+  const { width, height } = getSpineSize(record);
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'shelf-spine shelf-spine--ghost';
+  btn.style.width = `${width}px`;
+  btn.style.height = `${height}px`;
+  btn.setAttribute('aria-label', 'Add a book');
+  btn.title = 'Add a book';
+  btn.innerHTML = '<span class="shelf-spine__plus" aria-hidden="true">+</span>';
+  btn.addEventListener('click', () => NewEntry?.mount());
+  return btn;
 }
 
 function createSpineButton(record) {
@@ -618,7 +572,6 @@ function renderTagChips() {
   // Collect tags from real user books only, ranked by frequency.
   const counts = new Map();
   SHELF_RECORDS.forEach((b) => {
-    if (b._isMock) return;
     (b.preview?.tags || []).forEach((tag) => {
       const clean = String(tag || '').trim();
       if (!clean) return;
@@ -655,7 +608,7 @@ function renderQuickRows() {
   if (!wrap) return;
 
   const narrowing = Boolean(SHELF_STATE.query) || SHELF_STATE.filter !== 'all' || Boolean(SHELF_STATE.tag);
-  const realBooks = SHELF_RECORDS.filter((b) => !b._isMock);
+  const realBooks = SHELF_RECORDS;
 
   const reading = realBooks.filter((b) => b.status === 'reading').slice(0, 6);
   const recent = realBooks.slice(0, 6);
@@ -704,9 +657,6 @@ function buildQuickCard(record) {
 function getFilteredBooks() {
   const tag = SHELF_STATE.tag ? SHELF_STATE.tag.toLowerCase() : null;
   const filtered = SHELF_RECORDS.filter((b) => {
-    // Mock spines are decorative: drop them whenever the user narrows the wall.
-    const isNarrowing = SHELF_STATE.query || SHELF_STATE.filter !== 'all' || tag;
-    if (b._isMock && isNarrowing) return false;
     const status = b.status;
     if (SHELF_STATE.filter === 'finished' && status !== 'finished') return false;
     if (SHELF_STATE.filter === 'reading' && status !== 'reading') return false;
@@ -798,13 +748,6 @@ function slugify(str) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
-}
-
-function matchBookId(title) {
-  if (!title) return null;
-  const t = title.toLowerCase();
-  if (t.includes('sapien') || title.includes('人类简史')) return 'sapiens';
-  return null;
 }
 
 function escapeHTML(str) {

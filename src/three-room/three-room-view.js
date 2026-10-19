@@ -32,7 +32,7 @@ const HOVER_META_BY_ACTION = {
   map: { icon: 'map', title: 'Map', description: 'Explore Reading Places' },
   shelf: { icon: 'search', title: 'Search', description: 'Find Books And Notes' },
   organize: { icon: 'library', title: 'Library', description: 'Organize Your Shelves' },
-  sapiens: { icon: 'reading-now', title: 'Keep Reading', description: 'Continue Current Book' },
+  deskBook: { icon: 'reading-now', title: 'Keep Reading', description: 'Continue Current Book' },
   heroBook: { icon: 'library', title: 'Open Library', description: 'Organize Your Library' },
   profile: { icon: 'profile', title: 'Profile', description: 'Public Reading Page' },
   graph: { icon: 'graph', title: 'Graph', description: 'Concept And Book Network' },
@@ -663,7 +663,7 @@ function mountRoomScene() {
       onGlobeSelect: () => exitRoomViaGlobeFly(),
       onLaptopSelect: () => exitRoomViaLaptopFly(),
       onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),
-      onSapiensSelect: () => openPanel('book', { id: getReadingNowBookId() }),
+      onDeskBookSelect: () => openCurrentBookOrAdd(),
       onHeroBookSelect: () => exitRoomViaHeroFlip(),
       onPhotoFrameSelect: () => exitRoomViaFrameFly(),
       onWebSelect: () => exitRoomViaGraphFly(),
@@ -753,7 +753,7 @@ function runRoomAction(action) {
     return;
   }
   if (action === 'reading-now') {
-    openPanel('book', { id: getReadingNowBookId() });
+    openCurrentBookOrAdd();
     return;
   }
   if (action === 'todo') {
@@ -767,7 +767,18 @@ function renderRoomTopTabs(options = {}) {
 
 function getReadingNowBookId() {
   const reading = BooksStore.getAll().find((book) => String(book?.status || '').toLowerCase() === 'reading');
-  return reading?.id || 'sapiens';
+  return reading?.id || null;
+}
+
+/** The desk book opens the book being read; with none, it opens Add Book instead of a stand-in book. */
+function openCurrentBookOrAdd() {
+  const id = getReadingNowBookId();
+  if (id) {
+    openPanel('book', { id });
+    return;
+  }
+  openPanel('library', { mode: 'organize' });
+  window.setTimeout(() => NewEntry?.mount?.(), 140);
 }
 
 function applyRoomPose(pose) {

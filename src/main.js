@@ -39,6 +39,7 @@ import './ai/features/registry.ts';
 // 2. Firebase layer
 import { doc, getDoc } from 'firebase/firestore';
 import { Paths } from './firebase/paths.ts';
+import { setFramePhotoUrl } from './three/frame-photo.ts';
 import { MarginaliaAuth } from './firebase/auth.ts';
 import { MarginaliaBooksCloud, MarginaliaStorage } from './firebase/db.ts';
 
@@ -111,6 +112,7 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     getDoc(doc(db, Paths.user(user.uid))).then((snap) => {
       const lang = snap.data()?.settings?.language;
       if (lang) setLanguage(lang);
+      setFramePhotoUrl(snap.data()?.avatarUrl || null);
     }).catch(() => {});
   } else {
     BooksStore.teardown();
@@ -120,6 +122,7 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     unmountActionNotifications();
     teardownReadingSession();
     setLanguage('en');
+    setFramePhotoUrl(null);
   }
 });
 

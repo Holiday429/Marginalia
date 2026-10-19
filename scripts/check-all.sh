@@ -6,6 +6,7 @@ npm run lint
 npm run typecheck
 npm run typecheck:room
 npm run check:entitlements
+npm run check:hardcoded
 npm --prefix functions run build
 npm run test:unit
 npm run test:rules:emu

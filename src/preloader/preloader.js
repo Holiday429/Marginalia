@@ -5,7 +5,7 @@
    3) enterPreloader() is the only start entrypoint (do not auto-run on module eval). */
 import { App } from '../core/app.ts';
 import { PanelManager } from '../core/panel-manager.ts';
-import { BOOKS } from '../data/mock/seed-spines.js';
+import { BOOKS } from './landing-books.js';
 
 const TWEAK_DEFAULTS = {
   speed: 0.8,

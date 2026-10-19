@@ -1,9 +1,8 @@
 /* ==========================================================================
-   Marginalia · Mock spine render data
+   Marginalia · Landing-page book spines
    --------------------------------------------------------------------------
-   3D book-spine parameters for the preloader animation (BOOKS)
-   and the shelf spine renderer (SHELF_BOOKS).
-   DO NOT add new books here — add to src/data/seed/{book-id}.js instead.
+   3D spine parameters for the preloader animation only. Decorative props, not
+   user or demo-library data.
    ========================================================================== */
 
 export const BOOKS = {
@@ -145,30 +144,3 @@ BOOKS.mono = BOOKS.editorial.map((b, i) => {
   const t = parseInt(c.slice(1, 3), 16) > 128 ? "#1a1714" : "#ede5d4";
   return { ...b, spine: c, coverBg: c, text: t, coverText: t };
 });
-
-export const SHELF_BOOKS = [
-  { title:"VISIBLE SIGNS",      author:"CROW",       spine:"#14263e", text:"#e8dfc8", w:44, h:0.95, status:"reading",  font:"'Fraunces', serif" },
-  { title:"DUNE",               author:"HERBERT",    spine:"#c68b4a", text:"#1a1714", w:48, h:0.92, status:"reading",  font:"'Bodoni Moda', serif",  weight:800 },
-  { title:"THE LIGHTNESS",      author:"KUNDERA",    spine:"#7a2f28", text:"#e8dfc8", w:32, h:0.88, status:"finished", font:"'Fraunces', serif" },
-  { title:"1984",               author:"ORWELL",     spine:"#1a1714", text:"#c68b4a", w:30, h:0.82, status:"finished", font:"'Bodoni Moda', serif",  weight:700 },
-  { title:"GATSBY",             author:"FITZGERALD", spine:"#8a3f2a", text:"#e8dfc8", w:34, h:0.84, status:"finished", font:"'Fraunces', serif" },
-  { id:"sapiens", title:"SAPIENS", author:"HARARI",  spine:"#14263e", text:"#e8dfc8", w:40, h:0.92, status:"finished", font:"'Bodoni Moda', serif",  weight:700 },
-  { title:"THE ODYSSEY",        author:"HOMER",      spine:"#d4c4a0", text:"#2a2018", w:40, h:0.94, status:"finished", font:"'Bodoni Moda', serif",  weight:600 },
-  { title:"BELOVED",            author:"MORRISON",   spine:"#3d2a20", text:"#d4c4a0", w:36, h:0.86, status:"finished", font:"'Fraunces', serif" },
-  { title:"INVISIBLE CITIES",   author:"CALVINO",    spine:"#2f4a3a", text:"#d4c4a0", w:38, h:0.78, status:"finished", font:"'Fraunces', serif" },
-  { title:"MIDDLEMARCH",        author:"ELIOT",      spine:"#5c4a2a", text:"#e8dfc8", w:42, h:0.98, status:"finished", font:"'Bodoni Moda', serif",  weight:500 },
-  { title:"EAST OF EDEN",       author:"STEINBECK",  spine:"#8f6f2a", text:"#1a1714", w:46, h:0.93, status:"finished", font:"'Fraunces', serif" },
-  { title:"PALE FIRE",          author:"NABOKOV",    spine:"#c94a3a", text:"#f3e8d0", w:36, h:0.80, status:"finished", font:"'Bodoni Moda', serif",  weight:700 },
-  { title:"ON BEAUTY",          author:"SMITH",      spine:"#b8935a", text:"#1a1714", w:34, h:0.84, status:"finished", font:"'Fraunces', serif" },
-  { title:"STONER",             author:"WILLIAMS",   spine:"#4a3a2a", text:"#d4c4a0", w:30, h:0.76, status:"finished", font:"'Fraunces', serif" },
-  { title:"A LITTLE LIFE",      author:"YANAGIHARA", spine:"#8a6a2a", text:"#1a1714", w:52, h:0.99, status:"finished", font:"'Bodoni Moda', serif",  weight:600 },
-  { title:"THE WAVES",          author:"WOOLF",      spine:"#4a5a6a", text:"#e8dfc8", w:32, h:0.82, status:"finished", font:"'Fraunces', serif" },
-  { title:"IF ON A WINTER",     author:"CALVINO",    spine:"#c4baa8", text:"#1a1714", w:34, h:0.78, status:"want",     font:"'Fraunces', serif" },
-  { title:"THE NAME OF ROSE",   author:"ECO",        spine:"#2a2824", text:"#c68b4a", w:44, h:0.96, status:"want",     font:"'Fraunces', serif" },
-  { title:"MRS DALLOWAY",       author:"WOOLF",      spine:"#9a5a4a", text:"#e8dfc8", w:28, h:0.74, status:"want",     font:"'Bodoni Moda', serif",  weight:500 },
-  { title:"AUSTERLITZ",         author:"SEBALD",     spine:"#6a7260", text:"#e8dfc8", w:36, h:0.86, status:"want",     font:"'Fraunces', serif" },
-  { title:"GRAVITY'S RAINBOW",  author:"PYNCHON",    spine:"#c4a890", text:"#1a1714", w:48, h:0.97, status:"want",     font:"'Fraunces', serif" },
-  { title:"THE MAGIC MOUNTAIN", author:"MANN",       spine:"#1e3a4a", text:"#d4c4a0", w:46, h:0.95, status:"want",     font:"'Bodoni Moda', serif",  weight:600 },
-  { title:"THE STRANGER",       author:"CAMUS",      spine:"#d9cfb9", text:"#1a1714", w:26, h:0.72, status:"want",     font:"'Fraunces', serif" }
-];
-

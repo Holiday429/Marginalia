@@ -3,7 +3,6 @@ import { BooksStore } from '../store/books-store.ts';
 import { SpineCard } from '../components/spine-card.ts';
 import { containsCJK, getUnifiedShelfSpineSize } from '../shared/shelf-utils.ts';
 import { mountReadingPath } from './reading-path.ts';
-import { SHELF_BOOKS as MOCK_SHELF_BOOKS } from '../data/mock/seed-spines.js';
 import './annual-shelf.css';
 
 interface ProfileBook {
@@ -60,7 +59,6 @@ interface YearShelfData {
 const ANNUAL_TARGET_COUNT = 10;
 const SOURCE_SHELF_MIN_COUNT = 12;
 const SOURCE_SHELF_MAX_COUNT = 16;
-const MOCK_FILLER_COUNT = 11;
 
 export class ProfileAnnualShelf {
   private host: HTMLElement;
@@ -1075,13 +1073,7 @@ function buildYearShelfData(books: ProfileBook[], year: number, savedOrder: stri
   const realSource = sourceBooks.map((book, index) => ({ ...book, sourceIndex: index }));
   let selectedBooks = selectAnnualBooks(realSource, Math.min(ANNUAL_TARGET_COUNT, realSource.length), year);
 
-  // Sprinkle a few decorative mock books (UI-only, same data the Search "All
-  // Books" wall uses) AMONG the real books so the shelf reads richer and the
-  // "Organize" pass visibly gathers the real picks out from the mocks. Mocks
-  // carry synthetic ids and are never selectable as Top-10.
-  const existingIds = new Set(realSource.map((b) => b.id));
-  const fillers = buildMockShelfFillers(existingIds, MOCK_FILLER_COUNT);
-  const interleaved = interleaveBooks(realSource, fillers);
+  const interleaved = realSource;
   const shelfBooks = interleaved.map((book, index) => ({ ...book, sourceIndex: index }));
 
   if (savedOrder && savedOrder.length > 0) {
@@ -1095,49 +1087,6 @@ function buildYearShelfData(books: ProfileBook[], year: number, savedOrder: stri
   }
 
   return { sourceBooks: shelfBooks, selectedBooks, yearBooks };
-}
-
-// A handful of decorative mock books mapped from the shared spine data. Titles
-// are normalized to Capital Case to match the rest of the UI.
-function buildMockShelfFillers(existingIds: Set<string>, count: number): ProfileBook[] {
-  const fillers: ProfileBook[] = [];
-  for (let i = 0; i < (MOCK_SHELF_BOOKS as unknown[]).length && fillers.length < count; i++) {
-    const mock = (MOCK_SHELF_BOOKS as Array<Record<string, any>>)[i];
-    const id = `mock-shelf-${mock.id ?? slugifyTitle(String(mock.title))}-${i}`;
-    if (existingIds.has(id)) continue;
-    fillers.push({
-      id,
-      title: toTitleCase(String(mock.title ?? '')),
-      author: toTitleCase(String(mock.author ?? '')),
-      spine: mock.spine ?? '#4a4035',
-      text: mock.text ?? '#e8dfc8',
-      status: mock.status ?? 'finished',
-    });
-  }
-  return fillers;
-}
-
-// Distribute the mock books evenly between the real ones so picks and fillers
-// alternate across the shelf rather than clustering at one end.
-function interleaveBooks(real: ProfileBook[], fillers: ProfileBook[]): ProfileBook[] {
-  if (!fillers.length) return [...real];
-  const out: ProfileBook[] = [];
-  const gap = Math.max(1, Math.floor(real.length / (fillers.length + 1)));
-  let fi = 0;
-  real.forEach((book, i) => {
-    out.push(book);
-    if (fi < fillers.length && (i + 1) % gap === 0) out.push(fillers[fi++]);
-  });
-  while (fi < fillers.length) out.push(fillers[fi++]);
-  return out;
-}
-
-function slugifyTitle(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
-function toTitleCase(value: string): string {
-  return value.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function dedupeBooks(books: ProfileBook[]): ProfileBook[] {

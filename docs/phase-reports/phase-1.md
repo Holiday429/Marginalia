@@ -87,3 +87,26 @@ Regression found and fixed on the way (introduced by 1.1)
 
 Known, deferred
 - Boot-time `TypeError: Cannot read properties of undefined (reading 'image')` comes from three.js's loader on the broken `oriented_strand_board_rough_2k.exr`; it is removed by 1.6. The new spec tolerates it explicitly (comment points to 1.6); the phase gate still requires 0 pageerrors.
+
+## 1.5 Remove hard-coded demo data — done (one acceptance partly pending a manual check)
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| `grep -rni sapiens src --exclude-dir=data` → 0 lines | ✅ | `npm run check:hardcoded` (now in `check:all`); the desk-book room identifiers were renamed `desk-book` / `deskBook` / `onDeskBookSelect` |
+| e2e: a new account sees only empty states in Search/Library/Map/Graph/Profile | ✅ | `tests/e2e-emulator/real-library.spec.ts` "a brand-new account sees empty states…": visits all five views, asserts the Search empty state and that none of the demo titles (Sapiens, Dune, 活山, 红楼梦, Gatsby, Beloved) appears on any view |
+| e2e: user adds 人类简史 as Reading and writes a highlight; both survive a reload and stay editable | ✅ | same file, test 2 — status stays `reading` (previously overwritten to finished by `_normalizeSapiens`), highlight present after reload with its edit/delete controls, no seed tags ("Cognitive Revolution") leaked into the page |
+| e2e: signed-out demo shows the same finished/total numbers everywhere | ✅ (Search ↔ Profile) | test 3 compares Search "N finished" with Profile "Books Finished"; both derive from `DEMO_BOOKS`. Map and Graph are fed by the same list through `BooksStore` but are not number-compared in the e2e. Unit: `tests/demo-data.test.ts` (6 tests) |
+| Profile has no broken image (`naturalWidth > 0` on every `<img>`) | ✅ | `brokenImages()` helper asserts `[]` on the demo Profile (it was 10 broken covers: paths pointed at `assets/covers/…` instead of `/covers/…`) and on a new account's Profile |
+
+What changed
+- `BookDataSource` (`src/store/book-data-source.ts`): `FirestoreDataSource` for signed-in users (empty means empty) and `DemoDataSource` for visitors (demo library + locally added books from IndexedDB). `BooksStore` only talks to a source; `_isSapiensLike`, `_normalizeSapiens`, the seed fallback on an empty account, `_canonicalizeBooks`, and `window.__SEED_SAPIENS` are gone. `BooksStore.isDemoBook()` replaces the `id === 'sapiens'` checks in Library.
+- Deleted: `src/data/seed/index.js`, `profile-demo.ts`, `src/data/mock/seed-spines.js`; `ensureShelfDetailRecord` (cloned Sapiens' notes into every book), the 22 mock spines in Search, the 11 mock "filler" books in the Profile annual shelf, the Sapiens branches in Search/Library/Book/Graph/New Entry/notes wall. Books without detail use `createEmptyBook()` (`src/data/schema/empty-book.ts`) and the panels' own empty states.
+- New: `src/data/demo/` (single demo dataset), `src/core/asset.ts` (`asset()` applies the Vite base), covers renamed to ASCII in `public/covers/` and referenced through `asset()`, landing-page spines moved to `src/preloader/landing-books.js` (decorative props, not data), transition spines inlined in `frame-fly.js`.
+- Short shelf: a signed-in user with fewer than 8 books gets ghost "+" spines (solid outline, see Q1.5-a); a user with no books gets an "Add a book" empty state.
+- Picture frame: shows the user's avatar (`src/three/frame-photo.ts`, set from the user doc on sign-in and on avatar upload), else a default pixel reader; `public/3d/profile-frame-photo.jpg` and `me.jpg` deleted.
+- Screenshots (demo Search/Profile, new-account Search) at 390/768/1440: `tests/screenshots/phase-1/1.5-*.png`. At 390px the top nav shows only the Map icon, so Profile/Library cannot be reached there (known defect, task 3.4); Profile is captured at 768 and 1440 only.
+
+Not verified / follow-ups
+- Not exercised in a real browser against a deployed dev project (only the emulator).
+- `assets/` (repo root, duplicates `public/`) still contains the Chinese-named covers; it is deleted in 1.7.
+- Open questions Q1.5-a…e in `docs/open-questions.md`.

@@ -45,3 +45,36 @@ export function trackPageErrors(page: Page): string[] {
   page.on('pageerror', (err) => errors.push(String(err)));
   return errors;
 }
+
+/** Titles from the demo library; none of them may ever appear for a real (signed-in) user. */
+export const DEMO_TITLES = ['Sapiens', 'Dune', '活山', '红楼梦', 'Gatsby', 'Beloved'];
+
+export async function bodyText(page: Page): Promise<string> {
+  return page.evaluate(() => document.body.innerText);
+}
+
+/** Clicks the nav button of `name` that is actually on top (each panel renders its own nav copy). */
+export async function openView(page: Page, name: 'Search' | 'Library' | 'Map' | 'Graph' | 'Profile') {
+  const clicked = await page.evaluate((label) => {
+    const buttons = Array.from(document.querySelectorAll<HTMLElement>('button, a, [role="button"]'))
+      .filter((el) => (el.textContent || '').trim() === label);
+    for (const el of buttons) {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (top && (el === top || el.contains(top))) { el.click(); return true; }
+    }
+    return false;
+  }, name);
+  expect(clicked, `nav button "${name}" is reachable`).toBe(true);
+  await page.waitForTimeout(1800);
+}
+
+/** Every visible <img> in the page has loaded (naturalWidth > 0). Returns the broken srcs. */
+export async function brokenImages(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    Array.from(document.images)
+      .filter((img) => img.getBoundingClientRect().width > 0 && img.src && !img.src.startsWith('data:image/svg'))
+      .filter((img) => !(img.complete && img.naturalWidth > 0))
+      .map((img) => img.src));
+}

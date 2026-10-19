@@ -19,6 +19,7 @@ import { MarginaliaAuth } from '../firebase/auth.ts';
 import { ENV } from '../core/env.ts';
 import { Paths, WsPaths } from '../firebase/paths.ts';
 import { buildSessionDays } from './session-days.ts';
+import { setFramePhotoUrl } from '../three/frame-photo.ts';
 import { fetchPublicProfile, syncPublicProfile } from './public-profile.ts';
 import { BooksStore } from '../store/books-store.ts';
 import {
@@ -792,6 +793,7 @@ function bindAvatarUpload(container: HTMLElement): void {
         const uid = auth.user?.uid;
         if (db && uid) {
           setDoc(doc(db, Paths.user(uid)), { avatarUrl: dataUrl }, { merge: true })
+            .then(() => { setFramePhotoUrl(dataUrl); })
             .then(() => syncPublicProfile(db, uid, String(auth.user?.displayName || auth.user?.email || '').split('@')[0]))
             .catch(() => {});
         }
