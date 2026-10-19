@@ -130,3 +130,18 @@ What changed
 - `vercel.json`: `Cache-Control: public, max-age=31536000, immutable` for `/3d/*`, `/textures/*`, `/assets/*` (all content-hashed). **Not verified against a live deployment** — check the response headers after the first Vercel deploy.
 - Removed from `public/`: 16 unused models (incl. the 3 CC-BY-NC ones: `bankers_lamp`, `sofa_pink`, `world_map_color_3d_scan`), unused texture sets (sofa, shelf), `public/book.glb` (now hashed), draco decoders, two unused frame JPGs. All 14 shipped models are CC-BY-4.0 and the GLB `asset.extras` (author/source/licence) survived optimization — verified with `node scripts/list-model-licenses.mjs public/3d` (input for the Credits page in 1.8). The Poly Haven/ambientCG textures are CC0 (no attribution required).
 - Also: smoke e2e and the Playwright config use the installed Chrome locally (no browser download) with `workers: 1`.
+
+## 1.7 Repository cleanup — done locally (CI run needs a push)
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| Fresh clone: `npm ci && npm run build` succeeds | ✅ | Cloned the branch to a scratch dir: `npm ci` exit 0, `npm run build` ✓ (dist 25 MB). The lockfile was out of sync before; it is regenerated (it also gained the asset-pipeline dev dependencies) |
+| `git ls-files \| grep -E "npm-cache\|^assets/\|reference_\|^tmp/\|\.vite/\|DS_Store"` → nothing | ✅ | 0 matches in the fresh clone (356 tracked files, was 1372) |
+| CI all green | ⏳ | Not run: nothing pushed. See Q1.7-c |
+
+What changed
+- Untracked (`git rm --cached`): `.npm-cache/` (910 files), `.vite/`, root `assets/` (393 MB; its 26 GLBs are byte-identical to the ones in `public/3d` — checked with `cmp` before moving), `reference_delete when complete/`, `tmp/`, `_ft.mjs`, root `book.glb` (identical to the published original), every `.DS_Store`. `.gitignore` extended so they cannot come back.
+- Nothing was destroyed: `assets/`, the reference images, `tmp/` and `_ft.mjs` were moved to `assets-src/_legacy/` (git-ignored, on this machine); `.npm-cache` and `.vite` (regenerable) were deleted.
+- `ci.yml`/`deploy.yml` use `npm ci`; CI additionally installs and builds `functions/`, runs `check:hardcoded`, and has a signed-in e2e job on the Firebase emulators (needs Java, Chromium).
+- History is untouched. Q1.7-a lays out the `git filter-repo` trade-off for your decision.
+- Leftover scratch clone from the verification: `/private/tmp/claude-501/-Users-Holiday-1-Desktop-Growth-Marginalia/6a904a90-4100-4a8c-aca0-75b26f48e5b8/scratchpad/fresh` (the sandbox refused my `rm -rf` of it; safe to delete by hand).

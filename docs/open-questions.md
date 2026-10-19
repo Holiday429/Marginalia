@@ -66,3 +66,14 @@ The uncompressed originals (~460 MB: models + textures) are in `assets-src/` on 
 
 ### Q1.6-c — Poster needs regenerating when the room changes (informational)
 `public/room-poster.webp` is a still of the default room (front camera). The notes wall in it shows a demo quote for about half a second before the live scene fades in, including for signed-in users. Regenerate after any room change with `node scripts/capture-room.mjs --poster=1 --out=poster.png` then `cwebp -q 72 poster.png -o public/room-poster.webp`. Task 3.5 (themes) should make this per-theme.
+
+## Phase 1 — repository cleanup (1.7)
+
+### Q1.7-a — Rewrite git history with `git filter-repo` to shrink `.git`? (needs your decision; I did not do it)
+`.git` is ~560 MB on disk (≈ 500 MB packed). Uncompressed blob sizes in history by top-level path: `assets/` 390 MB (the root duplicate of `public/`), `public/` 90 MB (old uncompressed GLBs/textures), `.npm-cache/` 55 MB, `tmp/` 19 MB, `reference_delete when complete/` 18 MB, root `book.glb` 7 MB. Removing those paths from history would shrink a fresh clone to a fraction of its size, but it **rewrites every commit id**: every clone, the Vercel/GitHub connections' pinned SHAs, open branches (there are ~25) and any PR would need to be re-created or force-pushed. Options: (1) leave history as is (fresh clones are slow, nothing breaks); (2) filter-repo on a fresh mirror after you have merged phase 1 and archived the old repo. Recommendation: (1) now, revisit before inviting other contributors.
+
+### Q1.7-b — Things I left in the repo root that you may want to remove
+`Marginalia Book - Sapiens.html` (a 53 KB static prototype page, unreferenced) and `404.html`. Also `firebase.json` has `hosting.public: "."`, so a `firebase deploy` of Hosting would publish the whole repo directory (source, docs, env examples). If Hosting is not used (you deploy via Vercel / GitHub Pages), remove the `hosting` block; I did not change it.
+
+### Q1.7-c — "CI all green" cannot be shown from here
+Nothing has been pushed, so GitHub Actions has not run. Locally, `npm run check:all` runs the same steps the workflow runs (lint, typecheck, rules under the emulator, unit, build, size, both e2e suites). I also edited `ci.yml` (npm ci, functions deps and build, `check:hardcoded`, a new signed-in emulator e2e job) — those edits are only validated as YAML so far; the first run on GitHub may need small fixes.
