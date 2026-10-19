@@ -1,9 +1,11 @@
 /* Library view — room-organize workspace */
 
 import './library-2d.css';
-import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
 import { logError } from '../services/analytics.ts';
-import { withMeta } from '../services/db.ts';
+import { validateWrite, withMeta } from '../services/db.ts';
+import { LibraryLayoutSchema } from '../data/schema/library-layout.ts';
+import { MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { renderLibraryShell } from './library-2d-template.js';
 import { PanelManager } from '../core/panel-manager.ts';
 import { BooksStore } from '../store/books-store.ts';
@@ -207,6 +209,8 @@ interface LibraryState {
 
 const LIBRARY_STATE = LIBRARY_STATE_UNTYPED as unknown as LibraryState;
 
+let _layoutHydrated = false;
+
 function initLibrary(params: EnterLibraryParams = {}): void {
   const host = document.getElementById('panel-library');
   if (!host) return;
@@ -223,7 +227,7 @@ function initLibrary(params: EnterLibraryParams = {}): void {
 
 function enterLibrary(params: EnterLibraryParams = {}): void {
   syncLibraryRecords();
-  mergeLayoutWithRecords();
+  if (_layoutHydrated) mergeLayoutWithRecords();
   renderLibrary();
   scheduleDefaultFrontView();
   applyCameraTransform();
@@ -304,6 +308,15 @@ function focusLibraryMode(mode: string, smooth = true): void {
 function bindLibraryEvents(): void {
   if (LIBRARY_STATE.bound) return;
   LIBRARY_STATE.bound = true;
+
+  // Books load asynchronously after sign-in; place late arrivals on their shelf.
+  window.addEventListener('marginalia:books-changed', () => {
+    if (!_layoutHydrated) return;
+    syncLibraryRecords();
+    if (mergeLayoutWithRecords()) saveLayout();
+    // Hidden panel re-renders on enterLibrary(); measuring now would give wrong widths.
+    if (document.body.dataset.view === 'library-2d') renderLibrary();
+  });
 
   const root = document.getElementById('panel-library');
   if (!root) return;
@@ -676,7 +689,10 @@ function syncLibraryRecords(): void {
 
 async function hydrateLibraryLayout(initParams: EnterLibraryParams = {}): Promise<void> {
   const saved = await readStoredLayout();
+  // Books may have changed while the layout was being read.
+  syncLibraryRecords();
   if (!saved) {
+    _layoutHydrated = true;
     arrangeByStatus();
     saveLayout();
   } else {
@@ -718,6 +734,8 @@ async function hydrateLibraryLayout(initParams: EnterLibraryParams = {}): Promis
     mergeLayoutWithRecords();
   }
 
+  _layoutHydrated = true;
+
   // Render after hydration (was called synchronously after hydrateLibraryLayout before).
   renderLibrary();
   scheduleDefaultFrontView();
@@ -744,20 +762,36 @@ function ensureBaseShelves(): void {
   });
 }
 
-function mergeLayoutWithRecords(): void {
+/**
+ * Reconcile shelf layout with the current book records.
+ * Returns true when a book was newly placed (caller should persist).
+ */
+function mergeLayoutWithRecords(): boolean {
   ensureBaseShelves();
 
-  const valid = new Set(LIBRARY_STATE.records.map((record) => record.key));
-  LIBRARY_STATE.shelves.forEach((shelf) => {
-    shelf.bookKeys = shelf.bookKeys.filter((key) => valid.has(key));
-  });
+  // A signed-in user's books arrive asynchronously. Until then the store only
+  // holds demo seed data, and pruning against it would erase every saved key.
+  const booksPending = Boolean(MarginaliaAuth.user) && !BooksStore.hasOwnBooks();
+  if (!booksPending) {
+    const valid = new Set(LIBRARY_STATE.records.map((record) => record.key));
+    LIBRARY_STATE.shelves.forEach((shelf) => {
+      shelf.bookKeys = shelf.bookKeys.filter((key) => valid.has(key));
+    });
+  }
+
   const used = new Set<string>();
   LIBRARY_STATE.shelves.forEach((shelf) => shelf.bookKeys.forEach((key) => used.add(key)));
-  const confirmShelf = getShelfById('confirm-later');
 
+  let placed = false;
   LIBRARY_STATE.records.forEach((record) => {
-    if (!used.has(record.key)) confirmShelf?.bookKeys.push(record.key);
+    if (used.has(record.key)) return;
+    // New books go to the shelf matching their status, not a catch-all bucket.
+    const target = getShelfById(mapStatusToShelfId(record.status)) || getShelfById('confirm-later');
+    if (!target) return;
+    target.bookKeys.push(record.key);
+    placed = true;
   });
+  return placed;
 }
 
 function renderLibrary(): void {
@@ -2253,6 +2287,9 @@ function getSpineSize(record: LibraryRecord): { width: number; height: number } 
 let _layoutSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function saveLayout(): void {
+  // Before hydration the shelves are empty; persisting now would overwrite the
+  // saved layout (and its localStorage cache) with nothing.
+  if (!_layoutHydrated) return;
   const payload = {
     shelves: LIBRARY_STATE.shelves.map((shelf: LibraryShelf) => ({
       id: shelf.id,
@@ -2293,10 +2330,16 @@ function saveLayout(): void {
   if (_layoutSaveTimer) clearTimeout(_layoutSaveTimer);
   _layoutSaveTimer = setTimeout(() => {
     _layoutSaveTimer = null;
-    const layoutRef = doc(collection(db, 'users', uid, 'data'), 'library_layout');
-    setDoc(layoutRef, withMeta(payload), { merge: true })
+    const layoutRef = layoutDocRef(db, uid);
+    Promise.resolve()
+      .then(() => setDoc(layoutRef, withMeta(validateWrite(LibraryLayoutSchema, payload)), { merge: true }))
       .catch((err) => logError(err instanceof Error ? err : new Error(String(err)), { context: 'Library Firestore layout save' }));
   }, 500);
+}
+
+function layoutDocRef(db: Firestore, uid: string) {
+  const wsId = MARGINALIA_FIREBASE?.workspaceId || 'default';
+  return doc(collection(db, 'workspaces', wsId, 'users', uid, 'data'), 'library_layout');
 }
 
 async function readStoredLayout(): Promise<StoredLayout | null> {
@@ -2307,11 +2350,11 @@ async function readStoredLayout(): Promise<StoredLayout | null> {
 
   if (uid && db) {
     try {
-      const layoutRef = doc(collection(db, 'users', uid, 'data'), 'library_layout');
+      const layoutRef = layoutDocRef(db, uid);
       const snap = await getDoc(layoutRef);
       if (snap.exists()) {
         const data = snap.data() as StoredLayout;
-        if (data && Array.isArray(data.shelves)) return data;
+        if (data && Array.isArray(data.shelves) && data.shelves.length) return data;
       }
     } catch (err) {
       logError(err instanceof Error ? err : new Error(String(err)), { context: 'Library Firestore layout read' });
@@ -2323,7 +2366,7 @@ async function readStoredLayout(): Promise<StoredLayout | null> {
     const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredLayout;
-    if (!parsed || !Array.isArray(parsed.shelves)) return null;
+    if (!parsed || !Array.isArray(parsed.shelves) || !parsed.shelves.length) return null;
     return parsed;
   } catch {
     return null;

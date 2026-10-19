@@ -42,6 +42,11 @@ service cloud.firestore {
       allow write: if isSelf(uid);
     }
 
+    // /workspaces/{workspaceId}/users/{uid}/data/{docId} — library_layout (shelf arrangement)
+    match /workspaces/{workspaceId}/users/{uid}/data/{docId} {
+      allow read, write: if isSelf(uid);
+    }
+
     // /workspaces/{workspaceId}/users/{uid}/actions/{actionId}
     match /workspaces/{workspaceId}/users/{uid}/actions/{actionId} {
       allow read, write: if isSelf(uid);

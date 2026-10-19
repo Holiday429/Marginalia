@@ -116,7 +116,6 @@ src/
 │   └── search-decor-3d.js — Decorative open-book Three.js object on the search page
 ├── library-2d/
 │   ├── library-2d.js      — initLibrary / enterLibrary; drag-to-arrange shelf
-│   ├── library-2d-slot.ts — createShelfWallComponent(): SlotComponent for the 3D room north wall
 │   ├── library-2d-state.js
 │   └── library-2d-template.js
 ├── map/
@@ -364,7 +363,7 @@ interface SlotComponent {
 
 | Slot id      | Wall      | Mounted component                                   |
 |--------------|-----------|-----------------------------------------------------|
-| `shelfWall`  | North     | `createShelfWallComponent()` — Library 2D spine view |
+| `shelfWall`  | North     | Unmounted — room shelves are decor; user books live in Library 2D only |
 | `notesWall`  | East      | `createNotesWallComponent()` — highlights as cards  |
 | `desk`       | Desk      | `createDeskSlotComponent()` — reading session timer  |
 

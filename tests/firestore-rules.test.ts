@@ -58,3 +58,21 @@ describe('Firestore rules — cross-user isolation', () => {
     await assertFails(db.doc(bookPath).get());
   });
 });
+
+describe('Firestore rules — library layout', () => {
+  const uidA = 'user-a';
+  const uidB = 'user-b';
+  const layoutPath = `workspaces/${WORKSPACE_ID}/users/${uidA}/data/library_layout`;
+
+  it('owner can write and read their layout', async () => {
+    const db = testEnv.authenticatedContext(uidA).firestore();
+    await assertSucceeds(db.doc(layoutPath).set({ shelves: [] }));
+    await assertSucceeds(db.doc(layoutPath).get());
+  });
+
+  it("another user cannot read or write someone else's layout", async () => {
+    const db = testEnv.authenticatedContext(uidB).firestore();
+    await assertFails(db.doc(layoutPath).get());
+    await assertFails(db.doc(layoutPath).set({ shelves: [] }));
+  });
+});
