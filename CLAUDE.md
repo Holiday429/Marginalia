@@ -94,6 +94,8 @@ src/
 │   ├── highlights-store.ts — per-user highlights listener + save/remove; emits marginalia:highlights-changed
 │   ├── notes-store.ts      — IndexedDB (+ Firestore flush): highlights, notes, actions, ai-results, user-books
 │   ├── actions-store.ts    — Firestore actions collection listener
+│   ├── captures-store.ts   — quick captures = highlights with source 'quick' and bookId '' until attributed; device-first with an outbox (capture-outbox.ts)
+│   ├── book-status-events.ts — notifyBookStatusChange(): the one hook for "moved into finished" (analytics now, finish ritual in 2.3)
 │   ├── ai-results-store.ts — Cached AI output store
 │   └── entitlements-store.ts — reads billing/{uid} → entitlements (never writes)
 ├── firebase/
@@ -115,7 +117,8 @@ src/
 │   ├── reading-session/focus-widget.ts  — Focus widget UI
 │   ├── consent-banner/consent-banner.ts — analytics consent banner
 │   ├── legal-links/legal-links.ts       — Privacy / Terms / Credits footer links
-│   └── action-notifications/action-notifications.ts — Action reminder notifications
+│   ├── action-notifications/action-notifications.ts — Action reminder notifications
+│   └── quick-capture/quick-capture.ts — global "+" button, C key and bottom sheet; captures-drawer.ts lists unattributed captures (drag onto a spine)
 ├── three/
 │   ├── room.ts             — RoomScene class: loads GLBs, CSS3DRenderer, raycasting, interactive targets
 │   ├── camera-paths.ts     — POSES: front | approach | shelf | notes (positions + FOV + idle amplitude)

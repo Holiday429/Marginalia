@@ -77,6 +77,7 @@ async function enterBook(params = {}) {
 
   if (!book) { logError(new Error(`[book] No record for id="${id}"`), { bookId: id }); return; }
   __currentBookId = id;
+  document.getElementById('panel-book')?.setAttribute('data-book-id', id); // read by the quick-capture sheet
 
   // Merge live user highlights from HighlightsStore (Firestore) with any
   // seed highlights baked into the book object. View-local copy — seed never mutated.

@@ -1,0 +1,225 @@
+/* Marginalia · quick capture: "+" button and bottom sheet */
+
+.qc-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 420;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--color-brass-border);
+  border-radius: 50%;
+  background: var(--color-ink-deep);
+  color: var(--color-paper);
+  cursor: pointer;
+}
+
+.qc-fab svg { width: 20px; height: 20px; }
+
+.qc-fab:hover { background: var(--color-ink-soft); }
+
+.qc-fab:focus-visible,
+.qc-save:focus-visible,
+.qc-close:focus-visible,
+.qc-suggestion:focus-visible,
+.qc-selected__clear:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* No button on the landing page, where the only job is entering the library. */
+body[data-view="preloader"] .qc-fab { display: none; }
+
+.qc-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(21, 18, 16, 0.5);
+}
+
+.qc-sheet {
+  --qc-keyboard: 0px;
+  --qc-max-height: 92vh;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--qc-keyboard);
+  z-index: 9001;
+  box-sizing: border-box;
+  max-width: 560px;
+  max-height: var(--qc-max-height);
+  margin: 0 auto;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  border: 1px solid var(--color-brass-border);
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+  background: var(--color-ink-deep);
+  color: var(--color-paper);
+  font-family: var(--font-serif);
+  animation: qc-rise 0.22s ease-out;
+}
+
+@keyframes qc-rise {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qc-sheet { animation: none; }
+}
+
+.qc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.qc-title {
+  margin: 0;
+  font-size: var(--fs-18);
+  font-weight: 500;
+}
+
+.qc-close {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.qc-form { display: grid; gap: 10px; }
+
+.qc-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  color: var(--color-taupe);
+}
+
+/* 16px stops iOS Safari zooming the page when the field is focused. */
+.qc-input,
+.qc-book-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-brass-border);
+  border-radius: 4px;
+  background: var(--color-ink);
+  color: var(--color-ivory-text);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.qc-input { resize: none; }
+
+.qc-book-input { min-height: 44px; }
+
+.qc-book { display: grid; gap: 6px; }
+
+.qc-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 4px 0 12px;
+  border: 1px solid var(--color-brass-border);
+  border-radius: 4px;
+}
+
+.qc-selected[hidden],
+.qc-suggestions[hidden],
+.qc-error[hidden] { display: none; }
+
+.qc-selected__clear {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.qc-suggestions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-brass-border);
+  border-radius: 4px;
+}
+
+.qc-suggestion {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.qc-suggestion:hover { background: var(--color-ink-soft); }
+
+.qc-suggestion__meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  color: var(--color-taupe);
+}
+
+.qc-error {
+  margin: 0;
+  color: var(--color-rose);
+  font-size: var(--fs-13);
+}
+
+.qc-save {
+  min-height: 48px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  font-size: var(--fs-16);
+  cursor: pointer;
+}
+
+.qc-save:disabled { opacity: 0.6; cursor: default; }
+
+.qc-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  z-index: 9002;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border: 1px solid var(--color-brass-border);
+  border-radius: 4px;
+  background: var(--color-ink-deep);
+  color: var(--color-paper);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.qc-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

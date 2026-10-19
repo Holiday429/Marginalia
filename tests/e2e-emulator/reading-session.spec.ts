@@ -19,6 +19,10 @@ test('reading session is stored and colours today in the Profile heatmap', async
   await page.locator('[data-fw-start]').click();
   await page.waitForTimeout(1500);
   await page.locator('[data-fw-stop]').click();
+  // Stopping a session opens the quick-capture sheet (2.1); it opens after the session write, so wait for it.
+  await expect(page.locator('.qc-sheet')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.qc-sheet')).toHaveCount(0);
 
   await expect.poll(async () => (await listDocs(`workspaces/${WS}/users/${uid}/sessions`)).length, { timeout: 10_000 }).toBe(1);
   const [session] = await listDocs(`workspaces/${WS}/users/${uid}/sessions`);

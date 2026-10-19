@@ -56,6 +56,8 @@ import { ActionsStore } from './store/actions-store.ts';
 import { mountActionNotifications, unmountActionNotifications } from './components/action-notifications/action-notifications.ts';
 import { initReadingSession, teardownReadingSession } from './components/reading-session/reading-session.ts';
 import { mountFocusWidget } from './components/reading-session/focus-widget.ts';
+import { mountQuickCapture } from './components/quick-capture/quick-capture.ts';
+import { mountCapturesPill } from './components/quick-capture/captures-drawer.ts';
 import './components/reading-session/reading-session.css';
 import './components/action-notifications/action-notifications.css';
 
@@ -130,4 +132,4 @@ window.addEventListener('marginalia:auth-changed', (event) => {
 });
 
 // Mount global focus widget once on DOM ready
-document.addEventListener('DOMContentLoaded', () => mountFocusWidget());
+document.addEventListener('DOMContentLoaded', () => { mountFocusWidget(); mountQuickCapture(); mountCapturesPill(); });

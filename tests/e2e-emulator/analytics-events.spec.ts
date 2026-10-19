@@ -71,6 +71,10 @@ test('signup, add, highlight, session, import, AI and finish each reach PostHog 
   await page.locator('[data-fw-start]').click();
   await page.waitForTimeout(1200);
   await page.locator('[data-fw-stop]').click();
+  // Stopping a session opens the quick-capture sheet (2.1); it opens after the session write, so wait for it.
+  await expect(page.locator('.qc-sheet')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.qc-sheet')).toHaveCount(0);
 
   // Add a book.
   await openView(page, 'Search');

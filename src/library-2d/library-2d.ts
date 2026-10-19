@@ -1007,7 +1007,7 @@ function createSpineCard(record: LibraryRecord, shelfId: string): HTMLElement {
     width: size.width,
     height: size.height,
     className: 'library-spine library-draggable',
-    dataAttrs: { bookKey: record.key, shelfId },
+    dataAttrs: { bookKey: record.key, shelfId, bookId: record.id },
     ariaLabel: `${record.title} by ${record.author}`,
     titleClass: `library-spine-title${titleIsCJK ? ' is-cjk' : ''}`,
     authorClass: `library-spine-author${authorIsCJK ? ' is-cjk' : ''}`,
@@ -1026,6 +1026,7 @@ function createCoverCard(record: LibraryRecord, shelfId: string): HTMLElement {
   cover.type = 'button';
   cover.className = 'library-cover library-draggable';
   cover.dataset.bookKey = record.key;
+  cover.dataset.bookId = record.id;
   cover.dataset.shelfId = shelfId;
   cover.setAttribute('aria-label', `${record.title} by ${record.author}`);
 

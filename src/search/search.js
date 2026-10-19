@@ -398,7 +398,7 @@ function createSpineButton(record) {
     extraClasses: record.key === SHELF_STATE.selectedKey ? ['active'] : [],
     titleClass:   `shelf-spine-title${containsCJK(record.titleDisplay) ? ' is-cjk' : ''}`,
     authorClass:  `shelf-spine-author${containsCJK(record.author) ? ' is-cjk' : ''}`,
-    dataAttrs:    { key: record.key, status: record.status },
+    dataAttrs:    { key: record.key, status: record.status, bookId: record.detailId },
     onClick(btn) {
       const isSelected = SHELF_STATE.selectedKey === record.key;
       if (isSelected && record.preview?.canOpen) {
@@ -647,7 +647,7 @@ function buildQuickCard(record) {
     : fallback;
 
   return `
-    <button class="shelf-quick-card" type="button" data-key="${escapeHTML(record.key)}" title="${title}">
+    <button class="shelf-quick-card" type="button" data-key="${escapeHTML(record.key)}" data-book-id="${escapeHTML(record.detailId)}" title="${title}">
       <span class="shelf-quick-cover">${coverInner}</span>
       <span class="shelf-quick-card-title${cjkClass}">${title}</span>
     </button>

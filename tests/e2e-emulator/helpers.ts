@@ -94,3 +94,32 @@ export async function openProfileSettings(page: Page) {
   await page.locator('#profileHeaderSettingsBtn').click();
   await page.locator('#profDeleteOpen').waitFor({ state: 'attached', timeout: 15_000 });
 }
+
+/** Adds a book through the real Add Book dialog; the app then shows that book's page. Returns its Firestore id. */
+export async function addBookViaUi(page: Page, uid: string, title: string, author = 'Test Author'): Promise<string> {
+  await openView(page, 'Search');
+  await page.locator('#searchNewEntryBtn').click();
+  await page.locator('#neTitle').fill(title);
+  await page.locator('#neAuthor').fill(author);
+  await page.locator('#neStatus').selectOption('reading');
+  await page.locator('#neSubmitBtn').click();
+  await expect(page.locator('#neForm')).toBeHidden({ timeout: 15_000 });
+  let id = '';
+  await expect.poll(async () => {
+    const docs = await listDocs(`workspaces/${WS}/users/${uid}/books`);
+    id = docs.find((d) => d.fields?.title?.stringValue === title || d.fields?.meta?.mapValue?.fields?.title?.stringValue === title)?.id ?? docs[docs.length - 1]?.id ?? '';
+    return id;
+  }, { timeout: 15_000 }).not.toBe('');
+  return id;
+}
+
+/** Highlights of a user as plain { id, bookId, quote, source }. */
+export async function listHighlights(uid: string) {
+  const docs = await listDocs(`workspaces/${WS}/users/${uid}/highlights`);
+  return docs.map((d) => ({
+    id: d.id,
+    bookId: d.fields.bookId?.stringValue ?? '',
+    quote: d.fields.quote?.stringValue ?? '',
+    source: d.fields.source?.stringValue ?? '',
+  }));
+}

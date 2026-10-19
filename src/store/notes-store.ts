@@ -190,7 +190,8 @@ export const NotesStore = (() => {
     return _idbGetAllByIndex<HighlightRecord>(STORE_HIGHLIGHTS, 'bookId', bookId);
   }
 
-  async function saveHighlight(bookId: string, highlight: Record<string, any>): Promise<HighlightRecord> { // eslint-disable-line @typescript-eslint/no-explicit-any -- caller-supplied partial highlight shape
+  /** `remote: false` keeps the write on this device; the caller then owns the Firestore send (quick capture outbox). */
+  async function saveHighlight(bookId: string, highlight: Record<string, any>, opts: { remote?: boolean } = {}): Promise<HighlightRecord> { // eslint-disable-line @typescript-eslint/no-explicit-any -- caller-supplied partial highlight shape
     const record: HighlightRecord = {
       ...highlight,
       id:        highlight.id     || `hl-${bookId}-${Date.now()}`,
@@ -204,7 +205,7 @@ export const NotesStore = (() => {
     }
     _emit();
     // Signed-in readers use the Firestore listener, so the write must reach it.
-    await HighlightsStore.save(record);
+    if (opts.remote !== false) await HighlightsStore.save(record);
     return record;
   }
 
