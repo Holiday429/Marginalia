@@ -1609,52 +1609,46 @@
   padding: 3px 7px;
   background: rgba(26,23,20,0.03);
 }
-/* Annotation toggle — sits inline at the end of the quote row */
-.hl-quote-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-}
-.hl-quote-row .hl-quote { flex: 1; }
-.hl-annotation-toggle {
-  flex-shrink: 0;
-  align-self: flex-end;
-  margin-bottom: 2px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--font-mono);
-  font-size: 8.5px;
-  letter-spacing: 0.18em;
-  color: var(--accent);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  white-space: nowrap;
-  transition: opacity var(--dur-fast);
-}
-.hl-annotation-toggle:hover { opacity: 0.7; }
-.hl-annotation-toggle .tog-icon {
-  width: 15px; height: 15px;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.hl-annotation {
+/* Comment attached to a highlight: collapsible, editable */
+.hl-comment {
   margin-top: var(--space-4);
   border-left: 3px solid rgba(198, 139, 74, 0.5);
   background: rgba(198, 139, 74, 0.08);
   border-radius: 0 4px 4px 0;
-  padding: 10px 14px 12px;
+  padding: 8px 14px 10px;
 }
-.hl-annotation.is-collapsed { display: none; }
-.hl-annotation p {
+.hl-comment[hidden] { display: none; }
+.hl-comment-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 22px;
+}
+.hl-comment-toggle,
+.hl-comment-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+.hl-comment-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity var(--dur-fast);
+}
+.hl-comment-toggle:hover { opacity: 0.7; }
+.hl-comment-chevron { transition: transform var(--dur-fast); }
+.hl-comment-toggle[aria-expanded="false"] .hl-comment-chevron { transform: rotate(-90deg); }
+.hl-comment-actions { display: inline-flex; align-items: center; gap: var(--space-3); }
+.hl-comment-body { margin-top: 6px; }
+.hl-comment-body.is-collapsed { display: none; }
+.hl-comment-body p {
   font-family: var(--font-serif);
   font-size: var(--fs-14);
   line-height: 1.7;
@@ -1662,28 +1656,50 @@
   font-variation-settings: "opsz" 24;
   color: var(--ink);
   text-wrap: pretty;
-  font-style: italic;
+  white-space: pre-wrap;
 }
+.hl-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: 8px;
+}
+.hl-comment-form[hidden] { display: none; }
 
+/* Per-item actions row + inline two-step confirmation */
+.hl-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+.hl-link-btn {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  min-height: 24px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--dur-fast);
+}
+.hl-link-btn:hover { color: var(--ink); }
+.hl-link-btn--danger:hover { color: var(--color-rose); }
+.hl-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+.hl-confirm[hidden] { display: none; }
 
 /* ── Highlight add form ────────────────────────────────────────────────── */
 .hl-item--user { background: rgba(198,139,74,0.04); }
-.hl-delete-btn {
-  float: right;
-  margin-top: 2px;
-  background: none;
-  border: none;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 0 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.hl-item--user:hover .hl-delete-btn { opacity: 1; }
-.hl-delete-btn:hover { color: var(--ink); }
-
 .hl-add-btn {
   background: none;
   border: 1px solid var(--rule);

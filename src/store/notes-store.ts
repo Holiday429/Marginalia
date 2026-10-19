@@ -216,12 +216,14 @@ export const NotesStore = (() => {
 
   // Batch import — used by Kindle parser; skips duplicates by id
   async function importHighlights(bookId: string, highlights: Array<Record<string, any>>): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any -- caller-supplied partial highlight shapes
-    const records = highlights.map((h) => ({
+    const importedAt = Date.now();
+    const records = highlights.map((h, index) => ({
       ...h,
       id:        h.id || `hl-${bookId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       bookId,
       source:    'kindle',
-      createdAt: h.createdAt || Date.now(),
+      // Offset by index so the imported order is preserved when sorting oldest-first.
+      createdAt: h.createdAt || importedAt + index,
       updatedAt: Date.now(),
     }));
     if (_db) {

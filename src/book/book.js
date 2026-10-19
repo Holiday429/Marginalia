@@ -83,7 +83,7 @@ async function enterBook(params = {}) {
       ? [...HighlightsStore.getAll().filter((h) => h.bookId === id), ...localHighlights]
       : localHighlights;
   }
-  const mergedHighlights = dedupeHighlights([...(book.highlights || []), ...liveHighlights]);
+  const mergedHighlights = sortHighlights(dedupeHighlights([...(book.highlights || []), ...liveHighlights]));
 
   // Merge actions: ActionsStore (Firestore) takes precedence over any actions
   // baked into the book object (seed data). For unauthenticated users the
@@ -139,6 +139,9 @@ async function enterBook(params = {}) {
   });
 
   if (keepTab) root.querySelector(`.book-tab-btn[data-target="${CSS.escape(keepTab)}"]`)?.click();
+  if (params.focusHighlight) {
+    root.querySelector(`[data-hl-id="${CSS.escape(String(params.focusHighlight))}"]`)?.scrollIntoView({ block: 'center' });
+  }
 
   // Sidebar collapse toggle — triangle button switches between
   // expanded (full section labels) and collapsed (triangle only).
@@ -151,16 +154,84 @@ async function enterBook(params = {}) {
     });
   }
 
-  // Wire up annotation collapse toggles (annotations are expanded by default)
-  root.querySelectorAll('.hl-annotation-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const hlBody = btn.closest('.hl-body');
-      const ann = hlBody?.querySelector('[data-hl-annotation]');
-      if (!ann) return;
-      const collapsed = ann.classList.toggle('is-collapsed');
+  // Highlight comments: show/collapse, add, edit, delete.
+  const highlightById = new Map(mergedHighlights.map((h) => [String(h.id), h]));
+
+  async function saveHighlightComment(item, text, errorEl) {
+    const hlId = item.dataset.hlId;
+    const h = highlightById.get(hlId);
+    if (!h) return;
+    if (errorEl) errorEl.hidden = true;
+    try {
+      await NotesStore?.saveHighlight(id, {
+        id: h.id, quote: h.quote, page: h.page ?? null, kind: h.kind ?? null,
+        chapter: h.chapter ?? null, source: h.source || 'manual', createdAt: h.createdAt,
+        annotation: text || null,
+      });
+    } catch (err) {
+      logError(err, { context: 'highlight comment save', bookId: id });
+      if (errorEl) {
+        errorEl.textContent = 'Could not save this comment. Check your connection and try again.';
+        errorEl.hidden = false;
+      }
+      return;
+    }
+    enterBook({ id, keepTab: true, focusHighlight: hlId });
+  }
+
+  function openCommentForm(item) {
+    const comment = item.querySelector('[data-hl-comment]');
+    const form = item.querySelector('[data-hl-comment-form]');
+    if (!comment || !form) return;
+    comment.hidden = false;
+    comment.querySelector('[data-hl-comment-body]')?.setAttribute('hidden', '');
+    form.hidden = false;
+    item.querySelector('[data-hl-comment-add]')?.setAttribute('hidden', '');
+    form.querySelector('textarea')?.focus();
+  }
+
+  function closeCommentForm(item) {
+    const comment = item.querySelector('[data-hl-comment]');
+    const form = item.querySelector('[data-hl-comment-form]');
+    if (!comment || !form) return;
+    form.hidden = true;
+    form.reset();
+    const hasComment = comment.dataset.hasComment === '1';
+    comment.hidden = !hasComment;
+    comment.querySelector('[data-hl-comment-body]')?.removeAttribute('hidden');
+    item.querySelector('[data-hl-comment-add]')?.removeAttribute('hidden');
+  }
+
+  root.querySelectorAll('.hl-item').forEach((item) => {
+    item.querySelector('[data-hl-comment-toggle]')?.addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      const body = item.querySelector('[data-hl-comment-body]');
+      if (!body) return;
+      const collapsed = body.classList.toggle('is-collapsed');
       btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-      const icon = btn.querySelector('.tog-icon');
-      if (icon) icon.textContent = collapsed ? '+' : '−';
+    });
+    item.querySelector('[data-hl-comment-add]')?.addEventListener('click', () => openCommentForm(item));
+    item.querySelector('[data-hl-comment-edit]')?.addEventListener('click', () => openCommentForm(item));
+    item.querySelector('[data-hl-comment-cancel]')?.addEventListener('click', () => closeCommentForm(item));
+    const commentForm = item.querySelector('[data-hl-comment-form]');
+    commentForm?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = commentForm.querySelector('textarea')?.value.trim() || '';
+      saveHighlightComment(item, text, commentForm.querySelector('.hl-form-error'));
+    });
+    item.querySelector('[data-hl-comment-delete]')?.addEventListener('click', () => {
+      saveHighlightComment(item, '', null);
+    });
+  });
+
+  // Two-step delete: "Delete" reveals an inline confirmation instead of acting at once.
+  root.querySelectorAll('[data-confirm-ask]').forEach((ask) => {
+    const group = ask.closest('.hl-confirmable');
+    const box = group?.querySelector('[data-confirm-box]');
+    ask.addEventListener('click', () => { ask.hidden = true; if (box) box.hidden = false; });
+    group?.querySelector('[data-confirm-cancel]')?.addEventListener('click', () => {
+      if (box) box.hidden = true;
+      ask.hidden = false;
     });
   });
 
@@ -172,6 +243,7 @@ async function enterBook(params = {}) {
     hlAddBtn.addEventListener('click', () => {
       hlForm.hidden = false;
       hlAddBtn.hidden = true;
+      hlForm.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       hlForm.querySelector('#hlFormQuote')?.focus();
     });
     hlFormCancel?.addEventListener('click', () => {
@@ -194,8 +266,9 @@ async function enterBook(params = {}) {
       const saveBtn = hlForm.querySelector('.hl-form-save');
       if (errorEl) errorEl.hidden = true;
       if (saveBtn) saveBtn.disabled = true;
+      let savedRecord = null;
       try {
-        await NotesStore?.saveHighlight(id, highlight);
+        savedRecord = await NotesStore?.saveHighlight(id, highlight);
       } catch (err) {
         logError(err, { context: 'highlight save', bookId: id });
         if (errorEl) {
@@ -206,8 +279,8 @@ async function enterBook(params = {}) {
         return;
       }
       logEvent('highlight_saved', { bookId: id });
-      // Re-enter to rebuild merged list
-      enterBook({ id, keepTab: true });
+      // Re-enter to rebuild merged list; new entries land at the end, so scroll to them.
+      enterBook({ id, keepTab: true, focusHighlight: savedRecord?.id });
     });
   }
 
@@ -1255,11 +1328,6 @@ function renderHighlights(b) {
             <button class="hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
           </div>`}
       </div>
-      ${items.length ? `
-        <ul class="highlight-list" id="hlList">
-          ${items.map((h, i) => renderHighlightItem(h, i, isReadOnly)).join('')}
-        </ul>
-      ` : `<div class="ai-panel-placeholder"><span>${isReadOnly ? 'No highlights were shared for this book.' : 'No highlights yet — import them from Kindle or add them manually above.'}</span></div>`}
       ${isReadOnly ? '' : `
         <div class="hl-kindle-zone" id="hlKindleZone" hidden data-book-id="${esc(b.id)}"></div>
         <form class="hl-form" id="hlForm" hidden>
@@ -1288,8 +1356,8 @@ function renderHighlights(b) {
             </div>
           </div>
           <div class="hl-form-row">
-            <label class="hl-form-label">Note (optional)</label>
-            <textarea class="hl-form-textarea" id="hlFormNote" rows="2" placeholder="Your own annotation…"></textarea>
+            <label class="hl-form-label">Comment (optional)</label>
+            <textarea class="hl-form-textarea" id="hlFormNote" rows="2" placeholder="Your own comment…"></textarea>
           </div>
           <p class="hl-form-error" id="hlFormError" role="alert" hidden></p>
           <div class="hl-form-actions">
@@ -1297,27 +1365,66 @@ function renderHighlights(b) {
             <button class="hl-form-cancel" type="button" id="hlFormCancel">Cancel</button>
           </div>
         </form>`}
+      ${items.length ? `
+        <ul class="highlight-list" id="hlList">
+          ${items.map((h, i) => renderHighlightItem(h, i, isReadOnly)).join('')}
+        </ul>
+      ` : `<div class="ai-panel-placeholder"><span>${isReadOnly ? 'No highlights were shared for this book.' : 'No highlights yet — add one or import from Kindle using the buttons above.'}</span></div>`}
     </section>
   `;
 }
 
 function renderHighlightItem(h, i, readOnly = false) {
-  const isUser = Boolean(h.bookId); // user-created highlights have bookId from store
+  const hlId = esc(String(h.id));
+  const editable = Boolean(h.bookId) && !readOnly; // user-created highlights carry a bookId
+  const hasComment = Boolean(h.annotation);
   return `
-    <li class="hl-item${isUser ? ' hl-item--user' : ''}" data-hl-id="${esc(String(h.id))}">
+    <li class="hl-item${editable ? ' hl-item--user' : ''}" data-hl-id="${hlId}">
       <div class="hl-index">${String(i + 1).padStart(2, '0')}</div>
       <div class="hl-body">
-        <div class="hl-quote-row">
-          <p class="hl-quote">${esc(h.quote)}</p>
-          ${h.annotation ? `
-            <button class="hl-annotation-toggle" type="button" aria-expanded="true" aria-label="Collapse culture note">
-              <span class="tog-label">Culture note</span><span class="tog-icon">−</span>
-            </button>` : ''}
+        <p class="hl-quote">${esc(h.quote)}</p>
+        <div class="hl-comment" data-hl-comment data-has-comment="${hasComment ? '1' : '0'}"${hasComment ? '' : ' hidden'}>
+          <div class="hl-comment-head">
+            ${hasComment ? `
+              <button class="hl-comment-toggle" type="button" data-hl-comment-toggle aria-expanded="true">
+                <svg class="hl-comment-chevron" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Comment
+              </button>` : '<span class="hl-comment-label">Comment</span>'}
+            ${editable && hasComment ? `
+              <span class="hl-comment-actions">
+                <button class="hl-link-btn" type="button" data-hl-comment-edit>Edit</button>
+                <span class="hl-confirmable">
+                  <button class="hl-link-btn hl-link-btn--danger" type="button" data-confirm-ask>Delete</button>
+                  <span class="hl-confirm" data-confirm-box hidden>
+                    Delete comment?
+                    <button class="hl-link-btn hl-link-btn--danger" type="button" data-hl-comment-delete>Delete</button>
+                    <button class="hl-link-btn" type="button" data-confirm-cancel>Cancel</button>
+                  </span>
+                </span>
+              </span>` : ''}
+          </div>
+          ${hasComment ? `<div class="hl-comment-body" data-hl-comment-body><p>${esc(h.annotation)}</p></div>` : ''}
+          ${editable ? `
+            <form class="hl-comment-form" data-hl-comment-form hidden>
+              <textarea class="hl-form-textarea" rows="3" placeholder="Your own comment…">${esc(h.annotation || '')}</textarea>
+              <p class="hl-form-error" role="alert" hidden></p>
+              <div class="hl-form-actions">
+                <button class="hl-form-save" type="submit">Save</button>
+                <button class="hl-form-cancel" type="button" data-hl-comment-cancel>Cancel</button>
+              </div>
+            </form>` : ''}
         </div>
-        ${isUser && !readOnly ? `<button class="hl-delete-btn" type="button" data-hl-delete="${esc(String(h.id))}" aria-label="Delete highlight">×</button>` : ''}
-        ${h.annotation ? `
-          <div class="hl-annotation" data-hl-annotation>
-            <p>${esc(h.annotation)}</p>
+        ${editable ? `
+          <div class="hl-item-actions">
+            ${hasComment ? '' : '<button class="hl-link-btn" type="button" data-hl-comment-add>Add comment</button>'}
+            <span class="hl-confirmable">
+              <button class="hl-link-btn hl-link-btn--danger" type="button" data-confirm-ask>Delete highlight</button>
+              <span class="hl-confirm" data-confirm-box hidden>
+                Delete this highlight?
+                <button class="hl-link-btn hl-link-btn--danger" type="button" data-hl-delete="${hlId}">Delete</button>
+                <button class="hl-link-btn" type="button" data-confirm-cancel>Cancel</button>
+              </span>
+            </span>
           </div>` : ''}
       </div>
     </li>`;
@@ -1737,6 +1844,18 @@ function renderMissingBookState(message) {
       </section>
     </div>
   `);
+}
+
+// Oldest first. Entries without a timestamp (seed data) keep their authored order at the front.
+function sortHighlights(items) {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const ta = Number(a.item?.createdAt) || 0;
+      const tb = Number(b.item?.createdAt) || 0;
+      return (ta - tb) || (a.index - b.index);
+    })
+    .map(({ item }) => item);
 }
 
 function dedupeHighlights(items) {
