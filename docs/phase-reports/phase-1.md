@@ -44,3 +44,22 @@ What changed
 - Client: `ai-gateway.ts` sends only `featureId`/`bookId`; a 402 shows an **Upgrade** button in the AI toolbar (`generate-ui.ts`). `reading-card.ts` no longer has a direct-to-DeepSeek fallback and `VITE_DEEPSEEK_API_KEY` is gone from `env.ts` (an API key must never be in the client bundle).
 - Behaviour change to be aware of: AI features now work only for books that exist in Firestore (server reads them); demo/seed-only books get a 404 "Book not found". Reader identity is built from Firestore books/highlights/sessions instead of the profile view's in-memory arrays.
 - `test:unit` / `test:rules` now run `scripts/sync-shared.mjs` first (generates the git-ignored `functions/src/_shared`).
+
+## 1.3 Billing webhook — code done; the live Lemon Squeezy lifecycle run is Holiday's
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| Every row of the plan table has a unit test on a sample payload; bad signature → 401 | ✅ | `functions/test/billing-webhook.test.ts` (21 tests): created/active, created/on_trial, updated (renewal), cancelled, resumed, expired, past_due, lifetime order, other-variant order, lifetime refund, other-variant refund — payloads in `functions/test/fixtures/billing/*.json` (13 files, Lemon Squeezy shape). Signature: correct HMAC accepted; wrong/short/non-hex/empty rejected; the real `billingWebhook` handler returns 401 for wrong and missing signature |
+| Cancelled first, older `updated` later → still `cancelAtPeriodEnd` | ✅ | "a stale subscription_updated after cancelled does not undo the cancellation" (stale events are dropped by comparing `attributes.updated_at`) |
+| A monthly subscription's first order never makes the user lifetime | ✅ | "a monthly subscription's first order never makes the user lifetime" (orders are matched on `first_order_item.variant_id == LEMON_SQUEEZY_VARIANT_LIFETIME`) |
+| Holiday runs subscribe → cancel → expire and lifetime → refund in LS test mode; `billing/{uid}` matches the table | ⏳ Holiday | Needs deployed function + LS test store. Expected states are exactly the test expectations above. |
+
+Mutation check: with the stale-event guard removed 1 test fails; with the lifetime-variant check removed 4 fail (restored afterwards) — the tests do bite.
+
+Design notes
+- `functions/src/billing-state.ts` is a pure reducer (prev doc + payload → next doc). `billing-webhook.ts` wraps it in a Firestore transaction (read-modify-write, idempotent).
+- Lifetime and subscription are tracked independently (`lifetimeActive`, `subscriptionPlan`) and composed: refunding a lifetime order falls back to an active subscription instead of Free; a refund arriving before its `order_created` is remembered so the later order is ignored.
+- A `cancelled` event whose `ends_at` is already past is treated as expired (late delivery).
+- No uid in `custom_data` → document parked in `billing_orphans` (clients cannot read it; default-deny) and the webhook still returns 200 so LS stops retrying. Handler errors return 500 so LS retries.
+- `createCheckout`: CORS and the post-checkout redirect now use the `ALLOWED_ORIGINS` allow-list (403 otherwise; previously any `Origin` header became the redirect), and a lifetime owner gets 409 instead of being able to pay again.
+- Decisions deferred to you: Q1.3-a/b/c/d in `docs/open-questions.md`.

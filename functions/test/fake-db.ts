@@ -21,6 +21,7 @@ export class FakeDb {
     const filters: Array<[string, unknown]> = [];
     let max = Infinity;
     const q = {
+      add: async (data: Json) => { this.store.set(`${path}/auto-${this.store.size}-${Math.random().toString(36).slice(2, 8)}`, data); },
       where: (field: string, _op: '==', value: unknown) => { filters.push([field, value]); return q; },
       limit: (n: number) => { max = n; return q; },
       get: async () => {

@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "event_name": "subscription_updated",
+    "custom_data": {
+      "uid": "uid-123"
+    },
+    "webhook_id": "wh-subscription_updated"
+  },
+  "data": {
+    "type": "subscriptions",
+    "id": "5001",
+    "attributes": {
+      "store_id": 1,
+      "customer_id": 9001,
+      "order_id": 7001,
+      "product_id": 3001,
+      "variant_id": 2001,
+      "user_email": "reader@example.com",
+      "status": "active",
+      "cancelled": false,
+      "renews_at": "2026-11-01T10:00:00.000000Z",
+      "ends_at": null,
+      "trial_ends_at": null,
+      "created_at": "2026-10-01T10:00:00.000000Z",
+      "updated_at": "2026-10-05T09:00:00.000000Z",
+      "urls": {
+        "customer_portal": "https://example.lemonsqueezy.com/billing?signature=abc",
+        "update_payment_method": "https://example.lemonsqueezy.com/subscription/5001/payment-details?signature=abc"
+      }
+    }
+  }
+}

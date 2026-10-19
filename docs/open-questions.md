@@ -22,3 +22,18 @@ Origin allow-list + auth + quota already close the abuse paths the review found,
 
 ### Q1.2-c — Set `ALLOWED_ORIGINS` when deploying functions (informational, needed to deploy)
 Comma-separated list, e.g. `https://marginalia-reading.vercel.app`. If unset the function allows only `http://localhost:5173` / `127.0.0.1:5173`, so production calls would be refused until it is set. Also set `WORKSPACE_ID` if it is not `default`.
+
+## Phase 1 — billing webhook (1.3)
+
+### Q1.3-a — Grace period for `past_due` (blocks: nothing; a default is in place)
+Current behaviour: a `past_due` subscription **keeps Pro** while Lemon Squeezy retries the card; if its dunning gives up, LS sends `subscription_expired` and the user drops to Free. So the grace period is whatever LS's retry schedule is (check it in your LS store settings — typically about two weeks), and the code adds no timer of its own.
+**Needed from you:** keep this, or tell me a fixed number of days after which `past_due` should drop to Free regardless.
+
+### Q1.3-b — `paused` / `unpaid` subscriptions (default chosen: treated as Free)
+Not in the plan's table. I mapped `paused` and `unpaid` to Free (access follows payment). Change if you want paused users to keep access until period end.
+
+### Q1.3-c — Customer-portal link freshness (informational, affects 4.3)
+The webhook stores `urls.customer_portal`, but Lemon Squeezy signs those URLs and they expire (about 24 h). For the "Manage subscription" button in 4.3 the reliable approach is a small callable that fetches a fresh URL from the LS API at click time; the stored link is only a fallback.
+
+### Q1.3-d — Deploy requirement
+`billingWebhook` now also needs the secret `LEMON_SQUEEZY_VARIANT_LIFETIME` (same value `createCheckout` already uses). Without it every `order_created` is ignored (lifetime purchases would not unlock).

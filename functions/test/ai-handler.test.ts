@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { handleGatewayRequest, type GatewayDeps, type GatewayRequest, type GatewayResult } from '../src/ai-handler';
 import { monthKey, releaseAiCall, reserveAiCall } from '../src/ai-quota';
-import { FREE_AI_MONTHLY, PRO_AI_MONTHLY_FAIR_USE, allowedOrigins } from '../src/ai-config';
+import { FREE_AI_MONTHLY, PRO_AI_MONTHLY_FAIR_USE, allowedOrigins, resolveAppOrigin } from '../src/ai-config';
 import { AI_FEATURES } from '../src/_shared/ai-prompts';
 import { FakeDb } from './fake-db';
 
@@ -100,6 +100,14 @@ describe('CORS / origin', () => {
   it('allowedOrigins reads ALLOWED_ORIGINS and defaults to localhost only', () => {
     expect(allowedOrigins({ ALLOWED_ORIGINS: 'https://a.com, https://b.com' } as NodeJS.ProcessEnv)).toEqual(['https://a.com', 'https://b.com']);
     expect(allowedOrigins({} as NodeJS.ProcessEnv).every((o) => o.includes('localhost') || o.includes('127.0.0.1'))).toBe(true);
+  });
+});
+
+describe('checkout redirect origin', () => {
+  it('only redirects to allow-listed origins', () => {
+    expect(resolveAppOrigin('https://app.example.com', ['https://app.example.com'])).toBe('https://app.example.com');
+    expect(resolveAppOrigin('https://evil.example', ['https://app.example.com'])).toBeNull();
+    expect(resolveAppOrigin(undefined, ['https://app.example.com'])).toBe('https://app.example.com');
   });
 });
 

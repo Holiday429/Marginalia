@@ -18,3 +18,9 @@ export function allowedOrigins(env: NodeJS.ProcessEnv = process.env): string[] {
   // Safe default: local development only. Production must set ALLOWED_ORIGINS.
   return ['http://localhost:5173', 'http://127.0.0.1:5173'];
 }
+
+/** Origin to redirect back to after checkout. Null = the request came from a disallowed origin. */
+export function resolveAppOrigin(origin: string | undefined, allowed: string[]): string | null {
+  if (!origin) return allowed[0] ?? null;
+  return allowed.includes(origin) ? origin : null;
+}

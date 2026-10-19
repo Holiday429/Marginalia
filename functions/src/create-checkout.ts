@@ -10,6 +10,8 @@
 
 import * as functions from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
+import { Paths } from "./_shared/paths";
+import { allowedOrigins, resolveAppOrigin } from "./ai-config";
 
 // admin is initialized in ai-generate.ts — shared instance.
 
@@ -108,11 +110,18 @@ export const createCheckout = functions.onRequest(
       "LEMON_SQUEEZY_VARIANT_LIFETIME",
       "LEMON_SQUEEZY_STORE_ID",
     ],
-    cors: true,
+    cors: allowedOrigins(),
   },
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    // Only allow-listed origins may start a checkout (also used as the redirect target).
+    const appOrigin = resolveAppOrigin(req.headers.origin, allowedOrigins());
+    if (!appOrigin) {
+      res.status(403).json({ error: "Origin not allowed" });
       return;
     }
 
@@ -142,6 +151,13 @@ export const createCheckout = functions.onRequest(
       return;
     }
 
+    // A lifetime owner has nothing left to buy; avoid double charging.
+    const billing = await admin.firestore().doc(Paths.billing(uid)).get();
+    if (billing.exists && billing.data()?.plan === "lifetime") {
+      res.status(409).json({ error: "You already have a lifetime plan." });
+      return;
+    }
+
     const apiKey = process.env.LEMON_SQUEEZY_API_KEY;
     const storeId = process.env.LEMON_SQUEEZY_STORE_ID;
     const variantMonthly = process.env.LEMON_SQUEEZY_VARIANT_PRO_MONTHLY;
@@ -161,8 +177,7 @@ export const createCheckout = functions.onRequest(
     const variantId = variantMap[plan as Plan];
 
     // Redirect back to the app after checkout.
-    const origin = req.headers.origin || "https://marginalia.app";
-    const redirectUrl = `${origin}/?checkout=success`;
+    const redirectUrl = `${appOrigin}/?checkout=success`;
 
     try {
       const url = await createLSCheckout(uid, variantId, storeId, apiKey, redirectUrl);
