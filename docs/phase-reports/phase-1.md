@@ -189,7 +189,7 @@ What changed
 | Playwright smoke: landing → room → Search → Library → Map → Graph → Profile → Book, `pageerror` = 0 | ✅ | `tests/e2e/smoke.spec.ts` "phase 1 gate: …" (production build, strict), in `npm run check:all` |
 | Holiday walks the subscription lifecycle with a test card, states correct | ⏳ Holiday | needs the deployed webhook + Lemon Squeezy test mode (task 1.3). Expected states = the unit tests in `functions/test/billing-webhook.test.ts` |
 
-Final `npm run check:all` on this branch: exit 0 — lint 0 errors, typecheck + room typecheck, entitlement/hard-coded/paths/docs checks, functions build, unit 82, rules + quota + deletion on emulators 61, production smoke 6, signed-in e2e on emulators 11, size budgets, `dist` 21 MB, room load 10.7 MB with 0 page errors.
+Final `npm run check:all` on this branch: exit 0 — lint 0 errors, typecheck + room typecheck, entitlement/hard-coded/paths/docs checks, functions build, unit 82, rules + quota + deletion on emulators 61, production smoke 6, signed-in e2e on emulators 11, size budgets, `dist` 25 MB, room load 10.7 MB with 0 page errors.
 
 ### Needs Holiday (nothing here has been done, deployed or merged)
 1. **Decide / answer** the items in `docs/open-questions.md` (Q1.1-a paid-user list, Q1.2-a Pro cap, Q1.3-a/b past_due/paused, Q1.5-a/b, Q1.6-a visual sign-off, Q1.7-a git history, Q1.8-a legal text, Q1.9-b/c).
