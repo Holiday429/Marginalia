@@ -644,3 +644,18 @@ body[data-view="preloader"] {
   .tweaks-toggle { right: 16px; bottom: 16px; }
   .tweaks { right: 8px; bottom: 48px; width: calc(100vw - 16px); }
 }
+
+/* Legal links on the landing page, bottom centre (Skip is bottom-left, Tweaks bottom-right). */
+.legal-links--landing {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  justify-content: center;
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .legal-links--landing { bottom: 56px; }
+}

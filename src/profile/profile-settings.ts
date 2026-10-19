@@ -25,6 +25,7 @@ import { MarginaliaAuth } from '../firebase/auth.ts';
 import { firebaseFunctions, MARGINALIA_FIREBASE } from '../firebase/config.ts';
 import { Paths } from '../firebase/paths.ts';
 import { syncPublicProfile } from './public-profile.ts';
+import { bindDeleteAccount, deleteAccountSectionHTML } from './delete-account.ts';
 
 interface SlugCheckResult {
   available: boolean;
@@ -291,12 +292,15 @@ function settingsHTML(
         </div>
         <p class="prof-export-note" id="profExportNote" hidden></p>
       </section>
+
+      ${deleteAccountSectionHTML()}
     </div>
   `;
 }
 
 function bindSettingsEvents(container: HTMLElement, initialSlug: string): void {
   let currentSlug = initialSlug;
+  bindDeleteAccount(container);
 
   const langSelect = container.querySelector<HTMLSelectElement>('#profLangSelect');
   const slugInput  = container.querySelector<HTMLInputElement>('#profSlugInput');

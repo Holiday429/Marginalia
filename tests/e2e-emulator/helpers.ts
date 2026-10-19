@@ -26,6 +26,9 @@ export async function listDocs(path: string): Promise<Array<{ id: string; fields
 
 export async function skipPreloader(page: Page) {
   await page.goto('/');
+  // Analytics consent is asked on first visit; decline so the banner is out of the way.
+  const decline = page.locator('[data-consent="denied"]');
+  if (await decline.isVisible().catch(() => false)) await decline.click();
   await page.click('#skipBtn');
   await expect(page.locator('body')).toHaveAttribute('data-view', 'room', { timeout: 15_000 });
 }
@@ -77,4 +80,17 @@ export async function brokenImages(page: Page): Promise<string[]> {
       .filter((img) => img.getBoundingClientRect().width > 0 && img.src && !img.src.startsWith('data:image/svg'))
       .filter((img) => !(img.complete && img.naturalWidth > 0))
       .map((img) => img.src));
+}
+
+/** Auth-emulator accounts (REST), to prove a user really is gone. */
+export async function authEmulatorUsers(): Promise<Array<{ localId: string; email?: string }>> {
+  const res = await fetch('http://127.0.0.1:9099/emulator/v1/projects/demo-marginalia/accounts');
+  const json = (await res.json()) as { users?: Array<{ localId: string; email?: string }> };
+  return json.users ?? [];
+}
+
+/** Opens the Profile settings panel ("Edit Profile"). */
+export async function openProfileSettings(page: Page) {
+  await page.locator('#profileHeaderSettingsBtn').click();
+  await page.locator('#profDeleteOpen').waitFor({ state: 'attached', timeout: 15_000 });
 }

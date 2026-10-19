@@ -5,9 +5,12 @@
 import { APP_VERSION } from './core/version.ts';
 import { M } from './core/namespace.ts';
 import { initAnalytics } from './services/analytics.ts';
+import { mountConsentBanner } from './components/consent-banner/consent-banner.ts';
+import './components/legal-links/legal-links.css';
 import { setLanguage } from './core/i18n.ts';
 console.debug('[marginalia] version', APP_VERSION);
 initAnalytics();
+document.addEventListener('DOMContentLoaded', () => mountConsentBanner());
 
 // Warn when localhost is connected to the prod Firebase project (`npm run dev:prod`).
 // This is intentional but easy to forget — show a persistent corner badge.

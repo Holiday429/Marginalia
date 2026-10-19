@@ -18,10 +18,20 @@ export default defineConfig({
     launchOptions: { args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' } }],
-  webServer: {
-    command: 'npx vite --mode emulator --port 5174 --strictPort',
-    url: 'http://localhost:5174',
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: 'npx vite --mode emulator --port 5174 --strictPort',
+      url: 'http://localhost:5174',
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      // Production build with FAKE analytics keys: lets consent.spec.ts prove nothing is sent before
+      // consent (Sentry only initialises in production builds). No real keys, no real traffic.
+      command: 'VITE_POSTHOG_KEY=phc_consent_test VITE_POSTHOG_HOST=https://eu.i.posthog.com VITE_SENTRY_DSN=https://abc123@o1.ingest.sentry.io/1 npx vite build --mode emulator --outDir dist-consent && npx vite preview --outDir dist-consent --port 5175 --strictPort',
+      url: 'http://localhost:5175',
+      reuseExistingServer: false,
+      timeout: 180_000,
+    },
+  ],
 });

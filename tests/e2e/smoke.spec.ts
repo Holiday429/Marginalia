@@ -20,6 +20,8 @@ function unexpectedErrors(errors: string[]): string[] {
 
 async function skipPreloader(page: Page) {
   await page.goto('/');
+  const decline = page.locator('[data-consent="denied"]'); // analytics consent banner (first visit)
+  if (await decline.isVisible().catch(() => false)) await decline.click();
   await page.click('#skipBtn');
   await expect(page.locator('body')).toHaveAttribute('data-view', 'room', { timeout: 10_000 });
 }

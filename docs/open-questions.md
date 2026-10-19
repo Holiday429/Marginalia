@@ -77,3 +77,23 @@ The uncompressed originals (~460 MB: models + textures) are in `assets-src/` on 
 
 ### Q1.7-c — "CI all green" cannot be shown from here
 Nothing has been pushed, so GitHub Actions has not run. Locally, `npm run check:all` runs the same steps the workflow runs (lint, typecheck, rules under the emulator, unit, build, size, both e2e suites). I also edited `ci.yml` (npm ci, functions deps and build, `check:hardcoded`, a new signed-in emulator e2e job) — those edits are only validated as YAML so far; the first run on GitHub may need small fixes.
+
+## Phase 1 — launch compliance (1.8)
+
+### Q1.8-a — Privacy Policy and Terms text must be reviewed and completed by you (blocks: launch)
+`/privacy` and `/terms` are **drafts I wrote** from how the app actually behaves (processors, AI transfer to DeepSeek, deletion, consent). Every page shows a visible "Draft" notice until you set `"draft": false` in `scripts/legal/legal.config.json` and run `npm run legal:build`. Please have a legal professional read them. Still blank (shown in square brackets on the pages) and needed from you in `scripts/legal/legal.config.json`: operator legal name, address/country, contact email, governing law and venue; and in `scripts/legal/content.mjs`: the refund policy and what "lifetime" means. I chose a minimum age of 16 (conservative for the EU); change `minimumAge` if you prefer 13.
+
+### Q1.8-b — DeepSeek processes your users' reading data in China (needs your decision, disclosed in the policy)
+The AI features send a book's title/author/summary/tags and the user's highlights, notes and actions (or, for profile features, a library summary) to DeepSeek. The privacy page says so plainly. If that is not acceptable for some users (for example EU customers), the options are a different provider with EU/US processing, or an "AI off" switch. I did not add either.
+
+### Q1.8-c — Chinese translation of the legal pages?
+Pages are English only (the UI rule is English). The policy applies to zh-CN users too; tell me if you want a Chinese version (it needs the same legal review).
+
+### Q1.8-d — Google Fonts is still listed as a processor
+The main app loads fonts from Google Fonts until task 3.1 self-hosts them; the policy lists it. Remove that row from `PROCESSORS` in `scripts/legal/content.mjs` after 3.1.
+
+### Q1.8-e — Deletion does not require a recent sign-in
+`deleteAccount` requires a signed-in user and the typed word DELETE, but does not force re-authentication. A stolen, still-valid session could delete an account (it could already read all its data). Say if you want a "signed in within the last 10 minutes" check (costs one re-login prompt).
+
+### Q1.8-f — Which PostHog region?
+The code defaults to the US PostHog host unless `VITE_POSTHOG_HOST` is set; the privacy page does not name a region. Tell me the one you use so it can be stated.

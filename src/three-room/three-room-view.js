@@ -10,6 +10,7 @@ import { openCheckout } from '../services/billing.ts';
 import { NewEntry } from '../new-entry/new-entry.ts';
 import { RoomAudio } from './room-audio.ts';
 import { asset } from '../core/asset.ts';
+import { legalLinksHTML } from '../components/legal-links/legal-links.ts';
 
 const SPACE_ITEMS = [
   { id: 'library', label: 'Library', icon: 'library' },
@@ -234,6 +235,10 @@ function buildRoomMarkup() {
             <button type="button" class="room-chip active" data-room-effect="vinyl-noise">Vinyl Noise</button>
             <button type="button" class="room-chip" data-room-effect="fireplace">Fireplace</button>
           </div>
+        </div>
+      
+        <div class="room-settings-block">
+          ${legalLinksHTML()}
         </div>
       </section>
 

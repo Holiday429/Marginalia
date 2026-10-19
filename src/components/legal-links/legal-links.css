@@ -1,0 +1,33 @@
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.legal-links__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 2px;
+  color: inherit;
+  opacity: 0.7;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.legal-links__link:hover,
+.legal-links__link:focus-visible {
+  opacity: 1;
+}
+
+.legal-links__btn {
+  background: none;
+  border: none;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
