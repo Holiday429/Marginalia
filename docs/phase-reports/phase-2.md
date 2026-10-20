@@ -131,3 +131,131 @@ lint 0 errors / 171 warnings (baseline 156), unit 157 across 17 files, rules and
 - Q2.0-a (usernames), Q2.2-a/b/c, Q2.3-a, Q2.4-a…e, Q2.5-a…c, Q2.6-a…c, Q2.8-a (navigation; blocks 2.8), Q2.10-a/b/c/d — all in `docs/open-questions.md`.
 - A real-device look at the capture sheet with the keyboard open, and one real-model run for the pre-read card and the finish card.
 - PostHog personal API key to create the dashboards.
+
+## Progress after tasks 2.7 and 2.9
+
+2.8 was skipped deliberately: it is blocked on your answer to Q2.8-a and no navigation was touched.
+
+### 2.7 Cross-book full-text search — done
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| A two-character Chinese word that appears only in a highlight's body is found (e.g. 骗局 in the demo data) | ✅ | `tests/global-search.test.ts` (12 tests) "finds a two-character Chinese word that appears only in a highlight's text": 骗局 returns the highlight that contains the word and **not** a highlight that only shares the character 局 — the pair-based tokenizer is what makes that distinction. Also covered end to end signed out: `tests/e2e-emulator/global-search.spec.ts` "signed out: Ctrl+K finds a two-character Chinese word that only appears in a demo highlight" |
+| 2,000 highlights: index < 1 s, single query < 50 ms (timed unit test) | ✅ | same file, the timing test asserts `buildMs < 1000` and `max(query) < 50`. Measured on this machine while the rest of the suite was idle: **2,001 documents indexed in 326 ms; slowest of five queries 17.5 ms**. (The run recorded in the handoff on a quieter machine was 61 ms / 1.0 ms — both are far inside the budget; the limits are asserted, not the absolute numbers, so the test does not turn red on a loaded machine.) |
+
+Also, beyond the plan's two acceptance items
+- `global-search.spec.ts` "signed in: books, highlights, notes and actions all answer, and each opens the right place": each of the four kinds is found and clicking a result opens the right book on the right tab.
+- "the Search page has a visible 'Search all' button for devices without a keyboard" — ⌘K / Ctrl+K is not reachable on an iPad without a keyboard, so the Search page carries a button for the same panel (`#searchAllBtn`).
+- Screenshots: `2.7-search-demo-1440.png`, `2.7-search-results-{390,768,1440}.png`, `2.7-search-button-1440.png`.
+
+Design notes
+- The index is pure and lives in `src/search/global/index.ts` (MiniSearch), so it is unit-testable without a browser: CJK is tokenized as single characters **plus** neighbouring pairs, and a query's pairs are all required. That is what makes 骗局 match 骗局 but not a text that merely contains 局.
+- Only `boot.ts` (16 lines) is always loaded — it listens for the shortcut; the panel, the index and the data loader arrive on first use. This is the pattern the entry-chunk budget forces.
+
+### 2.9 First-run guide and landing entry — done
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| The entry button is visible within 1 s of load, inside the first screen at 390 px, focusable with Tab | ✅ | `tests/e2e/landing.spec.ts` "Enter Library is a button that is visible within a second of load…": asserts `toBeVisible({ timeout: 1000 })`, that the element really is a `<button>`, that its box is fully inside 390×844, that `document.elementFromPoint` at its centre returns the button itself (so the consent banner does not cover it), that one Tab press focuses it and that Enter reaches the room. Screenshot `2.9-landing-390.png` |
+| Landing spine text no longer overlaps | ✅ | same file, "the landing shelf at three sizes: no spine title runs into its author": at 390/768/1440 it measures every spine's title and author rectangles and requires the vertical overlap to be ≤ 1 px. Checked to be a real test by reverting the CSS: it fails on the old stylesheet. Screenshots `2.9-landing-shelf-{390,768,1440}.png` |
+| The guide can be skipped; after finishing or skipping it never appears again | ✅ | `tests/e2e-emulator/onboarding.spec.ts` (4 tests). "a new account walks the three steps and the guide closes for good" walks import → first highlight → room + map, sees "You are all set", and after a fresh sign-in the guide is gone. "skipping is remembered on the account: not after a reload, not on another device" skips, reloads, and then opens a **second browser context** and signs in there: still gone (the decision is on the account, not in the browser). "minimising keeps the guide" and "an account that already has books and a highlight never sees the guide" cover the other two paths. Screenshots `2.9-guide-step1-{390,768,1440}.png`, `2.9-guide-done-1280.png` |
+
+Design notes
+- `onboarding-boot.ts` is the only always-loaded part; the guide itself is `import()`ed only for an account that needs it.
+- A real race was found and fixed here rather than papered over: right after sign-in, another write to `users/{uid}` (the consent mirror) can still be pending, and a plain `getDoc` then returns a view built from that pending write alone — which hid the stored "skipped" decision and brought the guide back. The boot file now waits for a snapshot that is neither `fromCache` nor `hasPendingWrites` (`settledUserDoc`). This is the same class of bug as the Firestore listener races in Phase 1.
+- Who sees the guide, the step-3 definition, and the English copy are all choices I made: Q2.9-a.
+
+### Flaky signed-in e2e on the emulators: causes found and fixed
+
+The serial signed-in suite (`npm run test:e2e:emu`) failed one to three tests per full run, a different one each time. Two separate causes, both in the test environment and neither in app code. No assertion was loosened.
+
+**Cause 1: the Functions emulator's 30-second wait for a cold function.** The emulator starts a Node worker the first time each function is called and waits 30 s for it (`firebase-tools/lib/emulator/functionsRuntimeWorker.js`, `waitForSocketReady`, hard-coded; `FUNCTIONS_DISCOVERY_TIMEOUT`, in seconds, overrides it). The handoff suspected the heavy imports in `functions/lib/index.js`. I measured that and it is not so: the entry point loads in 285–302 ms on a quiet machine (firebase-admin 16 ms, openai 33 ms, Sentry 161 ms), so lazy-loading would have changed nothing. The failure is in `firebase-debug.log` with timestamps: worker added 01:39:58.1, first module resolved 01:40:26.2 (28 s later), "Failed to load function" at 01:40:28 (30 s after the start), the worker finished loading at 01:40:43, too late. Software-GL Chrome, two Vite servers and the Java emulator starve the CPU for long enough that a 0.3 s load takes 28 s, and whichever test happened to make the first call to that function failed.
+- Fix 1: `FUNCTIONS_DISCOVERY_TIMEOUT=120` on the `test:e2e:emu` script.
+- Fix 2: `tests/e2e-emulator/global-setup.ts` calls every HTTP function once, one after another, before the first test (8 functions in 10.8 s on a quiet machine), so no test pays a cold start inside its own timeout. Checked on `geo-map.spec.ts`, whose "where I read" test was the one that showed the failure: 5 of 5 pass.
+
+**Cause 2: every test gets slower than the one before inside one worker.** The same test, measured three ways: `reading-session` took 15.1 s on a fresh worker, 43.6 s as the 12th test of a four-file group, and 1.4 min as the 40th test of the full suite. In the full suite the tests after the one that failed (which makes Playwright start a new worker) went straight back to 9–15 s. The Firestore emulator was not restarted at that point, so accumulated data is not the cause. Eventually a page was too busy to answer a test's own 8 s poll: `real-library` "a brand-new account sees empty states" failed at `helpers.ts:90` ("nav button Profile is reachable") in two runs in a row once it ran late in a worker, and passes in 21–23 s alone or right after `reading-session`. **What inside Chrome or the worker accumulates, I did not identify** (software-GL contexts are the obvious suspect).
+- Fix 3: `playwright.emulator.config.ts` now has one Playwright project per spec file. Playwright starts a fresh worker, and so a fresh Chrome, for each project, and they still run one at a time. No spec file changed.
+
+**Cause 3, found by the gate and not a test problem: an app bug in the Profile mini-map.** In the second `check:all` the run was clean except `reading-session`, which failed its "no page errors" assertion with `TypeError: Failed to execute 'getComputedStyle' on 'Window': parameter 1 is not of type 'Element'`. The trace stack is entirely inside amCharts (`Root._renderFrame` ← `_runTicker`). Mechanism: `ProfileMap.mount` awaits the amCharts import and then calls `am5.Root.new(<id string>)`. amCharts starts its render loop inside the `Root` constructor *before* it looks the element up, so if the Profile was re-rendered or left in that gap, the lookup returns null, the constructor throws (the app caught that), and the loop it had started runs on and fails on the next animation frame, at an unpredictable time. The new spec `tests/e2e-emulator/profile-map-detached.spec.ts` reproduces it every time on the old code (mounts a `ProfileMap` on an element that is not in the page) and passes after the fix. Fix in `src/profile/profile-map.ts`: build nothing when `mapEl.isConnected` is false, and pass the element itself to `Root.new` instead of an id (removing the lookup, and with it `ensureId`). `src/map/map.ts` has the same `Root.new('mapChart')` pattern; I did not change it because nothing shows it failing.
+
+| Run | Result | Time |
+| --- | --- | --- |
+| Before, full suite (handoff, several runs) | 1–3 failures each, a different test each time | 14–19 min |
+| Fixes 1 and 2 only | 48 passed, 1 failed (`real-library`, cause 2) | 23.6 min |
+| Fixes 1, 2 and 3 | 49 passed, 0 Functions-emulator errors in the log | 13.7 min |
+| Fixes 1, 2 and 3, inside `npm run check:all` | 49 passed, but the run exited 1: "worker-15 process did not exit within 300000ms after stop, force-killed it" (the `resurface-home` worker, after its last test). Per-test times stayed flat at 10–21 s | 18.5 min (5 of them waiting for that worker) |
+| Fixes 1, 2 and 3, again on its own | 49 passed, no errors | 13.8 min |
+
+**A remaining, rarer problem that I did not solve.** With one worker per spec file there are 17 browser shutdowns per run, and in one of the three full runs on this layout one of them hung until Playwright's 5-minute limit (`PWTEST_CHILD_PROCESS_TIMEOUT`, internal) and killed it, which Playwright reports as an error outside any test and exits 1. Six repeated runs of `resurface-home` alone (60 s limit) and the next full run did not reproduce it, and a process monitor running during that full run had nothing to catch. I do not know whether Chrome or the worker was stuck. If it recurs, rerun once and look at `ps` while it hangs; do not lengthen the limit, which only hides it.
+
+Two things to know about the numbers. First, the suite grew from 27 tests at the 2.3 gate to 49, so "7 minutes at the start" is mostly a smaller suite, not a regression: 13.7 min over 49 tests is 16.8 s a test, in line with the single-test timings above. The slowdown that was real is cause 2. Second, a run that is green is evidence, not proof, because these failures moved around; see the gate numbers below for how many consecutive green runs there were.
+
+What I did not fix
+- The suite is CPU-bound by design: its own Chrome (software GL for the 3D room) pushes the load average past 50 on this 8-core machine. I did not reduce that.
+- `smoke.spec.ts` "opening a book from search" still re-clicks until the book opens. In about one run in ten a search card is on screen before its click handler is attached. A real reader would need to click within milliseconds, so I left the product alone, but the test now hides it.
+- When I started this session a previous `test:e2e:emu` run was still in flight (processes from 08:33 and a stale Playwright test server from 08:09), on top of this suite's own load. Overlapping runs make everything slower and can cause the same timeouts; wait for one run to end before starting the next.
+
+### Gate numbers after 2.9 (`npm run check:all`, exit 0)
+lint 0 errors / 171 warnings (baseline 156), unit 169 across 18 files, rules and emulator suites 85, smoke e2e 8, signed-in e2e on the emulators 50 (49 plus the profile-map regression spec) in 14.3 min, entry chunk 132.43 KB of 135, room load 10.7 MB with 0 page errors. Total 16 min 24 s.
+
+How many runs it took (so the green is not read as "first try"): of the four full signed-in runs on the final layout, two were clean on their own (13.7 and 13.8 min); `check:all` run 1 exited 1 on the worker-exit hang (all 49 tests passed); `check:all` run 2 exited 1 on the Profile mini-map page error (cause 3, fixed); `check:all` run 3 exited 0. No code changed between run 3 and the commit. The worker-exit hang is unexplained and did not recur in runs 2 and 3.
+
+## Phase 2 gate
+
+**Verdict: not passed.** Task 2.8 is not built (waiting for Q2.8-a), and the two beta items (retention, interviews) are yours. Everything else below passed on the emulators; what could not be checked from this machine is marked ⏳.
+
+### Acceptance items 2.1–2.10
+
+| Task | Acceptance item (plan wording, shortened) | Result | Evidence |
+| --- | --- | --- | --- |
+| 2.1 | From room, Library, Book, Map: at most 2 clicks + typing | ✅ | `quick-capture.spec.ts` "from the room, Library, Book and Map…" |
+| 2.1 | 390 px: the sheet is not covered by the keyboard | ✅ simulated, ⏳ real device | same spec, fake 336 px keyboard; `2.1-capture-sheet-390-keyboard.png`. Please look once on an iPad or phone |
+| 2.1 | Offline save → Firestore after reconnect | ✅ | "a capture made offline…", "…still waiting in the outbox is sent after a reload" |
+| 2.1 | Unattributed capture dragged onto a spine → in that book's Highlights | ✅ | "…dragged onto a spine", "in Library … onto a shelf spine" |
+| 2.2 | New book → pre-read card on Overview within 30 s | ✅ against a fake model, ⏳ real model | `book-detail.spec.ts`, 4.6 s with a 0.6 s fake model; real latency is Q2.2-c |
+| 2.2 | Detail opens on Overview from desk, Library, search | ✅ | "every empty tab explains itself, and detail opens on Overview…" |
+| 2.2 | Shelf action count = Actions tab count | ✅ | "the shelf preview shows the same action count…" |
+| 2.3 | Finish → three answers → card on top of Notes, survives reload | ✅ | `finish-ritual.spec.ts` "finish a book, answer three questions…" |
+| 2.3 | Skip keeps the status; marking finished again does not re-open | ✅ | same file, "skipping leaves the status alone…" |
+| 2.3 | Profile annual shelf can open the card | ✅ | "the card exports as an image, and the Profile annual shelf opens it" |
+| 2.4 | Emulator: scheduled job → test mailbox gets a correct email (HTML screenshot) | ✅ emulator, ⏳ real provider | `weekly-digest.emulator.test.ts`, `email-digest.spec.ts`, `2.4-digest-email-*.png`. The scheduled wrapper itself is not invoked by the emulator, only the run logic it calls |
+| 2.4 | "Still holds" updates; second click "already handled"; expired link refused | ✅ | `email-digest.spec.ts` against the real `emailAction` function |
+| 2.4 | Unsubscribe stops sending; no empty emails | ✅ | `weekly-digest.emulator.test.ts` (9 tests) |
+| 2.4 | The room shows 3 due highlights daily; answering updates | ✅ | `resurface-home.spec.ts`, `2.4-wall-1440.png` |
+| 2.5 | A fixture and unit tests per format, counts correct | ✅ with a caveat | `tests/imports.test.ts` (17 tests). The fixtures are my reconstructions, not real exports (Q2.5-a) |
+| 2.5 | 200-book Goodreads CSV < 10 s; re-import adds nothing | ✅ | `imports.spec.ts`: 200 books in 1.1 s; second import "0 new, 200 already in your library" |
+| 2.5 | WeChat Read chapters and thoughts map to `chapter` and the comment | ✅ with a caveat | the comment is stored as `annotation`, not `note` (Q2.5-b) |
+| 2.6 | 30-book list: author-origin country ≥ 80 % | ✅ 30/30 on my own list | `scripts/measure-geo-accuracy.mjs` against real wikidata.org on 2026-10-20; treat as an upper bound |
+| 2.6 | Import 20 books → markers appear with no manual step | ✅ | `geo-map.spec.ts` (passed again on the final suite) |
+| 2.6 | Fewer than 10 placed books → no "You read most from…" | ✅ | same spec, 5-book case; unit test of the gate |
+| 2.7 | A two-character Chinese word only in a highlight's text is found | ✅ | `tests/global-search.test.ts`, `global-search.spec.ts` |
+| 2.7 | 2,000 highlights: index < 1 s, query < 50 ms | ✅ | 326 ms / 17.5 ms measured in this session |
+| 2.8 | Nav items visible and not overlapping at 390 / 768 / 1440 | ❌ not done | **Not built; waiting for Q2.8-a.** At 390 px the top nav still shows only the Map icon |
+| 2.8 | The desk book opens the signed-in user's reading book (e2e) | ❌ not done | same. Today the desk book already opens the reading book or Add Book (Q1.5-d), but that was Phase 1 behaviour and has no 2.8 test |
+| 2.8 | Old hashes reach the new pages | ❌ not done | same; nothing was renamed, so nothing has moved |
+| 2.9 | Entry button visible within 1 s, in the first screen at 390 px, Tab-focusable | ✅ | `tests/e2e/landing.spec.ts` |
+| 2.9 | Guide can be skipped; never appears again after finishing or skipping | ✅ | `onboarding.spec.ts` (4 tests, including a second browser) |
+| 2.10 | Walk signup → add → highlight → finish; each event once in PostHog | ✅ emulator with a fake key, ⏳ real PostHog | `analytics-events.spec.ts`. Dashboards (funnel, weekly active) are not created: they need your key (Q2.10-a) |
+
+### The plan's own gate list
+
+- [ ] 2.1–2.10 acceptance items all ticked. **Not met:** 2.8.
+- [ ] About 20 beta users (free Pro), at least half active in week 4. Yours; not marked.
+- [ ] At least 5 interviews of 20 minutes, conclusions written here. Yours; not marked. The guide is `docs/interview-guide.md`.
+- Per the plan, Phase 3 does not start until all of this is met.
+
+### What you need to do
+
+1. **Switch on email.** Pick a provider and sender domain, set the DNS and the secrets, add the sender in `createEmailSender()`. The exact list is Q2.4-a. Until then the weekly job logs and sends nothing.
+2. **Decide how beta users get free Pro (Q2-gate-a), then invite about 20 of them.** No mechanism exists today. Tell them to accept analytics (Q2.10-b) and to switch the weekly email on (Q2.4-b). Deploying the functions, the rules and migration 002 (Q2.4-e, Q1.9-a) is also yours.
+3. **Check PostHog.** Run `npm run analytics:dashboards -- --apply` with `POSTHOG_PERSONAL_API_KEY` and `POSTHOG_PROJECT_ID` (the payloads were never run against a real project), then walk signup → add → highlight → finish once on the dev project and confirm each event appears once.
+4. **Hold 5 interviews** using `docs/interview-guide.md`, from week 4, with at least one quiet user. Write the conclusions into a section "Interviews" in this file.
+5. **Three things only a real environment can show:** the capture sheet with a real keyboard on an iPad or phone (2.1), one run of the pre-read card and the finish card with the real model (Q2.2-c), the story-setting accuracy (Q2.6-b).
+
+### Open questions waiting for you (all in `docs/open-questions.md`)
+
+- **Blocks work:** Q2.8-a navigation structure (four answers: Library / Insights / Profile and Today in the room; bottom tab bar on phones; year in review in Insights or Profile; phones land on the room or on a flat Today page).
+- **Blocks real operation or launch:** Q2.4-a email provider; Q2.10-a PostHog key; Q2.6-a `WIKIDATA_CONTACT` and the privacy rows for Wikimedia and OpenStreetMap; Q2.4-e production run of migration 002; Q2-gate-a free Pro for beta users; Q1.1-a paid-user list for migration 001; Q1.8-a Privacy and Terms text; Q1.2-c `ALLOWED_ORIGINS`.
+- **Your decision:** Q2.0-a usernames; Q2.2-a (one of ten free generations per added book); Q2.2-b context length; Q2.4-c mail scanners; Q2.4-d UTC weekday; Q2.5-c import defaults; Q2.10-b, Q2.10-c analytics scope; Q1.2-a pricing and the Pro fair-use cap; Q1.8-b DeepSeek and the China data flow; Q1.9-b what a public profile shows; Q1.7-a rewriting git history.
+- **Confirm a default I chose:** Q2.3-a, Q2.4-b (weekly email is opt-in), Q2.5-b, Q2.6-c, Q2.9-a, Q2.10-d, Q1.5-a/b.
+- **Needs your eyes or a real file:** Q2.2-c, Q2.5-a (one real export of each format), Q2.6-b, Q1.6-a, Q1.6-b.
