@@ -7,6 +7,7 @@ import { M } from './core/namespace.ts';
 import { initAnalytics } from './services/analytics.ts';
 import { mountConsentBanner } from './components/consent-banner/consent-banner.ts';
 import './components/legal-links/legal-links.css';
+import './components/library-mode-switch/library-mode-switch.css';
 import { setLanguage } from './core/i18n.ts';
 console.debug('[marginalia] version', APP_VERSION);
 initAnalytics();

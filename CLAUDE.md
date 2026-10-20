@@ -2,7 +2,7 @@
 
 A personal reading-records platform. Marginalia owns the *after* of reading: cultural context, knowledge connection, and the conversion of insight into action.
 
-**Current state:** Phase 1 (stabilize) is merged. Phase 2 (core loop) is on branch `phase-2-loop`, pending the owner's review: quick capture, pre-read card, finish ritual, spaced resurface + weekly email (real sending waits for an email provider), multi-source import, automatic map placement, global search (⌘K), first-run guide and event analytics are built; task 2.8 (Today panel and navigation) waits for the owner's answer to Q2.8-a. Open decisions live in `docs/open-questions.md`; evidence in `docs/phase-reports/phase-1.md` and `phase-2.md`.
+**Current state:** Phase 1 (stabilize) is merged. Phase 2 (core loop) is on branch `phase-2-loop`, pending the owner's review: quick capture, pre-read card, finish ritual, spaced resurface + weekly email (real sending waits for an email provider), multi-source import, automatic map placement, global search (⌘K), first-run guide and event analytics are built; task 2.8 (Today panel and navigation) is built too: nav Library · Map · Graph · Profile, Library with Browse / Arrange modes, camera buttons in Settings. Open decisions live in `docs/open-questions.md`; evidence in `docs/phase-reports/phase-1.md` and `phase-2.md`.
 
 **Code rules:**
 - ES modules + explicit imports everywhere. No `window.X` globals — any remaining ones are bugs to fix, not patterns to follow.
@@ -23,23 +23,28 @@ A personal reading-records platform. Marginalia owns the *after* of reading: cul
 ## Information Architecture
 
 ```
-Marginalia
-├── Search (view-search)   — Browse + filter all books; default landing after room
-├── Room (3D)              — Persistent shell; never toggled by show(). Camera moves between poses.
+Marginalia                 Top nav (landscape: iPad, foldables, desktop): Library · Map · Graph · Profile
+├── Room (3D)              — Home. Persistent shell; never toggled by show(). Camera moves between poses (Settings → Camera).
+│   ├── Today panel        — Bottom of the room (signed in): reading now, 3 highlights worth another look, due action, start timer
 │   ├── Shelf Wall         — Library 2D component mounted as CSS3D plane on the north wall
 │   ├── Notes Wall         — Highlights as sticky cards on the east wall
 │   └── Desk               — Currently-reading book + reading session timer
-├── Library 2D             — Permanent fallback: flat draggable shelf (shared component with Room shelf wall)
+├── Library (one nav tab, two modes, switch under the header)
+│   ├── Browse (view-search)  — Browse + filter all books; what the Library tab opens (the old Search page)
+│   └── Arrange (panel-library) — Permanent fallback: flat draggable shelf (shared component with Room shelf wall)
 ├── Map (panel-map)        — Reading geography by author origin / content location / reader anchor
 ├── Graph (panel-web)      — D3 concept/book network (src/web/web.js)
-├── Profile (panel-profile)— Public profile, reading identity, heatmap, annual shelf
+├── Profile (panel-profile)— Public profile, reading identity, heatmap, annual shelf, Settings
 └── Book (panel-book)      — Single-book detail: panels vary by book type (AI features, highlights, actions)
 ```
+
+Phones are not a target for now (the whole site is designed for landscape); the PWA targets iPad and foldables that can show landscape, and the page looks the same as on the web.
 
 **Nav aliases** (handled in `src/core/app.ts` `toCanonicalViewName`):
 - `graph` → `web` (internal id)
 - `shelf` → `search`
 - `studio` → `library`
+- `#search` is Library · Browse and `#library` is Library · Arrange; both keep working and both highlight the Library tab (`primaryTabIdForView` in `src/core/primary-tabs.ts`)
 
 ---
 
@@ -121,6 +126,8 @@ src/
 │   ├── legal-links/legal-links.ts       — Privacy / Terms / Credits footer links
 │   ├── action-notifications/action-notifications.ts — Action reminder notifications
 │   ├── quick-capture/quick-capture.ts — global "+" button and C key (boot part); quick-capture-sheet.ts is the sheet (loaded on first use); captures-pill.ts + captures-drawer.ts list unattributed captures (drag onto a spine)
+│   ├── library-mode-switch/library-mode-switch.ts — Browse / Arrange switch under the header of the two Library pages (routes `search` / `library`)
+│   ├── today-panel/today-panel.ts — Today panel in the room (mounted by three-room-view.js): reading now, due highlights (ResurfaceStore.due), due action (pickDueAction in shared/resurface.ts), start timer
 │   ├── finish-ritual/finish-ritual-boot.ts — listens for "moved into finished"; finish-ritual.ts is the three-question dialog (loaded on demand)
 │   └── onboarding/onboarding-boot.ts — decides once per sign-in whether the first-run guide is needed; onboarding.ts is the three-step guide
 ├── three/
@@ -260,7 +267,7 @@ Model names resolve to content-hashed files through `src/three/asset-manifest.ge
 | `shelf`    | North wall       | Search / Library       |
 | `notes`    | East wall        | Graph / Notes Wall     |
 
-To add a new pose: add to `POSES` in `camera-paths.ts`, add to `PANEL_POSES` map in `three-room-view.js`.
+To add a new pose: add to `POSES` in `camera-paths.ts`, add to `PANEL_POSES` map in `three-room-view.js`. The buttons that move the camera (Front / Desk / Shelf wall / Notes wall / Free look) are in Settings → Camera (`#roomCameraControls`); there is no bottom toolbar.
 
 ---
 

@@ -39,6 +39,7 @@ function renderLeftRail() {
 
 export function renderLibraryShell() {
   const header = renderUnifiedPanelHeader('library', {
+    libraryMode: 'arrange',
     rightHTML: `
       <div class="library-header-search" id="librarySearchSection">
         <form class="library-topbar-search" id="librarySearchForm" autocomplete="off">

@@ -2,6 +2,8 @@ import { createThreeRoomPreview } from './three-room.js';
 import { PanelManager } from '../core/panel-manager.ts';
 import { App } from '../core/app.ts';
 import { renderPrimaryTabsMarkup } from '../core/primary-tabs.ts';
+import { mountTodayPanel } from '../components/today-panel/today-panel.ts';
+import '../components/today-panel/today-panel.css';
 import { attachFocusWidgetTo } from '../components/reading-session/focus-widget.ts';
 import { MarginaliaAuth } from '../firebase/auth.ts';
 import { BooksStore } from '../store/books-store.ts';
@@ -13,7 +15,7 @@ import { asset } from '../core/asset.ts';
 import { legalLinksHTML } from '../components/legal-links/legal-links.ts';
 
 const SPACE_ITEMS = [
-  { id: 'library', label: 'Library', icon: 'library' },
+  { id: 'search', label: 'Library', icon: 'library' }, // opens Browse, like the top tab (2.8)
   { id: 'map', label: 'Map', icon: 'map' },
   { id: 'web', label: 'Graph', icon: 'graph' },
   { id: 'profile', label: 'Profile', icon: 'profile' },
@@ -32,13 +34,15 @@ const ROOM_BLINDS_STORAGE_KEY = 'marginalia_room_blinds_v1';
 
 const HOVER_META_BY_ACTION = {
   map: { icon: 'map', title: 'Map', description: 'Explore Reading Places' },
-  shelf: { icon: 'search', title: 'Search', description: 'Find Books And Notes' },
-  organize: { icon: 'library', title: 'Library', description: 'Organize Your Shelves' },
+  shelf: { icon: 'library', title: 'Library', description: 'Browse Books And Notes' },
+  organize: { icon: 'library', title: 'Library', description: 'Arrange Your Shelves' },
   deskBook: { icon: 'reading-now', title: 'Keep Reading', description: 'Continue Current Book' },
   heroBook: { icon: 'library', title: 'Open Library', description: 'Organize Your Library' },
   profile: { icon: 'profile', title: 'Profile', description: 'Public Reading Page' },
   graph: { icon: 'graph', title: 'Graph', description: 'Concept And Book Network' },
 };
+
+let destroyTodayPanel = null;
 
 const ROOM_VIEW_STATE = {
   pose: 'front',
@@ -171,6 +175,17 @@ function buildRoomMarkup() {
         </header>
 
         <div class="room-settings-block">
+          <h3>Camera</h3>
+          <div class="room-chip-row" id="roomCameraControls">
+            <button type="button" class="room-chip active" data-room-pose="front">Front</button>
+            <button type="button" class="room-chip" data-room-pose="approach">Desk</button>
+            <button type="button" class="room-chip" data-room-pose="shelf">Shelf wall</button>
+            <button type="button" class="room-chip" data-room-pose="notes">Notes wall</button>
+            <button type="button" class="room-chip" id="roomFreeLookBtn" aria-pressed="false">Free look</button>
+          </div>
+        </div>
+
+        <div class="room-settings-block">
           <h3>Room Atmosphere</h3>
           <div class="room-chip-row">
             <button type="button" class="room-chip" data-room-atmosphere="auto">Auto</button>
@@ -240,14 +255,6 @@ function buildRoomMarkup() {
         <div class="room-settings-block">
           ${legalLinksHTML()}
         </div>
-      </section>
-
-      <section class="room-camera-toolbar" id="roomCameraToolbar" aria-label="Camera Angles">
-        <button class="room-camera-btn active" type="button" data-room-pose="front">Front</button>
-        <button class="room-camera-btn" type="button" data-room-pose="approach">Desk</button>
-        <button class="room-camera-btn" type="button" data-room-pose="shelf">Shelf Wall</button>
-        <button class="room-camera-btn" type="button" data-room-pose="notes">Notes Wall</button>
-        <button class="room-camera-btn" type="button" id="roomFreeLookBtn">Free Look</button>
       </section>
 
       <div class="room-hover-card" id="roomHoverBadge" hidden>
@@ -360,7 +367,16 @@ function initRoom() {
     ROOM_VIEW_STATE.handle = null;
   }
 
+  destroyTodayPanel?.();
   host.innerHTML = buildRoomMarkup();
+  destroyTodayPanel = mountTodayPanel(host, {
+    openBook: (bookId, tab) => openPanel('book', tab ? { id: bookId, tab } : { id: bookId }),
+    addBook: () => openCurrentBookOrAdd(),
+    openReview: () => {
+      applyRoomPose('notes');
+      window.setTimeout(() => window.dispatchEvent(new CustomEvent('marginalia:open-resurface')), 700);
+    },
+  });
   ensureFallbackPanels();
   bindRoomEvents();
   bindAuthEvents();
@@ -506,6 +522,8 @@ function bindRoomEvents() {
     const poseBtn = event.target.closest('[data-room-pose]');
     if (poseBtn) {
       applyRoomPose(poseBtn.dataset.roomPose || 'front');
+      ROOM_VIEW_STATE.settingsOpen = false;
+      syncRoomChrome();
       return;
     }
 
@@ -513,6 +531,8 @@ function bindRoomEvents() {
       ROOM_VIEW_STATE.freeLook = !ROOM_VIEW_STATE.freeLook;
       if (ROOM_VIEW_STATE.handle) ROOM_VIEW_STATE.handle.setFreeLookEnabled(ROOM_VIEW_STATE.freeLook);
       syncFreeLookButton();
+      ROOM_VIEW_STATE.settingsOpen = false;
+      syncRoomChrome();
       return;
     }
 

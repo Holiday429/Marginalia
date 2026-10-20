@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { WS, addBookViaUi, createUser, listDocs, plain, seedDueHighlight, signIn, skipPreloader, trackPageErrors } from './helpers';
+import { WS, addBookViaUi, createUser, goToPose, listDocs, plain, seedDueHighlight, signIn, skipPreloader, trackPageErrors } from './helpers';
 
 // Plan 2.4: the room's wall shows up to three highlights that are due for another look; answering updates
 // the highlight (and what the wall shows) at once.
@@ -18,7 +18,7 @@ const highlight = async (uid: string, id: string) => plain((await listDocs(`work
 async function openWallOverlay(page: Page) {
   await page.evaluate(() => { location.hash = '#room'; });
   await page.waitForTimeout(1500);
-  await page.locator('[data-room-pose="notes"]').click();
+  await goToPose(page, 'notes');
   await page.waitForTimeout(1200);
   await page.locator('[data-open-card="quote"]').evaluate((el) => (el as HTMLElement).click());
   await expect(page.locator('[data-resurface-overlay]')).toBeVisible();
@@ -37,7 +37,7 @@ test('the wall shows three due highlights and answering one updates it', async (
   await page.reload();
   await page.click('#skipBtn');
   await page.waitForTimeout(2500);
-  await page.locator('[data-room-pose="notes"]').click();
+  await goToPose(page, 'notes');
   await page.waitForTimeout(1200);
   const items = page.locator('[data-resurface-list] [data-resurface-id]');
   await expect(items).toHaveCount(3); // four are due, three are shown

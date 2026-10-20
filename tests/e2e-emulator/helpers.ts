@@ -74,12 +74,16 @@ export async function bodyText(page: Page): Promise<string> {
   return page.evaluate(() => document.body.innerText);
 }
 
-/** Clicks the nav button of `name` that is actually on top (each panel renders its own nav copy). */
+/**
+ * Opens a page through the top nav, as a reader would. Since 2.8 the nav is Library · Map · Graph · Profile and Library has two modes:
+ * 'Search' means Library in Browse mode (what the nav opens), 'Library' means Library in Arrange mode (the Arrange switch after it).
+ */
 export async function openView(page: Page, name: 'Search' | 'Library' | 'Map' | 'Graph' | 'Profile') {
+  const label = name === 'Search' ? 'Library' : name;
   // A panel that is still animating in can cover the nav for a moment, so poll instead of trying once.
-  await expect.poll(() => page.evaluate((label) => {
+  await expect.poll(() => page.evaluate((text) => {
     const buttons = Array.from(document.querySelectorAll<HTMLElement>('button, a, [role="button"]'))
-      .filter((el) => (el.textContent || '').trim() === label);
+      .filter((el) => (el.textContent || '').trim() === text);
     for (const el of buttons) {
       const r = el.getBoundingClientRect();
       if (!r.width || !r.height) continue;
@@ -87,8 +91,18 @@ export async function openView(page: Page, name: 'Search' | 'Library' | 'Map' | 
       if (top && (el === top || el.contains(top))) { el.click(); return true; }
     }
     return false;
-  }, name), { message: `nav button "${name}" is reachable`, timeout: 8000, intervals: [250] }).toBe(true);
+  }, label), { message: `nav button "${label}" is reachable`, timeout: 8000, intervals: [250] }).toBe(true);
   await page.waitForTimeout(1800);
+  if (name === 'Library') {
+    await page.locator('.lib-mode__btn[data-view="library"]:visible').click({ timeout: 15_000 });
+    await page.waitForTimeout(1800);
+  }
+}
+
+/** Moves the room camera the way a reader now does: Settings → Camera. */
+export async function goToPose(page: Page, pose: 'front' | 'approach' | 'shelf' | 'notes') {
+  await page.locator('#roomSettingsTrigger').click();
+  await page.locator(`#roomCameraControls [data-room-pose="${pose}"]`).click();
 }
 
 /** Every visible <img> in the page has loaded (naturalWidth > 0). Returns the broken srcs. */

@@ -7,13 +7,21 @@ interface PrimaryTabItem {
   disabled?: boolean;
 }
 
+// Plan 2.8, option B: Library · Map · Graph · Profile. Library is one tab with two modes (Browse = the old Search page,
+// Arrange = the old Library page, see library-mode-switch); the tab opens Browse, `#search` and `#library` still work.
 const PRIMARY_TAB_ITEMS: PrimaryTabItem[] = [
-  { id: 'search', label: 'Search', icon: 'search', route: 'search', panel: 'search' },
-  { id: 'library', label: 'Library', icon: 'library', route: 'library', panel: 'library' },
+  { id: 'library', label: 'Library', icon: 'library', route: 'search', panel: 'search' },
   { id: 'map', label: 'Map', icon: 'map', route: 'map', panel: 'map' },
   { id: 'graph', label: 'Graph', icon: 'graph', route: 'graph', panel: 'web' },
   { id: 'profile', label: 'Profile', icon: 'profile', route: 'profile', panel: 'profile' },
 ];
+
+/** The tab that is highlighted while `view` is on screen (both Library modes highlight Library). */
+export function primaryTabIdForView(view: string): string {
+  if (view === 'search' || view === 'library' || view === 'shelf' || view === 'studio') return 'library';
+  if (view === 'web') return 'graph';
+  return view;
+}
 
 const PRIMARY_TAB_ICON_SYMBOLS: Record<string, string> = {
   search: 'icon-nav-search',

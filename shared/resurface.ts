@@ -122,3 +122,33 @@ export function isRating(value: unknown): value is ResurfaceRating {
 export function isTier(value: unknown): value is ResurfaceTier {
   return value === '7d' || value === '30d' || value === '90d';
 }
+
+// ── Due actions (shared by the weekly email and the Today panel) ───────────────
+
+export interface ActionRow {
+  id: string;
+  text?: string;
+  bookId?: string;
+  status?: string;
+  createdAt?: number;
+  remind7At?: number;
+  remind30At?: number;
+  remind90At?: number;
+  lastDigestAt?: number;
+}
+
+/** An action is due once any of its 7 / 30 / 90 day marks has passed; done and archived ones never are. */
+export function actionDueAt(a: ActionRow, now: number): number | null {
+  if (a.status !== 'open' && a.status !== 'snoozed') return null;
+  const marks = [a.remind7At, a.remind30At, a.remind90At].filter((t): t is number => typeof t === 'number' && t <= now);
+  return marks.length ? Math.max(...marks) : null;
+}
+
+/** The one due action to show: the one shown least recently first, so the same one does not come up every time. */
+export function pickDueAction<T extends ActionRow>(actions: readonly T[], now: number): T | null {
+  const due = actions
+    .map((a) => ({ a, at: actionDueAt(a, now) }))
+    .filter((x): x is { a: T; at: number } => x.at !== null && Boolean(x.a.text))
+    .sort((x, y) => (x.a.lastDigestAt ?? 0) - (y.a.lastDigestAt ?? 0) || x.at - y.at);
+  return due[0]?.a ?? null;
+}

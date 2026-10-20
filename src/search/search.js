@@ -35,7 +35,7 @@ function initSearch() {
 
   const headerWrap = document.getElementById('searchHeaderWrap');
   if (headerWrap) {
-    headerWrap.innerHTML = renderUnifiedPanelHeader('search');
+    headerWrap.innerHTML = renderUnifiedPanelHeader('search', { libraryMode: 'browse' });
   }
 
   bindShelfEvents();

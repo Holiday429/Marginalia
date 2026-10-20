@@ -18,8 +18,7 @@
   /* active state indicated by dot color only */
 }
 
-/* Height + type match .room-camera-btn (34px control, 11px service font)
-   so the collapsed pill lines up with the camera toolbar. */
+/* 34px control, 11px service font. */
 .fw-collapse-btn {
   width: 100%;
   display: flex;

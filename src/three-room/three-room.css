@@ -569,46 +569,6 @@ body[data-view='room'] {
   gap: 8px;
 }
 
-#view-room .room-camera-toolbar {
-  position: absolute;
-  left: 50%;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  transform: translateX(-50%);
-  z-index: 15;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(248, 234, 212, 0.32);
-  background:
-    linear-gradient(165deg, rgba(42, 34, 27, 0.5), rgba(72, 58, 45, 0.42)),
-    radial-gradient(120% 120% at 0% 0%, rgba(255, 239, 216, 0.14), rgba(255, 239, 216, 0) 58%);
-  backdrop-filter: blur(18px) saturate(128%);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
-}
-
-#view-room .room-camera-btn {
-  min-height: 34px;
-  border: 1px solid rgba(244, 228, 205, 0.2);
-  background: rgba(244, 228, 205, 0.04);
-  color: rgba(249, 235, 213, 0.88);
-  border-radius: 999px;
-  padding: 0 12px;
-  cursor: pointer;
-  font-family: var(--font-service-ui);
-  font-size: 11px;
-  letter-spacing: var(--track-service-ui);
-  font-weight: var(--weight-service-ui);
-  transition: border-color 0.16s ease, background 0.16s ease;
-}
-
-#view-room .room-camera-btn:hover,
-#view-room .room-camera-btn.active {
-  border-color: rgba(248, 232, 206, 0.5);
-  background: rgba(244, 228, 205, 0.18);
-}
-
 #view-room .room-hover-card {
   position: fixed;
   top: 0;
@@ -678,8 +638,7 @@ body[data-view='room'] {
 }
 
 /* Collapsed: shrink to a minimal pill (dot + label + chevron).
-   Padding matches .room-camera-toolbar so both bottom pills render at the
-   same 52px height (8px padding + 34px inner control + 1px border). */
+   52px high (8px padding + 34px inner control + 1px border). */
 #view-room .room-focus-dock.is-collapsed {
   width: auto;
   padding: 8px;
@@ -927,19 +886,6 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
     top: 12px;
     width: calc(100vw - 120px);
     gap: 8px;
-  }
-
-  /* Lift the camera toolbar above the bottom-left focus dock so the two
-     bottom bars stack instead of overlapping (Fold cover / tablet width). */
-  #view-room .room-camera-toolbar {
-    left: calc(12px + env(safe-area-inset-left, 0px));
-    right: calc(12px + env(safe-area-inset-right, 0px));
-    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-    width: auto;
-    transform: none;
-    justify-content: center;
-    flex-wrap: wrap;
-    border-radius: 18px;
   }
 }
 

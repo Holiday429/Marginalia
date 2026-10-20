@@ -163,6 +163,17 @@ Room objects keep their fly-ins: laptop → Library (Browse), bookshelves → Li
 - **A (plan wording):** Library · Insights (Map · Graph · Year in review) · Profile.
 - **B (flat, my recommendation):** Library · Map · Graph · Profile. Search and Library merge, the Today panel is added, camera buttons move to Settings; Map and Graph stay top-level so each room portal (globe, tack board) still matches one nav item, and the year in review stays on Profile where it is today.
 
+### Q2.8-b — What I built for 2.8 and the choices in it (confirm or change)
+Built as option B (Library · Map · Graph · Profile). Choices that are yours:
+1. **Library is a switch over the two existing pages, not one merged page.** Browse is the old Search page, Arrange is the old Library page; a switch under the header moves between them and the Library tab opens Browse. A true single page would mean folding `view-search` (775 lines) into `panel-library` (2,400 lines), which `index.html` already marks as a TODO; I did not do that inside 2.8. Say if you want it, and when.
+2. **The Library tab always opens Browse**, even if you were last in Arrange (Arrange is one click away, and the bookshelves in the room still open it directly).
+3. **Today panel:** bottom of the room, three columns (Reading Now, Worth Another Look, Action Due), a collapsible card that remembers Hide for the session; signed-in readers only. Placement, size, whether it starts open, the empty-state sentences ("Nothing in progress.", "Nothing to revisit today.", "No action due.") and the button labels are all mine. At iPad width (1024) it covers about a third of the room; Hide shrinks it to a pill. The alternative is a smaller card in a corner.
+4. **"Review" goes to the existing review list on the notes wall** (camera to the notes pose, then the list) instead of answering inside the panel, so there is still one place where the four answers live.
+5. **Camera buttons** are now Settings → Camera, in sentence case ("Shelf wall", "Notes wall", "Free look"). Choosing an angle closes Settings.
+6. **Room copy changed:** hovering the laptop says "Library · Browse Books And Notes" and the bookshelves "Library · Arrange Your Shelves" (they said "Search" and "Organize").
+7. **Left as it was:** the room sidebar still has a "Search" quick action (it opens the room's own quick-search box, not the Search page) and "Add Book" still opens the Arrange page with the form. Say if either should go.
+8. **Screenshot sizes** for 2.8 are 1024×768 and 1180×820 (iPad landscape), 1440×900 (desktop) and 880×1100 (foldable inner screen, near-square); the plan's 390 px is dropped because phones are not a target.
+
 ### Q2.2-a — The pre-read card spends 1 of the 10 free generations on every book a reader adds (decision for you)
 Per the plan, adding a book starts one `intro-card` generation (pre-read card plus a short cultural context). A free reader who adds ten books in a month has then used the whole allowance before touching mind maps or concept cards. Imports never trigger it (2.5). Options: keep (matches the plan), give the card its own separate allowance (e.g. 20 a month, not counted against the 10), or only generate it for the first N books. I built the plan's version; changing it is one condition in `src/new-entry/new-entry.ts` plus the quota code.
 

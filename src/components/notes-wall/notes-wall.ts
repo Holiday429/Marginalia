@@ -134,6 +134,7 @@ export function createNotesWallComponent(): SlotComponent {
   let containerRef: HTMLElement | null = null;
   let unsubscribe: (() => void) | null = null;
   let unsubscribeHighlights: (() => void) | null = null;
+  let unsubscribeOpenResurface: (() => void) | null = null;
   let activeCard: ActiveCard | null = null;
   let pendingFocusTodoId: string | null = null;
   let removingIds = new Set<string>();
@@ -713,9 +714,15 @@ export function createNotesWallComponent(): SlotComponent {
       const onHighlightsChanged = () => render();
       window.addEventListener('marginalia:highlights-changed', onHighlightsChanged);
       unsubscribeHighlights = () => window.removeEventListener('marginalia:highlights-changed', onHighlightsChanged);
+      // The Today panel (plan 2.8) asks for the review list instead of re-implementing the four answers.
+      const onOpenResurface = () => { activeCard = { kind: 'quote', id: null }; render(); };
+      window.addEventListener('marginalia:open-resurface', onOpenResurface);
+      unsubscribeOpenResurface = () => window.removeEventListener('marginalia:open-resurface', onOpenResurface);
     },
 
     unmount() {
+      unsubscribeOpenResurface?.();
+      unsubscribeOpenResurface = null;
       if (unsubscribeHighlights) {
         unsubscribeHighlights();
         unsubscribeHighlights = null;
