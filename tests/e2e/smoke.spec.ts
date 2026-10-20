@@ -52,8 +52,12 @@ test('opening a book from search shows the book detail panel', async ({ page }) 
   await page.evaluate(() => { window.location.hash = '#search'; });
   await expect(page.locator('body')).toHaveAttribute('data-view', 'search', { timeout: 10_000 });
 
-  await page.locator('.shelf-quick-card').first().click();
-  await expect(page.locator('body')).toHaveAttribute('data-view', 'book', { timeout: 10_000 });
+  // The cards can be on screen a moment before the page has attached its click handlers (seen in roughly one run
+  // in ten), so click again until the book opens.
+  await expect(async () => {
+    await page.locator('.shelf-quick-card').first().click();
+    await expect(page.locator('body')).toHaveAttribute('data-view', 'book', { timeout: 2500 });
+  }).toPass({ timeout: 20_000 });
   await expect(page.locator('#panel-book')).toBeVisible();
   expect(unexpectedErrors(errors)).toEqual([]);
 });

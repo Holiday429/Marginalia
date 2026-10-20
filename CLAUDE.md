@@ -2,7 +2,7 @@
 
 A personal reading-records platform. Marginalia owns the *after* of reading: cultural context, knowledge connection, and the conversion of insight into action.
 
-**Current state:** Phase 1 (stabilize) is done on branch `phase-1-stabilize`, pending the owner's review and merge: billing is server-written, AI prompts are built server-side, signed-in users never see demo data, the room loads in ~11 MB, and consent / deletion / legal pages exist. Next: Phase 2 (core loop) in `docs/optimization-plan.md`. Open decisions live in `docs/open-questions.md`; evidence for Phase 1 in `docs/phase-reports/phase-1.md`.
+**Current state:** Phase 1 (stabilize) is merged. Phase 2 (core loop) is on branch `phase-2-loop`, pending the owner's review: quick capture, pre-read card, finish ritual, spaced resurface + weekly email (real sending waits for an email provider), multi-source import, automatic map placement, global search (⌘K), first-run guide and event analytics are built; task 2.8 (Today panel and navigation) waits for the owner's answer to Q2.8-a. Open decisions live in `docs/open-questions.md`; evidence in `docs/phase-reports/phase-1.md` and `phase-2.md`.
 
 **Code rules:**
 - ES modules + explicit imports everywhere. No `window.X` globals — any remaining ones are bugs to fix, not patterns to follow.
@@ -120,7 +120,9 @@ src/
 │   ├── consent-banner/consent-banner.ts — analytics consent banner
 │   ├── legal-links/legal-links.ts       — Privacy / Terms / Credits footer links
 │   ├── action-notifications/action-notifications.ts — Action reminder notifications
-│   └── quick-capture/quick-capture.ts — global "+" button, C key and bottom sheet; captures-drawer.ts lists unattributed captures (drag onto a spine)
+│   ├── quick-capture/quick-capture.ts — global "+" button and C key (boot part); quick-capture-sheet.ts is the sheet (loaded on first use); captures-pill.ts + captures-drawer.ts list unattributed captures (drag onto a spine)
+│   ├── finish-ritual/finish-ritual-boot.ts — listens for "moved into finished"; finish-ritual.ts is the three-question dialog (loaded on demand)
+│   └── onboarding/onboarding-boot.ts — decides once per sign-in whether the first-run guide is needed; onboarding.ts is the three-step guide
 ├── three/
 │   ├── room.ts             — RoomScene class: loads GLBs, CSS3DRenderer, raycasting, interactive targets
 │   ├── camera-paths.ts     — POSES: front | approach | shelf | notes (positions + FOV + idle amplitude)

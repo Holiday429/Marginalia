@@ -90,7 +90,8 @@ test('every empty tab explains itself, and detail opens on Overview from the des
     await page.evaluate(() => { location.hash = '#room'; });
     await page.waitForTimeout(1200);
     await open();
-    await expect(page.locator('#panel-book .book-tab-btn.is-active').first()).toBeVisible({ timeout: 15_000 });
+    // The old page can still be on screen while the new one renders, so wait for the tab to settle on Overview.
+    await expect(page.locator('#panel-book .book-tab-btn.is-active').first()).toHaveAttribute('data-target', 'overview', { timeout: 15_000 });
     expect(await activeTab()).toBe('overview');
   };
 

@@ -3,8 +3,11 @@ import { expect, type Page } from '@playwright/test';
 const PROJECT = 'demo-marginalia';
 export const WS = 'default';
 
-/** Creates an Auth-emulator user and returns its uid. */
-export async function createUser(email: string, password: string): Promise<string> {
+/**
+ * Creates an Auth-emulator user and returns its uid. The first-run guide (plan 2.9) is switched off for the
+ * new account unless `guide: true`, so that it does not sit over the screen in tests about something else.
+ */
+export async function createUser(email: string, password: string, opts: { guide?: boolean } = {}): Promise<string> {
   const res = await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo-api-key', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -12,6 +15,14 @@ export async function createUser(email: string, password: string): Promise<strin
   });
   const json = (await res.json()) as { localId?: string };
   if (!json.localId) throw new Error(`signUp failed: ${JSON.stringify(json)}`);
+  if (!opts.guide) {
+    const body = { fields: { settings: { mapValue: { fields: { onboarding: { mapValue: { fields: { state: { stringValue: 'skipped' } } } } } } } } };
+    await fetch(`http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/users/${json.localId}?updateMask.fieldPaths=settings.onboarding`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+      body: JSON.stringify(body),
+    });
+  }
   return json.localId;
 }
 
@@ -46,7 +57,8 @@ export async function signIn(page: Page, email: string, password: string) {
     (document.getElementById('authPasswordInput') as HTMLInputElement).value = password;
     (document.getElementById('authForm') as HTMLFormElement).requestSubmit();
   }, { email, password });
-  await expect(page.locator('#authUserMeta')).toContainText(email, { timeout: 15_000 });
+  // Generous: on a long serial run of software-GL Chrome the 3D room can keep the page busy for a while.
+  await expect(page.locator('#authUserMeta')).toContainText(email, { timeout: 45_000 });
 }
 
 export function trackPageErrors(page: Page): string[] {

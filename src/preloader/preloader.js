@@ -407,6 +407,7 @@ function enterCTAState(books, heroIdx) {
 
   const label = document.createElement('div');
   label.className = 'cta-label';
+  label.setAttribute('aria-hidden', 'true'); // the real button is #enterBtn
   label.textContent = 'Enter Library';
   target.appendChild(label);
 
@@ -485,6 +486,13 @@ export { enterPreloader };
 // --- Skip & Replay ------------------------------------------------
 
 document.getElementById('skipBtn').addEventListener('click', () => {
+  clearTimers();
+  App.showRoom();
+});
+
+// "Enter Library" is a real button from the first paint (plan 2.9); the animated label on the hero book
+// below is decoration for the same action.
+document.getElementById('enterBtn').addEventListener('click', () => {
   clearTimers();
   App.showRoom();
 });

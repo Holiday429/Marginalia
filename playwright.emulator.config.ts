@@ -1,15 +1,25 @@
+import { readdirSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
+
+// One project per spec file. Playwright starts a fresh worker (and so a fresh Chrome) for each project, and that is the point:
+// in one long-lived worker every test got slower than the one before (reading-session: 15 s on a fresh worker, 43 s after
+// eleven tests, 1.4 min after thirty-nine) until a page was too busy to answer within a test's own waits. Restarting the
+// worker restores the speed. Workers still run one at a time, in file order.
+const specs = readdirSync('./tests/e2e-emulator').filter((f) => f.endsWith('.spec.ts')).sort();
 
 // Marginalia · Playwright config for flows that need a signed-in user.
 // Runs the app in Vite `emulator` mode against the Firebase Auth + Firestore emulators:
 //   npm run test:e2e:emu
 export default defineConfig({
   testDir: './tests/e2e-emulator',
+  // Loads every Cloud Function once before the first test, so no test pays the Functions
+  // emulator's cold start inside its own timeout. See the file header for the full reason.
+  globalSetup: './tests/e2e-emulator/global-setup.ts',
   fullyParallel: false,
   workers: 1,
   retries: 0,
   reporter: 'list',
-  timeout: 90_000,
+  timeout: 150_000, // software-GL Chrome on a long serial run: slow is not the same as broken
   use: {
     baseURL: 'http://localhost:5174',
     trace: 'retain-on-failure',
@@ -17,7 +27,11 @@ export default defineConfig({
     channel: process.env.CI ? undefined : 'chrome', // CI installs Playwright's Chromium
     launchOptions: { args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] },
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' } }],
+  projects: specs.map((file) => ({
+    name: file.replace(/\.spec\.ts$/, ''),
+    testMatch: file,
+    use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' },
+  })),
   webServer: [
     {
       // Fake model for the real aiGenerate function running in the Functions emulator (see tests/support/mock-llm.mjs).

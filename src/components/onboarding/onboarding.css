@@ -1,0 +1,105 @@
+/* Marginalia · first-run guide */
+
+.ob {
+  position: fixed;
+  right: 16px;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  z-index: 410;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 32px));
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--color-brass-border);
+  border-radius: 8px;
+  background: var(--color-ink-deep);
+  color: var(--color-paper);
+  font-family: var(--font-serif);
+}
+
+body[data-view="preloader"] .ob { display: none; }
+
+.ob-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+
+.ob-title { margin: 0; font-size: var(--fs-16); font-weight: 500; }
+
+.ob-min {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.ob-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+
+.ob-step { display: grid; grid-template-columns: 22px 1fr; gap: 10px; opacity: 0.6; }
+
+.ob-step.is-current, .ob-step.is-done { opacity: 1; }
+
+.ob-check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border: 1px solid var(--color-brass-border);
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.ob-check.is-done { background: var(--color-sage); color: var(--color-ink); border-color: var(--color-sage); }
+
+.ob-step__title { margin: 0; font-size: var(--fs-14); }
+
+.ob-step__hint, .ob-text { margin: 4px 0 8px; font-family: var(--font-mono); font-size: var(--fs-11); line-height: 1.5; color: var(--color-taupe); }
+
+.ob-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.ob-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--color-brass-border);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  cursor: pointer;
+}
+
+.ob-btn--primary { background: var(--color-paper); color: var(--color-ink); border-color: var(--color-paper); }
+
+.ob-skip {
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-taupe);
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.ob-pill {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  cursor: pointer;
+}
+
+.ob:has(.ob-pill) { padding: 0; width: auto; }
+
+.ob-btn:focus-visible, .ob-skip:focus-visible, .ob-min:focus-visible, .ob-pill:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

@@ -61,6 +61,7 @@ import { mountFinishRitual } from './components/finish-ritual/finish-ritual-boot
 import { startConsentSync } from './services/consent-sync.ts';
 import { startGeoResolver } from './map/geo-resolve.ts';
 import { startGlobalSearch } from './search/global/boot.ts';
+import { startOnboarding } from './components/onboarding/onboarding-boot.ts';
 import { mountCapturesPill } from './components/quick-capture/captures-pill.ts';
 import './components/reading-session/reading-session.css';
 import './components/action-notifications/action-notifications.css';
@@ -136,4 +137,4 @@ window.addEventListener('marginalia:auth-changed', (event) => {
 });
 
 // Mount global focus widget once on DOM ready
-document.addEventListener('DOMContentLoaded', () => { mountFocusWidget(); mountQuickCapture(); mountCapturesPill(); mountFinishRitual(); startConsentSync(); startGeoResolver(); startGlobalSearch(); });
+document.addEventListener('DOMContentLoaded', () => { mountFocusWidget(); mountQuickCapture(); mountCapturesPill(); mountFinishRitual(); startConsentSync(); startGeoResolver(); startGlobalSearch(); startOnboarding(); });

@@ -64,6 +64,8 @@ test('signup, add, highlight, session, import, AI and finish each reach PostHog 
     (document.getElementById('authForm') as HTMLFormElement).requestSubmit();
   }, { email });
   await expect(page.locator('#authUserMeta')).toContainText(email, { timeout: 15_000 });
+  // A brand-new account gets the first-run guide (2.9); skip it as a reader would, so it does not sit over the page.
+  await page.locator('[data-ob-skip]').click({ timeout: 15_000 });
   await page.waitForTimeout(1500);
 
   // A reading session (the timer lives in the room, so it comes before any panel opens).

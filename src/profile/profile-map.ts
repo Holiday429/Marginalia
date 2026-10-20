@@ -276,8 +276,12 @@ export class ProfileMap {
       return;
     }
 
+    // The page may have been re-rendered while amCharts loaded. Root.new starts its render loop before it looks the element up, so for an
+    // element that left the page it would throw and leave a loop that fails on the next frame; build nothing in that case.
+    if (!this.mapEl.isConnected) return;
+
     try {
-      this.root = am5.Root.new(this.mapEl.id || this.ensureId());
+      this.root = am5.Root.new(this.mapEl);
       this.root._logo?.set('forceHidden', true);
       this.root.setThemes([am5themesAnimated.new(this.root)]);
 
@@ -418,11 +422,6 @@ export class ProfileMap {
       this.setGestureArmed(false);
     };
     document.addEventListener('pointerdown', this.docPointerDownHandler, true);
-  }
-
-  private ensureId(): string {
-    if (!this.mapEl.id) this.mapEl.id = `profMap_${Math.random().toString(36).slice(2)}`;
-    return this.mapEl.id;
   }
 
   private buildAvatar(): void {
