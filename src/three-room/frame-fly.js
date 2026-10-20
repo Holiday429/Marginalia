@@ -205,7 +205,7 @@ export function playFrameFlyIn(opts = {}) {
     scene.add(pivot);
 
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
-    const textureLoader = new THREE.TextureLoader();
+    const textureLoader = new THREE.TextureLoader().setCrossOrigin('anonymous');
     const prepTex = (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.flipY = true;

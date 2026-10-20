@@ -1,27 +1,30 @@
 import { test, expect } from '@playwright/test';
 
-// Plan 2.9: the way into the library is a real button, visible at once, inside the first screen on a phone,
-// reachable with the keyboard, and the spine labels on the landing shelf do not run into each other.
+// Plan 2.9: the way into the library is a real button under the hero book, reachable with the keyboard, and the spine labels on the landing shelf do not run into each other.
 
-test('Enter Library is a button that is visible within a second of load, in the first screen at 390px, and first in tab order', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test('Enter Library appears once, under the hero book, as a focusable button that is clear of the legal links', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 }); // landscape is the target; phones are not
   await page.goto('/', { waitUntil: 'load' });
   const enter = page.locator('#enterBtn');
-  await expect(enter).toBeVisible({ timeout: 1000 });
+  await expect(enter).toBeVisible({ timeout: 15_000 });
   expect(await enter.evaluate((el) => el.tagName)).toBe('BUTTON');
   await expect(enter).toHaveText('Enter Library');
+  // The only "Enter Library" on the page: nothing above the shelf.
+  await expect(page.getByRole('button', { name: 'Enter Library' })).toHaveCount(1);
 
-  // Inside the first screen, and not covered by the consent banner that a first visit shows.
-  const box = (await enter.boundingBox())!;
-  expect(box.y).toBeGreaterThanOrEqual(0);
-  expect(box.y + box.height).toBeLessThanOrEqual(844);
-  const covered = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id !== 'enterBtn', { x: box.x + box.width / 2, y: box.y + box.height / 2 });
-  expect(covered).toBe(false);
-  await page.screenshot({ path: 'tests/screenshots/phase-2/2.9-landing-390.png' });
+  // It rides on a bobbing book but stays put, clear of the legal links and of the first-visit consent banner.
+  const legal = page.locator('.legal-links--landing');
+  for (let i = 0; i < 6; i++) {
+    const e = (await enter.boundingBox())!;
+    const l = (await legal.boundingBox())!;
+    const banner = await page.locator('.consent-banner').boundingBox();
+    expect(e.y + e.height, `sample ${i}`).toBeLessThanOrEqual(l.y);
+    if (banner) expect(e.y + e.height, `banner ${i}`).toBeLessThanOrEqual(banner.y);
+    await page.waitForTimeout(400);
+  }
+  await page.screenshot({ path: 'tests/screenshots/phase-2/2.9-landing-1440.png' });
 
-  // Tab reaches it first; Enter goes into the room.
-  await page.keyboard.press('Tab');
-  expect(await page.evaluate(() => document.activeElement?.id)).toBe('enterBtn');
+  await enter.focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('body')).toHaveAttribute('data-view', 'room', { timeout: 15_000 });
 });

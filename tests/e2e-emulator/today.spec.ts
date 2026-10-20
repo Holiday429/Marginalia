@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
-import { WS, addBookViaUi, createUser, goToPose, listDocs, seedDueHighlight, signIn, skipPreloader, trackPageErrors, writeDoc } from './helpers';
+import { WS, addBookViaUi, createUser, goToPose, seedDueHighlight, signIn, skipPreloader, trackPageErrors, writeDoc } from './helpers';
 
-// Plan 2.8: the room is home and carries a Today panel (the book being read, up to three highlights worth another look, the due action,
-// a timer); the desk book opens the book being read, or Add Book when nothing is being read.
+// Plan 2.8: the room is home and carries a Today panel (the book being read, up to three highlights worth another look, the due action;
+// collapsed by default, the timer lives in the focus dock); the desk book opens the book being read, or Add Book when nothing is being read.
 const DAY = 86_400_000;
 const SHOTS = 'tests/screenshots/phase-2';
 
@@ -21,7 +21,7 @@ async function backToRoom(page: Page) {
   await page.waitForTimeout(1200);
 }
 
-test('Today shows what is being read, what is worth another look and the due action; it starts the timer and opens the review list', async ({ page }) => {
+test('Today shows what is being read, what is worth another look and the due action; it is collapsed by default and opens the review list', async ({ page }) => {
   const errors = trackPageErrors(page);
   const { uid } = await setup(page, 'today');
   const bookId = await addBookViaUi(page, uid, 'Deep Work', 'Cal Newport');
@@ -34,6 +34,12 @@ test('Today shows what is being read, what is worth another look and the due act
 
   const today = page.locator('#roomTodayPanel');
   await expect(today).toBeVisible({ timeout: 15_000 });
+  // Collapsed to a pill at first; there is no timer button here (the focus dock owns the timer).
+  await expect(today).toHaveAttribute('data-collapsed', 'true');
+  await expect(today.locator('.today__pill')).toContainText('4 to revisit');
+  await today.locator('[data-today="toggle"]').click();
+  await expect(today).toHaveAttribute('data-collapsed', 'false');
+  await expect(today.locator('[data-today="timer"]')).toHaveCount(0);
   await expect(today.locator('[data-today-col="reading"]')).toContainText('Deep Work');
   await expect(today.locator('[data-today-col="reading"]')).toContainText('Cal Newport');
   await expect(today.locator('.today__quote')).toHaveCount(3); // four are due, three are shown
@@ -52,13 +58,6 @@ test('Today shows what is being read, what is worth another look and the due act
     await page.screenshot({ path: `${SHOTS}/2.8-today-${name}.png` });
   }
 
-  // Start timer: a session for the book being read, and the button says so.
-  await today.locator('[data-today="timer"]').click();
-  await expect(today.locator('[data-today="timer"]')).toHaveText('Timer running', { timeout: 15_000 });
-  await expect.poll(async () => (await listDocs(`workspaces/${WS}/users/${uid}/sessions`)).length, { timeout: 15_000 }).toBe(1);
-  const [session] = await listDocs(`workspaces/${WS}/users/${uid}/sessions`);
-  expect(session!.fields.bookId?.stringValue).toBe(bookId);
-
   // Review opens the existing review list on the notes wall (no second copy of the four answers).
   await today.locator('[data-today="review"]').click();
   await expect(page.locator('[data-resurface-overlay]')).toBeVisible({ timeout: 20_000 });
@@ -66,6 +65,7 @@ test('Today shows what is being read, what is worth another look and the due act
 
   // Hide leaves a small pill, Show brings the panel back.
   await backToRoom(page);
+  await expect(today).toHaveAttribute('data-collapsed', 'false'); // the choice is kept for the session
   await today.locator('[data-today="toggle"]').click();
   await expect(today).toHaveAttribute('data-collapsed', 'true');
   await expect(today.locator('.today__pill')).toContainText('4 to revisit'); // three highlights and the action
@@ -89,6 +89,7 @@ test('a reader with nothing in progress sees an empty Today with a way to add a 
   await page.waitForTimeout(1500);
   const today = page.locator('#roomTodayPanel');
   await expect(today).toBeVisible({ timeout: 15_000 });
+  await today.locator('[data-today="toggle"]').click();
   await expect(today).toContainText('Nothing in progress.');
   await expect(today).toContainText('Nothing to revisit today.');
   await expect(today).toContainText('No action due.');
@@ -116,7 +117,6 @@ test('with nothing being read, the desk book opens Add Book', async ({ page }) =
   await setup(page, 'desk-empty');
   await goToPose(page, 'approach');
   await page.waitForTimeout(2500);
-  await page.locator('#roomTodayPanel [data-today="toggle"]').click(); // collapse Today so it cannot cover the desk
   const point = await pointOnDeskBook(page);
   await page.mouse.click(point.x, point.y);
   await expect(page.locator('#neForm')).toBeVisible({ timeout: 15_000 });
@@ -131,7 +131,6 @@ test('the desk book opens the book being read, not another book', async ({ page 
   await backToRoom(page);
   await goToPose(page, 'approach');
   await page.waitForTimeout(2500);
-  await page.locator('#roomTodayPanel [data-today="toggle"]').click();
   const point = await pointOnDeskBook(page);
   await page.mouse.click(point.x, point.y);
   await expect(page.locator('body')).toHaveAttribute('data-view', 'book', { timeout: 15_000 });

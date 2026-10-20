@@ -164,6 +164,14 @@ function buildRoomMarkup() {
 
       ${renderRoomTopTabsMarkup()}
 
+      <div class="room-camera-bar" id="roomCameraControls" role="group" aria-label="Camera">
+        <button type="button" class="room-chip active" data-room-pose="front">Front</button>
+        <button type="button" class="room-chip" data-room-pose="approach">Desk</button>
+        <button type="button" class="room-chip" data-room-pose="shelf">Shelf wall</button>
+        <button type="button" class="room-chip" data-room-pose="notes">Notes wall</button>
+        <button type="button" class="room-chip" id="roomFreeLookBtn" aria-pressed="false">Free look</button>
+      </div>
+
       <button class="room-icon-btn room-settings-trigger" type="button" id="roomSettingsTrigger" aria-label="Open Settings">
         <span class="room-gear">⚙</span>
       </button>
@@ -173,17 +181,6 @@ function buildRoomMarkup() {
           <h2>Settings</h2>
           <button class="room-icon-btn" type="button" data-room-close-settings aria-label="Close Settings">x</button>
         </header>
-
-        <div class="room-settings-block">
-          <h3>Camera</h3>
-          <div class="room-chip-row" id="roomCameraControls">
-            <button type="button" class="room-chip active" data-room-pose="front">Front</button>
-            <button type="button" class="room-chip" data-room-pose="approach">Desk</button>
-            <button type="button" class="room-chip" data-room-pose="shelf">Shelf wall</button>
-            <button type="button" class="room-chip" data-room-pose="notes">Notes wall</button>
-            <button type="button" class="room-chip" id="roomFreeLookBtn" aria-pressed="false">Free look</button>
-          </div>
-        </div>
 
         <div class="room-settings-block">
           <h3>Room Atmosphere</h3>
@@ -522,8 +519,6 @@ function bindRoomEvents() {
     const poseBtn = event.target.closest('[data-room-pose]');
     if (poseBtn) {
       applyRoomPose(poseBtn.dataset.roomPose || 'front');
-      ROOM_VIEW_STATE.settingsOpen = false;
-      syncRoomChrome();
       return;
     }
 
@@ -531,8 +526,6 @@ function bindRoomEvents() {
       ROOM_VIEW_STATE.freeLook = !ROOM_VIEW_STATE.freeLook;
       if (ROOM_VIEW_STATE.handle) ROOM_VIEW_STATE.handle.setFreeLookEnabled(ROOM_VIEW_STATE.freeLook);
       syncFreeLookButton();
-      ROOM_VIEW_STATE.settingsOpen = false;
-      syncRoomChrome();
       return;
     }
 

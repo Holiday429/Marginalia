@@ -99,9 +99,8 @@ export async function openView(page: Page, name: 'Search' | 'Library' | 'Map' | 
   }
 }
 
-/** Moves the room camera the way a reader now does: Settings → Camera. */
+/** Moves the room camera the way a reader does: the camera bar on the room. */
 export async function goToPose(page: Page, pose: 'front' | 'approach' | 'shelf' | 'notes') {
-  await page.locator('#roomSettingsTrigger').click();
   await page.locator(`#roomCameraControls [data-room-pose="${pose}"]`).click();
 }
 

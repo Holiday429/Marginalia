@@ -1,8 +1,8 @@
 /* Marginalia · Today panel (plan 2.8)
    The room is home, and this card is what the reader finds on it each day: the book they are reading, up to three
-   highlights worth another look, the one action that is due, and a way to start the timer. It only reads the stores
-   (and starts a session); answering a highlight happens in the existing review list on the notes wall.
-   Shown to signed-in readers only; collapsible, and the choice is remembered for the session.
+   highlights worth another look, the one action that is due. The timer lives in the focus dock, not here. It only reads the stores;
+   answering a highlight happens in the existing review list on the notes wall.
+   Shown to signed-in readers only; collapsed by default; opening it is remembered for the session.
 */
 
 import { pickDueAction, type ActionRow } from '../../../shared/resurface.ts';
@@ -11,7 +11,6 @@ import { logError } from '../../services/analytics.ts';
 import { ActionsStore } from '../../store/actions-store.ts';
 import { BooksStore } from '../../store/books-store.ts';
 import { ResurfaceStore } from '../../store/resurface-store.ts';
-import { getActive, start } from '../reading-session/reading-session.ts';
 
 export interface TodayHooks {
   /** Open a book's page. */
@@ -27,7 +26,6 @@ const REFRESH_EVENTS = [
   'marginalia:books-changed',
   'marginalia:highlights-changed',
   'marginalia:actions-changed',
-  'marginalia:session-changed',
   'marginalia:auth-changed',
 ];
 
@@ -42,8 +40,9 @@ function clip(text: string, max: number): string {
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 }
 
+/** Collapsed unless the reader opened it this session. */
 function readCollapsed(): boolean {
-  try { return sessionStorage.getItem(COLLAPSED_KEY) === '1'; } catch { return false; }
+  try { return sessionStorage.getItem(COLLAPSED_KEY) !== '0'; } catch { return true; }
 }
 
 function writeCollapsed(value: boolean): void {
@@ -76,7 +75,6 @@ export function mountTodayPanel(host: HTMLElement, hooks: TodayHooks): () => voi
     const due = ResurfaceStore.due(3);
     const action = pickDueAction(ActionsStore.getAll() as unknown as ActionRow[], Date.now());
     const actionBook = action?.bookId ? (BooksStore.getById(action.bookId) as BookLike | undefined) : undefined;
-    const session = getActive();
     const toRevisit = due.length + (action ? 1 : 0);
 
     el.dataset.collapsed = String(collapsed);
@@ -98,12 +96,10 @@ export function mountTodayPanel(host: HTMLElement, hooks: TodayHooks): () => voi
                  <p class="today__meta">${esc(reading.authorZh || reading.author || '')}</p>
                  <div class="today__row">
                    <button class="today__btn" type="button" data-today="open-book" data-book-id="${esc(reading.id)}">Open book</button>
-                   <button class="today__btn" type="button" data-today="timer"${session ? ' disabled' : ''}>${session ? 'Timer running' : 'Start timer'}</button>
                  </div>`
               : `<p class="today__empty">Nothing in progress.</p>
                  <div class="today__row">
                    <button class="today__btn" type="button" data-today="add-book">Add a book</button>
-                   <button class="today__btn" type="button" data-today="timer"${session ? ' disabled' : ''}>${session ? 'Timer running' : 'Start timer'}</button>
                  </div>`}
           </div>
           <div class="today__col" data-today-col="review">
@@ -124,7 +120,7 @@ export function mountTodayPanel(host: HTMLElement, hooks: TodayHooks): () => voi
         </div>`;
   }
 
-  async function onClick(event: MouseEvent): Promise<void> {
+  function onClick(event: MouseEvent): void {
     const trigger = (event.target as HTMLElement).closest<HTMLElement>('[data-today]');
     if (!trigger) return;
     const what = trigger.dataset.today;
@@ -134,7 +130,6 @@ export function mountTodayPanel(host: HTMLElement, hooks: TodayHooks): () => voi
       else if (what === 'open-action') hooks.openBook(trigger.dataset.bookId || '', 'actions');
       else if (what === 'add-book') hooks.addBook();
       else if (what === 'review') hooks.openReview();
-      else if (what === 'timer') await start(readingNowBook()?.id ?? null);
     } catch (err) {
       logError(err, { context: 'today panel', action: what });
     }

@@ -391,6 +391,30 @@ body[data-view='room'] {
   font-weight: var(--weight-service-ui);
 }
 
+/* Camera bar: always on the room, under the top tabs (moved out of Settings). */
+#view-room .room-camera-bar {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100vw - 88px);
+  padding: 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 234, 212, 0.28);
+  background: linear-gradient(165deg, rgba(44, 35, 28, 0.46), rgba(74, 59, 46, 0.38));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(16px) saturate(124%);
+}
+#view-room.is-sidebar-collapsed .room-camera-bar { top: 96px; }
+#view-room .room-camera-bar .room-chip { white-space: nowrap; }
+@media (pointer: coarse) {
+  #view-room .room-camera-bar .room-chip { min-height: 44px; padding: 0 16px; }
+}
+
 #view-room .room-chip.active {
   border-color: rgba(255, 214, 150, 0.66);
   background: rgba(219, 166, 89, 0.26);
@@ -886,6 +910,12 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
     top: 12px;
     width: calc(100vw - 120px);
     gap: 8px;
+  }
+
+  #view-room.is-sidebar-collapsed .room-camera-bar {
+    top: 90px;
+    max-width: calc(100vw - 24px);
+    overflow-x: auto;
   }
 }
 

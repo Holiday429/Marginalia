@@ -55,7 +55,7 @@ async function enterRoom(page: Page) {
   await expect(page.locator('body')).toHaveAttribute('data-view', 'room', { timeout: 15_000 });
 }
 
-test('the room nav is Library · Map · Graph · Profile at iPad, desktop and foldable sizes; the camera buttons live in Settings', async ({ page }) => {
+test('the room nav is Library · Map · Graph · Profile at iPad, desktop and foldable sizes; the camera bar is on the room', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(String(err)));
   await page.setViewportSize({ width: SIZES[1].w, height: SIZES[1].h });
@@ -69,17 +69,17 @@ test('the room nav is Library · Map · Graph · Profile at iPad, desktop and fo
     await page.screenshot({ path: `${SHOTS}/2.8-nav-room-${size.name}.png` });
   }
 
-  // Camera: no bottom toolbar any more; Settings has a Camera group; picking an angle moves the camera and closes Settings.
+  // Camera: a bar on the room itself (not in Settings); picking an angle moves the camera.
   await page.setViewportSize({ width: SIZES[1].w, height: SIZES[1].h });
   expect(await page.locator('#roomCameraToolbar').count()).toBe(0);
-  await page.locator('#roomSettingsTrigger').click();
   const camera = page.locator('#roomCameraControls');
   await expect(camera).toBeVisible();
   await expect(camera.locator('button')).toHaveText(['Front', 'Desk', 'Shelf wall', 'Notes wall', 'Free look']);
-  await page.screenshot({ path: `${SHOTS}/2.8-settings-camera-ipad-1180.png` });
+  await page.screenshot({ path: `${SHOTS}/2.8-camera-bar-ipad-1180.png` });
   await camera.locator('[data-room-pose="notes"]').click();
   await expect(camera.locator('[data-room-pose="notes"]')).toHaveClass(/active/);
-  await expect(page.locator('#view-room')).not.toHaveClass(/is-settings-open/);
+  await page.locator('#roomSettingsTrigger').click();
+  await expect(page.locator('#roomSettingsPanel #roomCameraControls')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

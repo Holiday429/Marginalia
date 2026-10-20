@@ -75,30 +75,6 @@ body[data-view="preloader"] {
   opacity: 0.55;
 }
 
-/* ---- Enter button (plan 2.9): in the page from the first paint, a real button, first in tab order ---- */
-.enter-btn {
-  margin-top: clamp(16px, 2.5vw, 28px);
-  min-height: 48px;
-  padding: 0 28px;
-  border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent);
-  background: transparent;
-  color: var(--ink);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 0.24em;
-  cursor: pointer;
-  transition: background 0.25s ease, color 0.25s ease;
-}
-.enter-btn:hover,
-.enter-btn:focus-visible {
-  background: var(--ink);
-  color: var(--bg);
-}
-.enter-btn:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-
 /* ---- Shelf stage ---- */
 .stage {
   flex: 1 1 auto;
@@ -107,7 +83,7 @@ body[data-view="preloader"] {
   align-items: flex-end;
   justify-content: center;
   overflow: visible;
-  padding-bottom: clamp(80px, 14vh, 140px);
+  padding-bottom: clamp(132px, 20vh, 190px);
   min-height: 0;
 }
 
@@ -482,8 +458,20 @@ body[data-view="preloader"] {
   0%, 100% { transform: translateY(-18px); }
   50%       { transform: translateY(-28px); }
 }
+/* The label rides on the bobbing book; this cancels the bob (net -28px, the book's highest point) so the label
+   stays put and never sinks into the legal links below. Same duration and easing as ctaPulse. */
+@keyframes ctaLabelHold {
+  0%, 100% { transform: translate(-50%, -10px); }
+  50%       { transform: translate(-50%, 0); }
+}
 .book.cta.docked {
   animation: ctaPulse 2.4s ease-in-out infinite;
+}
+.book.cta.docked .cta-label {
+  animation: ctaLabelHold 2.4s ease-in-out infinite;
+}
+.book.cta.docked:hover .cta-label {
+  animation-play-state: paused;
 }
 .book.cta.docked:hover {
   animation-play-state: paused;
@@ -493,7 +481,7 @@ body[data-view="preloader"] {
 .cta-label {
   position: absolute;
   left: 50%;
-  top: calc(100% + 52px);
+  top: calc(100% + 44px);
   transform: translateX(-50%);
   white-space: nowrap;
 
@@ -514,6 +502,12 @@ body[data-view="preloader"] {
   pointer-events: none;
   z-index: 30;
   cursor: pointer;
+  appearance: none;
+  margin: 0;
+}
+.cta-label:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 /* vertical tick above label connecting it to the book */
 .cta-label::before {
@@ -522,7 +516,7 @@ body[data-view="preloader"] {
   left: 50%;
   bottom: calc(100% + 8px);
   width: 1px;
-  height: 40px;
+  height: 32px;
   background: var(--ink);
   transform: translateX(-50%);
   opacity: 0.3;

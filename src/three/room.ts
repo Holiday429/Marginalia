@@ -345,7 +345,8 @@ export class RoomScene {
   private blindSlatHeight = 0.026;
   private currentBlindPreset: BlindPreset = 'half';
   private pullTween: { model: THREE.Object3D; startX: number; targetX: number; startedAt: number; durationMs: number; onComplete: () => void } | null = null;
-  private textureLoader = new THREE.TextureLoader();
+  // 'anonymous': the frame photo can be a remote account photo, which WebGL only accepts with CORS.
+  private textureLoader = new THREE.TextureLoader().setCrossOrigin('anonymous');
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private interactiveTargets: THREE.Object3D[] = [];

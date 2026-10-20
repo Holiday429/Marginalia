@@ -119,11 +119,14 @@ window.addEventListener('marginalia:auth-changed', (event) => {
     ActionsStore.initWithUser(user.uid, db);
     mountActionNotifications(user.uid, db);
     initReadingSession(user.uid, db);
+    // The desk frame shows the account photo at once; an uploaded profile photo replaces it when it arrives.
+    const accountPhoto = MarginaliaAuth.user?.photoURL || null;
+    setFramePhotoUrl(accountPhoto);
     // Load user's language preference and apply immediately.
     getDoc(doc(db, Paths.user(user.uid))).then((snap) => {
       const lang = snap.data()?.settings?.language;
       if (lang) setLanguage(lang);
-      setFramePhotoUrl(snap.data()?.avatarUrl || null);
+      setFramePhotoUrl(snap.data()?.avatarUrl || accountPhoto);
     }).catch(() => {});
   } else {
     BooksStore.teardown();

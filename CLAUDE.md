@@ -2,7 +2,7 @@
 
 A personal reading-records platform. Marginalia owns the *after* of reading: cultural context, knowledge connection, and the conversion of insight into action.
 
-**Current state:** Phase 1 (stabilize) is merged. Phase 2 (core loop) is on branch `phase-2-loop`, pending the owner's review: quick capture, pre-read card, finish ritual, spaced resurface + weekly email (real sending waits for an email provider), multi-source import, automatic map placement, global search (⌘K), first-run guide and event analytics are built; task 2.8 (Today panel and navigation) is built too: nav Library · Map · Graph · Profile, Library with Browse / Arrange modes, camera buttons in Settings. Open decisions live in `docs/open-questions.md`; evidence in `docs/phase-reports/phase-1.md` and `phase-2.md`.
+**Current state:** Phase 1 (stabilize) is merged. Phase 2 (core loop) is on branch `phase-2-loop`, pending the owner's review: quick capture, pre-read card, finish ritual, spaced resurface + weekly email (real sending waits for an email provider), multi-source import, automatic map placement, global search (⌘K), first-run guide and event analytics are built; task 2.8 (Today panel and navigation) is built too: nav Library · Map · Graph · Profile, Library with Browse / Arrange modes, camera bar on the room. Open decisions live in `docs/open-questions.md`; evidence in `docs/phase-reports/phase-1.md` and `phase-2.md`.
 
 **Code rules:**
 - ES modules + explicit imports everywhere. No `window.X` globals — any remaining ones are bugs to fix, not patterns to follow.
@@ -24,8 +24,8 @@ A personal reading-records platform. Marginalia owns the *after* of reading: cul
 
 ```
 Marginalia                 Top nav (landscape: iPad, foldables, desktop): Library · Map · Graph · Profile
-├── Room (3D)              — Home. Persistent shell; never toggled by show(). Camera moves between poses (Settings → Camera).
-│   ├── Today panel        — Bottom of the room (signed in): reading now, 3 highlights worth another look, due action, start timer
+├── Room (3D)              — Home. Persistent shell; never toggled by show(). Camera moves between poses (camera bar under the top tabs).
+│   ├── Today panel        — Bottom of the room (signed in): reading now, 3 highlights worth another look, due action (collapsed by default; the timer is the focus dock's)
 │   ├── Shelf Wall         — Library 2D component mounted as CSS3D plane on the north wall
 │   ├── Notes Wall         — Highlights as sticky cards on the east wall
 │   └── Desk               — Currently-reading book + reading session timer
@@ -127,7 +127,7 @@ src/
 │   ├── action-notifications/action-notifications.ts — Action reminder notifications
 │   ├── quick-capture/quick-capture.ts — global "+" button and C key (boot part); quick-capture-sheet.ts is the sheet (loaded on first use); captures-pill.ts + captures-drawer.ts list unattributed captures (drag onto a spine)
 │   ├── library-mode-switch/library-mode-switch.ts — Browse / Arrange switch under the header of the two Library pages (routes `search` / `library`)
-│   ├── today-panel/today-panel.ts — Today panel in the room (mounted by three-room-view.js): reading now, due highlights (ResurfaceStore.due), due action (pickDueAction in shared/resurface.ts), start timer
+│   ├── today-panel/today-panel.ts — Today panel in the room (mounted by three-room-view.js): reading now, due highlights (ResurfaceStore.due), due action (pickDueAction in shared/resurface.ts); collapsed by default, no timer button (the focus dock owns the timer)
 │   ├── finish-ritual/finish-ritual-boot.ts — listens for "moved into finished"; finish-ritual.ts is the three-question dialog (loaded on demand)
 │   └── onboarding/onboarding-boot.ts — decides once per sign-in whether the first-run guide is needed; onboarding.ts is the three-step guide
 ├── three/
@@ -267,7 +267,7 @@ Model names resolve to content-hashed files through `src/three/asset-manifest.ge
 | `shelf`    | North wall       | Search / Library       |
 | `notes`    | East wall        | Graph / Notes Wall     |
 
-To add a new pose: add to `POSES` in `camera-paths.ts`, add to `PANEL_POSES` map in `three-room-view.js`. The buttons that move the camera (Front / Desk / Shelf wall / Notes wall / Free look) are in Settings → Camera (`#roomCameraControls`); there is no bottom toolbar.
+To add a new pose: add to `POSES` in `camera-paths.ts`, add to `PANEL_POSES` map in `three-room-view.js`. The buttons that move the camera (Front / Desk / Shelf wall / Notes wall / Free look) are the camera bar on the room, under the top tabs (`#roomCameraControls`); they are not in Settings and there is no bottom toolbar.
 
 ---
 

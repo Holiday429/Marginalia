@@ -405,9 +405,12 @@ function enterCTAState(books, heroIdx) {
   target.classList.add('cta');
   setTimeout(() => target.classList.add('docked'), 16);
 
-  const label = document.createElement('div');
+  // The one way in: a real button under the hero book (focusable once the book has docked).
+  const label = document.createElement('button');
+  label.type = 'button';
   label.className = 'cta-label';
-  label.setAttribute('aria-hidden', 'true'); // the real button is #enterBtn
+  label.id = 'enterBtn';
+  label.tabIndex = -1;
   label.textContent = 'Enter Library';
   target.appendChild(label);
 
@@ -428,6 +431,7 @@ function enterCTAState(books, heroIdx) {
   target.onclick = handleEnter;
   label.style.pointerEvents = 'auto';
   label.onclick = (e) => { e.stopPropagation(); handleEnter(); };
+  setTimeout(() => { label.tabIndex = 0; }, 16);
 
   ctaBookEl = target;
 }
@@ -486,13 +490,6 @@ export { enterPreloader };
 // --- Skip & Replay ------------------------------------------------
 
 document.getElementById('skipBtn').addEventListener('click', () => {
-  clearTimers();
-  App.showRoom();
-});
-
-// "Enter Library" is a real button from the first paint (plan 2.9); the animated label on the hero book
-// below is decoration for the same action.
-document.getElementById('enterBtn').addEventListener('click', () => {
   clearTimers();
   App.showRoom();
 });
