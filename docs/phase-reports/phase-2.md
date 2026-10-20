@@ -134,7 +134,7 @@ lint 0 errors / 171 warnings (baseline 156), unit 157 across 17 files, rules and
 
 ## Progress after tasks 2.7 and 2.9
 
-2.8 was skipped deliberately: it is blocked on your answer to Q2.8-a and no navigation was touched.
+2.8 was done last, after your answer to Q2.8-a (option B, flat nav; phones are not a target).
 
 ### 2.7 Cross-book full-text search — done
 
@@ -164,6 +164,27 @@ Design notes
 - `onboarding-boot.ts` is the only always-loaded part; the guide itself is `import()`ed only for an account that needs it.
 - A real race was found and fixed here rather than papered over: right after sign-in, another write to `users/{uid}` (the consent mirror) can still be pending, and a plain `getDoc` then returns a view built from that pending write alone — which hid the stored "skipped" decision and brought the guide back. The boot file now waits for a snapshot that is neither `fromCache` nor `hasPendingWrites` (`settledUserDoc`). This is the same class of bug as the Firestore listener races in Phase 1.
 - Who sees the guide, the step-3 definition, and the English copy are all choices I made: Q2.9-a.
+
+### 2.8 Today panel and navigation — done (option B); your confirmations are Q2.8-b
+
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| Nav items all visible and not overlapping (screenshots) | ✅ at landscape sizes | Your decision replaced the plan's 390 px (phones are not a target) with 1024×768 and 1180×820 (iPad landscape), 1440×900 and 880×1100 (foldable inner screen). `tests/e2e/navigation.spec.ts` (3 tests, production build): on the room and on both Library pages the four tabs read Library · Map · Graph · Profile in that order, sit inside the viewport, are at least 44 px tall, do not intersect each other or the header's left and right items, and the Browse/Arrange switch overlaps no tab. Screenshots `2.8-nav-room-*`, `2.8-nav-browse-*`, `2.8-nav-arrange-*` (each at the four sizes), `2.8-settings-camera-ipad-1180.png`. Portrait iPad (768×1024) was not tested |
+| The desk book opens the signed-in reader's reading book (e2e) | ✅ | `tests/e2e-emulator/today.spec.ts`: the test finds the real 3D desk book by hovering until the room names it "Keep Reading", then clicks it. With one book being read and another to-read, the Book page that opens contains the reading book and not the other; with nothing being read, the Add Book form opens |
+| Old hashes reach the new pages | ✅ | `navigation.spec.ts`: `#search` → Browse, `#library` → Arrange, `#shelf` → Browse, `#studio` → Arrange, and both modes highlight the Library tab; the switch moves between them; the Library tab opens Browse |
+
+Built
+- Nav (`src/core/primary-tabs.ts`): Library · Map · Graph · Profile, in the room and on every page. Library is one tab with two modes, Browse (the old Search page) and Arrange (the old Library page), switched with a control under the header (`src/components/library-mode-switch/`). It is a switch over the two existing pages, not one merged page (Q2.8-b, 1).
+- Camera buttons moved to Settings → Camera; the bottom toolbar is gone. Choosing an angle closes Settings.
+- Today panel (`src/components/today-panel/`, mounted by the room view, so it is in the room chunk and not in the entry chunk): reading now with Open book and Start timer, up to three highlights worth another look with Review, and the one due action. `today.spec.ts` seeds four due highlights and a due action and checks three highlights are shown, Start timer writes a session for the book being read, Review opens the existing review list, Hide leaves a pill ("4 to revisit": three highlights and the action), an empty account sees the three empty sentences and Add a book, and a signed-out visitor sees no Today. Screenshots `2.8-today-{ipad-1024,ipad-1180,desktop-1440}.png`.
+- The due-action rule (`actionDueAt`, `pickDueAction`) moved from the digest code into `shared/resurface.ts`, so the weekly email and the Today panel use one definition; the digest tests still pass.
+- Room copy: hovering the laptop now says Library, not Search (Q2.8-b, 6).
+
+Side effects to know about
+- The switch row adds about 40 px under the header on both Library pages.
+- At 1024 px the Today panel covers about a third of the room; Hide shrinks it.
+- Every e2e spec that clicked the nav by the label "Search" or "Library" now goes through one helper (`openView` in `tests/e2e-emulator/helpers.ts`: "Search" means the Library tab, "Library" means Library then Arrange); `goToPose` replaces the direct clicks on the old camera buttons.
+- Entry chunk 132.97 KB of 135 (was 132.43).
 
 ### Flaky signed-in e2e on the emulators: causes found and fixed
 
@@ -200,9 +221,12 @@ lint 0 errors / 171 warnings (baseline 156), unit 169 across 18 files, rules and
 
 How many runs it took (so the green is not read as "first try"): of the four full signed-in runs on the final layout, two were clean on their own (13.7 and 13.8 min); `check:all` run 1 exited 1 on the worker-exit hang (all 49 tests passed); `check:all` run 2 exited 1 on the Profile mini-map page error (cause 3, fixed); `check:all` run 3 exited 0. No code changed between run 3 and the commit. The worker-exit hang is unexplained and did not recur in runs 2 and 3.
 
+### Gate numbers after 2.8 (`npm run check:all`, exit 0)
+lint 0 errors / 171 warnings, unit 169, rules and emulator suites 85, smoke e2e 11 (3 new navigation tests), signed-in e2e on the emulators 54 (4 new Today and desk-book tests) in 16.0 min, entry chunk 132.97 KB of 135, room load 10.7 MB with 0 page errors, no Functions-emulator load errors. Total 19 min 10 s. First attempt on this tree, no worker-exit hang.
+
 ## Phase 2 gate
 
-**Verdict: not passed.** Task 2.8 is not built (waiting for Q2.8-a), and the two beta items (retention, interviews) are yours. Everything else below passed on the emulators; what could not be checked from this machine is marked ⏳.
+**Verdict: not passed yet.** All ten tasks are built and every acceptance item below passed on the emulators (2.8 with your change of screenshot sizes). Open: the two beta items (retention, interviews), which are yours, and everything that can only be checked in your real environment, marked ⏳.
 
 ### Acceptance items 2.1–2.10
 
@@ -230,22 +254,27 @@ How many runs it took (so the green is not read as "first try"): of the four ful
 | 2.6 | Fewer than 10 placed books → no "You read most from…" | ✅ | same spec, 5-book case; unit test of the gate |
 | 2.7 | A two-character Chinese word only in a highlight's text is found | ✅ | `tests/global-search.test.ts`, `global-search.spec.ts` |
 | 2.7 | 2,000 highlights: index < 1 s, query < 50 ms | ✅ | 326 ms / 17.5 ms measured in this session |
-| 2.8 | Nav items visible and not overlapping at 390 / 768 / 1440 | ❌ not done | **Not built; waiting for Q2.8-a.** At 390 px the top nav still shows only the Map icon |
-| 2.8 | The desk book opens the signed-in user's reading book (e2e) | ❌ not done | same. Today the desk book already opens the reading book or Add Book (Q1.5-d), but that was Phase 1 behaviour and has no 2.8 test |
-| 2.8 | Old hashes reach the new pages | ❌ not done | same; nothing was renamed, so nothing has moved |
+| 2.8 | Nav items visible and not overlapping at three sizes | ✅ at landscape sizes | `tests/e2e/navigation.spec.ts`, screenshots `2.8-nav-*`. The plan's 390 px was dropped by your decision (phones are not a target); 1024×768, 1180×820, 1440×900 and 880×1100 are tested |
+| 2.8 | The desk book opens the signed-in user's reading book (e2e) | ✅ | `today.spec.ts`: real click on the 3D desk book; also the Add Book case |
+| 2.8 | Old hashes reach the new pages | ✅ | `navigation.spec.ts`: `#search`, `#library`, `#shelf`, `#studio` |
 | 2.9 | Entry button visible within 1 s, in the first screen at 390 px, Tab-focusable | ✅ | `tests/e2e/landing.spec.ts` |
 | 2.9 | Guide can be skipped; never appears again after finishing or skipping | ✅ | `onboarding.spec.ts` (4 tests, including a second browser) |
 | 2.10 | Walk signup → add → highlight → finish; each event once in PostHog | ✅ emulator with a fake key, ⏳ real PostHog | `analytics-events.spec.ts`. Dashboards (funnel, weekly active) are not created: they need your key (Q2.10-a) |
 
 ### The plan's own gate list
 
-- [ ] 2.1–2.10 acceptance items all ticked. **Not met:** 2.8.
+- [x] 2.1–2.10 acceptance items all ticked on the emulators. ⏳ items remain for your real environment (listed under "What you need to do").
 - [ ] About 20 beta users (free Pro), at least half active in week 4. Yours; not marked.
 - [ ] At least 5 interviews of 20 minutes, conclusions written here. Yours; not marked. The guide is `docs/interview-guide.md`.
 - Per the plan, Phase 3 does not start until all of this is met.
 
 ### What you need to do
 
+0. **Before you look at the real account (nothing here was done by me).** A push to `main` runs CI and then publishes the frontend to GitHub Pages with your production Firebase secrets; it does not touch Firebase. The new frontend needs, in this order:
+   1. `firestore.rules` deployed first (Q1.9-a; the rules differ from `main` by six lines, and the new paths are covered by `tests/path-cases.ts`).
+   2. Cloud Functions deployed (`aiGenerate`, `resolveBookGeo`, `resolveReadingPlace`, `emailAction`, `weeklyDigest` and the unchanged ones). The deploy needs these secrets to exist: `AI_API_KEY`, `EMAIL_LINK_SECRET`, `LEMON_SQUEEZY_WEBHOOK_SECRET`, `LEMON_SQUEEZY_VARIANT_LIFETIME`; and these settings: `ALLOWED_ORIGINS` (the origin you serve the app from; the repo has both a GitHub Pages workflow and a Vercel config), `WORKSPACE_ID` (must match the app's, Q1.9-c), `APP_BASE_URL`, `EMAIL_ACTION_BASE_URL`, `WIKIDATA_CONTACT` (Q2.6-a). Without them the pre-read card, finish card, automatic map placement and email links cannot work.
+   3. Migrations, dry run first (the default), dev project first: `scripts/migrations/001-billing.ts` needs your paid-user list (Q1.1-a) and sets everyone not on it to free; `002-resurface-fields.ts` backfills the review schedule on existing highlights (Q2.4-e).
+   Until steps 1 and 2 are done, anything that uses a new collection or a new function will fail in the real app, so a failure there is not yet evidence of a bug.
 1. **Switch on email.** Pick a provider and sender domain, set the DNS and the secrets, add the sender in `createEmailSender()`. The exact list is Q2.4-a. Until then the weekly job logs and sends nothing.
 2. **Decide how beta users get free Pro (Q2-gate-a), then invite about 20 of them.** No mechanism exists today. Tell them to accept analytics (Q2.10-b) and to switch the weekly email on (Q2.4-b). Deploying the functions, the rules and migration 002 (Q2.4-e, Q1.9-a) is also yours.
 3. **Check PostHog.** Run `npm run analytics:dashboards -- --apply` with `POSTHOG_PERSONAL_API_KEY` and `POSTHOG_PROJECT_ID` (the payloads were never run against a real project), then walk signup → add → highlight → finish once on the dev project and confirm each event appears once.
@@ -254,8 +283,8 @@ How many runs it took (so the green is not read as "first try"): of the four ful
 
 ### Open questions waiting for you (all in `docs/open-questions.md`)
 
-- **Blocks work:** Q2.8-a navigation structure (four answers: Library / Insights / Profile and Today in the room; bottom tab bar on phones; year in review in Insights or Profile; phones land on the room or on a flat Today page).
+- **Decided:** Q2.8-a (option B; phones are not a target).
 - **Blocks real operation or launch:** Q2.4-a email provider; Q2.10-a PostHog key; Q2.6-a `WIKIDATA_CONTACT` and the privacy rows for Wikimedia and OpenStreetMap; Q2.4-e production run of migration 002; Q2-gate-a free Pro for beta users; Q1.1-a paid-user list for migration 001; Q1.8-a Privacy and Terms text; Q1.2-c `ALLOWED_ORIGINS`.
 - **Your decision:** Q2.0-a usernames; Q2.2-a (one of ten free generations per added book); Q2.2-b context length; Q2.4-c mail scanners; Q2.4-d UTC weekday; Q2.5-c import defaults; Q2.10-b, Q2.10-c analytics scope; Q1.2-a pricing and the Pro fair-use cap; Q1.8-b DeepSeek and the China data flow; Q1.9-b what a public profile shows; Q1.7-a rewriting git history.
-- **Confirm a default I chose:** Q2.3-a, Q2.4-b (weekly email is opt-in), Q2.5-b, Q2.6-c, Q2.9-a, Q2.10-d, Q1.5-a/b.
+- **Confirm a default I chose:** Q2.8-b (what I built for 2.8), Q2.3-a, Q2.4-b (weekly email is opt-in), Q2.5-b, Q2.6-c, Q2.9-a, Q2.10-d, Q1.5-a/b.
 - **Needs your eyes or a real file:** Q2.2-c, Q2.5-a (one real export of each format), Q2.6-b, Q1.6-a, Q1.6-b.
