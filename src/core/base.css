@@ -223,6 +223,27 @@
 
   /* Type scale: 11 / 12 / 14 / 16 / 20 / 28 / 40 (the other --fs-* steps are legacy and go when the last page is migrated) */
   --fs-40:  40px;
+  /* Shelf spines: type tied to the spine geometry (shared/shelf-utils.ts, library-2d), outside the body scale. */
+  --fs-spine: 10px;
+  --fs-spine-fine: 6px;
+  --fs-cover-fine: 8px;
+
+  /* Wood shades for the shelf body gradient (the shelf tint is mixed with these, so the light-to-dark layering stays) */
+  --shelf-shade-deep: #2a1d11;
+  --shelf-shade-dark: #3b2b1c;
+  --shelf-shade-mid:  #5f462c;
+
+  /* Data colours: shelf tint picker and the info (blue) status */
+  --shelf-tint-default: #8f6f44;
+  --swatch-coral:  #ff5f6d;
+  --swatch-sky:    #57d2ff;
+  --swatch-violet: #8d7dff;
+  --swatch-pink:   #ff8ad8;
+  --swatch-orange: #ffc371;
+  --swatch-yellow: #ffe066;
+  --swatch-green:  #8cff66;
+  --status-info:      #5c90bb;
+  --status-info-soft: #b8d5ef;
   /* Display numerals (--fs-48, --fs-72) stay as a separate tier outside the body scale. */
 }
 

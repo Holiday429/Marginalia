@@ -1,6 +1,6 @@
 /* Marginalia · global search panel */
 
-.gs-backdrop { position: fixed; inset: 0; z-index: 9000; background: rgba(21, 18, 16, 0.6); }
+.gs-backdrop { position: fixed; inset: 0; z-index: 9000; background: color-mix(in srgb, var(--color-ink-deep) 60%, transparent); }
 
 .gs-dialog {
   position: fixed;
@@ -31,7 +31,7 @@
   background: transparent;
   color: var(--color-ivory-text);
   font-family: var(--font-serif);
-  font-size: 18px;
+  font-size: var(--fs-20);
 }
 
 .gs-input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }

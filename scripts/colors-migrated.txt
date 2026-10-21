@@ -7,3 +7,8 @@ src/components/quick-capture/captures-drawer.css
 src/components/notes-wall/notes-wall.css
 src/components/hero-book/hero-book.css
 src/components/consent-banner/consent-banner.css
+src/search/search.css
+src/search/global/global-search.css
+src/library-2d/library-2d.css
+src/new-entry/new-entry.css
+src/components/library-mode-switch/library-mode-switch.css
