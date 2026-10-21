@@ -56,7 +56,7 @@ import { renderTabEmptyState } from '../../components/empty-state/empty-state.ts
               maxlength="400"
               aria-label="New action"
             />
-            <button class="actions-add-btn" type="submit">Add</button>
+            <button class="btn btn--sm actions-add-btn" type="submit">Add</button>
           </form>
 
           ${resolved.length > 0 ? `
@@ -104,10 +104,10 @@ import { renderTabEmptyState } from '../../components/empty-state/empty-state.ts
           <span class="actions-item-text ${isDone ? 'actions-item-text--done' : ''}">${escHtml(action.text)}</span>
           ${!isResolved ? `
             <div class="actions-item-controls">
-              <button class="actions-ctrl-btn" data-action-snooze="${action.id}" title="${snoozeLabel}">
+              <button class="btn btn--quiet btn--sm actions-ctrl-btn" data-action-snooze="${action.id}" title="${snoozeLabel}">
                 ${isSnoozed ? '⏸' : '⏱'}
               </button>
-              <button class="actions-ctrl-btn actions-ctrl-btn--archive" data-action-archive="${action.id}" title="Archive">
+              <button class="btn btn--quiet btn--sm actions-ctrl-btn actions-ctrl-btn--archive" data-action-archive="${action.id}" title="Archive">
                 ×
               </button>
             </div>

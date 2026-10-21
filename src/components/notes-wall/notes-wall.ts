@@ -274,7 +274,7 @@ export function createNotesWallComponent(): SlotComponent {
               }
             </ul>
           </button>
-          <button class="todo-paper__add" type="button" data-add-todo>+ Add Line</button>
+          <button class="btn btn--sm todo-paper__add" type="button" data-add-todo>+ Add Line</button>
         </div>
       </section>
     `;
@@ -322,7 +322,7 @@ export function createNotesWallComponent(): SlotComponent {
 
     return `
       <article class="notes-overlay__card notes-overlay__card--quote" data-overlay-card>
-        <button class="notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
+        <button class="btn btn--icon btn--sm notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
         <div class="quote-detail">
           <div class="quote-detail__header">
             <span class="quote-detail__eyebrow">Quotes of the Day</span>
@@ -361,15 +361,15 @@ export function createNotesWallComponent(): SlotComponent {
                 ? `
                   <form class="rs-thought" data-rs-thought-form>
                     <textarea class="rs-thought__input" rows="2" maxlength="400" placeholder="What do you think now?" aria-label="Add a thought"></textarea>
-                    <button type="submit" class="rs-btn rs-btn--primary">Save thought</button>
-                    <button type="button" class="rs-btn" data-rs-thought-cancel>Cancel</button>
+                    <button type="submit" class="btn btn--primary rs-btn rs-btn--primary">Save thought</button>
+                    <button type="button" class="btn rs-btn" data-rs-thought-cancel>Cancel</button>
                   </form>`
                 : `
                   <div class="rs-actions">
-                    <button type="button" class="rs-btn" data-rs-rate="resonates">Still holds</button>
-                    <button type="button" class="rs-btn" data-rs-rate="thought">Add a thought</button>
-                    <button type="button" class="rs-btn" data-rs-rate="action">Turn into action</button>
-                    <button type="button" class="rs-btn" data-rs-rate="dismiss">Stop reminding</button>
+                    <button type="button" class="btn rs-btn" data-rs-rate="resonates">Still holds</button>
+                    <button type="button" class="btn rs-btn" data-rs-rate="thought">Add a thought</button>
+                    <button type="button" class="btn rs-btn" data-rs-rate="action">Turn into action</button>
+                    <button type="button" class="btn rs-btn" data-rs-rate="dismiss">Stop reminding</button>
                   </div>`
             }
           </li>`).join('')}
@@ -379,7 +379,7 @@ export function createNotesWallComponent(): SlotComponent {
   function renderTodoOverlay(data: WallData): string {
     return `
       <article class="notes-overlay__card notes-overlay__card--todo" data-overlay-card>
-        <button class="notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
+        <button class="btn btn--icon btn--sm notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
         <div class="todo-detail">
           <header class="todo-detail__head">
             <span class="todo-detail__eyebrow">To Do</span>
@@ -412,7 +412,7 @@ export function createNotesWallComponent(): SlotComponent {
                 `
             }
           </ul>
-          <button class="todo-detail__add" type="button" data-add-todo>+ Add Line</button>
+          <button class="btn btn--sm todo-detail__add" type="button" data-add-todo>+ Add Line</button>
         </div>
       </article>
     `;
@@ -434,7 +434,7 @@ export function createNotesWallComponent(): SlotComponent {
         data-overlay-card
         style="--sticky-bg:${getFollowUpColor(item.id)}"
       >
-        <button class="notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
+        <button class="btn btn--icon btn--sm notes-overlay__close" type="button" data-close-overlay aria-label="Close detail">x</button>
         <div class="followup-detail">
           <span class="followup-detail__pin" aria-hidden="true"></span>
           <span class="followup-detail__eyebrow">${esc(getFollowUpAgeLabel(item.createdAt))}</span>
@@ -451,7 +451,7 @@ export function createNotesWallComponent(): SlotComponent {
               : `<p class="followup-detail__body">${esc(item.text)}</p>`
           }
           <div class="followup-detail__actions">
-            <button class="followup-detail__done" type="button" data-complete-followup="${esc(item.id)}">Mark Complete</button>
+            <button class="btn btn--sm followup-detail__done" type="button" data-complete-followup="${esc(item.id)}">Mark Complete</button>
             ${
               item.source === 'todo'
                 ? '<span class="followup-detail__hint">Editable Note</span>'

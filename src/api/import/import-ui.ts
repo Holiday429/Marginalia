@@ -49,7 +49,7 @@ export function openImportDialog(): void {
 
   const shell = (body: string) => {
     dialog!.innerHTML = `
-      <header class="imp-head"><h2 class="imp-title">Import your reading</h2><button type="button" class="imp-close" data-imp-close aria-label="Close">×</button></header>
+      <header class="imp-head"><h2 class="imp-title">Import your reading</h2><button type="button" class="btn btn--icon btn--sm imp-close" data-imp-close aria-label="Close">×</button></header>
       ${body}`;
   };
 
@@ -68,7 +68,7 @@ export function openImportDialog(): void {
       <label class="imp-label" for="impPaste">Or paste text</label>
       <textarea class="imp-paste" id="impPaste" rows="5" placeholder="Paste exported notes here" data-imp-paste>${esc(pasted)}</textarea>
       <p class="imp-error" role="alert" data-imp-error ${message ? '' : 'hidden'}>${esc(message)}</p>
-      <footer class="imp-foot"><span></span><button type="button" class="imp-primary" data-imp-preview ${signedIn ? '' : 'disabled'}>Preview</button></footer>`);
+      <footer class="imp-foot"><span></span><button type="button" class="btn btn--primary imp-primary" data-imp-preview ${signedIn ? '' : 'disabled'}>Preview</button></footer>`);
   };
 
   const renderPreview = () => {
@@ -89,8 +89,8 @@ export function openImportDialog(): void {
       ${parsed.warnings.length ? `<details class="imp-warnings"><summary>${parsed.warnings.length} notes about this file</summary><ul>${parsed.warnings.slice(0, 50).map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>` : ''}
       <ul class="imp-list" data-imp-list>${rows}</ul>
       <footer class="imp-foot">
-        <button type="button" class="imp-secondary" data-imp-back>Back</button>
-        <button type="button" class="imp-primary" data-imp-confirm ${chosen.length ? '' : 'disabled'}>${chosen.length ? `Import ${chosen.length} ${chosen.length === 1 ? 'book' : 'books'}` : 'Nothing to import'}</button>
+        <button type="button" class="btn imp-secondary" data-imp-back>Back</button>
+        <button type="button" class="btn btn--primary imp-primary" data-imp-confirm ${chosen.length ? '' : 'disabled'}>${chosen.length ? `Import ${chosen.length} ${chosen.length === 1 ? 'book' : 'books'}` : 'Nothing to import'}</button>
       </footer>`);
   };
 
@@ -101,7 +101,7 @@ export function openImportDialog(): void {
   const renderDone = (o: ImportOutcome) => {
     shell(`
       <p class="imp-summary" role="status" data-imp-done>Done. ${o.createdBookIds.length} new ${o.createdBookIds.length === 1 ? 'book' : 'books'}${o.mergedBooks ? `, ${o.mergedBooks} existing ${o.mergedBooks === 1 ? 'book' : 'books'} with new highlights` : ''}, ${o.highlights} highlights.</p>
-      <footer class="imp-foot"><span></span><button type="button" class="imp-primary" data-imp-close>Close</button></footer>`);
+      <footer class="imp-foot"><span></span><button type="button" class="btn btn--primary imp-primary" data-imp-close>Close</button></footer>`);
   };
 
   const readFile = (file: File): Promise<string> => new Promise((resolve, reject) => {

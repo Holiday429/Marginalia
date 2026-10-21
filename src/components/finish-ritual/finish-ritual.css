@@ -37,15 +37,7 @@
 
 .fr-skip,
 .fr-back {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-decoration: underline;
   text-underline-offset: 3px;
-  cursor: pointer;
 }
 
 .fr-book { margin: 0 0 14px; font-size: var(--fs-14); color: var(--color-taupe); line-height: 1.5; }
@@ -74,18 +66,6 @@
   align-items: center;
   justify-content: space-between;
   margin-top: 14px;
-}
-
-.fr-next {
-  min-height: 48px;
-  padding: 0 20px;
-  border: 0;
-  border-radius: 4px;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-serif);
-  font-size: var(--fs-16);
-  cursor: pointer;
 }
 
 .fr-skip:focus-visible,

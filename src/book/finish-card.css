@@ -30,19 +30,3 @@
 .finish-card__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 .finish-card .finish-card__date { font-family: var(--font-mono); font-size: var(--fs-11); color: var(--color-ink-soft); }
-
-.finish-card__btn {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--rule-strong);
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
-  font-family: var(--font-mono);
-  font-size: var(--fs-12);
-  cursor: pointer;
-}
-
-.finish-card__btn:disabled { opacity: 0.6; cursor: default; }
-
-.finish-card__btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }

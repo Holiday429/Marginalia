@@ -24,8 +24,8 @@ export function openConsentBanner(): void {
       Nothing is sent unless you accept. <a href="${asset('privacy/')}">Privacy policy</a>
     </p>
     <div class="consent-banner__actions">
-      <button class="consent-banner__btn" type="button" data-consent="denied">Decline</button>
-      <button class="consent-banner__btn consent-banner__btn--primary" type="button" data-consent="granted">Accept</button>
+      <button class="btn btn--sm consent-banner__btn" type="button" data-consent="denied">Decline</button>
+      <button class="btn btn--sm btn--primary consent-banner__btn consent-banner__btn--primary" type="button" data-consent="granted">Accept</button>
     </div>`;
   bar.addEventListener('click', (event) => {
     const choice = (event.target as HTMLElement).closest<HTMLElement>('[data-consent]')?.dataset.consent;

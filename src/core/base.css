@@ -414,12 +414,13 @@ body {
   z-index: 0;
 }
 
-.tool-page-shell :is(button, input, select, textarea) {
+/* Buttons that use the shared component (.btn, .chip) own their frame; this is for the rest. */
+.tool-page-shell :is(button:where(:not(.btn, .chip)), input, select, textarea) {
   border-width: var(--ui-border-width);
   border-color: var(--ui-border-color);
 }
 
-.tool-page-shell :is(button, input, select, textarea):hover {
+.tool-page-shell :is(button:where(:not(.btn, .chip)), input, select, textarea):hover {
   border-color: var(--ui-border-strong);
 }
 

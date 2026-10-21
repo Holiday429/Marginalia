@@ -94,19 +94,6 @@
   align-items: center;
   justify-content: center;
   width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--muted);
-  font-size: var(--fs-14);
-  cursor: pointer;
-  transition: background 100ms ease, color 100ms ease;
-}
-
-.actions-ctrl-btn:hover {
-  background: color-mix(in srgb, var(--color-ink-deep) 8%, transparent);
-  color: var(--ink);
 }
 
 .actions-ctrl-btn--archive:hover {
@@ -152,21 +139,7 @@
 }
 
 .actions-add-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  background: none;
-  color: var(--muted);
-  font-family: var(--font-serif);
-  font-size: var(--fs-14);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
   white-space: nowrap;
-}
-
-.actions-add-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 /* ── Resolved section ───────────────────────────────────────────────────── */

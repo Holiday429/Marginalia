@@ -23,11 +23,3 @@
 .legal-links__link:focus-visible {
   opacity: 1;
 }
-
-.legal-links__btn {
-  background: none;
-  border: none;
-  font: inherit;
-  letter-spacing: inherit;
-  cursor: pointer;
-}

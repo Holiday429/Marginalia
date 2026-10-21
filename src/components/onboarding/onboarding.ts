@@ -65,14 +65,14 @@ export function showOnboarding(uid: string): void {
     const p = progress();
     const { steps, current, allDone } = guideSteps(p);
     if (minimized) {
-      root.innerHTML = `<button type="button" class="ob-pill" data-ob-open aria-label="Open the getting started guide">Getting started · ${steps.filter((s) => s.done).length} of 3</button>`;
+      root.innerHTML = `<button type="button" class="chip ob-pill" data-ob-open aria-label="Open the getting started guide">Getting started · ${steps.filter((s) => s.done).length} of 3</button>`;
       return;
     }
     if (allDone) {
       root.innerHTML = `
         <header class="ob-head"><h2 class="ob-title">You are all set</h2></header>
         <p class="ob-text">Press C anywhere to capture a thought, and Ctrl or Cmd with K to search everything.</p>
-        <div class="ob-actions"><button type="button" class="ob-btn ob-btn--primary" data-ob-finish>Close</button></div>`;
+        <div class="ob-actions"><button type="button" class="btn btn--primary ob-btn ob-btn--primary" data-ob-finish>Close</button></div>`;
       return;
     }
     const row = (i: number, title: string, hint: string, actions: string) => `
@@ -86,17 +86,17 @@ export function showOnboarding(uid: string): void {
     root.innerHTML = `
       <header class="ob-head">
         <h2 class="ob-title">Getting started</h2>
-        <button type="button" class="ob-min" data-ob-min aria-label="Minimise the guide">–</button>
+        <button type="button" class="btn btn--quiet btn--sm ob-min" data-ob-min aria-label="Minimise the guide">–</button>
       </header>
       <ol class="ob-steps">
         ${row(0, `Add or import ${GUIDE_BOOKS} books`, `${Math.min(p.books, GUIDE_BOOKS)} of ${GUIDE_BOOKS} so far. Import brings a whole library at once.`,
-          '<button type="button" class="ob-btn ob-btn--primary" data-ob-add>Add a book</button><button type="button" class="ob-btn" data-ob-import>Import</button>')}
+          '<button type="button" class="btn btn--primary ob-btn ob-btn--primary" data-ob-add>Add a book</button><button type="button" class="btn ob-btn" data-ob-import>Import</button>')}
         ${row(1, 'Save your first highlight', 'A line that stayed with you. Press C on any page, or open a book and add one.',
-          '<button type="button" class="ob-btn ob-btn--primary" data-ob-capture>Capture one</button>')}
+          '<button type="button" class="btn btn--primary ob-btn ob-btn--primary" data-ob-capture>Capture one</button>')}
         ${row(2, 'See your room and your map', `${seen.room ? 'Room seen. ' : ''}${seen.map ? 'Map seen. ' : ''}Your books are on the shelves and your authors on the map.`,
           `<button type="button" class="ob-btn${seen.room ? '' : ' ob-btn--primary'}" data-ob-room>${seen.room ? 'Room ✓' : 'Open the room'}</button><button type="button" class="ob-btn${seen.map ? '' : ' ob-btn--primary'}" data-ob-map>${seen.map ? 'Map ✓' : 'Open the map'}</button>`)}
       </ol>
-      <button type="button" class="ob-skip" data-ob-skip>Skip the guide</button>`;
+      <button type="button" class="btn btn--quiet ob-skip" data-ob-skip>Skip the guide</button>`;
   };
 
   const end = async (state: 'done' | 'skipped') => {

@@ -23,7 +23,7 @@ export function renderFinishCardBlock(state: FinishBlockState): string {
         ${card.tags.length ? `<div class="finish-card__tags">${card.tags.map((t) => `<span class="finish-card__tag">${esc(t)}</span>`).join('')}</div>` : ''}
         <div class="finish-card__foot">
           ${date ? `<span class="finish-card__date">${esc(date)}</span>` : '<span></span>'}
-          <button type="button" class="finish-card__btn" data-fc-export>Export as image</button>
+          <button type="button" class="btn finish-card__btn" data-fc-export>Export as image</button>
         </div>
       </article>`;
   }
@@ -31,14 +31,14 @@ export function renderFinishCardBlock(state: FinishBlockState): string {
     return `
       <div class="finish-card finish-card--pending" data-finish-card-pending>
         <p class="finish-card__synthesis">Your answers are saved, but the finish card has not been written yet.</p>
-        <button type="button" class="finish-card__btn" data-fc-generate>Write the finish card</button>
+        <button type="button" class="btn finish-card__btn" data-fc-generate>Write the finish card</button>
       </div>`;
   }
   if (isFinished) {
     return `
       <div class="finish-card finish-card--prompt" data-finish-card-prompt>
         <p class="finish-card__synthesis">You finished this book. Answer three short questions and get a card that sums up what it meant to you.</p>
-        <button type="button" class="finish-card__btn" data-fc-start>Write a finish reflection</button>
+        <button type="button" class="btn finish-card__btn" data-fc-start>Write a finish reflection</button>
       </div>`;
   }
   return '';

@@ -328,23 +328,6 @@
   color: color-mix(in srgb, var(--color-umber) 66%, transparent);
 }
 
-.todo-paper__add,
-.todo-detail__add,
-.followup-detail__done,
-.notes-overlay__close {
-  border: none;
-  cursor: pointer;
-}
-
-.todo-paper__add {
-  padding: 0;
-  background: transparent;
-  font-family: var(--font-mono);
-  font-size: var(--fs-12);
-  letter-spacing: 0.08em;
-  color: color-mix(in srgb, var(--color-umber) 76%, transparent);
-}
-
 .followup-cluster {
   display: grid;
   grid-template-columns: repeat(2, 106px);
@@ -439,12 +422,6 @@
   right: 12px;
   z-index: 2;
   width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-umber) 16%, transparent);
-  color: color-mix(in srgb, var(--color-umber) 90%, transparent);
-  font-family: var(--font-mono);
-  font-size: var(--fs-20);
 }
 
 .notes-overlay__card--quote {
@@ -612,12 +589,6 @@
 
 .todo-detail__add {
   margin: 18px 0 0 18px;
-  padding: 0;
-  background: transparent;
-  font-family: var(--font-mono);
-  font-size: var(--fs-12);
-  letter-spacing: 0.12em;
-  color: color-mix(in srgb, var(--color-umber) 82%, transparent);
 }
 
 .notes-overlay__card--followup {
@@ -657,16 +628,6 @@
   justify-content: space-between;
   gap: 12px;
   margin-top: 20px;
-}
-
-.followup-detail__done {
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-umber) 90%, transparent);
-  color: var(--color-ivory-text);
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.12em;
 }
 
 .followup-detail__hint {
@@ -735,20 +696,6 @@
 .rs-source { margin: 0 0 10px; font-family: var(--font-mono); font-size: var(--fs-11); color: var(--muted); }
 
 .rs-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.rs-btn {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--rule-strong);
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
-  font-family: var(--font-mono);
-  font-size: var(--fs-12);
-  cursor: pointer;
-}
-
-.rs-btn--primary { background: var(--color-ink); color: var(--color-paper); }
 
 .rs-thought { display: grid; gap: 8px; }
 

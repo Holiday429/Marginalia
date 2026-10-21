@@ -1089,7 +1089,7 @@ function renderReadingCardModal() {
   return `
     <div class="reading-card-modal" data-reading-card-modal hidden>
       <div class="reading-card-modal__panel" data-reading-card-modal-panel>
-        <button class="reading-card-modal__close" type="button" data-close-reading-card-modal aria-label="Close reading card">×</button>
+        <button class="btn btn--icon btn--sm reading-card-modal__close" type="button" data-close-reading-card-modal aria-label="Close reading card">×</button>
         <div class="reading-card-modal__body" data-reading-card-modal-body>
           <div class="reading-card-modal__loading" data-reading-card-loading>
             <div class="reading-card-modal__hero" data-reading-card-hero aria-hidden="true"></div>
@@ -1204,13 +1204,13 @@ function renderOverview(b) {
             if (isReadOnly) return `<span class="ov-tag ov-tag--static" style="--tag-bg:${c.bg};--tag-color:${c.color}">${esc(t)}</span>`;
             return `<button class="ov-tag" type="button" data-remove-tag="${esc(t)}" style="--tag-bg:${c.bg};--tag-color:${c.color}" title="Click to remove">${esc(t)}</button>`;
           }).join('')}
-          ${isReadOnly ? '' : '<button class="ov-tag-add" type="button" data-add-tag aria-label="Add tag">+</button>'}
+          ${isReadOnly ? '' : '<button class="btn btn--icon btn--sm ov-tag-add" type="button" data-add-tag aria-label="Add tag">+</button>'}
         </div>
         ${isReadOnly ? '' : `
           <form class="ov-tag-form" data-tag-form hidden>
             <input class="ov-tag-input" type="text" placeholder="Tag name…" maxlength="32" data-tag-input>
-            <button class="ov-tag-form-save" type="submit">Add</button>
-            <button class="ov-tag-form-cancel" type="button" data-cancel-tag>Cancel</button>
+            <button class="btn btn--primary btn--sm ov-tag-form-save" type="submit">Add</button>
+            <button class="btn btn--quiet btn--sm ov-tag-form-cancel" type="button" data-cancel-tag>Cancel</button>
           </form>`}
       </div>
     </div>`;
@@ -1257,14 +1257,14 @@ function renderOverview(b) {
       <div class="ov-field-val" data-ext-link-field>
         ${extUrl
           ? `<a class="ov-link" href="${esc(extUrl)}" target="_blank" rel="noopener">${esc(extUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 38))}${extUrl.length > 42 ? '…' : ''}</a>
-             ${isReadOnly ? '' : '<button class="ov-field-edit-btn" type="button" data-edit-ext-link>Edit</button>'}`
-          : (isReadOnly ? '' : '<button class="ov-field-add-btn" type="button" data-edit-ext-link>Add link</button>')
+             ${isReadOnly ? '' : '<button class="btn btn--quiet btn--sm ov-field-edit-btn" type="button" data-edit-ext-link>Edit</button>'}`
+          : (isReadOnly ? '' : '<button class="btn btn--quiet btn--sm ov-field-add-btn" type="button" data-edit-ext-link>Add link</button>')
         }
         ${isReadOnly ? '' : `
           <form class="ov-douban-form" data-ext-link-form hidden>
             <input class="ov-douban-input" type="url" placeholder="https://…" value="${esc(extUrl)}" data-ext-link-input>
-            <button class="ov-tag-form-save" type="submit">Save</button>
-            <button class="ov-tag-form-cancel" type="button" data-cancel-ext-link>Cancel</button>
+            <button class="btn btn--primary btn--sm ov-tag-form-save" type="submit">Save</button>
+            <button class="btn btn--quiet btn--sm ov-tag-form-cancel" type="button" data-cancel-ext-link>Cancel</button>
           </form>`}
       </div>
     </div>` : '';
@@ -1302,7 +1302,7 @@ function renderOverview(b) {
           </div>
           ${isReadOnly ? '' : `
             <div class="book-cover-tools">
-              <button type="button" class="book-cover-upload-btn" data-upload-cover-btn>Upload cover</button>
+              <button type="button" class="btn btn--sm book-cover-upload-btn" data-upload-cover-btn>Upload cover</button>
               <span class="book-cover-upload-status" data-upload-cover-status></span>
               <input type="file" accept="image/*" data-upload-cover-input hidden>
             </div>`}
@@ -1328,8 +1328,8 @@ function renderOverview(b) {
 
           ${!isReadOnly ? `
             <div class="book-edit-actions">
-              <button class="book-edit-info-btn" type="button" data-edit-book-info="${esc(b.id)}">Edit book info</button>
-              ${isUserBook(b) ? `<button class="book-delete-btn" type="button" data-delete-book="${esc(b.id)}">Remove book</button>` : ''}
+              <button class="btn btn--quiet btn--sm book-edit-info-btn" type="button" data-edit-book-info="${esc(b.id)}">Edit book info</button>
+              ${isUserBook(b) ? `<button class="btn btn--danger btn--sm book-delete-btn" type="button" data-delete-book="${esc(b.id)}">Remove book</button>` : ''}
             </div>` : ''}
         </div>
 
@@ -1384,8 +1384,8 @@ function renderAuthorOrigin(b, isReadOnly) {
   const pending = !isReadOnly && b.geoStatus === 'pending';
   return `<span data-author-origin>${esc(place)}</span>${pending ? `
     <span class="ov-geo-pending" data-geo-pending>To confirm</span>
-    <button class="ov-field-add-btn" type="button" data-geo-confirm>Confirm</button>
-    <button class="ov-field-edit-btn" type="button" data-geo-edit>Change</button>` : ''}`;
+    <button class="btn btn--quiet btn--sm ov-field-add-btn" type="button" data-geo-confirm>Confirm</button>
+    <button class="btn btn--quiet btn--sm ov-field-edit-btn" type="button" data-geo-edit>Change</button>` : ''}`;
 }
 
 /** What the reader sees while the pre-read card is not on the page yet (the finished card is injected by AIGenerateUI). */
@@ -1447,8 +1447,8 @@ function renderHighlights(b) {
         <h2 class="book-section-title">Highlights</h2>
         ${isReadOnly ? '' : `
           <div class="sh-actions">
-            <button class="hl-add-btn" type="button" id="hlAddBtn">+ Add highlight</button>
-            <button class="hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
+            <button class="btn btn--sm hl-add-btn" type="button" id="hlAddBtn">+ Add highlight</button>
+            <button class="btn btn--sm hl-add-btn" type="button" id="hlKindleBtn">Import from Kindle</button>
           </div>`}
       </div>
       ${isReadOnly ? '' : `
@@ -1484,8 +1484,8 @@ function renderHighlights(b) {
           </div>
           <p class="hl-form-error" id="hlFormError" role="alert" hidden></p>
           <div class="hl-form-actions">
-            <button class="hl-form-save" type="submit">Save</button>
-            <button class="hl-form-cancel" type="button" id="hlFormCancel">Cancel</button>
+            <button class="btn btn--primary btn--sm hl-form-save" type="submit">Save</button>
+            <button class="btn btn--quiet btn--sm hl-form-cancel" type="button" id="hlFormCancel">Cancel</button>
           </div>
         </form>`}
       ${items.length ? `
@@ -1511,19 +1511,19 @@ function renderHighlightItem(h, i, readOnly = false) {
         <div class="hl-comment" data-hl-comment data-has-comment="${hasComment ? '1' : '0'}"${hasComment ? '' : ' hidden'}>
           <div class="hl-comment-head">
             ${hasComment ? `
-              <button class="hl-comment-toggle" type="button" data-hl-comment-toggle aria-expanded="true">
+              <button class="btn btn--quiet btn--sm hl-comment-toggle" type="button" data-hl-comment-toggle aria-expanded="true">
                 <svg class="hl-comment-chevron" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 Comment
               </button>` : '<span class="hl-comment-label">Comment</span>'}
             ${editable && hasComment ? `
               <span class="hl-comment-actions">
-                <button class="hl-link-btn" type="button" data-hl-comment-edit>Edit</button>
+                <button class="btn btn--quiet btn--sm hl-link-btn" type="button" data-hl-comment-edit>Edit</button>
                 <span class="hl-confirmable">
-                  <button class="hl-link-btn hl-link-btn--danger" type="button" data-confirm-ask>Delete</button>
+                  <button class="btn btn--quiet btn--sm btn--danger hl-link-btn hl-link-btn--danger" type="button" data-confirm-ask>Delete</button>
                   <span class="hl-confirm" data-confirm-box hidden>
                     Delete comment?
-                    <button class="hl-link-btn hl-link-btn--danger" type="button" data-hl-comment-delete>Delete</button>
-                    <button class="hl-link-btn" type="button" data-confirm-cancel>Cancel</button>
+                    <button class="btn btn--quiet btn--sm btn--danger hl-link-btn hl-link-btn--danger" type="button" data-hl-comment-delete>Delete</button>
+                    <button class="btn btn--quiet btn--sm hl-link-btn" type="button" data-confirm-cancel>Cancel</button>
                   </span>
                 </span>
               </span>` : ''}
@@ -1534,20 +1534,20 @@ function renderHighlightItem(h, i, readOnly = false) {
               <textarea class="hl-form-textarea" rows="3" placeholder="Your own comment…">${esc(h.annotation || '')}</textarea>
               <p class="hl-form-error" role="alert" hidden></p>
               <div class="hl-form-actions">
-                <button class="hl-form-save" type="submit">Save</button>
-                <button class="hl-form-cancel" type="button" data-hl-comment-cancel>Cancel</button>
+                <button class="btn btn--primary btn--sm hl-form-save" type="submit">Save</button>
+                <button class="btn btn--quiet btn--sm hl-form-cancel" type="button" data-hl-comment-cancel>Cancel</button>
               </div>
             </form>` : ''}
         </div>
         ${editable ? `
           <div class="hl-item-actions">
-            ${hasComment ? '' : '<button class="hl-link-btn" type="button" data-hl-comment-add>Add comment</button>'}
+            ${hasComment ? '' : '<button class="btn btn--quiet btn--sm hl-link-btn" type="button" data-hl-comment-add>Add comment</button>'}
             <span class="hl-confirmable">
-              <button class="hl-link-btn hl-link-btn--danger" type="button" data-confirm-ask>Delete highlight</button>
+              <button class="btn btn--quiet btn--sm btn--danger hl-link-btn hl-link-btn--danger" type="button" data-confirm-ask>Delete highlight</button>
               <span class="hl-confirm" data-confirm-box hidden>
                 Delete this highlight?
-                <button class="hl-link-btn hl-link-btn--danger" type="button" data-hl-delete="${hlId}">Delete</button>
-                <button class="hl-link-btn" type="button" data-confirm-cancel>Cancel</button>
+                <button class="btn btn--quiet btn--sm btn--danger hl-link-btn hl-link-btn--danger" type="button" data-hl-delete="${hlId}">Delete</button>
+                <button class="btn btn--quiet btn--sm hl-link-btn" type="button" data-confirm-cancel>Cancel</button>
               </span>
             </span>
           </div>` : ''}
@@ -1713,8 +1713,8 @@ function renderConnections(b) {
                 <div class="connection-footer">
                   ${item.type ? `<span class="connection-type">${esc(item.type)}</span>` : ''}
                   ${canOpen && bookId
-                    ? `<button class="connection-action connection-action--open" type="button" data-book-id="${esc(String(bookId))}">Open book →</button>`
-                    : `<button class="connection-action connection-action--add" type="button" data-add-book-title="${esc(item.title)}" data-add-book-author="${esc(item.author || '')}">+ Add to shelf</button>`}
+                    ? `<button class="btn btn--sm connection-action connection-action--open" type="button" data-book-id="${esc(String(bookId))}">Open book →</button>`
+                    : `<button class="btn btn--sm connection-action connection-action--add" type="button" data-add-book-title="${esc(item.title)}" data-add-book-author="${esc(item.author || '')}">+ Add to shelf</button>`}
                 </div>
               </div>
               <div class="connection-cover${coverImg ? ' has-image' : ''}" style="--cv-bg:${esc(cvBg)};--cv-text:${esc(cvText)}">
@@ -1821,7 +1821,7 @@ function renderNotesSection(b) {
     <div class="nt-template-editor" id="ntTemplateEditor" hidden>
       <div class="nt-editor-head">
         <span class="nt-editor-label" id="ntEditorLabel"></span>
-        <button class="nt-editor-close" type="button" id="ntEditorClose" aria-label="Close template">×</button>
+        <button class="btn btn--icon btn--sm nt-editor-close" type="button" id="ntEditorClose" aria-label="Close template">×</button>
       </div>
       <div class="nt-editor-body">
         <div class="nt-prompt-list" id="ntPromptList"></div>
@@ -1829,13 +1829,13 @@ function renderNotesSection(b) {
           <p class="nt-active-question" id="ntActiveQuestion"></p>
           <textarea class="nt-editor-area" id="ntEditorArea" rows="5" placeholder="Write your answer here…"></textarea>
           <div class="nt-write-actions">
-            <button class="nt-answer-save" type="button" id="ntAnswerSave">Save this answer</button>
+            <button class="btn btn--primary btn--sm nt-answer-save" type="button" id="ntAnswerSave">Save this answer</button>
             <button class="nt-answer-back" type="button" id="ntAnswerBack">← Back to prompts</button>
           </div>
         </div>
       </div>
       <div class="nt-editor-footer">
-        <button class="nt-save-btn" type="button" id="ntTemplateSave">Save all notes</button>
+        <button class="btn btn--primary btn--sm nt-save-btn" type="button" id="ntTemplateSave">Save all notes</button>
         <span class="nt-save-status" id="ntTemplateSaveStatus"></span>
       </div>
     </div>`;
@@ -1853,7 +1853,7 @@ function renderNotesSection(b) {
           data-book-id="${esc(b.id)}"
         ></textarea>
         <div class="nt-free-footer">
-          <button class="nt-save-btn" type="button" id="ntFreeNoteSave">Save</button>
+          <button class="btn btn--primary btn--sm nt-save-btn" type="button" id="ntFreeNoteSave">Save</button>
           <span class="nt-save-status" id="ntFreeNoteSaveStatus"></span>
         </div>
       </div>
@@ -2076,8 +2076,8 @@ function showReadingCardResult(root, { blobUrl, bookTitle, fileName }) {
       <img src="${blobUrl}" alt="Reading card for ${esc(bookTitle)}" class="reading-card-modal__preview">
     </div>
     <div class="reading-card-modal__actions">
-      <button type="button" class="reading-card-modal__action reading-card-modal__action--primary" data-share-card data-file-name="${esc(fileName)}">Share</button>
-      <button type="button" class="reading-card-modal__action" data-download-card data-file-name="${esc(fileName)}">Download</button>
+      <button type="button" class="btn btn--primary reading-card-modal__action reading-card-modal__action--primary" data-share-card data-file-name="${esc(fileName)}">Share</button>
+      <button type="button" class="btn reading-card-modal__action" data-download-card data-file-name="${esc(fileName)}">Download</button>
     </div>
   `;
 }

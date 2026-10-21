@@ -314,20 +314,9 @@
 /* Edit / Add buttons inside field values */
 .ov-field-edit-btn,
 .ov-field-add-btn {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.12em;
-  color: var(--muted);
-  background: none;
-  border: 1px solid var(--rule);
-  padding: 3px 8px;
-  cursor: pointer;
   opacity: 0.7;
-  transition: opacity 0.15s, color 0.15s;
   flex-shrink: 0;
 }
-.ov-field-edit-btn:hover,
-.ov-field-add-btn:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
 
 /* External link */
 .ov-link {
@@ -364,23 +353,11 @@
   filter: brightness(1.15);
 }
 .ov-tag-add {
-  font-family: var(--font-mono);
-  font-size: var(--fs-14);
-  line-height: 1;
-  color: var(--muted);
-  background: none;
-  border: 1px dashed var(--rule);
-  border-radius: 999px;
   width: 24px;
-  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  padding: 0;
 }
-.ov-tag-add:hover { color: var(--accent); border-color: var(--accent); }
 
 .ov-tag-form {
   display: flex;
@@ -405,26 +382,6 @@
 }
 .ov-tag-input:focus,
 .ov-douban-input:focus { border-bottom-color: var(--accent); }
-.ov-tag-form-save {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.12em;
-  padding: 4px 10px;
-  background: var(--accent);
-  color: var(--paper);
-  border: none;
-  cursor: pointer;
-}
-.ov-tag-form-cancel {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.12em;
-  padding: 4px 10px;
-  background: none;
-  color: var(--muted);
-  border: 1px solid var(--rule);
-  cursor: pointer;
-}
 .ov-douban-form {
   display: flex;
   align-items: center;
@@ -733,17 +690,6 @@
   font-size: var(--fs-11);
   letter-spacing: 0.16em;
 }
-.book-cover-upload-btn {
-  border: 1px solid var(--rule);
-  background: color-mix(in srgb, var(--color-navy) 6%, transparent);
-  color: var(--ink);
-  padding: 8px 10px;
-  cursor: pointer;
-}
-.book-cover-upload-btn:hover {
-  border-color: color-mix(in srgb, var(--color-accent-gold) 55%, transparent);
-  color: var(--accent);
-}
 .book-cover-upload-status {
   color: var(--muted);
   min-height: 10px;
@@ -757,36 +703,6 @@
   gap: 10px;
   margin-top: 20px;
   flex-wrap: wrap;
-}
-.book-edit-info-btn {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.05em;
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  padding: 7px 14px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-.book-edit-info-btn:hover {
-  border-color: var(--fg);
-  color: var(--fg);
-}
-.book-delete-btn {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.05em;
-  background: none;
-  border: 1px solid color-mix(in srgb, var(--color-rose) 30%, transparent);
-  color: color-mix(in srgb, var(--color-rose) 65%, transparent);
-  padding: 7px 14px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-.book-delete-btn:hover {
-  border-color: color-mix(in srgb, var(--color-rose) 70%, transparent);
-  color: var(--color-rose);
 }
 
 /* Meta */
@@ -1417,16 +1333,6 @@
   border: 1px solid var(--rule);
   color: var(--muted);
 }
-.connection-action {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.18em;
-  padding: 4px 10px;
-  border: 1px solid var(--rule);
-  background: none;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
 .connection-action--open {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
@@ -1630,14 +1536,6 @@
   letter-spacing: 0.12em;
   color: var(--accent);
 }
-.hl-comment-toggle {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  transition: opacity var(--dur-fast);
-}
-.hl-comment-toggle:hover { opacity: 0.7; }
 .hl-comment-chevron { transition: transform var(--dur-fast); }
 .hl-comment-toggle[aria-expanded="false"] .hl-comment-chevron { transform: rotate(-90deg); }
 .hl-comment-actions { display: inline-flex; align-items: center; gap: var(--space-3); }
@@ -1668,20 +1566,6 @@
   gap: var(--space-4);
   margin-top: var(--space-3);
 }
-.hl-link-btn {
-  background: none;
-  border: none;
-  padding: 4px 0;
-  min-height: 24px;
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color var(--dur-fast);
-}
-.hl-link-btn:hover { color: var(--ink); }
-.hl-link-btn--danger:hover { color: var(--color-rose); }
 .hl-confirm {
   display: inline-flex;
   align-items: center;
@@ -1695,18 +1579,6 @@
 
 /* ── Highlight add form ────────────────────────────────────────────────── */
 .hl-item--user { background: color-mix(in srgb, var(--color-accent) 4%, transparent); }
-.hl-add-btn {
-  background: none;
-  border: 1px solid var(--rule);
-  color: var(--muted);
-  font-family: var(--font-serif);
-  font-size: var(--fs-14);
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-.hl-add-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .hl-form {
   margin-top: var(--space-4);
@@ -1759,29 +1631,6 @@
   border-color: var(--accent);
 }
 .hl-form-actions { display: flex; gap: var(--space-3); }
-.hl-form-save {
-  font-family: var(--font-serif);
-  font-size: var(--fs-14);
-  background: var(--ink);
-  color: var(--bg);
-  border: none;
-  border-radius: 4px;
-  padding: 9px 20px;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.hl-form-save:hover { opacity: 0.8; }
-.hl-form-cancel {
-  font-family: var(--font-serif);
-  font-size: var(--fs-14);
-  background: none;
-  color: var(--muted);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  padding: 9px 16px;
-  cursor: pointer;
-}
-.hl-form-cancel:hover { color: var(--ink); border-color: var(--ink); }
 
 /* ── §5 Takeaways ──────────────────────────────────────────────────────── */
 .takeaways-section {
@@ -2144,17 +1993,6 @@
   letter-spacing: 0.28em;
   color: var(--accent);
 }
-.nt-editor-close {
-  font-size: var(--fs-20);
-  line-height: 1;
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 0 2px;
-  transition: color 0.15s;
-}
-.nt-editor-close:hover { color: var(--ink); }
 
 /* Prompt cards — vertical stack, clickable */
 .nt-prompt-list {
@@ -2235,19 +2073,6 @@
   align-items: center;
   gap: 12px;
 }
-.nt-answer-save {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.16em;
-  padding: 7px 16px;
-  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
-  color: var(--accent);
-  cursor: pointer;
-  border-radius: 2px;
-  transition: background 0.15s;
-}
-.nt-answer-save:hover { background: color-mix(in srgb, var(--color-accent) 25%, transparent); }
 .nt-answer-back {
   font-family: var(--font-mono);
   font-size: var(--fs-11);
@@ -2320,21 +2145,7 @@
 
 /* Shared save button */
 .nt-save-btn {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.18em;
-  padding: 8px 20px;
-  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
-  color: var(--accent);
-  cursor: pointer;
-  border-radius: 2px;
-  transition: background 0.15s, border-color 0.15s;
   margin-left: auto;
-}
-.nt-save-btn:hover {
-  background: color-mix(in srgb, var(--color-accent) 25%, transparent);
-  border-color: var(--accent);
 }
 .nt-save-status {
   font-family: var(--font-mono);
@@ -2697,24 +2508,8 @@
   min-width: 80px;
   color: var(--ink);
 }
-
-.rs-btn {
-  padding: 8px 20px;
-  border: 1px solid var(--ink);
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: var(--fs-14);
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  min-height: 44px;
-}
-
-.rs-btn:hover { background: var(--ink); color: var(--bg); }
 .rs-btn--stop { background: var(--ink); color: var(--bg); }
 .rs-btn--stop:hover { opacity: 0.8; }
-.rs-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .rs-total {
   margin-left: auto;
@@ -2817,12 +2612,11 @@
   .ai-revert-btn,
   .ai-graph-btn,
   .ai-generated-dismiss {
-    min-height: 44px;
-    min-width: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 }
 
 /* ==========================================================================
@@ -3340,21 +3134,9 @@
   50%      { opacity: 1; }
 }
 
-.ai-generate-btn.is-cancel {
-  color: var(--accent);
-}
-
 .ai-retry-btn {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  padding: 3px 10px;
-  border: 1px solid var(--rule);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
   margin-left: var(--space-2);
 }
-.ai-retry-btn:hover { background: var(--bg-soft); }
 
 .ai-quota {
   font-family: var(--font-mono);
@@ -3451,19 +3233,8 @@
   top: 16px;
   right: 16px;
   width: 32px;
-  height: 32px;
-  border: 1px solid var(--rule);
-  background: transparent;
-  color: var(--ink-soft);
-  font: 300 22px/1 var(--font-serif);
-  cursor: pointer;
   display: grid;
   place-items: center;
-}
-
-.reading-card-modal__close:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 .reading-card-modal__loading {
@@ -3512,26 +3283,6 @@
 
 .reading-card-modal__action {
   min-width: 148px;
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: 14px;
-  border: 1px solid var(--rule);
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--font-service-ui);
-  font-size: var(--fs-11);
-  letter-spacing: var(--track-service-ui);
-  font-weight: var(--weight-service-ui-label);
-  cursor: pointer;
-}
-
-.reading-card-modal__action--primary {
-  background: var(--glass-fill);
-}
-
-.reading-card-modal__action:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 .reading-card-modal__error {
@@ -3606,5 +3357,5 @@
 
   .reading-card-modal__action {
   width: 100%;
-  }
+}
 }

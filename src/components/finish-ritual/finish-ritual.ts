@@ -69,15 +69,15 @@ export async function openFinishRitual(bookId: string, { force = false }: { forc
     dialog!.innerHTML = `
       <header class="fr-head">
         <span class="fr-step" data-fr-step>${step + 1} of ${QUESTIONS.length}</span>
-        <button type="button" class="fr-skip" data-fr-skip>Skip</button>
+        <button type="button" class="btn btn--quiet fr-skip" data-fr-skip>Skip</button>
       </header>
       <p class="fr-book">You finished ${esc(book.title ?? 'this book')}.</p>
       <label class="fr-question" for="frAnswer">${esc(q.text)}</label>
       <p class="fr-hint">${esc(q.hint)}</p>
       <textarea id="frAnswer" class="fr-answer" data-fr-answer rows="4" maxlength="400"></textarea>
       <footer class="fr-foot">
-        ${step > 0 ? '<button type="button" class="fr-back" data-fr-back>Back</button>' : '<span></span>'}
-        <button type="button" class="fr-next" data-fr-next>${last ? 'Write my finish card' : 'Next'}</button>
+        ${step > 0 ? '<button type="button" class="btn btn--quiet fr-back" data-fr-back>Back</button>' : '<span></span>'}
+        <button type="button" class="btn btn--primary fr-next" data-fr-next>${last ? 'Write my finish card' : 'Next'}</button>
       </footer>`;
     const area = dialog!.querySelector<HTMLTextAreaElement>('[data-fr-answer]')!;
     area.value = answers[q.key];
@@ -87,7 +87,7 @@ export async function openFinishRitual(bookId: string, { force = false }: { forc
   const renderResult = (message: string) => {
     dialog!.innerHTML = `
       <p class="fr-book">${esc(message)}</p>
-      <footer class="fr-foot"><span></span><button type="button" class="fr-next" data-fr-open>Open notes</button></footer>`;
+      <footer class="fr-foot"><span></span><button type="button" class="btn btn--primary fr-next" data-fr-open>Open notes</button></footer>`;
   };
 
   const finish = async () => {

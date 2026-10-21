@@ -75,7 +75,7 @@ export const AIGenerateUI = (() => {
         <span class="ai-toolbar-label">
           <span class="ai-badge-icon">✦</span> AI
         </span>
-        <button class="ai-generate-btn" type="button">${feature.label}</button>
+        <button class="btn btn--primary ai-generate-btn" type="button">${feature.label}</button>
         ${quotaHtml}
         <span class="ai-toolbar-status" hidden></span>
       </div>
@@ -222,11 +222,11 @@ export const AIGenerateUI = (() => {
         <span class="ai-badge">✦ AI Generated</span>
         ${hasUserEdit ? '<span class="ai-user-edited-badge">Edited</span>' : ''}
         <span class="ai-generated-model">${fromCache ? 'cached' : AI_MODEL_LABEL}</span>
-        ${canAddToGraph ? `<button class="ai-graph-btn" type="button" title="Add concepts to graph">+ Graph</button>` : ''}
-        <button class="ai-edit-btn" type="button" title="Edit">✎ Edit</button>
-        ${hasUserEdit ? `<button class="ai-revert-btn" type="button" title="Revert to original">↩ Revert</button>` : ''}
-        <button class="ai-regen-btn" type="button" title="Regenerate">↺ Regenerate</button>
-        <button class="ai-generated-dismiss" type="button" title="Dismiss">×</button>
+        ${canAddToGraph ? `<button class="btn btn--sm ai-graph-btn" type="button" title="Add concepts to graph">+ Graph</button>` : ''}
+        <button class="btn btn--sm ai-edit-btn" type="button" title="Edit">✎ Edit</button>
+        ${hasUserEdit ? `<button class="btn btn--quiet btn--sm ai-revert-btn" type="button" title="Revert to original">↩ Revert</button>` : ''}
+        <button class="btn btn--sm ai-regen-btn" type="button" title="Regenerate">↺ Regenerate</button>
+        <button class="btn btn--quiet btn--sm ai-generated-dismiss" type="button" title="Dismiss">×</button>
       </div>
       <div class="ai-generated-content"></div>
     `;
@@ -305,8 +305,8 @@ export const AIGenerateUI = (() => {
     editor.innerHTML = `
       <textarea class="ai-edit-textarea" spellcheck="false">${esc(jsonStr)}</textarea>
       <div class="ai-edit-actions">
-        <button class="ai-edit-save" type="button">Save edit</button>
-        <button class="ai-edit-cancel" type="button">Cancel</button>
+        <button class="btn btn--primary btn--sm ai-edit-save" type="button">Save edit</button>
+        <button class="btn btn--quiet btn--sm ai-edit-cancel" type="button">Cancel</button>
       </div>
     `;
 
@@ -403,7 +403,7 @@ export const AIGenerateUI = (() => {
     el.className = 'ai-toolbar-status ai-status-error';
     el.innerHTML = `
       <span class="ai-status-text">${esc(msg)}</span>
-      <button class="ai-retry-btn" type="button">Retry</button>
+      <button class="btn btn--sm ai-retry-btn" type="button">Retry</button>
     `;
     el.querySelector('.ai-retry-btn')?.addEventListener('click', retryFn, { once: true });
   }
@@ -413,7 +413,7 @@ export const AIGenerateUI = (() => {
     el.className = 'ai-toolbar-status ai-status-error';
     el.innerHTML = `
       <span class="ai-status-text">${esc(msg)}</span>
-      <button class="ai-retry-btn" type="button">Upgrade</button>
+      <button class="btn btn--sm ai-retry-btn" type="button">Upgrade</button>
     `;
     el.querySelector('.ai-retry-btn')?.addEventListener('click', () => {
       openCheckout('pro_monthly', (e) => { if (e) showStatus(el, e, ''); });
