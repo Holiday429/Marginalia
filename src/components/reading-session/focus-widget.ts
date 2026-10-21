@@ -123,7 +123,7 @@ function renderHourglass(): string {
 function renderPomodoroButton(isPomodoro: boolean): string {
   return `
     <button
-      class="fw-mode-btn${isPomodoro ? ' fw-mode-btn--active' : ''}"
+      class="chip fw-mode-btn${isPomodoro ? ' fw-mode-btn--active' : ''}"
       type="button"
       data-fw-mode="pomodoro"
     >25 min</button>
@@ -201,7 +201,7 @@ function render(host: HTMLElement): void {
             ? (isPomodoro ? renderHourglass() : renderClockDial())
             : `
               <div class="fw-mode-row">
-                <button class="fw-mode-btn${!isPomodoro ? ' fw-mode-btn--active' : ''}" type="button" data-fw-mode="free">Free</button>
+                <button class="chip fw-mode-btn${!isPomodoro ? ' fw-mode-btn--active' : ''}" type="button" data-fw-mode="free">Free</button>
                 ${renderPomodoroButton(isPomodoro)}
               </div>
             `

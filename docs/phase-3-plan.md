@@ -115,6 +115,20 @@ Library  [Browse|Arrange]          7 finished · 0 reading · …
 **统一的结果（用户可见）**：房间里所有浮动控件同一种暖棕玻璃材质；全站字号收敛到一套阶梯，
 原来 8–10px 的小字统一为 11px；登录面板与全站同色系。
 
+## 阶段 3.5 — 按钮统一（已完成）
+
+**做法**：`src/components/button/button.css` 是按钮外观的唯一来源，页面只选层级：主要 / 次要 / 轻量 / 危险 / 图标，
+另有筹码（`chip`）；44px 高、12px 圆角、mono 12px，密集处加 `btn--sm`（32px）。分四批迁移：
+1 顶栏 / Library 工具栏 / Add Book；2 Book、AI、对话框、同意横幅；3 Profile、房间浮层、登录、Graph；4 其余零散按钮。
+共约 140 个旧按钮类名映射到组件，约 1,500 行各页自己写的按钮外观被删除。
+
+**护栏**：`npm run check:buttons`（进 `check:all`）：新写的 `<button class>` 既不是 `.btn` / `.chip` 也不在
+`scripts/buttons-allowlist.txt` 时失败。有意例外：相机栏（分段控件）、缩放按钮组、导航标签、Browse | Arrange、Today 药丸、卡片和色块。
+
+**验证记录（2026-10-21）**：每批前后截图对比（Library / Book / Profile / Graph / 房间 / 登录 / 对话框）；
+运行时审计每个页面上所有 `.btn` / `.chip` 的计算样式（高度、圆角、字号、图标按钮必须是正方形）。
+审计抓到并修正了：全局边框规则盖过轻量按钮、房间里 `width: auto` 让图标按钮变形、"+ Add row" 被误当作图标按钮。
+
 ## 阶段 4 — 房间主题真正接入（已完成）
 
 **问题**：Theme 五个 chip 只切 CSS class；Ambient Effects 三个 chip 同样是假的；skinId 被 Atmosphere 独占，

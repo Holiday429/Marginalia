@@ -71,7 +71,7 @@ function renderSelected(): void {
   row.hidden = !selected;
   input.hidden = !!selected;
   row.innerHTML = selected
-    ? `<span class="qc-selected__title">${esc(selected.title)}</span><button type="button" class="qc-selected__clear" data-qc-clear aria-label="Remove book">×</button>`
+    ? `<span class="qc-selected__title">${esc(selected.title)}</span><button type="button" class="btn btn--quiet btn--sm qc-selected__clear" data-qc-clear aria-label="Remove book">×</button>`
     : '';
 }
 

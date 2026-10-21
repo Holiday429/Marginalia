@@ -509,9 +509,6 @@ body[data-view='room'] {
 }
 
 #view-room .room-track-remove {
-  border: none;
-  background: transparent;
-  text-decoration: underline;
   text-underline-offset: 2px;
 }
 

@@ -16,6 +16,7 @@
     "check:paths": "node scripts/check-paths.mjs",
     "check:docs": "node scripts/check-claude-md.mjs",
     "check:colors": "node scripts/check-colors.mjs",
+    "check:buttons": "node scripts/check-buttons.mjs",
     "lint": "eslint .",
     "pretest:rules": "node scripts/sync-shared.mjs",
     "test:rules": "vitest run tests/firestore-rules.test.ts functions/test/quota.emulator.test.ts functions/test/delete-account.emulator.test.ts functions/test/weekly-digest.emulator.test.ts functions/test/geo-resolve.emulator.test.ts --testTimeout=30000",

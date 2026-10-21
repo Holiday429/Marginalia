@@ -1251,7 +1251,7 @@ function syncRoomAudio() {
         <span class="room-track-side">
           <span class="room-track-kind">${track.kind === 'custom' ? 'Personal' : 'Built-in'}</span>
           ${track.kind === 'custom'
-            ? `<button type="button" class="room-track-remove" data-room-remove-track-id="${track.id}" aria-label="Remove ${escapeRoomHtml(track.title)}">Remove</button>`
+            ? `<button type="button" class="btn btn--icon btn--sm room-track-remove" data-room-remove-track-id="${track.id}" aria-label="Remove ${escapeRoomHtml(track.title)}">Remove</button>`
             : ''}
         </span>
       </div>

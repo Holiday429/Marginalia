@@ -71,6 +71,34 @@ Review of the before/after screenshots showed these must not be folded, so each 
 Lessons recorded for the next person: classify by saturation as well as lightness (vivid data colours are never
 "ivory"); dark neutral greys are `--color-smoke-bg`, not `--color-ink-deep`; and compare screenshots, not just diffs.
 
+## Buttons (3.5)
+
+One component defines a button's look: `src/components/button/button.css` (rendered by `docs/button-gallery.html`).
+A page chooses the level, never the look. The old per-page class stays on the element only as a hook for JS and layout.
+
+| Level | Markup | Used for |
+|---|---|---|
+| Primary | `btn btn--primary` | the one main action of a view or dialog: Save, Generate, Sign In, Preview, Next |
+| Secondary (default) | `btn` | Add Book, Share, Search all, Import, Filters, Edit |
+| Quiet | `btn btn--quiet` | Cancel, Skip, Hide, Edit book info |
+| Danger | `btn btn--danger` | Delete, Reject, Delete account |
+| Icon | `btn btn--icon` | close, previous / next, add tag, play (round, square box) |
+| Chip | `chip` (`.active` / `aria-pressed`) | filters and toggles: status filters, room atmosphere and theme |
+
+Size: 44px high (touch target), 12px radius, mono 12px. Add `btn--sm` (32px, 11px) in dense places: cards, forms, toolbars, dialogs.
+Hover, active, focus-visible and disabled states are defined once. The search field shares the button height and radius.
+
+Deliberately not a `.btn`: the camera bar (a segmented control inside one pill), the zoom button groups, the nav tabs and
+Browse | Arrange, the Today pill and the focus widget's bar, avatars, swatches and interactive cards. They are listed in
+`scripts/buttons-allowlist.txt`; `npm run check:buttons` (part of `check:all`) fails for any other `<button class>` that is neither
+`.btn` / `.chip` nor on the list.
+
+Pitfalls found while migrating: a global `.tool-page-shell :is(button, ...)` rule forced a border on every button and beat
+`.btn--quiet`, and adding `:not()` to it raised its specificity so that it beat the nav tabs' own border (it is now written with
+`:where()`); a room rule `width: auto` made icon buttons non-square; a class named `*-overflow-btn` turned out to be a labelled
+"+ Add row" button, not an icon. The audit that caught these: compute the style of every `.btn` on every page and compare it with
+the table above.
+
 ## Not in scope
 
 New themes, light/dark switching, renaming the raw `--color-*` atoms, retiring the legacy spacing scale.

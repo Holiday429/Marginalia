@@ -529,18 +529,6 @@
 .ov-related-label {
   color: var(--ink);
 }
-.ov-related-see-all {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.22em;
-  color: var(--accent);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  transition: opacity 0.15s;
-}
-.ov-related-see-all:hover { opacity: 0.7; }
 .ov-related-scroll {
   display: flex;
   gap: 14px;
@@ -2064,18 +2052,6 @@
   align-items: center;
   gap: 12px;
 }
-.nt-answer-back {
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.14em;
-  color: var(--muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.15s;
-}
-.nt-answer-back:hover { color: var(--ink); }
 
 .nt-editor-footer {
   display: flex;
@@ -2331,22 +2307,6 @@
   color: var(--muted);
   flex: 1;
 }
-.kindle-preview-import {
-  font-family: var(--font-serif);
-  font-size: var(--fs-14);
-  background: none;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  border-radius: 3px;
-  padding: 5px 12px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.kindle-preview-import:hover:not(:disabled) {
-  background: var(--accent);
-  color: var(--bg);
-}
-.kindle-preview-import:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Notes panel ─────────────────────────────────────────────────────────── */
 .notes-panel {

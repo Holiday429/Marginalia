@@ -94,7 +94,7 @@ export function showOnboarding(uid: string): void {
         ${row(1, 'Save your first highlight', 'A line that stayed with you. Press C on any page, or open a book and add one.',
           '<button type="button" class="btn btn--primary ob-btn ob-btn--primary" data-ob-capture>Capture one</button>')}
         ${row(2, 'See your room and your map', `${seen.room ? 'Room seen. ' : ''}${seen.map ? 'Map seen. ' : ''}Your books are on the shelves and your authors on the map.`,
-          `<button type="button" class="ob-btn${seen.room ? '' : ' ob-btn--primary'}" data-ob-room>${seen.room ? 'Room ✓' : 'Open the room'}</button><button type="button" class="ob-btn${seen.map ? '' : ' ob-btn--primary'}" data-ob-map>${seen.map ? 'Map ✓' : 'Open the map'}</button>`)}
+          `<button type="button" class="btn ob-btn${seen.room ? '' : ' ob-btn--primary'}" data-ob-room>${seen.room ? 'Room ✓' : 'Open the room'}</button><button type="button" class="btn ob-btn${seen.map ? '' : ' ob-btn--primary'}" data-ob-map>${seen.map ? 'Map ✓' : 'Open the map'}</button>`)}
       </ol>
       <button type="button" class="btn btn--quiet ob-skip" data-ob-skip>Skip the guide</button>`;
   };

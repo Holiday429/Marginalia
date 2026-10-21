@@ -549,7 +549,7 @@ function profileHTML(
               `).join('')}
             </div>
           </div>
-          <button type="button" class="prof-banner__room" data-view="room" aria-label="Enter your 3D reading room">
+          <button type="button" class="btn btn--sm prof-banner__room" data-view="room" aria-label="Enter your 3D reading room">
             <div class="prof-banner__room-img"></div>
             <div class="prof-banner__room-fade"></div>
             <div class="prof-banner__room-avatar" id="profBannerRoomAvatar" aria-hidden="true"></div>

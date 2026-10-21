@@ -1127,22 +1127,6 @@ body[data-view='studio'] {
   gap: 10px;
 }
 
-#panel-library .library-overlay-delete {
-  border: 0;
-  background: none;
-  padding: 0;
-  font-family: var(--font-mono);
-  font-size: var(--fs-12);
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted, color-mix(in srgb, var(--color-ivory-text) 30%, transparent));
-  cursor: pointer;
-  transition: color 0.18s ease;
-}
-
-#panel-library .library-overlay-delete:hover {
-  color: color-mix(in srgb, var(--color-rose) 85%, transparent);
-}
-
 #panel-library .library-delete-confirm {
   position: absolute;
   inset: 0;
@@ -1354,25 +1338,7 @@ body[data-view='studio'] {
 
 #panel-library .library-rail-popover-btn {
   width: 100%;
-  min-height: 34px;
-  padding: 0 12px;
-  border: var(--ui-border-width) solid var(--ui-border-color);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--font-service-ui);
-  font-size: var(--fs-11);
-  letter-spacing: 0.03em;
   text-align: left;
-  cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
-}
-
-#panel-library .library-rail-popover-btn:hover,
-#panel-library .library-rail-popover-btn.is-active {
-  border-color: var(--glass-border-active);
-  background: var(--glass-fill-active);
-  color: var(--ui-active-ink);
 }
 
 #panel-library .library-rail-edit {
@@ -1591,10 +1557,6 @@ body[data-view='studio'] {
 
   #panel-library .library-rail-btn,
   #panel-library .library-topbar button {
-    min-height: 44px;
-  }
-
-  #panel-library .library-rail-popover-btn {
     min-height: 44px;
   }
 }

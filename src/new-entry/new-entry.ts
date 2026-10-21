@@ -384,7 +384,7 @@ export const NewEntry = (() => {
             <div class="ne-diy-label">Style</div>
             <div class="ne-style-row" id="neStyleRow">
               ${SPINE_STYLES.map(s => `
-                <button class="ne-style-btn${s.id === state.styleId ? ' is-active' : ''}"
+                <button class="chip ne-style-btn${s.id === state.styleId ? ' is-active' : ''}"
                   type="button" data-style="${s.id}">${s.label}</button>
               `).join('')}
             </div>

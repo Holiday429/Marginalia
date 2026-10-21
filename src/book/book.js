@@ -1351,7 +1351,7 @@ function renderOverview(b) {
         <div class="ov-related-strip">
           <div class="ov-related-head">
             <span class="ov-related-label book-section-title">Related Books</span>
-            <button class="ov-related-see-all" type="button" data-target="related-books">View Details →</button>
+            <button class="btn btn--quiet btn--sm ov-related-see-all" type="button" data-target="related-books">View Details →</button>
           </div>
           <div class="ov-related-scroll">
             ${b.relatedBooks.map(item => {
@@ -1830,7 +1830,7 @@ function renderNotesSection(b) {
           <textarea class="nt-editor-area" id="ntEditorArea" rows="5" placeholder="Write your answer here…"></textarea>
           <div class="nt-write-actions">
             <button class="btn btn--primary btn--sm nt-answer-save" type="button" id="ntAnswerSave">Save this answer</button>
-            <button class="nt-answer-back" type="button" id="ntAnswerBack">← Back to prompts</button>
+            <button class="btn btn--quiet btn--sm nt-answer-back" type="button" id="ntAnswerBack">← Back to prompts</button>
           </div>
         </div>
       </div>

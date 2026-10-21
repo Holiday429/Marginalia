@@ -10,6 +10,7 @@ npm run check:hardcoded
 npm run check:paths
 npm run check:docs
 npm run check:colors
+npm run check:buttons
 npm --prefix functions run build
 npm run test:unit
 npm run test:rules:emu

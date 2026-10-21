@@ -109,8 +109,8 @@ function renderConceptDrawerBody(details: ConceptDetails, options: OpenConceptDr
     const controls = link.status === 'suggested'
       ? `
         <div class="concept-link-actions">
-          <button class="concept-status-btn is-confirm" type="button" data-link-status="confirmed" data-link-id="${esc(link.id)}">Confirm</button>
-          <button class="concept-status-btn is-reject" type="button" data-link-status="rejected" data-link-id="${esc(link.id)}">Reject</button>
+          <button class="btn btn--sm btn--primary concept-status-btn is-confirm" type="button" data-link-status="confirmed" data-link-id="${esc(link.id)}">Confirm</button>
+          <button class="btn btn--sm btn--danger concept-status-btn is-reject" type="button" data-link-status="rejected" data-link-id="${esc(link.id)}">Reject</button>
         </div>
       `
       : '';

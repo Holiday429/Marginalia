@@ -192,24 +192,6 @@ body.concept-drawer-open {
   margin-top: 16px;
 }
 
-.concept-status-btn {
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 18%, transparent);
-  background: transparent;
-  color: var(--color-paper);
-  padding: 8px 10px;
-  cursor: pointer;
-}
-
-.concept-status-btn.is-confirm {
-  border-color: color-mix(in srgb, var(--color-sage) 40%, transparent);
-  color: var(--color-sage);
-}
-
-.concept-status-btn.is-reject {
-  border-color: color-mix(in srgb, var(--color-rose) 40%, transparent);
-  color: var(--color-rose);
-}
-
 @media (max-width: 640px) {
   .concept-drawer {
     width: 100vw;

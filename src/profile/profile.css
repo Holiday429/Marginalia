@@ -452,11 +452,7 @@
   position: relative;
   grid-column: 2 / 3;
   overflow: visible;
-  border: none;
-  padding: 0;
   margin: 0;
-  background: transparent;
-  cursor: pointer;
   display: block;
 }
 
@@ -579,7 +575,9 @@
     grid-template-rows: auto clamp(160px, 24vw, 200px);
   }
   /* Room occupies its own full-width row — no leftward bleed / feather seam. */
-  .prof-banner__room { grid-column: 1 / -1; }
+  .prof-banner__room {
+  grid-column: 1 / -1;
+}
   .prof-banner__room .prof-banner__room-img,
   .prof-banner__room .prof-banner__room-fade {
     left: 0;

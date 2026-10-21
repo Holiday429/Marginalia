@@ -908,7 +908,7 @@ function renderShelves(): void {
       <div class="library-rows" data-shelf-id="${escapeHTML(shelf.id)}"></div>
       <div class="library-overflow-notice" data-shelf-id="${escapeHTML(shelf.id)}" hidden>
         <span class="library-overflow-text">This shelf is full. Add a row to fit all books.</span>
-        <button type="button" class="btn btn--icon btn--sm library-overflow-btn" data-add-row="${escapeHTML(shelf.id)}" ${canAddRow ? '' : 'disabled'}>+ Add row</button>
+        <button type="button" class="btn btn--sm library-overflow-btn" data-add-row="${escapeHTML(shelf.id)}" ${canAddRow ? '' : 'disabled'}>+ Add row</button>
       </div>
     `;
 
@@ -1798,7 +1798,7 @@ function buildOverlayActions(record: LibraryRecord, sourceShelfId: string): stri
   }
   const isDemo = BooksStore.isDemoBook(record.id);
   const deleteBtn = !isDemo
-    ? `<button type="button" class="library-overlay-delete" data-delete-book="${escapeHTML(record.key)}" aria-label="Remove book from library">Remove</button>`
+    ? `<button type="button" class="btn btn--danger btn--sm library-overlay-delete" data-delete-book="${escapeHTML(record.key)}" aria-label="Remove book from library">Remove</button>`
     : '';
   return `
     <button type="button" class="btn btn--quiet btn--sm library-overlay-readmore" data-open-book="${escapeHTML(record.key)}">Read More <span aria-hidden="true">→</span></button>

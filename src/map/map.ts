@@ -2187,7 +2187,7 @@ function renderBookRow(b: MapBook): HTMLElement {
         ${b.geoPending ? '<span class="mb-info-pending" data-geo-pending>To confirm</span>' : ''}
       </div>
     </div>
-    ${b.geoPending ? '<button class="mb-confirm" type="button" data-geo-confirm>Confirm place</button>' : ''}
+    ${b.geoPending ? '<button class="btn btn--sm mb-confirm" type="button" data-geo-confirm>Confirm place</button>' : ''}
     <div class="mb-arrow">→</div>`;
   row.addEventListener('click', (event) => {
     if ((event.target as HTMLElement).closest('[data-geo-confirm]')) {

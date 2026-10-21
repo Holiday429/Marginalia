@@ -489,7 +489,7 @@ Library 2D and the 3D shelf wall share the same underlying component. Drag-to-ar
 
 **Casing:** Sentence case for buttons/labels (`Add highlight`). Title Case for section headings. All-caps forbidden except abbreviations (AI, ISBN, URL).
 
-**Components:** Buttons, icons, headings: one source of truth in `src/components/`. Views do not roll their own. Icons are SVG `<symbol>`s in `index.html`, referenced via `<use href="#icon-name">`.
+**Components:** Buttons, icons, headings: one source of truth in `src/components/`. Views do not roll their own. Icons are SVG `<symbol>`s in `index.html`, referenced via `<use href="#icon-name">`. **Buttons** are `src/components/button/button.css`: pick a level (`btn btn--primary` / `btn` / `btn--quiet` / `btn--danger` / `btn--icon`, `chip` for filters and toggles, `btn--sm` in dense places) and do not style the look in a page; `npm run check:buttons` enforces it (exceptions in `scripts/buttons-allowlist.txt`).
 
 **Responsive:** 360px–2560px. Touch targets ≥ 44px. iPad Safari is the primary mobile target.
 

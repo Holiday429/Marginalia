@@ -618,7 +618,7 @@ function renderTagChips() {
   group.hidden = false;
   host.innerHTML = tags.map((tag) => {
     const active = SHELF_STATE.tag && SHELF_STATE.tag.toLowerCase() === tag.toLowerCase();
-    return `<button class="chip${active ? ' active' : ''}" data-tag="${escapeHTML(tag)}">${escapeHTML(tag)}</button>`;
+    return `<button class="chip chip${active ? ' active' : ''}" data-tag="${escapeHTML(tag)}">${escapeHTML(tag)}</button>`;
   }).join('');
 }
 

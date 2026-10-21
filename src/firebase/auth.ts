@@ -97,8 +97,8 @@ export const MarginaliaAuth = (() => {
           <div class="auth-panel">
             <button class="btn btn--icon btn--sm auth-close-btn" id="authCloseBtn" type="button" aria-label="Close login panel">×</button>
             <div class="auth-tabs" id="authTabs">
-              <button id="authTabLogin" class="active" type="button">Sign In</button>
-              <button id="authTabRegister" type="button">Register</button>
+              <button id="authTabLogin" class="chip active" type="button">Sign In</button>
+              <button id="authTabRegister" class="chip" type="button">Register</button>
             </div>
             <form class="auth-form" id="authForm">
               <label id="authUsernameRow" hidden>

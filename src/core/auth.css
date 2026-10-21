@@ -188,7 +188,6 @@ body[data-view="preloader"] .auth-gate {
 }
 
 .auth-kicker,
-.auth-tabs button,
 .auth-form label,
 .auth-error,
 .auth-user-meta,
@@ -236,21 +235,6 @@ body[data-view="preloader"] .auth-gate {
   display: flex;
   gap: 8px;
   margin-bottom: 18px;
-}
-
-.auth-tabs button {
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 20%, transparent);
-  color: color-mix(in srgb, var(--color-ivory-text) 70%, transparent);
-  background: color-mix(in srgb, var(--color-ivory-text) 2%, transparent);
-  padding: 8px 12px;
-  cursor: pointer;
-  border-radius: 999px;
-}
-
-.auth-tabs button.active {
-  color: var(--color-gold-warm);
-  border-color: color-mix(in srgb, var(--color-gold-warm) 58%, transparent);
-  background: color-mix(in srgb, var(--color-gold-warm) 8%, transparent);
 }
 
 .auth-form {

@@ -18,10 +18,10 @@ function renderLeftRail() {
           <span>Organize</span>
         </button>
         <div class="library-rail-popover" aria-label="Organize Shelf">
-          <button type="button" class="library-rail-popover-btn" data-arrange="status">By Status</button>
-          <button type="button" class="library-rail-popover-btn" data-arrange="color">By Color</button>
-          <button type="button" class="library-rail-popover-btn" data-arrange="size">By Size</button>
-          <button type="button" class="library-rail-popover-btn" data-arrange="reset">Reset Layout</button>
+          <button type="button" class="btn btn--quiet btn--sm library-rail-popover-btn" data-arrange="status">By Status</button>
+          <button type="button" class="btn btn--quiet btn--sm library-rail-popover-btn" data-arrange="color">By Color</button>
+          <button type="button" class="btn btn--quiet btn--sm library-rail-popover-btn" data-arrange="size">By Size</button>
+          <button type="button" class="btn btn--quiet btn--sm library-rail-popover-btn" data-arrange="reset">Reset Layout</button>
         </div>
       </div>
       <div class="library-rail-edit" id="libraryRailEdit" hidden>

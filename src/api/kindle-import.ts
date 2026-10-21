@@ -96,7 +96,7 @@ export const KindleImport = (() => {
           <div class="kindle-preview-book">
             <div class="kindle-preview-title">${esc(title)}</div>
             <div class="kindle-preview-meta">${esc(author)} · ${highlights.length} highlights</div>
-            ${bookId ? `<button class="kindle-preview-import" type="button" data-title="${esc(title)}">Import into this book</button>` : ''}
+            ${bookId ? `<button class="btn btn--primary btn--sm kindle-preview-import" type="button" data-title="${esc(title)}">Import into this book</button>` : ''}
           </div>`;
       });
       preview.innerHTML = html;
