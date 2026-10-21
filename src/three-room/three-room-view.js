@@ -427,8 +427,7 @@ function ensureRoomDom() {
     ROOM_VIEW_STATE.handle.destroy();
     ROOM_VIEW_STATE.handle = null;
   }
-  // Keep the static poster (from index.html) while the room markup is (re)built around it.
-  root.querySelectorAll(':scope > :not(.room-poster)').forEach((node) => node.remove());
+  root.querySelectorAll(':scope > *').forEach((node) => node.remove());
   root.insertAdjacentHTML('beforeend', buildRoomMarkup());
 }
 
@@ -675,39 +674,12 @@ function bindRoomEvents() {
 
 }
 
-/** The poster is a static <img> in index.html, painted the moment Enter is clicked; fade it out when the scene is ready. */
-function showRoomPoster(stage) {
-  const root = document.getElementById('view-room');
-  let poster = root?.querySelector(':scope > .room-poster') || null;
-  if (!poster && root) {
-    poster = document.createElement('img');
-    poster.className = 'room-poster';
-    poster.src = asset('room-poster.webp');
-    poster.alt = '';
-    poster.setAttribute('aria-hidden', 'true');
-    root.prepend(poster);
-  }
-  if (!poster) return () => {};
-  const still = poster;
-  let done = false;
-  const hide = () => {
-    if (done) return;
-    done = true;
-    still.classList.add('is-hidden');
-    window.setTimeout(() => still.remove(), 700);
-  };
-  window.setTimeout(hide, 20000); // never leave the still up if the scene cannot finish
-  return hide;
-}
-
 function mountRoomScene() {
   const stage = document.getElementById('roomExperienceStage');
   if (!stage) return;
 
   if (!ROOM_VIEW_STATE.handle) {
-    const hidePoster = showRoomPoster(stage);
     ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage, {
-      onSceneReady: hidePoster,
       onGlobeSelect: () => exitRoomViaGlobeFly(),
       onLaptopSelect: () => exitRoomViaLaptopFly(),
       onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),

@@ -5,6 +5,7 @@
    3) enterPreloader() is the only start entrypoint (do not auto-run on module eval). */
 import { App } from '../core/app.ts';
 import { PanelManager } from '../core/panel-manager.ts';
+import { preloadView } from '../core/view-registry.ts';
 import { BOOKS } from './landing-books.js';
 
 const TWEAK_DEFAULTS = {
@@ -434,6 +435,11 @@ function enterCTAState(books, heroIdx) {
   setTimeout(() => { label.tabIndex = 0; }, 16);
 
   ctaBookEl = target;
+
+  // While the visitor reads the landing page, download the room's code so Enter does not wait for it.
+  const warmRoom = () => preloadView('room');
+  if ('requestIdleCallback' in window) window.requestIdleCallback(warmRoom, { timeout: 3000 });
+  else setTimeout(warmRoom, 1500);
 }
 
 function runBookPreloadTransition(bookId) {

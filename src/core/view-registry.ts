@@ -8,6 +8,8 @@
 // The room view (initRoom/enterRoom) is registered here even though it is managed
 // separately by app.js showRoom() — panel-manager may call initRoom on first open.
 
+import { logError } from '../services/analytics.ts';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ViewFn = (params?: any) => void;
 
@@ -68,4 +70,9 @@ export function loadView(id: string): Promise<ViewEntry> {
 /** Synchronous best-effort read — returns {} if the view hasn't loaded yet. */
 export function getLoadedView(id: string): ViewEntry {
   return _resolved.get(id) || {};
+}
+
+/** Start downloading a view's code without running it (the module map caches the import, so the real load is instant). */
+export function preloadView(id: string): void {
+  VIEW_LOADERS[id]?.().catch((e) => logError(e instanceof Error ? e : new Error(String(e)), { context: 'preloadView', id }));
 }

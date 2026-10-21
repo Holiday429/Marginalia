@@ -64,8 +64,8 @@ Side-by-side before | after for the four camera poses: `tests/screenshots/phase-
 ### Q1.6-b — Where do the original 3D files live now? (needs you)
 The uncompressed originals (~460 MB: models + textures) are in `assets-src/` on this machine and are git-ignored, as the plan intends. They are not backed up anywhere else. Please copy `assets-src/` to cloud storage; `npm run assets:optimize` rebuilds `public/3d` and `public/textures` from it.
 
-### Q1.6-c — Poster needs regenerating when the room changes (informational)
-`public/room-poster.webp` is a still of the default room (front camera). The notes wall in it shows a demo quote for about half a second before the live scene fades in, including for signed-in users. Regenerate after any room change with `node scripts/capture-room.mjs --poster=1 --out=poster.png` then `cwebp -q 72 poster.png -o public/room-poster.webp`. Task 3.5 (themes) should make this per-theme.
+### Q1.6-c — Poster needs regenerating when the room changes (resolved in Phase 3.1)
+The room poster is gone. A still captured at one time of day never matched the live scene (light, date, avatar, quote), so entering the room showed two different pictures. A plain cover while loading was tried and dropped (a blank second or two felt worse). The room now shows straight away and fills in as the models load, as it did before Phase 1; there is nothing to regenerate per theme.
 
 ## Phase 1 — repository cleanup (1.7)
 

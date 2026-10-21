@@ -43,12 +43,6 @@ await page.goto(url);
 await page.waitForSelector('#skipBtn', { timeout: 30_000 });
 const tClick = Date.now();
 await page.click('#skipBtn');
-// Poster = the still of the room shown while the 3D scene loads; time from the click until it is painted.
-await page.waitForFunction(() => {
-  const img = document.querySelector('.room-poster');
-  return Boolean(img && img.complete && img.naturalWidth > 0 && img.getBoundingClientRect().width > 0);
-}, null, { timeout: 60_000 }).catch(() => undefined);
-const msToPoster = Date.now() - tClick;
 await page.waitForSelector('body[data-view="room"]', { timeout: 60_000 });
 const tRoom = Date.now() - t0;
 await page.waitForLoadState('networkidle', { timeout: 120_000 }).catch(() => undefined);
@@ -63,7 +57,6 @@ const result = {
   totalMB: Number((total / 1024 / 1024).toFixed(1)),
   requests: rows.length,
   msToRoomView: tRoom,
-  msClickToPoster: msToPoster,
   pageErrors: errors,
   top: rows.slice(0, 15).map((r) => ({ mb: Number((r.bytes / 1024 / 1024).toFixed(2)), url: r.url.replace(url, '') })),
 };
@@ -71,7 +64,7 @@ await browser.close();
 
 if (asJson) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 else {
-  process.stdout.write(`Room load: ${result.totalMB} MB in ${result.requests} responses, poster ${msToPoster} ms after the click, room view after ${tRoom} ms, ${errors.length} pageerror(s)\n`);
+  process.stdout.write(`Room load: ${result.totalMB} MB in ${result.requests} responses, room view after ${tRoom} ms, ${errors.length} pageerror(s)\n`);
   result.top.forEach((r) => process.stdout.write(`  ${String(r.mb).padStart(7)} MB  ${r.url}\n`));
   errors.forEach((e) => process.stdout.write(`  pageerror: ${e}\n`));
 }
