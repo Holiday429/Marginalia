@@ -114,7 +114,6 @@
   padding-top: 4px;
 }
 
-.today__btn,
 .today__pill {
   min-height: 44px;
   padding: 0 14px;
@@ -127,22 +126,10 @@
   cursor: pointer;
 }
 
-.today__btn:hover:not(:disabled),
 .today__pill:hover {
   background: color-mix(in srgb, var(--color-ivory-text) 18%, transparent);
 }
 
-.today__btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.today__btn--quiet {
-  border-color: transparent;
-  background: transparent;
-}
-
-.today__btn:focus-visible,
 .today__pill:focus-visible {
   outline: 2px solid var(--color-gold-warm);
   outline-offset: 2px;

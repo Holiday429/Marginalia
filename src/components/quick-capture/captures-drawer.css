@@ -52,12 +52,6 @@ body[data-view="preloader"] .cd-pill { display: none; }
 
 .cd-close {
   width: 44px;
-  height: 44px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-size: var(--fs-20);
-  cursor: pointer;
 }
 
 .cd-hint {

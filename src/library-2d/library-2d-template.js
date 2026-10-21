@@ -109,7 +109,7 @@ export function renderLibraryShell() {
 
     <div class="library-book-overlay" id="libraryBookOverlay" hidden>
       <div class="library-overlay-shell" id="libraryOverlayShell">
-        <button type="button" class="library-overlay-close" id="libraryOverlayClose" aria-label="Close book inspector">x</button>
+        <button type="button" class="btn btn--icon btn--sm library-overlay-close" id="libraryOverlayClose" aria-label="Close book inspector">x</button>
         <div class="library-overlay-stage" id="libraryOverlayStage">
           <div class="library-overlay-book-scene" id="libraryOverlayBookScene">
             <div class="library-overlay-book" id="libraryOverlayBook">

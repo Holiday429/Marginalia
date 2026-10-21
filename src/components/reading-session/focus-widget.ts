@@ -215,8 +215,8 @@ function render(host: HTMLElement): void {
 
           <div class="fw-actions">
             ${isActive
-              ? `<button class="fw-stop-btn" type="button" data-fw-stop>Stop</button>`
-              : `<button class="fw-start-btn" type="button" data-fw-start>Start</button>`
+              ? `<button class="btn btn--danger btn--sm fw-stop-btn" type="button" data-fw-stop>Stop</button>`
+              : `<button class="btn btn--primary btn--sm fw-start-btn" type="button" data-fw-start>Start</button>`
             }
           </div>
         </div>

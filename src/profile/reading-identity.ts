@@ -79,7 +79,7 @@ function ctaStateHTML(): string {
         <div class="prof-rid-cta">
           <p class="prof-rid-cta__title">Your reading identity, as seen by an outside eye</p>
           <p class="prof-rid-cta__hint">Marginalia reads your library and margin notes, then writes a short portrait of how you read — what draws you, what you avoid, what the pattern reveals.</p>
-          <button class="prof-rid-btn prof-rid-btn--primary" id="profRidGenerate" type="button">
+          <button class="btn btn--primary prof-rid-btn prof-rid-btn--primary" id="profRidGenerate" type="button">
             Generate
           </button>
         </div>
@@ -301,7 +301,7 @@ function referenceLayoutHTML(
             ${radarHTML(data.axes)}
           </div>
           ${options.allowRegenerate === false ? '' : `
-            <button class="prof-rid-btn prof-rid-btn--ghost prof-rid-btn--scene-regen" id="profRidRegen" type="button">
+            <button class="btn btn--quiet btn--sm prof-rid-btn prof-rid-btn--ghost prof-rid-btn--scene-regen" id="profRidRegen" type="button">
               <svg class="prof-rid-regen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M3 12a9 9 0 0 1 15.5-6.3L21 3v6h-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M21 12a9 9 0 0 1-15.5 6.3L3 21v-6h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>

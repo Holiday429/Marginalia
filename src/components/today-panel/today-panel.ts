@@ -86,7 +86,7 @@ export function mountTodayPanel(host: HTMLElement, hooks: TodayHooks): () => voi
       : `
         <header class="today__head">
           <h2 class="today__title">Today</h2>
-          <button class="today__btn today__btn--quiet" type="button" data-today="toggle" aria-expanded="true">Hide</button>
+          <button class="btn btn--sm btn--quiet today__btn today__btn--quiet" type="button" data-today="toggle" aria-expanded="true">Hide</button>
         </header>
         <div class="today__body">
           <div class="today__col" data-today-col="reading">
@@ -95,18 +95,18 @@ export function mountTodayPanel(host: HTMLElement, hooks: TodayHooks): () => voi
               ? `<p class="today__book">${esc(titleOf(reading))}</p>
                  <p class="today__meta">${esc(reading.authorZh || reading.author || '')}</p>
                  <div class="today__row">
-                   <button class="today__btn" type="button" data-today="open-book" data-book-id="${esc(reading.id)}">Open book</button>
+                   <button class="btn btn--sm today__btn" type="button" data-today="open-book" data-book-id="${esc(reading.id)}">Open book</button>
                  </div>`
               : `<p class="today__empty">Nothing in progress.</p>
                  <div class="today__row">
-                   <button class="today__btn" type="button" data-today="add-book">Add a book</button>
+                   <button class="btn btn--sm today__btn" type="button" data-today="add-book">Add a book</button>
                  </div>`}
           </div>
           <div class="today__col" data-today-col="review">
             <h3 class="today__label">Worth Another Look</h3>
             ${due.length
               ? `<ul class="today__list">${due.map((h) => `<li class="today__quote"><span>${esc(clip(h.quote, 90))}</span>${h.bookTitle ? `<em>${esc(h.bookTitle)}</em>` : ''}</li>`).join('')}</ul>
-                 <div class="today__row"><button class="today__btn" type="button" data-today="review">Review</button></div>`
+                 <div class="today__row"><button class="btn btn--sm today__btn" type="button" data-today="review">Review</button></div>`
               : '<p class="today__empty">Nothing to revisit today.</p>'}
           </div>
           <div class="today__col" data-today-col="action">
@@ -114,7 +114,7 @@ export function mountTodayPanel(host: HTMLElement, hooks: TodayHooks): () => voi
             ${action
               ? `<p class="today__book">${esc(clip(String(action.text), 110))}</p>
                  ${actionBook ? `<p class="today__meta">${esc(titleOf(actionBook))}</p>` : ''}
-                 ${action.bookId ? `<div class="today__row"><button class="today__btn" type="button" data-today="open-action" data-book-id="${esc(action.bookId)}">Open book</button></div>` : ''}`
+                 ${action.bookId ? `<div class="today__row"><button class="btn btn--sm today__btn" type="button" data-today="open-action" data-book-id="${esc(action.bookId)}">Open book</button></div>` : ''}`
               : '<p class="today__empty">No action due.</p>'}
           </div>
         </div>`;

@@ -459,14 +459,14 @@ function profileHTML(
           </div>
         </div>
         <div class="prof-map-head-right">
-          <button class="prof-map-play-btn" id="profMapPlayBtn" type="button" aria-label="Play journey" disabled>
+          <button class="btn btn--icon btn--sm prof-map-play-btn" id="profMapPlayBtn" type="button" aria-label="Play journey" disabled>
             <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>
           </button>
           <div class="prof-map-pills" id="profMapPills">
-            <button class="prof-pill is-active" data-dim="journey" type="button">Journey</button>
-            <button class="prof-pill" data-dim="contentLocation" type="button">Story</button>
-            <button class="prof-pill" data-dim="authorOrigin" type="button">Author</button>
-            <button class="prof-pill" data-dim="readerLocation" type="button">Reader</button>
+            <button class="chip prof-pill is-active" data-dim="journey" type="button">Journey</button>
+            <button class="chip prof-pill" data-dim="contentLocation" type="button">Story</button>
+            <button class="chip prof-pill" data-dim="authorOrigin" type="button">Author</button>
+            <button class="chip prof-pill" data-dim="readerLocation" type="button">Reader</button>
           </div>
         </div>
       </div>
@@ -580,7 +580,7 @@ function profileHTML(
         <div class="prof-snapshot-modal__panel">
           <div class="prof-snapshot-modal__head">
             <span class="prof-snapshot-modal__title">Reading card</span>
-            <button class="prof-snapshot-modal__close" id="profSnapshotClose" type="button" aria-label="Close">
+            <button class="btn btn--icon btn--sm prof-snapshot-modal__close" id="profSnapshotClose" type="button" aria-label="Close">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
             </button>
           </div>
@@ -588,11 +588,11 @@ function profileHTML(
             <div class="prof-snapshot-modal__spinner" aria-label="Generating…"></div>
           </div>
           <div class="prof-snapshot-modal__actions">
-            <button class="prof-snapshot-btn prof-snapshot-btn--primary" id="profSnapshotDownload" type="button" disabled>
+            <button class="btn btn--primary prof-snapshot-btn prof-snapshot-btn--primary" id="profSnapshotDownload" type="button" disabled>
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M5 7l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
               Save image
             </button>
-            <button class="prof-snapshot-btn prof-snapshot-btn--ghost" id="profSnapshotShare" type="button" disabled hidden>
+            <button class="btn btn--quiet prof-snapshot-btn prof-snapshot-btn--ghost" id="profSnapshotShare" type="button" disabled hidden>
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="3" r="1.5"/><circle cx="12" cy="13" r="1.5"/><circle cx="4" cy="8" r="1.5"/><path d="M5.4 7.3l5.2-3M5.4 8.7l5.2 3"/></svg>
               Share
             </button>
@@ -995,7 +995,7 @@ function profileHeaderHTML(showSettingsAction: boolean, profile: PublicProfileDa
   }
   if (shareUrl) {
     actions.push(`
-      <button class="btn panel-header-action prof-header-action--icon" id="profileHeaderShareBtn" type="button" data-share-url="${escapeHtml(shareUrl)}" aria-label="Share profile">
+      <button class="btn--icon btn panel-header-action prof-header-action--icon" id="profileHeaderShareBtn" type="button" data-share-url="${escapeHtml(shareUrl)}" aria-label="Share profile">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M11 5V2.5H5V5"></path>
           <path d="M8 10V2.5"></path>

@@ -47,22 +47,13 @@
 
 /* ── Triangle toggle button ─────────────────────────────────────────── */
 .book-outline-toggle {
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  padding: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--muted);
   width: 28px;
-  height: 28px;
   margin-left: -6px;
   flex: 0 0 auto;
-  transition: color var(--dur-fast);
 }
-
-.book-outline-toggle:hover { color: var(--accent); }
 
 .book-outline-toggle-icon {
   width: 0;
@@ -2176,7 +2167,9 @@
     border-bottom: 1px solid var(--rule);
     padding: 10px 0;
   }
-  .book-outline-toggle { display: none; }
+  .book-outline-toggle {
+  display: none;
+}
   .book-outline-heading { display: none; }
   .book-outline-body,
   .book-outline.is-collapsed .book-outline-body {
@@ -3171,26 +3164,10 @@
 
 .book-outline-card-btn {
   width: 100%;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  cursor: pointer;
-  background: transparent;
-  color: var(--muted);
   text-align: left;
-  transition: border-color 0.15s, color 0.15s;
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.book-outline-card-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.book-outline-card-btn:disabled {
-  opacity: 0.55;
-  cursor: default;
 }
 
 .book-outline-card-btn-icon {
@@ -3331,9 +3308,6 @@
 }
 
 @media (max-width: 640px) {
-  .book-outline-card-btn {
-    padding: 10px 12px;
-  }
 
   .book-outline-card-btn-label {
     font-size: var(--fs-14);

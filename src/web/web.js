@@ -65,7 +65,7 @@ function webShellHTML() {
     ${sharedHeader}
 
     <div class="web-subheader">
-      <button class="web-filter-toggle" id="webFilterToggle" type="button" aria-expanded="false">
+      <button class="chip web-filter-toggle" id="webFilterToggle" type="button" aria-expanded="false">
         Concept Network
       </button>
       <label class="web-search">
@@ -73,8 +73,8 @@ function webShellHTML() {
         <input id="webSearchInput" type="search" placeholder="Concept, book, context">
       </label>
       <div class="web-mode-switch" id="webModeSwitch">
-        <button class="web-mode-btn active" data-web-mode="all" type="button">Concept Web</button>
-        <button class="web-mode-btn" data-web-mode="suggested" type="button">Unconfirmed AI Links</button>
+        <button class="chip web-mode-btn active" data-web-mode="all" type="button">Concept Web</button>
+        <button class="chip web-mode-btn" data-web-mode="suggested" type="button">Unconfirmed AI Links</button>
       </div>
       <div class="web-header-right">
         <div class="web-chip"><strong id="webBookCount">—</strong> books</div>

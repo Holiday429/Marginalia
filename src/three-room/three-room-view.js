@@ -124,7 +124,7 @@ function buildRoomMarkup() {
 
       <aside class="room-sidebar" id="roomSidebar">
         <header class="room-sidebar-head">
-          <button class="room-icon-btn room-menu-toggle" type="button" id="roomSidebarToggleBtn" aria-label="Collapse Menu">
+          <button class="btn btn--icon btn--sm room-icon-btn room-menu-toggle" type="button" id="roomSidebarToggleBtn" aria-label="Collapse Menu">
             ${renderMenuToggleIcon()}
           </button>
           <h1 class="room-title" id="roomTitle">Room</h1>
@@ -175,27 +175,27 @@ function buildRoomMarkup() {
       ${renderRoomTopTabsMarkup()}
 
       <div class="room-camera-bar" id="roomCameraControls" role="group" aria-label="Camera">
-        <button type="button" class="room-chip active" data-room-pose="front">Front</button>
-        <button type="button" class="room-chip" data-room-pose="approach">Desk</button>
-        <button type="button" class="room-chip" data-room-pose="shelf">Shelf<span class="room-chip__long"> wall</span></button>
-        <button type="button" class="room-chip" data-room-pose="notes">Notes<span class="room-chip__long"> wall</span></button>
-        <button type="button" class="room-chip" id="roomFreeLookBtn" aria-pressed="false">Free<span class="room-chip__long"> look</span></button>
+        <button type="button" class="chip room-chip active" data-room-pose="front">Front</button>
+        <button type="button" class="chip room-chip" data-room-pose="approach">Desk</button>
+        <button type="button" class="chip room-chip" data-room-pose="shelf">Shelf<span class="room-chip__long"> wall</span></button>
+        <button type="button" class="chip room-chip" data-room-pose="notes">Notes<span class="room-chip__long"> wall</span></button>
+        <button type="button" class="chip room-chip" id="roomFreeLookBtn" aria-pressed="false">Free<span class="room-chip__long"> look</span></button>
       </div>
 
       <section class="room-settings-panel" id="roomSettingsPanel" aria-label="Room Settings">
         <header class="room-settings-head">
           <h2>Settings</h2>
-          <button class="room-icon-btn" type="button" data-room-close-settings aria-label="Close Settings">x</button>
+          <button class="btn btn--icon btn--sm room-icon-btn" type="button" data-room-close-settings aria-label="Close Settings">x</button>
         </header>
 
         <div class="room-settings-block">
           <h3>Room Atmosphere</h3>
           <div class="room-chip-row">
-            <button type="button" class="room-chip" data-room-atmosphere="auto">Auto</button>
-            <button type="button" class="room-chip" data-room-atmosphere="morning">Morning</button>
-            <button type="button" class="room-chip" data-room-atmosphere="afternoon">Afternoon</button>
-            <button type="button" class="room-chip" data-room-atmosphere="dusk">Dusk</button>
-            <button type="button" class="room-chip" data-room-atmosphere="night">Night</button>
+            <button type="button" class="chip room-chip" data-room-atmosphere="auto">Auto</button>
+            <button type="button" class="chip room-chip" data-room-atmosphere="morning">Morning</button>
+            <button type="button" class="chip room-chip" data-room-atmosphere="afternoon">Afternoon</button>
+            <button type="button" class="chip room-chip" data-room-atmosphere="dusk">Dusk</button>
+            <button type="button" class="chip room-chip" data-room-atmosphere="night">Night</button>
           </div>
           <p class="room-atmosphere-note" id="roomAtmosphereNote"></p>
         </div>
@@ -203,20 +203,20 @@ function buildRoomMarkup() {
         <div class="room-settings-block">
           <h3>Room Theme</h3>
           <div class="room-chip-row">
-            <button type="button" class="room-chip active" data-room-theme="taupe">Taupe</button>
-            <button type="button" class="room-chip" data-room-theme="ink">Ink</button>
-            <button type="button" class="room-chip" data-room-theme="cream">Cream</button>
-            <button type="button" class="room-chip" data-room-theme="sage">Sage</button>
-            <button type="button" class="room-chip" data-room-theme="clay">Clay</button>
+            <button type="button" class="chip room-chip active" data-room-theme="taupe">Taupe</button>
+            <button type="button" class="chip room-chip" data-room-theme="ink">Ink</button>
+            <button type="button" class="chip room-chip" data-room-theme="cream">Cream</button>
+            <button type="button" class="chip room-chip" data-room-theme="sage">Sage</button>
+            <button type="button" class="chip room-chip" data-room-theme="clay">Clay</button>
           </div>
         </div>
 
         <div class="room-settings-block">
           <h3>Window Blinds</h3>
           <div class="room-chip-row">
-            <button type="button" class="room-chip" data-room-blinds="open">Open</button>
-            <button type="button" class="room-chip" data-room-blinds="half">Half</button>
-            <button type="button" class="room-chip" data-room-blinds="closed">Closed</button>
+            <button type="button" class="chip room-chip" data-room-blinds="open">Open</button>
+            <button type="button" class="chip room-chip" data-room-blinds="half">Half</button>
+            <button type="button" class="chip room-chip" data-room-blinds="closed">Closed</button>
           </div>
           <p class="room-atmosphere-note" id="roomBlindsNote"></p>
         </div>
@@ -230,8 +230,8 @@ function buildRoomMarkup() {
               <span id="roomAudioTrackSubtitle">Add built-in tracks in /public/audio/room/manifest.json</span>
             </div>
             <div class="room-music-actions">
-              <button type="button" class="room-icon-pill" id="roomAudioPlayToggle" aria-label="Play music">Play</button>
-              <button type="button" class="room-icon-pill" id="roomAudioMuteToggle" aria-label="Mute music">Mute</button>
+              <button type="button" class="btn btn--sm room-icon-pill" id="roomAudioPlayToggle" aria-label="Play music">Play</button>
+              <button type="button" class="btn btn--sm room-icon-pill" id="roomAudioMuteToggle" aria-label="Mute music">Mute</button>
             </div>
           </div>
           <div class="room-audio-track-list" id="roomAudioTrackList" aria-label="Music tracks"></div>
@@ -240,8 +240,8 @@ function buildRoomMarkup() {
           <input id="roomMusicVolume" type="range" min="0" max="100" value="62">
           <div class="room-audio-upload" id="roomAudioUploadArea">
             <input id="roomCustomAudioInput" type="file" accept="audio/*" hidden>
-            <button type="button" class="room-chip" id="roomAudioUploadBtn">Add Personal Track</button>
-            <button type="button" class="room-chip" id="roomAudioUpgradeBtn" hidden>Unlock Pro Uploads</button>
+            <button type="button" class="chip room-chip" id="roomAudioUploadBtn">Add Personal Track</button>
+            <button type="button" class="chip room-chip" id="roomAudioUpgradeBtn" hidden>Unlock Pro Uploads</button>
             <p class="room-audio-note" id="roomAudioUploadNote"></p>
           </div>
         </div>
@@ -249,9 +249,9 @@ function buildRoomMarkup() {
         <div class="room-settings-block">
           <h3>Ambient Effects</h3>
           <div class="room-chip-row">
-            <button type="button" class="room-chip" disabled>Rain</button>
-            <button type="button" class="room-chip" disabled>Vinyl Noise</button>
-            <button type="button" class="room-chip" disabled>Fireplace</button>
+            <button type="button" class="chip room-chip" disabled>Rain</button>
+            <button type="button" class="chip room-chip" disabled>Vinyl Noise</button>
+            <button type="button" class="chip room-chip" disabled>Fireplace</button>
           </div>
           <p class="room-atmosphere-note">Coming soon.</p>
         </div>
@@ -454,7 +454,7 @@ function ensureFallbackPanels() {
   if (todoPanel && !todoPanel.innerHTML.trim()) {
     todoPanel.innerHTML = `
       <section class="room-fallback-panel">
-        <button class="room-fallback-close" type="button" data-panel-close aria-label="Close Panel">x</button>
+        <button class="btn btn--icon btn--sm room-fallback-close" type="button" data-panel-close aria-label="Close Panel">x</button>
         <h2>To Do</h2>
         <p>Task Hub Is Ready For Your Next Workflow.</p>
       </section>

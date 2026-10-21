@@ -39,7 +39,7 @@ function render(container: HTMLElement): void {
   if (!isActive) {
     container.innerHTML = `
       <div class="desk-slot desk-slot--idle">
-        <button class="desk-slot__btn" type="button" data-desk-toggle data-book-id="${esc(String(book.id))}">
+        <button class="btn btn--sm desk-slot__btn" type="button" data-desk-toggle data-book-id="${esc(String(book.id))}">
           Start Reading
         </button>
       </div>`;
@@ -51,7 +51,7 @@ function render(container: HTMLElement): void {
     <div class="desk-slot desk-slot--active">
       <div class="desk-slot__info">
         <div class="desk-slot__timer" data-desk-timer>${elapsed}</div>
-        <button class="desk-slot__btn desk-slot__btn--stop"
+        <button class="btn btn--sm btn--danger desk-slot__btn desk-slot__btn--stop"
           type="button" data-desk-toggle data-book-id="${esc(String(book.id))}">
           Stop Reading
         </button>

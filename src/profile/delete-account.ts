@@ -22,7 +22,7 @@ export function deleteAccountSectionHTML(): string {
     <section class="prof-settings__section prof-delete" id="profDeleteSection">
       <h3 class="prof-settings__subheading">Delete account</h3>
       <p class="prof-settings__hint">Permanently deletes your library, highlights, notes, profile and sign-in. A copy of your data downloads first.</p>
-      <button class="prof-delete__open" id="profDeleteOpen" type="button">Delete account</button>
+      <button class="btn btn--danger prof-delete__open" id="profDeleteOpen" type="button">Delete account</button>
       <div class="prof-delete__dialog" id="profDeleteDialog" role="alertdialog" aria-labelledby="profDeleteTitle" hidden>
         <h4 class="prof-delete__title" id="profDeleteTitle">Delete your account?</h4>
         <p class="prof-delete__text" id="profDeleteDownloaded"></p>
@@ -30,8 +30,8 @@ export function deleteAccountSectionHTML(): string {
         <input class="prof-delete__input" id="profDeleteInput" type="text" autocomplete="off" aria-label="Type ${CONFIRM_WORD} to confirm">
         <p class="prof-delete__error" id="profDeleteError" role="alert" hidden></p>
         <div class="prof-delete__actions">
-          <button class="prof-delete__btn" id="profDeleteCancel" type="button">Cancel</button>
-          <button class="prof-delete__btn prof-delete__btn--danger" id="profDeleteConfirm" type="button" disabled>Delete forever</button>
+          <button class="btn prof-delete__btn" id="profDeleteCancel" type="button">Cancel</button>
+          <button class="btn btn--danger prof-delete__btn prof-delete__btn--danger" id="profDeleteConfirm" type="button" disabled>Delete forever</button>
         </div>
       </div>
     </section>`;

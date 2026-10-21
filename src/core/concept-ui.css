@@ -72,13 +72,7 @@ body.concept-drawer-open {
 }
 
 .concept-drawer-close {
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 18%, transparent);
-  background: transparent;
-  color: color-mix(in srgb, var(--color-ivory-text) 70%, transparent);
   width: 36px;
-  height: 36px;
-  font-size: var(--fs-28);
-  cursor: pointer;
 }
 
 .concept-drawer-body {
@@ -161,15 +155,7 @@ body.concept-drawer-open {
 }
 
 .concept-book-open {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: var(--color-paper);
-  cursor: pointer;
   text-align: left;
-  font-family: var(--font-serif);
-  font-size: var(--fs-20);
-  line-height: 1.25;
 }
 
 .concept-book-meta {

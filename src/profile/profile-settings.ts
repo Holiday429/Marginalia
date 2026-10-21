@@ -264,7 +264,7 @@ function settingsHTML(
             autocomplete="off"
             spellcheck="false"
           >
-          <button class="prof-slug-save" id="profSlugSave" type="button">${t('profile-settings.slug.btn-save')}</button>
+          <button class="btn btn--primary btn--sm prof-slug-save" id="profSlugSave" type="button">${t('profile-settings.slug.btn-save')}</button>
         </div>
         <p class="prof-slug-status" id="profSlugStatus" aria-live="polite"></p>
       </section>
@@ -320,8 +320,8 @@ function settingsHTML(
         <h3 class="prof-settings__subheading">Library export</h3>
         <p class="prof-settings__hint">Download your full library and notes from the settings menu instead of the old booklist page.</p>
         <div class="prof-export-row">
-          <button class="prof-export-btn" id="profExportJsonBtn" type="button">Download JSON</button>
-          <button class="prof-export-btn" id="profExportMdBtn" type="button">Download Markdown</button>
+          <button class="btn prof-export-btn" id="profExportJsonBtn" type="button">Download JSON</button>
+          <button class="btn prof-export-btn" id="profExportMdBtn" type="button">Download Markdown</button>
         </div>
         <p class="prof-export-note" id="profExportNote" hidden></p>
       </section>

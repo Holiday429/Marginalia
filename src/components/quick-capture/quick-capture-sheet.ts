@@ -134,7 +134,7 @@ export function openQuickCapture(options: OpenQuickCaptureOptions = {}): void {
   sheet.innerHTML = `
     <header class="qc-head">
       <h2 class="qc-title">${esc(options.heading ?? 'Capture a thought')}</h2>
-      <button type="button" class="qc-close" data-qc-close aria-label="Close">×</button>
+      <button type="button" class="btn btn--icon btn--sm qc-close" data-qc-close aria-label="Close">×</button>
     </header>
     <form class="qc-form" data-qc-form>
       <label class="qc-label" for="qcText">Quote, idea or observation</label>
@@ -146,7 +146,7 @@ export function openQuickCapture(options: OpenQuickCaptureOptions = {}): void {
         <ul class="qc-suggestions" data-qc-suggestions hidden></ul>
       </div>
       <p class="qc-error" data-qc-error role="alert" hidden></p>
-      <button type="submit" class="qc-save" data-qc-save>Save</button>
+      <button type="submit" class="btn btn--primary qc-save" data-qc-save>Save</button>
     </form>`;
   document.body.append(backdrop, sheet);
   setFabHidden(true);

@@ -31,7 +31,7 @@ function ensureConceptDrawer(): void {
           <div class="concept-drawer-kicker">Concept</div>
           <h2 class="concept-drawer-title" id="conceptDrawerTitle">Untitled</h2>
         </div>
-        <button class="concept-drawer-close" id="conceptDrawerClose" type="button" aria-label="Close concept drawer">×</button>
+        <button class="btn btn--icon btn--sm concept-drawer-close" id="conceptDrawerClose" type="button" aria-label="Close concept drawer">×</button>
       </div>
       <div class="concept-drawer-body" id="conceptDrawerBody"></div>
     </aside>
@@ -118,7 +118,7 @@ function renderConceptDrawerBody(details: ConceptDetails, options: OpenConceptDr
     return `
       <article class="concept-book-card${book.id === options.focusBookId ? ' is-focus' : ''}">
         <div class="concept-book-head">
-          <button class="concept-book-open" type="button" data-open-book-id="${esc(book.id)}">${esc(book.titleZh || book.title)}</button>
+          <button class="btn btn--sm concept-book-open" type="button" data-open-book-id="${esc(book.id)}">${esc(book.titleZh || book.title)}</button>
           <div class="concept-book-meta">
             <span class="concept-status">${esc(statusMeta.label)}</span>
             <span class="concept-sep">·</span>

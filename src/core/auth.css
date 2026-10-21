@@ -70,14 +70,6 @@ body.auth-locked {
 
 .auth-dock-close {
   width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 24%, transparent);
-  background: color-mix(in srgb, var(--color-ivory-text) 4%, transparent);
-  color: color-mix(in srgb, var(--color-ivory-text) 82%, transparent);
-  font-size: var(--fs-20);
-  line-height: 1;
-  cursor: pointer;
   margin-left: auto;
   display: block;
 }
@@ -238,14 +230,6 @@ body[data-view="preloader"] .auth-gate {
   top: 16px;
   right: 16px;
   width: 30px;
-  height: 30px;
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 20%, transparent);
-  background: transparent;
-  color: color-mix(in srgb, var(--color-ivory-text) 72%, transparent);
-  font-size: var(--fs-20);
-  line-height: 1;
-  cursor: pointer;
-  border-radius: 999px;
 }
 
 .auth-tabs {
@@ -301,18 +285,6 @@ body[data-view="preloader"] .auth-gate {
   border-color: color-mix(in srgb, var(--color-gold-warm) 60%, transparent);
 }
 
-.auth-submit {
-  border: 1px solid color-mix(in srgb, var(--color-gold-warm) 50%, transparent);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-gold-warm) 24%, transparent), color-mix(in srgb, var(--color-gold-warm) 14%, transparent));
-  color: var(--color-ivory-text);
-  font-family: var(--font-mono);
-  font-size: var(--fs-11);
-  letter-spacing: 0.06em;
-  padding: 11px 12px;
-  cursor: pointer;
-  border-radius: 12px;
-}
-
 .auth-divider {
   display: flex;
   align-items: center;
@@ -329,15 +301,6 @@ body[data-view="preloader"] .auth-gate {
   flex: 1;
   height: 1px;
   background: color-mix(in srgb, var(--color-ivory-text) 16%, transparent);
-}
-
-.auth-google-btn {
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 36%, transparent);
-  background: color-mix(in srgb, var(--color-ivory-text) 9%, transparent);
-  color: color-mix(in srgb, var(--color-ivory-text) 94%, transparent);
-  padding: 11px 12px;
-  cursor: pointer;
-  border-radius: 12px;
 }
 
 .auth-error {
@@ -358,14 +321,6 @@ body[data-view="preloader"] .auth-gate {
 
 .auth-user-meta {
   color: color-mix(in srgb, var(--color-ivory-text) 62%, transparent);
-}
-
-.auth-logout-btn {
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 20%, transparent);
-  color: color-mix(in srgb, var(--color-ivory-text) 72%, transparent);
-  background: transparent;
-  padding: 8px 10px;
-  cursor: pointer;
 }
 
 @media (max-width: 900px) {

@@ -14,7 +14,7 @@ export function renderWaitlistCTA(host: HTMLElement): void {
             autocomplete="email"
             required
           />
-          <button class="prof-waitlist__btn" type="submit">Join waitlist</button>
+          <button class="btn prof-waitlist__btn" type="submit">Join waitlist</button>
         </form>
         <p class="prof-waitlist__note" id="profWaitlistNote" hidden></p>
         <p class="prof-waitlist__legal">No spam. Unsubscribe any time.</p>

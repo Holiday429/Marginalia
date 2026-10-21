@@ -98,7 +98,7 @@ function _render(): void {
     <div class="an-panel" id="anPanel" hidden>
       <header class="an-panel-head">
         <h2 class="an-panel-title">Action Reminders</h2>
-        <button class="an-close-btn" id="anCloseBtn" aria-label="Dismiss">×</button>
+        <button class="btn btn--icon btn--sm an-close-btn" id="anCloseBtn" aria-label="Dismiss">×</button>
       </header>
       <div class="an-panel-body">
         ${grouped.map(([tier, items]) => `
@@ -109,8 +109,8 @@ function _render(): void {
                 <li class="an-item" data-notif-id="${n.id}" data-action-id="${n.actionId}" data-book-id="${n.bookId}">
                   <span class="an-item-text">${_esc(n.text)}</span>
                   <div class="an-item-actions">
-                    <button class="an-item-btn" data-action="go" title="Open book">Open</button>
-                    <button class="an-item-btn an-item-btn--dismiss" data-action="dismiss" title="Dismiss">Dismiss</button>
+                    <button class="btn btn--sm an-item-btn" data-action="go" title="Open book">Open</button>
+                    <button class="btn btn--sm btn--quiet an-item-btn an-item-btn--dismiss" data-action="dismiss" title="Dismiss">Dismiss</button>
                   </div>
                 </li>
               `).join('')}
@@ -119,7 +119,7 @@ function _render(): void {
         `).join('')}
       </div>
       <footer class="an-panel-foot">
-        <button class="an-dismiss-all-btn" id="anDismissAll">Dismiss all</button>
+        <button class="btn btn--quiet btn--sm an-dismiss-all-btn" id="anDismissAll">Dismiss all</button>
       </footer>
     </div>
   `;

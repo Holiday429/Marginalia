@@ -961,7 +961,7 @@ function renderBook(b, sections) {
           <div class="book-outline-body">
             <div class="book-outline-heading">
               <button
-                class="book-outline-toggle"
+                class="btn btn--quiet btn--sm book-outline-toggle"
                 type="button"
                 aria-expanded="true"
                 aria-label="Toggle sections menu"
@@ -1071,7 +1071,7 @@ function renderMasthead(b) {
 function renderReadingCardCTA() {
   return `
     <div class="book-outline-card-section">
-      <button class="book-outline-card-btn" type="button" data-generate-card>
+      <button class="btn book-outline-card-btn" type="button" data-generate-card>
         <svg class="book-outline-card-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 3.5 13.8 8l4.7 1.8-4.7 1.8L12 16.1l-1.8-4.5L5.5 9.8 10.2 8 12 3.5Z"></path>
           <path d="m18.3 4.8.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z"></path>

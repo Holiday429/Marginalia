@@ -432,31 +432,6 @@ body[data-view="search"] {
   align-items: center;
 }
 
-.shelf-filters .chip,
-.shelf-status-btn,
-.booklist-play-btn {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: var(--fs-11);
-  letter-spacing: 0.03em;
-  text-transform: none;
-  color: var(--ink);
-  background: transparent;
-  border: var(--ui-border-width) solid var(--ui-border-strong);
-  height: 30px;
-  padding: 0 12px;
-  cursor: pointer;
-  border-radius: 999px;
-  font-weight: 600;
-  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-
-.shelf-filters .chip:hover,
-.shelf-status-btn:hover,
-.booklist-play-btn:hover {
-  border-color: var(--ui-border-strong);
-  transform: translateY(-1px);
-}
-
 .booklist-play-btn--icon {
   width: 30px;
   height: 30px;
@@ -470,13 +445,6 @@ body[data-view="search"] {
 .booklist-play-btn--icon svg {
   width: 12px;
   height: 12px;
-}
-
-.shelf-filters .chip.active,
-.shelf-status-btn.is-active {
-  background: var(--glass-fill-active);
-  color: var(--ui-active-ink);
-  border-color: var(--glass-border-active);
 }
 
 /* ---- Tag row (below search bar) ---- */
@@ -966,19 +934,7 @@ body[data-view="search"] {
   top: 10px;
   right: 10px;
   width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 24%, transparent);
-  background: transparent;
-  color: color-mix(in srgb, var(--color-ivory-text) 88%, transparent);
-  font-size: var(--fs-16);
-  line-height: 1;
-  cursor: pointer;
   z-index: 2;
-}
-
-.shelf-preview-close:hover {
-  background: color-mix(in srgb, var(--color-ivory-text) 14%, transparent);
 }
 
 .shelf-preview-cover {
@@ -1513,12 +1469,6 @@ body[data-view="search"] {
    the 44px WCAG touch target guideline. Lift only on coarse-pointer devices. */
 @media (pointer: coarse) {
   .nav-room-btn {
-    height: auto;
-    min-height: 44px;
-    padding: 0 16px;
-  }
-
-  .shelf-filters .chip {
     height: auto;
     min-height: 44px;
     padding: 0 16px;

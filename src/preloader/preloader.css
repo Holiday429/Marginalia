@@ -612,19 +612,6 @@ body[data-view="preloader"] {
 }
 .swatch:hover { transform: scale(1.12); }
 .swatch.active { box-shadow: 0 0 0 2px var(--ink); }
-.chip {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: var(--fs-11);
-  letter-spacing: 0.12em;
-  text-transform: none;
-  padding: 4px 9px;
-  border: 1px solid color-mix(in srgb, var(--color-ink-deep) 30%, transparent);
-  cursor: pointer;
-  background: transparent;
-  color: var(--ink);
-  border-radius: 2px;
-}
-.chip.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
 .tweak-row .num {
   font-family: 'IBM Plex Mono', monospace;
   font-size: var(--fs-11);

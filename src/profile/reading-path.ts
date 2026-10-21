@@ -125,9 +125,9 @@ function viewHTML(years: YearData[], index: number, showNav: boolean, insight = 
   const canNext = index < years.length - 1;
   const nav = showNav ? `
         <div class="prof-path__year-nav">
-          <button class="prof-path__arrow" data-path-dir="-1" type="button" aria-label="Previous year" ${canPrev ? '' : 'disabled'}>&#8249;</button>
+          <button class="btn btn--icon btn--sm prof-path__arrow" data-path-dir="-1" type="button" aria-label="Previous year" ${canPrev ? '' : 'disabled'}>&#8249;</button>
           <span class="prof-path__year">${data.year}</span>
-          <button class="prof-path__arrow" data-path-dir="1" type="button" aria-label="Next year" ${canNext ? '' : 'disabled'}>&#8250;</button>
+          <button class="btn btn--icon btn--sm prof-path__arrow" data-path-dir="1" type="button" aria-label="Next year" ${canNext ? '' : 'disabled'}>&#8250;</button>
         </div>` : '';
   return `
     <div class="prof-path__card">

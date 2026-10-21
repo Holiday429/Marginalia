@@ -88,12 +88,6 @@ body[data-view="preloader"] .qc-fab { display: none; }
 
 .qc-close {
   width: 44px;
-  height: 44px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-size: var(--fs-28);
-  cursor: pointer;
 }
 
 .qc-form { display: grid; gap: 10px; }
@@ -186,19 +180,6 @@ body[data-view="preloader"] .qc-fab { display: none; }
   color: var(--color-rose);
   font-size: var(--fs-14);
 }
-
-.qc-save {
-  min-height: 48px;
-  border: 0;
-  border-radius: 4px;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-serif);
-  font-size: var(--fs-16);
-  cursor: pointer;
-}
-
-.qc-save:disabled { opacity: 0.6; cursor: default; }
 
 .qc-toast {
   position: fixed;

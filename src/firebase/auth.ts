@@ -95,7 +95,7 @@ export const MarginaliaAuth = (() => {
             <p class="auth-copy">Log in to load your concepts, links, confirmations, and future cloud notes across devices.</p>
           </aside>
           <div class="auth-panel">
-            <button class="auth-close-btn" id="authCloseBtn" type="button" aria-label="Close login panel">×</button>
+            <button class="btn btn--icon btn--sm auth-close-btn" id="authCloseBtn" type="button" aria-label="Close login panel">×</button>
             <div class="auth-tabs" id="authTabs">
               <button id="authTabLogin" class="active" type="button">Sign In</button>
               <button id="authTabRegister" type="button">Register</button>
@@ -113,20 +113,20 @@ export const MarginaliaAuth = (() => {
                 <span>Password</span>
                 <input id="authPasswordInput" type="password" autocomplete="current-password" required>
               </label>
-              <button class="auth-submit" id="authSubmitBtn" type="submit">Sign In</button>
+              <button class="btn btn--primary auth-submit" id="authSubmitBtn" type="submit">Sign In</button>
               <div class="auth-divider" aria-hidden="true"><span>or</span></div>
-              <button class="auth-google-btn" id="authGoogleBtn" type="button">Continue With Google</button>
+              <button class="btn auth-google-btn" id="authGoogleBtn" type="button">Continue With Google</button>
               <div class="auth-error" id="authError"></div>
             </form>
             <div class="auth-user" id="authUser" hidden>
               <div class="auth-user-meta" id="authUserMeta"></div>
-              <button class="auth-logout-btn" id="authLogoutBtn" type="button" data-auth-action="logout">Log Out</button>
+              <button class="btn btn--sm auth-logout-btn" id="authLogoutBtn" type="button" data-auth-action="logout">Log Out</button>
             </div>
           </div>
         </div>
       </section>
       <section class="auth-dock-panel" id="authDockPanel" aria-hidden="true" hidden>
-        <button class="auth-dock-close" id="authDockCloseBtn" type="button" aria-label="Close account panel">×</button>
+        <button class="btn btn--icon btn--sm auth-dock-close" id="authDockCloseBtn" type="button" aria-label="Close account panel">×</button>
         <div class="auth-dock-head">
           <span class="auth-dock-avatar" id="authDockAvatar" aria-hidden="true">U</span>
           <div class="auth-dock-name" id="authDockName">User</div>

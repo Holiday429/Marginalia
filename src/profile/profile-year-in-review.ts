@@ -139,9 +139,9 @@ export class ProfileAnnualShelf {
               </div>
               <div class="prof-annual__shelf-controls">
                 <div class="prof-rhythm__year-nav">
-                  <button class="prof-rhythm__arrow" id="profAnnualPrev" type="button" aria-label="Previous year" ${canPrev ? '' : 'disabled'}>&#8249;</button>
+                  <button class="btn btn--icon btn--sm prof-rhythm__arrow" id="profAnnualPrev" type="button" aria-label="Previous year" ${canPrev ? '' : 'disabled'}>&#8249;</button>
                   <span class="prof-rhythm__year">${year}</span>
-                  <button class="prof-rhythm__arrow" id="profAnnualNext" type="button" aria-label="Next year" ${canNext ? '' : 'disabled'}>&#8250;</button>
+                  <button class="btn btn--icon btn--sm prof-rhythm__arrow" id="profAnnualNext" type="button" aria-label="Next year" ${canNext ? '' : 'disabled'}>&#8250;</button>
                 </div>
               </div>
             </div>
@@ -202,14 +202,14 @@ export class ProfileAnnualShelf {
             <div class="prof-annual__shelf-controls">
               ${!this.showRhythm ? `
                 <div class="prof-rhythm__year-nav">
-                  <button class="prof-rhythm__arrow" id="profAnnualPrevShelf" type="button" aria-label="Previous year" ${canPrev ? '' : 'disabled'}>&#8249;</button>
+                  <button class="btn btn--icon btn--sm prof-rhythm__arrow" id="profAnnualPrevShelf" type="button" aria-label="Previous year" ${canPrev ? '' : 'disabled'}>&#8249;</button>
                   <span class="prof-rhythm__year">${year}</span>
-                  <button class="prof-rhythm__arrow" id="profAnnualNextShelf" type="button" aria-label="Next year" ${canNext ? '' : 'disabled'}>&#8250;</button>
+                  <button class="btn btn--icon btn--sm prof-rhythm__arrow" id="profAnnualNextShelf" type="button" aria-label="Next year" ${canNext ? '' : 'disabled'}>&#8250;</button>
                 </div>
               ` : ''}
               <span id="profAnnualCounter" class="prof-rhythm__meta"></span>
               ${selectedBooks.length >= 2 ? `
-                <button class="booklist-play-btn booklist-play-btn--icon" id="profAnnualPlayBtn" type="button" data-mode="${this.state.playMode}" aria-label="Play annual shelf">
+                <button class="btn btn--sm booklist-play-btn booklist-play-btn--icon" id="profAnnualPlayBtn" type="button" data-mode="${this.state.playMode}" aria-label="Play annual shelf">
                   <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><polygon points="4,2 14,8 4,14"/></svg>
                 </button>
               ` : ''}

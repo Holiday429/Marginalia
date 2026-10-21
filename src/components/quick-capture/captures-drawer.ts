@@ -92,7 +92,7 @@ export function openCapturesDrawer(): void {
   drawer.innerHTML = `
     <header class="cd-head">
       <h2 class="cd-title">Unattributed captures</h2>
-      <button type="button" class="cd-close" data-cd-close aria-label="Close">×</button>
+      <button type="button" class="btn btn--icon btn--sm cd-close" data-cd-close aria-label="Close">×</button>
     </header>
     <p class="cd-hint">Drag a capture onto a book, or choose one.</p>
     <ul class="cd-list" data-cd-list></ul>`;

@@ -224,22 +224,9 @@ body[data-view='room'] {
 }
 
 #view-room .room-icon-btn {
-  width: auto;
-  height: auto;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: color-mix(in srgb, var(--color-ivory-text) 94%, transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: opacity 0.16s ease;
-  padding: 0;
-}
-
-#view-room .room-icon-btn:hover {
-  opacity: 0.84;
 }
 
 #view-room .room-top-tabs {
@@ -358,20 +345,6 @@ body[data-view='room'] {
   gap: 8px;
 }
 
-#view-room .room-chip {
-  min-height: 30px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 24%, transparent);
-  background: color-mix(in srgb, var(--color-ivory-text) 7%, transparent);
-  color: color-mix(in srgb, var(--color-ivory-text) 90%, transparent);
-  padding: 0 12px;
-  cursor: pointer;
-  font-family: var(--font-service-ui);
-  font-size: var(--fs-11);
-  letter-spacing: var(--track-service-ui);
-  font-weight: var(--weight-service-ui);
-}
-
 /* Camera bar: always on the room, under the top tabs (moved out of Settings). */
 /* Camera bar: how to look at the room, alone at the bottom centre between the Reading pill (left) and + (right).
    Same pill recipe as the other floating controls. Narrow screens shorten the labels. */
@@ -415,16 +388,6 @@ body[data-view='room'] {
 }
 @media (max-width: 1000px) {
   #view-room .room-chip__long { display: none; }
-}
-
-#view-room .room-chip:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-#view-room .room-chip.active {
-  border-color: color-mix(in srgb, var(--color-ivory-text) 66%, transparent);
-  background: color-mix(in srgb, var(--color-gold-warm) 26%, transparent);
 }
 
 #view-room .room-music-card {
@@ -473,24 +436,6 @@ body[data-view='room'] {
   align-items: center;
   gap: 6px;
   flex: 0 0 auto;
-}
-
-#view-room .room-icon-pill {
-  min-height: 28px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 24%, transparent);
-  background: color-mix(in srgb, var(--color-ivory-text) 6%, transparent);
-  color: color-mix(in srgb, var(--color-ivory-text) 90%, transparent);
-  padding: 0 10px;
-  cursor: pointer;
-  font-family: var(--font-service-ui);
-  font-size: var(--fs-11);
-  letter-spacing: var(--track-service-ui);
-}
-
-#view-room .room-icon-pill:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 #view-room .room-audio-track-list {
@@ -844,12 +789,6 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
   align-items: center;
   justify-content: center;
   width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 26%, transparent);
-  background: color-mix(in srgb, var(--color-ivory-text) 6%, transparent);
-  color: color-mix(in srgb, var(--color-ivory-text) 90%, transparent);
-  cursor: pointer;
 }
 
 #panel-todo h2 {

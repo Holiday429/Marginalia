@@ -261,26 +261,6 @@
   flex-wrap: wrap;
 }
 
-.ne-style-btn {
-  font-family: var(--font-service-ui);
-  font-size: var(--fs-fluid-sm);
-  letter-spacing: var(--track-service-ui);
-  background: none;
-  border: 1px solid color-mix(in srgb, var(--color-brass-border) 52%, transparent);
-  color: color-mix(in srgb, var(--color-ivory-text) 84%, transparent);
-  border-radius: 6px;
-  padding: 5px 12px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-.ne-style-btn:hover { color: var(--color-ivory-text); border-color: color-mix(in srgb, var(--color-brass-border) 90%, transparent); }
-.ne-style-btn.is-active {
-  background: transparent;
-  color: var(--color-ivory-text);
-  border-color: color-mix(in srgb, var(--color-brass-border) 95%, transparent);
-}
-
 .ne-slider-row {
   display: flex;
   align-items: center;
