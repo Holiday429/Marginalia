@@ -40,7 +40,8 @@ async function checkRateLimit(uid: string): Promise<{ ok: boolean; reason?: stri
 }
 
 export const aiGenerate = functions.onRequest(
-  { secrets: ['AI_API_KEY'], cors: allowedOrigins() },
+  // The browser calls this directly with a Firebase ID token; the handler checks origin, token, rate limit and quota.
+  { secrets: ['AI_API_KEY'], cors: allowedOrigins(), invoker: 'public' },
   async (req, res) => {
     const apiKey = process.env.AI_API_KEY;
     const auditRef = db.doc(AuditPaths.aiCall('pending', String(Date.now())));
