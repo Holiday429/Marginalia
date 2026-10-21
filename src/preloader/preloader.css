@@ -115,7 +115,7 @@ body[data-view="preloader"] {
   left: 0; right: 0;
   bottom: 62px;
   height: 6px;
-  background: linear-gradient(to bottom, rgba(20,15,10,0.18), rgba(20,15,10,0) 70%);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-ink-deep) 18%, transparent), transparent 70%);
   z-index: 1;
   pointer-events: none;
 }
@@ -125,7 +125,7 @@ body[data-view="preloader"] {
   left: 0; right: 0;
   top: 0;
   height: 1px;
-  background: rgba(20,15,10,0.35);
+  background: color-mix(in srgb, var(--color-ink-deep) 35%, transparent);
 }
 
 /* ---- Book base ---- */
@@ -173,12 +173,12 @@ body[data-view="preloader"] {
   left: 0;
   width: 100%;
   transform: translateZ(0);
-  background: var(--book-color, #333);
+  background: var(--book-color, var(--color-smoke-bg));
   box-shadow:
-    inset 2px 0 0 rgba(255,255,255,0.05),
-    inset -2px 0 4px rgba(0,0,0,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    inset 0 -1px 0 rgba(0,0,0,0.2);
+    inset 2px 0 0 color-mix(in srgb, var(--color-ivory-text) 5%, transparent),
+    inset -2px 0 4px color-mix(in srgb, var(--color-ink-deep) 35%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-ivory-text) 8%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-ink-deep) 20%, transparent);
   /* Title above, author below: the author takes only what it needs (at most 38%), the title gets the rest. */
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
@@ -193,8 +193,8 @@ body[data-view="preloader"] {
   position: absolute;
   inset: 0;
   background:
-    repeating-linear-gradient(180deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px),
-    radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.06), transparent 70%);
+    repeating-linear-gradient(180deg, color-mix(in srgb, var(--color-ivory-text) 2%, transparent) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--color-ivory-text) 6%, transparent), transparent 70%);
   mix-blend-mode: overlay;
   pointer-events: none;
 }
@@ -210,7 +210,7 @@ body[data-view="preloader"] {
 .spine-text {
   position: relative;
   writing-mode: vertical-rl;
-  color: var(--book-text, #fff);
+  color: var(--book-text, var(--color-ivory-text));
   font-family: var(--book-font, 'Fraunces', serif);
   font-weight: var(--book-weight, 500);
   font-size: var(--book-size, 13px);
@@ -230,10 +230,10 @@ body[data-view="preloader"] {
   position: relative;
   writing-mode: vertical-rl;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 8px;
+  font-size: var(--fs-11);
   letter-spacing: 0.12em;
   text-transform: none;
-  color: var(--book-text, #fff);
+  color: var(--book-text, var(--color-ivory-text));
   opacity: 0.7;
   white-space: nowrap;
   max-height: calc(var(--book-h, 320px) * 0.38);
@@ -246,9 +246,9 @@ body[data-view="preloader"] {
   left: 50%;
   transform: translateX(-50%);
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-11);
   letter-spacing: 0.18em;
-  color: var(--book-text, #fff);
+  color: var(--book-text, var(--color-ivory-text));
   opacity: 0.55;
 }
 
@@ -258,8 +258,8 @@ body[data-view="preloader"] {
   left: 0; top: 0;
   background: var(--cover-bg, var(--book-color));
   box-shadow:
-    inset 0 0 0 1px rgba(0,0,0,0.08),
-    inset 0 0 24px rgba(0,0,0,0.15);
+    inset 0 0 0 1px color-mix(in srgb, var(--color-ink-deep) 8%, transparent),
+    inset 0 0 24px color-mix(in srgb, var(--color-ink-deep) 15%, transparent);
   padding: 24px 20px;
   color: var(--cover-text, var(--book-text));
   display: flex;
@@ -292,8 +292,8 @@ body[data-view="preloader"] {
 }
 .book.hero-3d .back {
   transform: translateZ(calc(var(--spine-half, 20px) * -1)) rotateY(180deg);
-  background: var(--cover-bg, var(--book-color, #333));
-  box-shadow: inset 0 0 30px rgba(0,0,0,0.2);
+  background: var(--cover-bg, var(--book-color, var(--color-smoke-bg)));
+  box-shadow: inset 0 0 30px color-mix(in srgb, var(--color-ink-deep) 20%, transparent);
 }
 
 /* Hide generated hero faces by default to avoid flashing a placeholder spine
@@ -314,12 +314,12 @@ body[data-view="preloader"] {
 /* ---- Hero cover art (Visible Signs) ---- */
 .cover.cover-visible-signs {
   padding: clamp(18px,7%,36px) clamp(14px,5%,28px);
-  background: #14263e;
-  color: #e8dfc8;
+  background: var(--color-navy);
+  color: var(--color-ivory-text);
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.08),
-    inset 0 0 80px rgba(0,0,0,0.25),
-    0 20px 40px -20px rgba(0,0,0,0.45);
+    inset 0 0 0 1px color-mix(in srgb, var(--color-ivory-text) 8%, transparent),
+    inset 0 0 80px color-mix(in srgb, var(--color-ink-deep) 25%, transparent),
+    0 20px 40px -20px color-mix(in srgb, var(--color-ink-deep) 45%, transparent);
   justify-content: space-between;
   align-items: stretch;
 }
@@ -328,7 +328,7 @@ body[data-view="preloader"] {
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 6px;
-  background: linear-gradient(90deg, rgba(0,0,0,0.4), transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-ink-deep) 40%, transparent), transparent);
 }
 .cover.cover-visible-signs .cover-mark {
   font-family: 'IBM Plex Mono', monospace;
@@ -377,7 +377,7 @@ body[data-view="preloader"] {
 }
 .cover-author {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-11);
   letter-spacing: 0.2em;
   text-transform: none;
   opacity: 0.85;
@@ -386,7 +386,7 @@ body[data-view="preloader"] {
 }
 .cover-meta {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 8px;
+  font-size: var(--fs-11);
   letter-spacing: 0.25em;
   text-transform: none;
   opacity: 0.6;
@@ -444,7 +444,7 @@ body[data-view="preloader"] {
   left: -6%; right: -6%;
   bottom: -12px;
   height: 22px;
-  background: radial-gradient(ellipse at center, rgba(20,15,10,0.4), transparent 70%);
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-ink-deep) 40%, transparent), transparent 70%);
   filter: blur(4px);
   z-index: -1;
 }
@@ -493,7 +493,7 @@ body[data-view="preloader"] {
   background: transparent;
 
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.3em;
   text-transform: none;
   color: var(--ink);
@@ -534,7 +534,7 @@ body[data-view="preloader"] {
   position: fixed;
   bottom: 24px; left: 28px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.28em;
   color: var(--ink);
   opacity: 0.5;
@@ -554,23 +554,23 @@ body[data-view="preloader"] {
   position: fixed;
   right: 20px; bottom: 60px;
   width: 280px;
-  background: rgba(237,229,212,0.95);
+  background: color-mix(in srgb, var(--color-ivory-text) 95%, transparent);
   backdrop-filter: blur(14px);
-  border: 1px solid rgba(26,23,20,0.12);
+  border: 1px solid color-mix(in srgb, var(--color-ink-deep) 12%, transparent);
   border-radius: 4px;
   padding: 18px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--ink);
   z-index: 40;
   display: none;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--color-ink-deep) 18%, transparent);
 }
 .tweaks.visible { display: block; }
 .tweaks h3 {
   font-family: 'Fraunces', serif;
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-14);
   margin-bottom: 14px;
   letter-spacing: 0.02em;
   display: flex;
@@ -579,7 +579,7 @@ body[data-view="preloader"] {
 }
 .tweaks h3 small {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-11);
   letter-spacing: 0.24em;
   text-transform: none;
   opacity: 0.5;
@@ -589,7 +589,7 @@ body[data-view="preloader"] {
 .tweak-row label {
   display: block;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-11);
   letter-spacing: 0.18em;
   opacity: 0.7;
   margin-bottom: 5px;
@@ -606,7 +606,7 @@ body[data-view="preloader"] {
 .swatch {
   width: 22px; height: 22px;
   border-radius: 50%;
-  border: 1px solid rgba(26,23,20,0.2);
+  border: 1px solid color-mix(in srgb, var(--color-ink-deep) 20%, transparent);
   cursor: pointer;
   transition: transform 0.15s ease;
 }
@@ -614,11 +614,11 @@ body[data-view="preloader"] {
 .swatch.active { box-shadow: 0 0 0 2px var(--ink); }
 .chip {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-11);
   letter-spacing: 0.12em;
   text-transform: none;
   padding: 4px 9px;
-  border: 1px solid rgba(26,23,20,0.3);
+  border: 1px solid color-mix(in srgb, var(--color-ink-deep) 30%, transparent);
   cursor: pointer;
   background: transparent;
   color: var(--ink);
@@ -627,7 +627,7 @@ body[data-view="preloader"] {
 .chip.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
 .tweak-row .num {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-11);
   opacity: 0.7;
   float: right;
 }
@@ -635,7 +635,7 @@ body[data-view="preloader"] {
   position: fixed;
   right: 28px; bottom: 24px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.28em;
   color: var(--ink);
   opacity: 0.5;
@@ -650,11 +650,11 @@ body[data-view="preloader"] {
 .tweaks-toggle:hover { opacity: 1; }
 
 /* ---- Palette themes ---- */
-#view-preloader.theme-taupe { --bg: #b8ad9e; --bg-deep: #a59887; --ink: #1a1714; --shelf: #8a7e6e; }
-#view-preloader.theme-cream { --bg: #e8dfc8; --bg-deep: #d6caaf; --ink: #1a1714; --shelf: #b5a582; }
-#view-preloader.theme-sage  { --bg: #aab39a; --bg-deep: #939e7f; --ink: #20241c; --shelf: #7e8a6d; }
-#view-preloader.theme-clay  { --bg: #c89f85; --bg-deep: #b48a6e; --ink: #2a1a10; --shelf: #99735a; }
-#view-preloader.theme-ink   { --bg: #302e2a; --bg-deep: #2b2925; --ink: #ede0c8; --shelf: #3b3833; }
+#view-preloader.theme-taupe { --bg: var(--theme-taupe-bg); --bg-deep: var(--theme-taupe-bg-deep); --ink: var(--theme-taupe-ink); --shelf: var(--theme-taupe-shelf); }
+#view-preloader.theme-cream { --bg: var(--theme-cream-bg); --bg-deep: var(--theme-cream-bg-deep); --ink: var(--theme-cream-ink); --shelf: var(--theme-cream-shelf); }
+#view-preloader.theme-sage { --bg: var(--theme-sage-bg); --bg-deep: var(--theme-sage-bg-deep); --ink: var(--theme-sage-ink); --shelf: var(--theme-sage-shelf); }
+#view-preloader.theme-clay { --bg: var(--theme-clay-bg); --bg-deep: var(--theme-clay-bg-deep); --ink: var(--theme-clay-ink); --shelf: var(--theme-clay-shelf); }
+#view-preloader.theme-ink { --bg: var(--theme-ink-bg); --bg-deep: var(--theme-ink-bg-deep); --ink: var(--theme-ink-ink); --shelf: var(--theme-ink-shelf); }
 
 /* ---- Responsive breakpoints ---- */
 @media (max-width: 640px) {

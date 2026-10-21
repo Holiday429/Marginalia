@@ -28,3 +28,7 @@ src/profile/delete-account.css
 src/map/map.css
 src/web/web.css
 src/core/concept-ui.css
+src/core/auth.css
+src/preloader/preloader.css
+src/components/legal-links/legal-links.css
+src/components/pixel-avatar/pixel-reader.css

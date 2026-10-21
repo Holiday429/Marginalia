@@ -227,6 +227,28 @@
 
   /* Type scale: 11 / 12 / 14 / 16 / 20 / 28 / 40 (the other --fs-* steps are legacy and go when the last page is migrated) */
   --fs-40:  40px;
+
+  /* Theme palettes: the landing page uses them now, the room theme (phase 3.4) reads the same five */
+  --theme-taupe-bg: #b8ad9e;
+  --theme-taupe-bg-deep: #a59887;
+  --theme-taupe-ink: #1a1714;
+  --theme-taupe-shelf: #8a7e6e;
+  --theme-cream-bg: #e8dfc8;
+  --theme-cream-bg-deep: #d6caaf;
+  --theme-cream-ink: #1a1714;
+  --theme-cream-shelf: #b5a582;
+  --theme-sage-bg: #aab39a;
+  --theme-sage-bg-deep: #939e7f;
+  --theme-sage-ink: #20241c;
+  --theme-sage-shelf: #7e8a6d;
+  --theme-clay-bg: #c89f85;
+  --theme-clay-bg-deep: #b48a6e;
+  --theme-clay-ink: #2a1a10;
+  --theme-clay-shelf: #99735a;
+  --theme-ink-bg: #302e2a;
+  --theme-ink-bg-deep: #2b2925;
+  --theme-ink-ink: #ede0c8;
+  --theme-ink-shelf: #3b3833;
   /* Shelf spines: type tied to the spine geometry (shared/shelf-utils.ts, library-2d), outside the body scale. */
   --fs-spine: 10px;
   --fs-spine-fine: 6px;

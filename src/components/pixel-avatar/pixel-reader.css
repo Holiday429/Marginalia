@@ -75,7 +75,7 @@
 
 .pixel-reader-demo__label {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.08em;
-  color: rgba(239, 230, 212, 0.68);
+  color: color-mix(in srgb, var(--color-ivory-text) 68%, transparent);
 }
