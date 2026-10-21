@@ -4,6 +4,7 @@ import { BooksStore } from '../store/books-store.ts';
 import { openActionCount, openActionLabel } from '../store/actions-store.ts';
 import { createEmptyBook } from '../data/schema/empty-book.ts';
 import { renderUnifiedPanelHeader } from '../core/app.ts';
+import { renderLibraryModeSwitch } from '../components/library-mode-switch/library-mode-switch.ts';
 import { PanelManager } from '../core/panel-manager.ts';
 import { SpineCard } from '../components/spine-card.ts';
 import { NewEntry } from '../new-entry/new-entry.ts';
@@ -35,8 +36,11 @@ function initSearch() {
 
   const headerWrap = document.getElementById('searchHeaderWrap');
   if (headerWrap) {
-    headerWrap.innerHTML = renderUnifiedPanelHeader('search', { libraryMode: 'browse' });
+    headerWrap.innerHTML = renderUnifiedPanelHeader('search');
   }
+
+  const modeSlot = document.getElementById('shelfModeSwitch');
+  if (modeSlot) modeSlot.innerHTML = renderLibraryModeSwitch('browse');
 
   bindShelfEvents();
   refreshShelfFromSource();

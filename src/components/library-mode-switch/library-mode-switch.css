@@ -1,36 +1,39 @@
-/* Library mode switch: a slim segmented control under the masthead of the two Library pages (dark pages, like the nav pill). */
+/* Library mode switch: the two modes of the Library page, written as the page's title row (Browse | Arrange) with the
+   page stats on the right. Text tabs with an underline, not another pill under the navigation. */
 .lib-mode {
   display: flex;
-  justify-content: center;
-  gap: 2px;
+  align-items: baseline;
+  gap: 24px;
   width: max-content;
-  margin: 8px auto 6px;
-  padding: 3px;
-  border: 1px solid color-mix(in srgb, var(--color-brass-border) 45%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-smoke-bg-soft) 85%, transparent);
+  margin: 0;
+  padding: 0;
 }
 
 .lib-mode__btn {
   min-height: 36px;
-  padding: 0 20px;
+  padding: 0 2px;
   border: 0;
-  border-radius: 999px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   background: transparent;
-  color: color-mix(in srgb, var(--color-ivory-text) 72%, transparent);
-  font-family: var(--font-mono);
-  font-size: var(--fs-12);
+  color: color-mix(in srgb, var(--color-ivory-text) 55%, transparent);
+  font-family: var(--font-serif);
+  font-size: var(--fs-20);
   cursor: pointer;
 }
 
 .lib-mode__btn:hover { color: var(--color-ivory-text); }
 
 .lib-mode__btn.is-active {
-  background: var(--color-ivory-text);
-  color: var(--color-ink);
+  border-bottom-color: var(--color-gold-warm);
+  color: var(--color-ivory-text);
 }
 
 .lib-mode__btn:focus-visible {
   outline: 2px solid var(--color-gold-warm);
   outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .lib-mode__btn { min-height: 44px; }
 }

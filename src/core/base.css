@@ -663,6 +663,18 @@ body {
   cursor: pointer;
   color: var(--text-secondary);
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  border: 0;
+  padding: 0;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 .panel-back-btn:hover {
   color: var(--text);
   border-color: var(--text-secondary);

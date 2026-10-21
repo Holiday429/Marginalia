@@ -244,19 +244,6 @@ body[data-view='room'] {
   opacity: 0.84;
 }
 
-#view-room .room-settings-trigger {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 18;
-  line-height: 1;
-}
-
-#view-room .room-gear {
-  font-size: 30px;
-  line-height: 1;
-}
-
 #view-room .room-top-tabs {
   position: absolute;
   left: 50%;
@@ -304,9 +291,9 @@ body[data-view='room'] {
 
 #view-room .room-settings-panel {
   position: absolute;
-  top: 64px;
-  right: 18px;
-  width: min(356px, calc(100vw - 36px));
+  top: 18px;
+  left: calc(18px + 226px + 12px); /* right of the left menu */
+  width: min(356px, calc(100vw - 280px));
   max-height: calc(100vh - 88px);
   z-index: 17;
   border-radius: 22px;
@@ -392,27 +379,48 @@ body[data-view='room'] {
 }
 
 /* Camera bar: always on the room, under the top tabs (moved out of Settings). */
+/* Camera bar: how to look at the room, alone at the bottom centre between the Reading pill (left) and + (right).
+   Same pill recipe as the other floating controls. Narrow screens shorten the labels. */
 #view-room .room-camera-bar {
   position: absolute;
   left: 50%;
-  top: 18px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   z-index: 15;
   display: flex;
   align-items: center;
-  gap: 6px;
-  max-width: calc(100vw - 88px);
-  padding: 5px;
+  gap: 2px;
+  max-width: calc(100vw - 360px);
+  padding: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border: 1px solid color-mix(in srgb, var(--color-brass-border) 45%, transparent);
   border-radius: 999px;
-  border: 1px solid rgba(248, 234, 212, 0.28);
-  background: linear-gradient(165deg, rgba(44, 35, 28, 0.46), rgba(74, 59, 46, 0.38));
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
-  backdrop-filter: blur(16px) saturate(124%);
+  background: color-mix(in srgb, var(--color-smoke-bg) 74%, transparent);
+  backdrop-filter: blur(18px) saturate(128%);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--color-ink-deep) 40%, transparent);
 }
-#view-room.is-sidebar-collapsed .room-camera-bar { top: 96px; }
-#view-room .room-camera-bar .room-chip { white-space: nowrap; }
+#view-room .room-camera-bar::-webkit-scrollbar { display: none; }
+#view-room .room-camera-bar .room-chip {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--color-ivory-text) 78%, transparent);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+}
+#view-room .room-camera-bar .room-chip:hover { color: var(--color-ivory-text); }
+#view-room .room-camera-bar .room-chip.active,
+#view-room .room-camera-bar .room-chip[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--color-gold-warm) 26%, transparent);
+  color: var(--color-ivory-text);
+}
 @media (pointer: coarse) {
   #view-room .room-camera-bar .room-chip { min-height: 44px; padding: 0 16px; }
+}
+@media (max-width: 1000px) {
+  #view-room .room-chip__long { display: none; }
 }
 
 #view-room .room-chip.active {
@@ -870,11 +878,6 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
     max-height: calc(100vh - 150px);
   }
 
-  #view-room .room-settings-trigger {
-    top: 12px;
-    right: 12px;
-  }
-
   #view-room .room-focus-dock {
     left: calc(12px + env(safe-area-inset-left, 0px));
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
@@ -889,6 +892,7 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
      bleed-through), with a dimming scrim behind it. */
   #view-room .room-settings-panel {
     top: 84px;
+    left: auto;
     right: 12px;
     bottom: 12px;
     max-height: none;
@@ -908,15 +912,10 @@ body[data-panel='map'].is-room-panel-leaving #view-room {
 
   #view-room .room-top-tabs {
     top: 12px;
-    width: calc(100vw - 120px);
+    width: calc(100vw - 260px); /* leaves room for the menu button and the Today pill */
     gap: 8px;
   }
 
-  #view-room.is-sidebar-collapsed .room-camera-bar {
-    top: 90px;
-    max-width: calc(100vw - 24px);
-    overflow-x: auto;
-  }
 }
 
 #view-room .room-focus-slot {

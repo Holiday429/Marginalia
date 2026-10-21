@@ -78,6 +78,7 @@ test('the room nav is Library · Map · Graph · Profile at iPad, desktop and fo
   await page.screenshot({ path: `${SHOTS}/2.8-camera-bar-ipad-1180.png` });
   await camera.locator('[data-room-pose="notes"]').click();
   await expect(camera.locator('[data-room-pose="notes"]')).toHaveClass(/active/);
+  await page.locator('#roomSidebarToggleBtn').click(); // Settings lives in the left menu
   await page.locator('#roomSettingsTrigger').click();
   await expect(page.locator('#roomSettingsPanel #roomCameraControls')).toHaveCount(0);
   expect(errors).toEqual([]);

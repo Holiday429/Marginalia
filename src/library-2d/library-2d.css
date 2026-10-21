@@ -351,8 +351,11 @@ body[data-view='studio'] {
 }
 
 #panel-library .library-meta-row {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
 }
 
 #panel-library .library-stats {
@@ -1348,17 +1351,6 @@ body[data-view='studio'] {
 }
 
 /* v6 shell overrides */
-#panel-library .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  border: 0;
-  padding: 0;
-  clip: rect(0 0 0 0);
-  overflow: hidden;
-}
-
 #panel-library .library-topbar-search {
   position: relative;
   display: grid;

@@ -81,7 +81,7 @@ export function mountTodayPanel(host: HTMLElement, hooks: TodayHooks): () => voi
     el.innerHTML = collapsed
       ? `<button class="today__pill" type="button" data-today="toggle" aria-expanded="false">
            <span class="today__title">Today</span>
-           <span class="today__count">${toRevisit ? `${toRevisit} to revisit` : 'Nothing due'}</span>
+           <span class="today__count">${toRevisit ? `<span class="today__count-num">${toRevisit}</span><span class="today__count-text"> to revisit</span>` : '<span class="today__count-text">Nothing due</span>'}</span>
          </button>`
       : `
         <header class="today__head">

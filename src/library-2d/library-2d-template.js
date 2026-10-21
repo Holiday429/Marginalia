@@ -1,4 +1,5 @@
 import { renderUnifiedPanelHeader } from '../core/app.ts';
+import { renderLibraryModeSwitch } from '../components/library-mode-switch/library-mode-switch.ts';
 
 function renderLeftRail() {
   return `
@@ -39,7 +40,6 @@ function renderLeftRail() {
 
 export function renderLibraryShell() {
   const header = renderUnifiedPanelHeader('library', {
-    libraryMode: 'arrange',
     rightHTML: `
       <div class="library-header-search" id="librarySearchSection">
         <form class="library-topbar-search" id="librarySearchForm" autocomplete="off">
@@ -64,6 +64,7 @@ export function renderLibraryShell() {
 
         <section class="library-content-shell" id="libraryOrganizeSection">
           <div class="library-meta-row">
+            ${renderLibraryModeSwitch('arrange')}
             <div class="library-stats" id="libraryStats"></div>
           </div>
 

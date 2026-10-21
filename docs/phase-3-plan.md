@@ -48,27 +48,25 @@ skin（上午是 mist-morning：白窗、浅天花板）、显示当天日期和
 
 **原则**：导航（去哪）在顶部；视角与模式（怎么看）贴近它控制的内容。
 
-### 2a. Room — camera bar 下移到底栏
+### 2a. Room — 四个角各司其职（owner 两轮实测后定）
 
-现状：`src/three-room/three-room.css:395-416`，`position:absolute; top:18px`，
-侧栏收起时 `top:96px`，压在 nav pill 下面。
+先试过"相机栏挪到底部 Today 上方"和"相机栏与 Today 并排一行"，都又出现两行/功能混在一个入口，放弃。
+Today 是功能入口，不能和视角切换放在一起。最终布局：
 
-目标布局：
 ```
-顶部：☰        Library Map Graph Profile        ⚙        ← 唯一一条导航
-                      （房间画面全开）
-底部：[Reading ▴]  [Front·Desk·Shelf·Notes·Free]  [Today 1]  [+]
+左上：☰ 菜单（Settings 收进菜单）   中上：Library Map Graph Profile   右上：Today ▾（点击竖向展开）
+                                  （房间画面全开）
+左下：Reading 计时器              中下：Front Desk Shelf wall Notes wall Free look              右下：+
 ```
 
-- `#roomCameraControls` 移到底部居中，与 Today pill 同一条视觉基线。
-- **样式降级**：去掉毛玻璃胶囊容器（border / background / backdrop-filter / box-shadow），
-  改为纯文字按钮 + 选中态下划线或小圆点。它必须明显比 nav pill 轻。
-- 保留 `id="roomCameraControls"`、`data-room-pose` 属性、`#roomFreeLookBtn` 的
-  id 与 `aria-pressed` —— `tests/e2e/navigation.spec.ts` 和
-  `tests/e2e-emulator/helpers.ts` 依赖它们。
-- 删除 `.is-sidebar-collapsed .room-camera-bar` 的 `top:96px` 覆盖（第 412、915 行）。
-- 窄屏（≤768px）底部横向可滚动，不换行；触控目标仍 ≥44px。
-- 与 Today pill、`+` 按钮做碰撞检查：三者不得重叠，必要时 Today 居中偏左。
+- 相机栏回到底部正中，独占一行；样式与其它悬浮控件同一套药丸配方（`--color-smoke-bg` 74% + 铜色描边 + 模糊）。
+  窄于 1000px 标签缩短（Shelf / Notes / Free）。保留 `#roomCameraControls`、`data-room-pose`、`#roomFreeLookBtn`。
+- Today 挂到右上角（原来 Settings 齿轮的位置），收起是药丸，与导航垂直居中对齐；展开成竖向单列面板向下拉，
+  最大高度随视口。窄于 900px 药丸缩成 "Today 3"（隐藏 "to revisit"），导航宽度相应收窄避免相撞。
+- Settings：齿轮从右上角移除，成为左侧菜单里的一项（`#roomSettingsTrigger` 保留为菜单项）。
+  面板在宽屏从菜单右侧弹出；≤900px 仍是右侧抽屉。Today 与 Settings 因此不再抢同一个角。
+- Reading 计时器（`.room-focus-dock`）保持在左下，不动。
+- 测试：`navigation.spec.ts`、`legal.spec.ts` 里点 Settings 前先展开左侧菜单（菜单默认收起）。
 
 ### 2b. Library — 模式切换并入标题行，删重复标题
 

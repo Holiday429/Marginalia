@@ -143,6 +143,13 @@ function buildRoomMarkup() {
           ${renderNavItems(QUICK_ACTION_ITEMS, 'room-action')}
         </section>
 
+        <section class="room-sidebar-group room-sidebar-group--settings">
+          <button class="room-nav-item" type="button" id="roomSettingsTrigger" aria-label="Settings">
+            <span class="room-nav-icon" aria-hidden="true">${renderIcon('settings')}</span>
+            <span class="room-nav-label">Settings</span>
+          </button>
+        </section>
+
         <section class="room-quick-search" id="roomQuickSearch" hidden>
           <form class="room-quick-search__form" id="roomQuickSearchForm" autocomplete="off">
             <label class="sr-only" for="roomQuickSearchInput">Search library by title</label>
@@ -167,14 +174,10 @@ function buildRoomMarkup() {
       <div class="room-camera-bar" id="roomCameraControls" role="group" aria-label="Camera">
         <button type="button" class="room-chip active" data-room-pose="front">Front</button>
         <button type="button" class="room-chip" data-room-pose="approach">Desk</button>
-        <button type="button" class="room-chip" data-room-pose="shelf">Shelf wall</button>
-        <button type="button" class="room-chip" data-room-pose="notes">Notes wall</button>
-        <button type="button" class="room-chip" id="roomFreeLookBtn" aria-pressed="false">Free look</button>
+        <button type="button" class="room-chip" data-room-pose="shelf">Shelf<span class="room-chip__long"> wall</span></button>
+        <button type="button" class="room-chip" data-room-pose="notes">Notes<span class="room-chip__long"> wall</span></button>
+        <button type="button" class="room-chip" id="roomFreeLookBtn" aria-pressed="false">Free<span class="room-chip__long"> look</span></button>
       </div>
-
-      <button class="room-icon-btn room-settings-trigger" type="button" id="roomSettingsTrigger" aria-label="Open Settings">
-        <span class="room-gear">⚙</span>
-      </button>
 
       <section class="room-settings-panel" id="roomSettingsPanel" aria-label="Room Settings">
         <header class="room-settings-head">
@@ -298,6 +301,11 @@ function renderNavItems(items, dataAttr, activeId = '') {
 }
 
 function renderIcon(iconId) {
+  if (iconId === 'settings') return `
+    <svg viewBox="0 0 18 18" class="room-svg-icon">
+      <circle cx="9" cy="9" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+      <path d="M9 1.8v2.2M9 14v2.2M1.8 9H4M14 9h2.2M3.9 3.9l1.5 1.5M12.6 12.6l1.5 1.5M3.9 14.1l1.5-1.5M12.6 5.4l1.5-1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+    </svg>`;
   if (iconId === 'library') return symbolIcon('icon-nav-library');
   if (iconId === 'shelf') return symbolIcon('icon-nav-shelf');
   if (iconId === 'map') return symbolIcon('icon-nav-map');

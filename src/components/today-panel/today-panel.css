@@ -1,11 +1,12 @@
 /* Today panel: a collapsible card at the bottom of the room (plan 2.8). */
 #view-room .today {
   position: absolute;
-  left: 50%;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  transform: translateX(-50%);
-  z-index: 14;
-  width: min(860px, calc(100vw - 440px));
+  top: calc(28px + env(safe-area-inset-top, 0px)); /* centred on the navigation pill */
+  right: calc(18px + env(safe-area-inset-right, 0px));
+  z-index: 16;
+  width: min(340px, calc(100vw - 24px));
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
   color: var(--color-ivory-text);
   font-family: var(--font-serif);
   border: 1px solid color-mix(in srgb, var(--color-brass-border) 45%, transparent);
@@ -19,6 +20,8 @@
 
 #view-room .today[data-collapsed='true'] {
   width: auto;
+  max-height: none;
+  overflow: visible;
   border-radius: 999px;
 }
 
@@ -39,7 +42,7 @@
 
 .today__body {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   padding: 6px 8px 10px;
 }
@@ -53,7 +56,7 @@
 }
 
 .today__col + .today__col {
-  border-left: 1px solid color-mix(in srgb, var(--color-brass-border) 28%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-brass-border) 28%, transparent);
 }
 
 .today__label {
@@ -158,16 +161,11 @@
   font-size: var(--fs-11);
 }
 
-/* Narrower than a wide iPad: sit above the bottom-left focus dock, edge to edge, and stack the three columns less tightly. */
-@media (max-width: 1100px) {
+/* Narrow screens: the pill shrinks to "Today 3" so it does not run into the navigation. */
+@media (max-width: 900px) {
   #view-room .today {
-    left: calc(12px + env(safe-area-inset-left, 0px));
+    top: calc(22px + env(safe-area-inset-top, 0px));
     right: calc(12px + env(safe-area-inset-right, 0px));
-    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-    width: auto;
-    transform: none;
   }
-  #view-room .today[data-collapsed='true'] {
-    right: auto;
-  }
+  #view-room .today__count-text { display: none; }
 }

@@ -19,7 +19,6 @@ import { PanelManager } from './panel-manager.ts';
 import { logEvent, logError } from '../services/analytics.ts';
 import { loadView } from './view-registry.ts';
 import { renderPrimaryTabsMarkup, primaryTabIdForView } from './primary-tabs.ts';
-import { renderLibraryModeSwitch, type LibraryMode } from '../components/library-mode-switch/library-mode-switch.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ViewParams = Record<string, any>;
@@ -35,8 +34,6 @@ interface RenderUnifiedPanelHeaderOptions {
   actionLabel?: string;
   actionId?: string;
   rightHTML?: string;
-  /** Show the Browse / Arrange switch under the header; only the two Library pages pass it. */
-  libraryMode?: LibraryMode;
 }
 
 // Module-level exports for render helpers — set by App IIFE below.
@@ -371,7 +368,7 @@ const App = (() => {
     `;
   }
 
-  function renderUnifiedPanelHeaderImpl(activeView: string, { actionLabel = '', actionId = '', rightHTML = '', libraryMode }: RenderUnifiedPanelHeaderOptions = {}): string {
+  function renderUnifiedPanelHeaderImpl(activeView: string, { actionLabel = '', actionId = '', rightHTML = '' }: RenderUnifiedPanelHeaderOptions = {}): string {
     const canonicalView = toCanonicalViewName(activeView);
     const activeNavView = primaryTabIdForView(canonicalView);
     const sharedAction = HEADER_ACTION_BY_VIEW[canonicalView] || null;
@@ -402,7 +399,6 @@ const App = (() => {
             ${rightHTML || defaultRight}
           </div>
         </header>
-        ${libraryMode ? renderLibraryModeSwitch(libraryMode) : ''}
       </div>
     `;
   }

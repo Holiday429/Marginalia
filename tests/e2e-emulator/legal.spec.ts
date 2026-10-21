@@ -27,6 +27,7 @@ test('legal pages are linked from the landing footer and the room settings', asy
   await page.goto('/');
   await page.click('#skipBtn');
   await expect(page.locator('body')).toHaveAttribute('data-view', 'room', { timeout: 15_000 });
+  await page.locator('#roomSidebarToggleBtn').click(); // Settings lives in the left menu
   await page.locator('#roomSettingsTrigger').click();
   const panel = page.locator('#roomSettingsPanel');
   for (const label of ['Privacy', 'Terms', 'Credits']) {
