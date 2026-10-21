@@ -6,14 +6,17 @@ import { loadGLB } from './gltf-loader.ts';
 import { modelUrl, textureUrl } from './asset-urls.ts';
 
 import { getRoomPose, type RoomPoseId } from './camera-paths.ts';
-import { getRoomSkinById } from './skins.ts';
+import { DEFAULT_ROOM_THEME_ID, getRoomAtmosphereById, getRoomThemeById } from './skins.ts';
 import type { RoomSlotId, SlotComponent } from './slots.ts';
 import { logError } from '../services/analytics.ts';
 import { getFramePhotoUrl, onFramePhotoChange } from './frame-photo.ts';
 
 interface RoomSceneOptions {
   host: HTMLElement;
+  /** Time of day (an atmosphere id). */
   skinId?: string;
+  /** Material set (a theme id). */
+  themeId?: string;
   onGlobeSelect?: () => void;
   onLaptopSelect?: () => void;
   onOrganizeSelect?: () => void;
@@ -371,7 +374,8 @@ export class RoomScene {
   private hasBoardSurfaceTexture = false;
   private resizeObserver: ResizeObserver;
   private currentPoseId: RoomPoseId = 'front';
-  private currentSkinId = 'warm-study';
+  private currentAtmosphereId = 'warm-study';
+  private currentThemeId = DEFAULT_ROOM_THEME_ID;
   private cameraSpeedPreset: CameraSpeedPreset = 'default';
   private poseZoomOffset: Record<RoomPoseId, number> = {
     front: 0,
@@ -468,7 +472,8 @@ export class RoomScene {
     this.setupSurfaceTextures();
     this.mountDecorAssets();
     this.loadWindowSceneManifest();
-    this.applySkin(options.skinId || 'warm-study');
+    this.currentThemeId = getRoomThemeById(options.themeId || DEFAULT_ROOM_THEME_ID).id;
+    this.applyAtmosphere(options.skinId || 'warm-study');
     this.setBlindPreset('half');
     this.applyPoseImmediately('front');
     this.enterCameraAnimation();
@@ -576,43 +581,32 @@ export class RoomScene {
     this.applyBlindState();
   }
 
-  applySkin(skinId: string): void {
-    const skin = getRoomSkinById(skinId);
-    this.currentSkinId = skin.id;
+  /** Time of day: lights, window and sky. The surfaces are the theme's (applySurfaces). */
+  applyAtmosphere(atmosphereId: string): void {
+    const atmosphere = getRoomAtmosphereById(atmosphereId);
+    this.currentAtmosphereId = atmosphere.id;
 
-    this.scene.background = new THREE.Color(skin.colors.background);
-
-    this.materials.floor.color.set(this.hasFloorSurfaceTexture ? '#ffffff' : skin.colors.floor);
-    this.materials.wall.color.set(this.hasWallSurfaceTexture ? '#ffffff' : skin.colors.wall);
-    this.materials.sideWall.color.set(this.hasWallSurfaceTexture ? '#ffffff' : skin.colors.sideWall);
-    this.materials.ceiling.color.set(skin.colors.ceiling);
-    this.materials.carpet.color.set(this.hasCarpetSurfaceTexture ? '#cbbba6' : '#ad9b88');
-    this.materials.board.color.set(this.hasBoardSurfaceTexture ? '#ffffff' : '#9a744e');
-    this.materials.wallPanel.color.set(skin.colors.wall);
-    this.materials.wallPanel.color.offsetHSL(0, -0.05, 0.08);
-    this.materials.panelFrame.color.set(skin.colors.sideWall);
-    this.materials.panelFrame.color.offsetHSL(0, 0.04, -0.08);
-    this.materials.desk.color.set(this.hasDeskSurfaceTexture ? '#ffffff' : skin.colors.desk);
-    this.materials.trim.color.set('#b7a791');
+    this.scene.background = new THREE.Color(atmosphere.colors.background);
+    this.applySurfaces();
     this.materials.blind.color.set('#c9b9a2');
     this.materials.exterior.color.set('#ffffff');
     this.materials.shadowCatcher.color.set('#000000');
     this.materials.shadowCatcher.opacity = 0.18;
-    this.materials.windowGlow.color.set(skin.colors.windowGlow);
-    this.materials.windowGlow.emissive = new THREE.Color(skin.colors.windowGlow);
+    this.materials.windowGlow.color.set(atmosphere.colors.windowGlow);
+    this.materials.windowGlow.emissive = new THREE.Color(atmosphere.colors.windowGlow);
 
-    this.ambientLight.intensity = skin.lighting.ambient;
-    this.keyLight.intensity = skin.lighting.key;
-    this.fillLight.intensity = skin.lighting.key * 0.34;
-    this.rimLight.intensity = skin.lighting.rim * 0.72;
+    this.ambientLight.intensity = atmosphere.lighting.ambient;
+    this.keyLight.intensity = atmosphere.lighting.key;
+    this.fillLight.intensity = atmosphere.lighting.key * 0.34;
+    this.rimLight.intensity = atmosphere.lighting.rim * 0.72;
     this.skyLight.intensity = 0.58;
-    this.pendantLight.intensity = skin.lighting.pendant;
-    this.readingLampLight.intensity = skin.lighting.lamp;
+    this.pendantLight.intensity = atmosphere.lighting.pendant;
+    this.readingLampLight.intensity = atmosphere.lighting.lamp;
 
-    const practicalGlow = skin.lighting.practicalGlow;
-    const backdropPhase = this.resolveWindowBackdropPhase(skin.id);
-    this.pendantLight.color.set(skin.id === 'night-lamp' ? '#ffc68e' : skin.id === 'amber-dusk' ? '#ffc08c' : '#ffe5c5');
-    this.readingLampLight.color.set(skin.id === 'night-lamp' ? '#ffd7ad' : skin.id === 'amber-dusk' ? '#ffd5ae' : '#fff1de');
+    const practicalGlow = atmosphere.lighting.practicalGlow;
+    const backdropPhase = this.resolveWindowBackdropPhase(atmosphere.id);
+    this.pendantLight.color.set(atmosphere.id === 'night-lamp' ? '#ffc68e' : atmosphere.id === 'amber-dusk' ? '#ffc08c' : '#ffe5c5');
+    this.readingLampLight.color.set(atmosphere.id === 'night-lamp' ? '#ffd7ad' : atmosphere.id === 'amber-dusk' ? '#ffd5ae' : '#fff1de');
     this.applyWindowBackdrop(backdropPhase);
     this.materials.windowGlow.emissiveIntensity = backdropPhase === 'night'
       ? 0.42
@@ -638,6 +632,39 @@ export class RoomScene {
         material.needsUpdate = true;
       });
     });
+  }
+
+  /** Material set: the walls, floor, desk, ceiling and rug. Textured surfaces are tinted by the theme colour divided by the
+   *  taupe one (so taupe leaves them untouched); surfaces without a texture take the colour directly, darkened by the time of day. */
+  setTheme(themeId: string): void {
+    this.currentThemeId = getRoomThemeById(themeId).id;
+    this.applySurfaces();
+  }
+
+  private applySurfaces(): void {
+    const theme = getRoomThemeById(this.currentThemeId);
+    const base = getRoomThemeById(DEFAULT_ROOM_THEME_ID);
+    const shade = getRoomAtmosphereById(this.currentAtmosphereId).shade;
+    const shaded = (hex: string) => new THREE.Color(hex).multiplyScalar(shade);
+    const tint = (key: 'wall' | 'sideWall' | 'floor' | 'desk'): THREE.Color => {
+      const t = new THREE.Color(theme.colors[key]);
+      const b = new THREE.Color(base.colors[key]);
+      const ratio = (a: number, d: number) => clamp(a / Math.max(d, 0.001), 0, 1.6);
+      return new THREE.Color().setRGB(ratio(t.r, b.r), ratio(t.g, b.g), ratio(t.b, b.b));
+    };
+
+    this.materials.floor.color.copy(this.hasFloorSurfaceTexture ? tint('floor') : new THREE.Color(theme.colors.floor));
+    this.materials.wall.color.copy(this.hasWallSurfaceTexture ? tint('wall') : new THREE.Color(theme.colors.wall));
+    this.materials.sideWall.color.copy(this.hasWallSurfaceTexture ? tint('sideWall') : new THREE.Color(theme.colors.sideWall));
+    this.materials.desk.color.copy(this.hasDeskSurfaceTexture ? tint('desk') : new THREE.Color(theme.colors.desk));
+    this.materials.carpet.color.set(this.hasCarpetSurfaceTexture ? theme.colors.carpet : theme.colors.carpetBare);
+    this.materials.ceiling.color.copy(shaded(theme.colors.ceiling));
+    this.materials.board.color.set(this.hasBoardSurfaceTexture ? '#ffffff' : '#9a744e');
+    this.materials.wallPanel.color.copy(shaded(theme.colors.wall));
+    this.materials.wallPanel.color.offsetHSL(0, -0.05, 0.08);
+    this.materials.panelFrame.color.copy(shaded(theme.colors.sideWall));
+    this.materials.panelFrame.color.offsetHSL(0, 0.04, -0.08);
+    this.materials.trim.color.set('#b7a791');
   }
 
   animateHeroBookPull(onComplete: () => void, durationMs = 600): void {
@@ -786,24 +813,23 @@ export class RoomScene {
     const anisotropy = this.renderer.capabilities.getMaxAnisotropy();
     this.applyTextureSetToMaterials([this.materials.wall], WALL_TEXTURE_SET, anisotropy, () => {
       this.hasWallSurfaceTexture = true;
-      this.materials.wall.color.set('#ffffff');
-      this.materials.sideWall.color.set('#ffffff');
+      this.applySurfaces();
     });
     this.applyTextureSetToMaterials([this.materials.floor], FLOOR_TEXTURE_SET, anisotropy, () => {
       this.hasFloorSurfaceTexture = true;
-      this.materials.floor.color.set('#ffffff');
+      this.applySurfaces();
     });
     this.applyTextureSetToMaterials([this.materials.desk], DESK_TEXTURE_SET, anisotropy, () => {
       this.hasDeskSurfaceTexture = true;
-      this.materials.desk.color.set('#ffffff');
+      this.applySurfaces();
     });
     this.applyTextureSetToMaterials([this.materials.carpet], CARPET_TEXTURE_SET, anisotropy, () => {
       this.hasCarpetSurfaceTexture = true;
-      this.materials.carpet.color.set('#cbbba6');
+      this.applySurfaces();
     });
     this.applyTextureSetToMaterials([this.materials.board], BOARD_TEXTURE_SET, anisotropy, () => {
       this.hasBoardSurfaceTexture = true;
-      this.materials.board.color.set('#ffffff');
+      this.applySurfaces();
     });
   }
 
@@ -1512,13 +1538,13 @@ export class RoomScene {
 
     if (!glowCandidates.length) return;
     this.practicalGlowMaterials.set(assetId, glowCandidates);
-    this.applySkin(this.currentSkinId);
+    this.applyAtmosphere(this.currentAtmosphereId);
   }
 
-  private resolveWindowBackdropPhase(skinId: string): WindowBackdropPhase {
-    if (skinId === 'mist-morning') return 'morning';
-    if (skinId === 'amber-dusk') return 'dusk';
-    if (skinId === 'night-lamp') return 'night';
+  private resolveWindowBackdropPhase(atmosphereId: string): WindowBackdropPhase {
+    if (atmosphereId === 'mist-morning') return 'morning';
+    if (atmosphereId === 'amber-dusk') return 'dusk';
+    if (atmosphereId === 'night-lamp') return 'night';
     return 'afternoon';
   }
 
@@ -1599,7 +1625,7 @@ export class RoomScene {
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.needsUpdate = true;
         this.windowSceneTextures.set(phase, texture);
-        if (this.resolveWindowBackdropPhase(this.currentSkinId) === phase) {
+        if (this.resolveWindowBackdropPhase(this.currentAtmosphereId) === phase) {
           this.applyWindowBackdrop(phase);
         }
       },

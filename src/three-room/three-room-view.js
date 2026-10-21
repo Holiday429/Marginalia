@@ -31,6 +31,8 @@ const QUICK_ACTION_ITEMS = [
 const ROOM_AVATAR_STORAGE_KEY = 'marginalia_room_avatar_data_url';
 const ROOM_ATMOSPHERE_STORAGE_KEY = 'marginalia_room_atmosphere_v1';
 const ROOM_BLINDS_STORAGE_KEY = 'marginalia_room_blinds_v1';
+const ROOM_THEME_STORAGE_KEY = 'marginalia_room_theme_v1';
+const ROOM_THEME_IDS = ['taupe', 'ink', 'cream', 'sage', 'clay'];
 
 const HOVER_META_BY_ACTION = {
   map: { icon: 'map', title: 'Map', description: 'Explore Reading Places' },
@@ -47,6 +49,7 @@ let destroyTodayPanel = null;
 const ROOM_VIEW_STATE = {
   pose: 'front',
   skinId: 'warm-study',
+  themeId: 'taupe',
   atmosphereMode: 'auto',
   resolvedAtmosphere: 'afternoon',
   blindPreset: 'half',
@@ -246,10 +249,11 @@ function buildRoomMarkup() {
         <div class="room-settings-block">
           <h3>Ambient Effects</h3>
           <div class="room-chip-row">
-            <button type="button" class="room-chip" data-room-effect="rain">Rain</button>
-            <button type="button" class="room-chip active" data-room-effect="vinyl-noise">Vinyl Noise</button>
-            <button type="button" class="room-chip" data-room-effect="fireplace">Fireplace</button>
+            <button type="button" class="room-chip" disabled>Rain</button>
+            <button type="button" class="room-chip" disabled>Vinyl Noise</button>
+            <button type="button" class="room-chip" disabled>Fireplace</button>
           </div>
+          <p class="room-atmosphere-note">Coming soon.</p>
         </div>
       
         <div class="room-settings-block">
@@ -366,6 +370,8 @@ function initRoom() {
   ROOM_VIEW_STATE.quickSearchMessage = '';
   ROOM_VIEW_STATE.atmosphereMode = loadStoredAtmosphereMode();
   ROOM_VIEW_STATE.blindPreset = loadStoredBlindPreset();
+  ROOM_VIEW_STATE.themeId = loadStoredTheme();
+  applyAtmospherePreset(ROOM_VIEW_STATE.atmosphereMode, { persist: false });
 
   if (ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle.destroy();
@@ -396,6 +402,7 @@ function initRoom() {
   syncRoomQuickSearch();
   applyAtmospherePreset(ROOM_VIEW_STATE.atmosphereMode, { persist: false });
   syncAtmosphereControls();
+  syncThemeControls();
   applyBlindPreset(ROOM_VIEW_STATE.blindPreset, { persist: false });
   syncBlindControls();
   syncRoomAudio();
@@ -407,6 +414,8 @@ function initRoom() {
 function enterRoom() {
   ROOM_VIEW_STATE.atmosphereMode = loadStoredAtmosphereMode();
   ROOM_VIEW_STATE.blindPreset = loadStoredBlindPreset();
+  ROOM_VIEW_STATE.themeId = loadStoredTheme();
+  applyAtmospherePreset(ROOM_VIEW_STATE.atmosphereMode, { persist: false });
   ensureRoomDom();
   ensureFallbackPanels();
   mountRoomScene();
@@ -418,6 +427,7 @@ function enterRoom() {
   syncRoomQuickSearch();
   applyAtmospherePreset(ROOM_VIEW_STATE.atmosphereMode, { persist: false });
   syncAtmosphereControls();
+  syncThemeControls();
   applyBlindPreset(ROOM_VIEW_STATE.blindPreset, { persist: false });
   syncBlindControls();
   syncRoomAudio();
@@ -565,8 +575,8 @@ function bindRoomEvents() {
 
     const themeChip = event.target.closest('[data-room-theme]');
     if (themeChip) {
-      root.querySelectorAll('[data-room-theme]').forEach((chip) => chip.classList.remove('active'));
-      themeChip.classList.add('active');
+      applyRoomTheme(themeChip.dataset.roomTheme || 'taupe');
+      syncThemeControls();
       return;
     }
 
@@ -574,12 +584,6 @@ function bindRoomEvents() {
     if (blindsChip) {
       applyBlindPreset(blindsChip.dataset.roomBlinds || 'half');
       syncBlindControls();
-      return;
-    }
-
-    const effectChip = event.target.closest('[data-room-effect]');
-    if (effectChip) {
-      effectChip.classList.toggle('active');
       return;
     }
 
@@ -688,6 +692,8 @@ function mountRoomScene() {
 
   if (!ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle = createThreeRoomPreview(stage, {
+      skinId: ROOM_VIEW_STATE.skinId,
+      themeId: ROOM_VIEW_STATE.themeId,
       onGlobeSelect: () => exitRoomViaGlobeFly(),
       onLaptopSelect: () => exitRoomViaLaptopFly(),
       onOrganizeSelect: () => openPanel('library', { mode: 'organize' }),
@@ -706,6 +712,7 @@ function mountRoomScene() {
 
   if (ROOM_VIEW_STATE.handle) {
     ROOM_VIEW_STATE.handle.setSkin(ROOM_VIEW_STATE.skinId);
+    ROOM_VIEW_STATE.handle.setTheme?.(ROOM_VIEW_STATE.themeId);
     ROOM_VIEW_STATE.handle.setBlindPreset?.(ROOM_VIEW_STATE.blindPreset);
     ROOM_VIEW_STATE.handle.goToPose(ROOM_VIEW_STATE.pose, true);
   }
@@ -1053,6 +1060,40 @@ function saveStoredBlindPreset(preset) {
 
 function normalizeAtmosphereMode(mode) {
   return ['auto', 'morning', 'afternoon', 'dusk', 'night'].includes(mode) ? mode : 'auto';
+}
+
+function loadStoredTheme() {
+  try {
+    return normalizeRoomTheme(localStorage.getItem(ROOM_THEME_STORAGE_KEY) || 'taupe');
+  } catch (error) {
+    return 'taupe';
+  }
+}
+
+function saveStoredTheme(themeId) {
+  try {
+    localStorage.setItem(ROOM_THEME_STORAGE_KEY, normalizeRoomTheme(themeId));
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+function normalizeRoomTheme(themeId) {
+  return ROOM_THEME_IDS.includes(themeId) ? themeId : 'taupe';
+}
+
+function applyRoomTheme(themeId, { persist = true } = {}) {
+  ROOM_VIEW_STATE.themeId = normalizeRoomTheme(themeId);
+  if (persist) saveStoredTheme(ROOM_VIEW_STATE.themeId);
+  ROOM_VIEW_STATE.handle?.setTheme?.(ROOM_VIEW_STATE.themeId);
+}
+
+function syncThemeControls() {
+  const root = document.getElementById('view-room');
+  if (!root) return;
+  root.querySelectorAll('[data-room-theme]').forEach((node) => {
+    node.classList.toggle('active', node.dataset.roomTheme === ROOM_VIEW_STATE.themeId);
+  });
 }
 
 function normalizeBlindPreset(preset) {

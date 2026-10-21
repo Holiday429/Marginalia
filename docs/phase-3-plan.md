@@ -115,72 +115,25 @@ Library  [Browse|Arrange]          7 finished · 0 reading · …
 **统一的结果（用户可见）**：房间里所有浮动控件同一种暖棕玻璃材质；全站字号收敛到一套阶梯，
 原来 8–10px 的小字统一为 11px；登录面板与全站同色系。
 
-## 阶段 4 — 房间主题真正接入
+## 阶段 4 — 房间主题真正接入（已完成）
 
-**问题**：Theme 五个 chip 只切 CSS class，不驱动渲染（`three-room-view.js:559-563`）。
-Ambient Effects 三个 chip 同样是假的（`:573-577`）。
+**问题**：Theme 五个 chip 只切 CSS class；Ambient Effects 三个 chip 同样是假的；skinId 被 Atmosphere 独占，
+且贴图加载成功后材质色被强制设为白色，Theme 即使接上也会被贴图盖住。
 
-**但这不是补一个调用能解决的 —— 存在设计冲突，必须先拆轴。**
+**做法**：拆成两个独立的轴。`src/three/skins.ts` 现在是 `ROOM_ATMOSPHERES`（时段：灯光、窗、天空）和
+`ROOM_THEMES`（taupe / ink / cream / sage / clay：墙、侧墙、地板、桌、天花板、地毯），房间的样子 = 主题的材质被时段的灯光照亮。
+`src/three/room.ts`：`applySkin` → `applyAtmosphere` + `setTheme` + `applySurfaces`。贴图表面的色调乘数 =
+主题色 ÷ taupe 色（线性空间，按通道），所以 taupe 的乘数恰好是 1，默认外观不变；无贴图的表面（天花板、护墙板、加载前）
+直接用主题色，并按时段变暗（`shade`，线性乘数，保持原来"夜晚天花板更暗"）。
+`src/three-room/three-room-view.js`：theme chip 接上 `applyRoomTheme`（存 `marginalia_room_theme_v1`，刷新后保持），
+首帧就用存储的主题和时段创建场景（不再先显示默认再跳变）。Ambient Effects 三个按钮置灰并标 "Coming soon."。
 
-### 冲突说明
-
-- Theme 的值是 `taupe/ink/cream/sage/clay`；`ROOM_SKINS` 的值是
-  `warm-study/mist-morning/night-lamp/amber-dusk`，两套不对应。
-- `skinId` 已被 Atmosphere 独占（`getSkinIdForAtmosphere`，`three-room-view.js:1098`）。
-- skin 同时含 colors 和 lighting，而 Atmosphere 要控灯光、Theme 要控材质，语义重叠。
-- `room.ts:585-595`：贴图加载成功后材质色被强制 `#ffffff`，**skin 颜色被贴图完全覆盖**。
-  Theme 若只改 `material.color` 将完全无效。
-
-### 目标模型（两个正交轴）
-
-```
-Atmosphere（时间）→ 灯光强度 / 色温 / 窗外景象        morning afternoon dusk night
-Theme（材质）     → 墙/地板/桌面/木料的色调            taupe ink cream sage clay
-最终渲染 = Theme 的材质色调  ×  Atmosphere 的灯光
-```
-
-这同时是未来付费主题系统的地基，所以值得现在做对。
-
-**改动**
-
-A. `src/three/skins.ts` — 拆成两张表
-   - `ROOM_ATMOSPHERES`：只含 `lighting` + `windowGlow`，四个值。
-   - `ROOM_THEMES`：只含材质色调（wall/floor/desk/ceiling/sideWall tint），五个值
-     `taupe/ink/cream/sage/clay`。taupe 取当前 `warm-study` 的颜色，保证默认外观不变。
-   - 保留 `ROOM_SKINS` 导出一段时间或提供兼容映射，避免破坏现有调用方；
-     若无外部依赖可直接替换，但要全仓搜索确认。
-
-B. `src/three/room.ts` — 贴图与色调相乘
-   - `applySkin()` 拆为 `applyAtmosphere(id)` 与 `applyTheme(id)`，各自独立可调。
-   - **关键**：有贴图时不再设 `#ffffff`，而是设为 theme 的 tint 色
-     （three.js 中 `material.color` 与 `map` 本就是相乘关系，所以 tint 会正确着色贴图）。
-     需要为每个 theme 调出合适的 tint 强度，避免过饱和 —— 建议 tint 色明度偏高、饱和度低。
-   - 无贴图时（加载失败的降级路径）直接用 theme 色，保持现有行为。
-   - 两个方法都要能单独重入调用而不互相覆盖。
-
-C. `src/three-room/three-room-view.js` — 接上 UI
-   - theme handler（:559）补 `ROOM_VIEW_STATE.handle.setTheme(id)` + localStorage 持久化，
-     新 key `marginalia_room_theme_v1`，照搬 atmosphere 的 load/save/normalize 三件套。
-   - 新增 `syncThemeControls()`，与 `syncAtmosphereControls()` 同构。
-   - 初始化路径（:359 / :400 / :389 / :411 附近）要读取并应用存储的 theme。
-   - `mountRoomScene` 的 `.finally` / 重建路径（:728 附近）要一并恢复 theme。
-
-D. Ambient Effects 三个 chip —— **本阶段只做诚实处理，不实现**
-   Rain / Vinyl Noise / Fireplace 需要音频与粒子，属于新功能，不在本 Phase 范围。
-   二选一（倾向前者）：
-   - 从 settings 面板中移除这三个 chip；或
-   - 保留但置 `disabled` 并加 "Coming soon" 说明，不要留假开关。
-
-**验证**
-- 五个 theme × 四个 atmosphere = 20 个组合逐一目视，确认：
-  无过饱和、无死黑、贴图纹理在所有 theme 下都还看得见。
-- 刷新页面后 theme 与 atmosphere 都保持住。
-- 切换 theme 不重新下载任何资产（Network 面板确认：应为零新请求）。
-- 切 theme 不触发闪动、不打断相机。
-- 台灯/吊灯的 `practicalGlow` 自发光在暗色 theme + night 下仍正确。
-- `npm run check:all` 全绿；room-load 仍 ≤ 12 MB（本阶段不应增加任何字节）。
-
----
+**验证记录（2026-10-21）**
+- 5 主题 × 4 时段共 20 种组合逐一截图（`tests/screenshots/phase-3/3.4-themes-5x4.png`）：五个主题差异清楚，
+  没有死黑或过饱和，贴图纹理在所有组合下都可见。
+- 默认外观：taupe 在四个时段与 main 的像素差——下午 0.04、早晨 0.9、黄昏 1.1、夜晚 4.7（夜晚天花板色相略有不同）。
+- 切换主题 0 个新网络请求；刷新后保持；页面 0 个报错；新增 `tests/e2e/room-theme.spec.ts`（2 个测试）。
+- 未做：主题对 2D 页面的联动、付费主题与按需加载（Phase 4 之后）。
 
 ## 待决事项（阶段 3 开工前需 owner 拍板）
 

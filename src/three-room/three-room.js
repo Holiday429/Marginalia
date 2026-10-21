@@ -1,5 +1,5 @@
 import { RoomScene } from '../three/room.ts';
-import { ROOM_SKINS } from '../three/skins.ts';
+import { ROOM_ATMOSPHERES } from '../three/skins.ts';
 import { createNotesWallComponent } from '../components/notes-wall/notes-wall.ts';
 import { createDeskSlotComponent } from '../components/reading-session/desk-slot.ts';
 
@@ -8,7 +8,8 @@ export function createThreeRoomPreview(host, options = {}) {
 
   const scene = new RoomScene({
     host,
-    skinId: ROOM_SKINS[0]?.id || 'warm-study',
+    skinId: options.skinId || ROOM_ATMOSPHERES[0]?.id || 'warm-study',
+    themeId: options.themeId,
     onGlobeSelect: typeof options.onGlobeSelect === 'function' ? options.onGlobeSelect : undefined,
     onLaptopSelect: typeof options.onLaptopSelect === 'function' ? options.onLaptopSelect : undefined,
     onOrganizeSelect: typeof options.onOrganizeSelect === 'function' ? options.onOrganizeSelect : undefined,
@@ -38,7 +39,11 @@ export function createThreeRoomPreview(host, options = {}) {
     },
 
     setSkin(skinId) {
-      scene.applySkin(skinId);
+      scene.applyAtmosphere(skinId);
+    },
+
+    setTheme(themeId) {
+      scene.setTheme(themeId);
     },
 
     setBlindPreset(preset) {

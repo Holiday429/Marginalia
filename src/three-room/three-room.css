@@ -417,6 +417,11 @@ body[data-view='room'] {
   #view-room .room-chip__long { display: none; }
 }
 
+#view-room .room-chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 #view-room .room-chip.active {
   border-color: color-mix(in srgb, var(--color-ivory-text) 66%, transparent);
   background: color-mix(in srgb, var(--color-gold-warm) 26%, transparent);

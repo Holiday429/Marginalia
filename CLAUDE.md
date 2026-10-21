@@ -134,7 +134,7 @@ src/
 │   ├── room.ts             — RoomScene class: loads GLBs, CSS3DRenderer, raycasting, interactive targets
 │   ├── camera-paths.ts     — POSES: front | approach | shelf | notes (positions + FOV + idle amplitude)
 │   ├── slots.ts            — SlotComponent interface + createPlaceholderSlotComponent
-│   ├── skins.ts            — ROOM_SKINS: warm-study | mist-morning | … (color + lighting presets)
+│   ├── skins.ts            — ROOM_ATMOSPHERES (time of day: lights, window, sky) and ROOM_THEMES (taupe | ink | cream | sage | clay: wall, floor, desk, ceiling, rug); the look is a theme's materials lit by an atmosphere, set independently (`applyAtmosphere` / `setTheme`)
 │   ├── gltf-loader.ts      — shared GLB loader (meshopt, fetch-once cache)
 │   ├── asset-urls.ts       — modelUrl() / textureUrl() from the generated manifest
 │   └── frame-photo.ts      — picture-frame photo: user avatar or default pixel reader
