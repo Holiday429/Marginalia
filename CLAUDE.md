@@ -483,7 +483,7 @@ Library 2D and the 3D shelf wall share the same underlying component. Drag-to-ar
 - `var(--font-display)` — Bodoni Moda: book covers / spine display text only
 - No system sans-serif in functional UI. No legacy fonts (Cormorant, Libre Caslon, Inter, Caveat).
 
-**Color:** Tokens only — `src/core/base.css`. No raw hex values in component CSS.
+**Color and type:** Tokens only — `src/core/base.css` (names and mapping in `docs/design-tokens.md`). No raw hex, `rgb()` or font-size literals in component CSS; `npm run check:colors` enforces it for every file listed in `scripts/colors-migrated.txt` (a page is added to the list in the commit that migrates it). Type scale: `--fs-11` / 12 / 14 / 16 / 20 / 28 / 40, plus the display tier 48 / 72.
 
 **Borders:** `solid` only. `dashed`/`dotted` forbidden on interactive elements.
 

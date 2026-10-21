@@ -9,6 +9,7 @@ npm run check:entitlements
 npm run check:hardcoded
 npm run check:paths
 npm run check:docs
+npm run check:colors
 npm --prefix functions run build
 npm run test:unit
 npm run test:rules:emu

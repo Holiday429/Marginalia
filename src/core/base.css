@@ -196,6 +196,34 @@
   /* Legacy alias — was a solid gold block; now routes to glass active fill so
      existing references render as translucent highlights, not opaque paint. */
   --ui-active-fill: var(--glass-fill-active);
+
+  /* ── Phase 3 canonical tokens (docs/design-tokens.md) ────────────────────
+     Components use these, never a colour or font-size literal. */
+  --color-umber:      #2c231c;   /* warm dark, the base of floating glass */
+  --color-umber-soft: #4a3b2e;
+  --color-kraft:      #a48869;   /* kraft paper and wood mid-brown (notes wall, music cover) */
+
+  /* Floating controls over the room (menu, nav, camera bar, Today, focus dock, settings) */
+  --float-surface: linear-gradient(165deg, color-mix(in srgb, var(--color-umber) 50%, transparent), color-mix(in srgb, var(--color-umber-soft) 42%, transparent)),
+                   radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--color-ivory-text) 16%, transparent), transparent 56%);
+  --float-surface-solid: linear-gradient(168deg, color-mix(in srgb, var(--color-umber) 97%, transparent), color-mix(in srgb, var(--color-umber-soft) 97%, transparent));
+  --float-border: color-mix(in srgb, var(--color-ivory-text) 34%, transparent);
+  --float-blur: blur(20px) saturate(130%);
+  --float-shadow: 0 18px 40px color-mix(in srgb, var(--color-ink-deep) 24%, transparent);
+
+  /* Status */
+  --status-positive: var(--color-sage);
+  --status-negative: var(--color-rose);
+  --status-warning:  var(--color-gold-warm);
+
+  /* Overlay */
+  --scrim:        color-mix(in srgb, var(--color-ink-deep) 50%, transparent);
+  --shadow-soft:  0 8px 20px color-mix(in srgb, var(--color-ink-deep) 16%, transparent);
+  --shadow-lift:  0 18px 44px color-mix(in srgb, var(--color-ink-deep) 24%, transparent);
+
+  /* Type scale: 11 / 12 / 14 / 16 / 20 / 28 / 40 (the other --fs-* steps are legacy and go when the last page is migrated) */
+  --fs-40:  40px;
+  /* Display numerals (--fs-48, --fs-72) stay as a separate tier outside the body scale. */
 }
 
 /* ── Per-view theme overrides ──────────────────────────────────────────── */

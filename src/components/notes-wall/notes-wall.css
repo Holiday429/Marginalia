@@ -12,7 +12,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  color: #4a3c31;
+  color: var(--color-umber);
   font-family: var(--font-serif);
 }
 
@@ -43,8 +43,8 @@
   background:
     repeating-linear-gradient(
       to bottom,
-      rgba(236, 221, 197, 0.72) 0 7px,
-      rgba(236, 221, 197, 0) 7px 13px
+      color-mix(in srgb, var(--color-ivory-text) 72%, transparent) 0 7px,
+      transparent 7px 13px
     );
   opacity: 0.85;
 }
@@ -57,11 +57,11 @@
   padding: 13px 30px 12px;
   border-radius: 2px;
   background:
-    linear-gradient(180deg, rgba(255, 251, 244, 0.96), rgba(238, 228, 212, 0.94)),
-    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 48%);
+    linear-gradient(180deg, color-mix(in srgb, var(--color-ivory-text) 96%, transparent), color-mix(in srgb, var(--color-ivory-text) 94%, transparent)),
+    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--color-ivory-text) 80%, transparent), transparent 48%);
   box-shadow:
-    0 8px 18px rgba(88, 62, 36, 0.12),
-    inset 0 -1px 0 rgba(117, 92, 69, 0.18);
+    0 8px 18px color-mix(in srgb, var(--color-umber) 12%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-kraft) 18%, transparent);
   transform: translateX(-50%) rotate(-0.8deg);
   text-align: center;
 }
@@ -75,16 +75,16 @@
   height: 12px;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 35% 35%, rgba(255, 242, 218, 0.95), rgba(178, 136, 88, 0.92) 56%, rgba(101, 72, 45, 0.95));
-  box-shadow: 0 2px 4px rgba(67, 45, 26, 0.24);
+    radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--color-ivory-text) 95%, transparent), color-mix(in srgb, var(--color-kraft) 92%, transparent) 56%, color-mix(in srgb, var(--color-umber) 95%, transparent));
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-umber) 24%, transparent);
   transform: translateX(-50%);
 }
 
 .notes-zone__tag span {
   display: block;
-  font-size: 16px;
+  font-size: var(--fs-16);
   letter-spacing: 0.02em;
-  color: #4d3c2e;
+  color: var(--color-umber);
   white-space: nowrap;
 }
 
@@ -122,11 +122,11 @@
   padding: 18px 18px 20px;
   border-radius: 2px;
   background:
-    radial-gradient(circle at 50% -8%, rgba(255, 255, 255, 0.95), rgba(252, 247, 240, 0.82) 24%, rgba(244, 235, 220, 0.94) 88%),
-    linear-gradient(180deg, rgba(255, 250, 244, 0.95), rgba(233, 220, 199, 0.92));
+    radial-gradient(circle at 50% -8%, color-mix(in srgb, var(--color-ivory-text) 95%, transparent), color-mix(in srgb, var(--color-ivory-text) 82%, transparent) 24%, color-mix(in srgb, var(--color-ivory-text) 94%, transparent) 88%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-ivory-text) 95%, transparent), color-mix(in srgb, var(--color-ivory-text) 92%, transparent));
   box-shadow:
-    0 18px 24px rgba(69, 49, 31, 0.16),
-    inset 0 -1px 0 rgba(164, 136, 105, 0.24);
+    0 18px 24px color-mix(in srgb, var(--color-umber) 16%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-kraft) 24%, transparent);
 }
 
 .calendar-card::before {
@@ -137,7 +137,7 @@
   bottom: 0;
   height: 18px;
   background:
-    radial-gradient(circle at 8px 0, transparent 8px, rgba(245, 235, 220, 1) 8.5px) 0 0 / 18px 100% repeat-x;
+    radial-gradient(circle at 8px 0, transparent 8px, var(--color-ivory-text) 8.5px) 0 0 / 18px 100% repeat-x;
   opacity: 0.9;
 }
 
@@ -148,7 +148,7 @@
   right: 22px;
   top: 152px;
   height: 1px;
-  background: rgba(135, 108, 82, 0.24);
+  background: color-mix(in srgb, var(--color-kraft) 24%, transparent);
 }
 
 .calendar-card:hover,
@@ -156,8 +156,8 @@
 .followup-sticky:hover {
   transform: translateY(-4px);
   box-shadow:
-    0 20px 28px rgba(69, 49, 31, 0.2),
-    inset 0 -1px 0 rgba(164, 136, 105, 0.24);
+    0 20px 28px color-mix(in srgb, var(--color-umber) 20%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-kraft) 24%, transparent);
 }
 
 .calendar-card__rings {
@@ -175,7 +175,7 @@
   display: block;
   width: 10px;
   height: 34px;
-  border: 2px solid rgba(129, 97, 64, 0.78);
+  border: 2px solid color-mix(in srgb, var(--color-kraft) 78%, transparent);
   border-bottom: none;
   border-radius: 12px 12px 0 0;
 }
@@ -194,45 +194,45 @@
   display: block;
   margin-top: 8px;
   text-align: center;
-  font-size: 14px;
-  color: #5d4b3c;
+  font-size: var(--fs-14);
+  color: var(--color-umber);
 }
 
 .calendar-card__day {
   display: block;
   margin-top: 2px;
   text-align: center;
-  font-size: 58px;
+  font-size: var(--fs-48);
   line-height: 0.88;
-  color: #2f241b;
+  color: var(--color-umber);
 }
 
 .calendar-card__weekday {
   display: block;
   margin-top: 4px;
   text-align: center;
-  font-size: 9px;
+  font-size: var(--fs-11);
   letter-spacing: 0.08em;
-  color: rgba(73, 55, 39, 0.72);
+  color: color-mix(in srgb, var(--color-umber) 72%, transparent);
 }
 
 .calendar-card__quote {
   margin: 22px 0 0;
-  font-size: 15px;
+  font-size: var(--fs-16);
   line-height: 1.56;
-  color: #433427;
+  color: var(--color-umber);
 }
 
 .calendar-card__source {
   margin: 8px 0 0;
   text-align: right;
-  font-size: 10px;
+  font-size: var(--fs-11);
   letter-spacing: 0.04em;
-  color: rgba(84, 62, 40, 0.72);
+  color: color-mix(in srgb, var(--color-umber) 72%, transparent);
 }
 
 .calendar-card.is-empty .calendar-card__quote {
-  color: rgba(79, 60, 42, 0.68);
+  color: color-mix(in srgb, var(--color-umber) 68%, transparent);
 }
 
 .todo-paper-wrap {
@@ -249,15 +249,15 @@
   padding: 34px 24px 26px;
   border-radius: 2px;
   background:
-    linear-gradient(180deg, rgba(255, 250, 244, 0.98), rgba(242, 233, 218, 0.94)),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-ivory-text) 98%, transparent), color-mix(in srgb, var(--color-ivory-text) 94%, transparent)),
     repeating-linear-gradient(
       to bottom,
       transparent 0 31px,
-      rgba(181, 194, 215, 0.28) 31px 32px
+      color-mix(in srgb, var(--color-navy-soft) 20%, transparent) 31px 32px
     );
   box-shadow:
-    0 18px 24px rgba(69, 49, 31, 0.15),
-    inset 0 -1px 0 rgba(164, 136, 105, 0.22);
+    0 18px 24px color-mix(in srgb, var(--color-umber) 15%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-kraft) 22%, transparent);
 }
 
 .todo-paper::after {
@@ -267,7 +267,7 @@
   bottom: 0;
   left: 22px;
   width: 1px;
-  background: rgba(210, 134, 123, 0.26);
+  background: color-mix(in srgb, var(--color-gold-warm) 26%, transparent);
 }
 
 .todo-paper__pin {
@@ -278,8 +278,8 @@
   height: 12px;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 35% 35%, rgba(255, 242, 218, 0.95), rgba(178, 136, 88, 0.92) 56%, rgba(101, 72, 45, 0.95));
-  box-shadow: 0 2px 4px rgba(67, 45, 26, 0.24);
+    radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--color-ivory-text) 95%, transparent), color-mix(in srgb, var(--color-kraft) 92%, transparent) 56%, color-mix(in srgb, var(--color-umber) 95%, transparent));
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-umber) 24%, transparent);
   transform: translateX(-50%);
 }
 
@@ -287,9 +287,9 @@
   display: block;
   margin-left: 12px;
   margin-bottom: 16px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.12em;
-  color: rgba(81, 64, 48, 0.62);
+  color: color-mix(in srgb, var(--color-umber) 62%, transparent);
 }
 
 .todo-paper__rows {
@@ -309,7 +309,7 @@
 .todo-paper__dot {
   width: 11px;
   height: 11px;
-  border: 1px solid rgba(77, 57, 41, 0.58);
+  border: 1px solid color-mix(in srgb, var(--color-umber) 58%, transparent);
   border-radius: 2px;
 }
 
@@ -318,14 +318,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 18px;
+  font-size: var(--fs-20);
   line-height: 1.55;
-  color: #4a3c31;
+  color: var(--color-umber);
 }
 
 .todo-paper__row.is-empty .todo-paper__text {
   white-space: normal;
-  color: rgba(79, 60, 42, 0.66);
+  color: color-mix(in srgb, var(--color-umber) 66%, transparent);
 }
 
 .todo-paper__add,
@@ -340,9 +340,9 @@
   padding: 0;
   background: transparent;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   letter-spacing: 0.08em;
-  color: rgba(84, 62, 40, 0.76);
+  color: color-mix(in srgb, var(--color-umber) 76%, transparent);
 }
 
 .followup-cluster {
@@ -362,8 +362,8 @@
   border: none;
   background: var(--sticky-bg);
   box-shadow:
-    0 12px 18px rgba(78, 60, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    0 12px 18px color-mix(in srgb, var(--color-umber) 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-ivory-text) 34%, transparent);
   transform: rotate(var(--sticky-rotate));
   transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
   text-align: left;
@@ -378,8 +378,8 @@
   height: 11px;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 35% 35%, rgba(255, 242, 218, 0.95), rgba(178, 136, 88, 0.92) 56%, rgba(101, 72, 45, 0.95));
-  box-shadow: 0 2px 4px rgba(67, 45, 26, 0.24);
+    radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--color-ivory-text) 95%, transparent), color-mix(in srgb, var(--color-kraft) 92%, transparent) 56%, color-mix(in srgb, var(--color-umber) 95%, transparent));
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-umber) 24%, transparent);
   transform: translateX(-50%);
 }
 
@@ -387,9 +387,9 @@
   display: -webkit-box;
   margin-top: 16px;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.42;
-  color: #4b3c30;
+  color: var(--color-umber);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
 }
@@ -397,12 +397,12 @@
 .followup-empty {
   grid-column: 1 / -1;
   padding: 26px 16px;
-  border: 1px solid rgba(239, 226, 207, 0.72);
+  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 72%, transparent);
   border-radius: 2px;
-  background: rgba(248, 239, 228, 0.28);
-  font-size: 14px;
+  background: color-mix(in srgb, var(--color-ivory-text) 28%, transparent);
+  font-size: var(--fs-14);
   line-height: 1.6;
-  color: rgba(78, 60, 42, 0.72);
+  color: color-mix(in srgb, var(--color-umber) 72%, transparent);
   text-align: center;
 }
 
@@ -419,7 +419,7 @@
   position: absolute;
   inset: 0;
   border: none;
-  background: rgba(58, 41, 26, 0.24);
+  background: color-mix(in srgb, var(--color-umber) 24%, transparent);
   backdrop-filter: blur(6px);
 }
 
@@ -430,7 +430,7 @@
   max-height: calc(100% - 46px);
   overflow: auto;
   border-radius: 6px;
-  box-shadow: 0 26px 40px rgba(59, 39, 24, 0.22);
+  box-shadow: 0 26px 40px color-mix(in srgb, var(--color-umber) 22%, transparent);
 }
 
 .notes-overlay__close {
@@ -441,16 +441,16 @@
   width: 38px;
   height: 38px;
   border-radius: 999px;
-  background: rgba(73, 56, 41, 0.16);
-  color: rgba(73, 56, 41, 0.9);
+  background: color-mix(in srgb, var(--color-umber) 16%, transparent);
+  color: color-mix(in srgb, var(--color-umber) 90%, transparent);
   font-family: var(--font-mono);
-  font-size: 18px;
+  font-size: var(--fs-20);
 }
 
 .notes-overlay__card--quote {
   background:
-    radial-gradient(circle at 50% -6%, rgba(255, 255, 255, 0.96), rgba(252, 247, 240, 0.9) 28%, rgba(241, 231, 214, 0.96) 88%),
-    linear-gradient(180deg, rgba(255, 250, 244, 0.98), rgba(235, 223, 203, 0.96));
+    radial-gradient(circle at 50% -6%, color-mix(in srgb, var(--color-ivory-text) 96%, transparent), color-mix(in srgb, var(--color-ivory-text) 90%, transparent) 28%, color-mix(in srgb, var(--color-ivory-text) 96%, transparent) 88%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-ivory-text) 98%, transparent), color-mix(in srgb, var(--color-ivory-text) 96%, transparent));
 }
 
 .quote-detail {
@@ -465,9 +465,9 @@
 }
 
 .quote-detail__eyebrow {
-  font-size: 12px;
+  font-size: var(--fs-12);
   letter-spacing: 0.14em;
-  color: rgba(82, 63, 45, 0.68);
+  color: color-mix(in srgb, var(--color-umber) 68%, transparent);
 }
 
 .quote-detail__date {
@@ -476,45 +476,45 @@
 
 .quote-detail__date strong {
   display: block;
-  font-size: 28px;
+  font-size: var(--fs-28);
   line-height: 1;
-  color: #382b1f;
+  color: var(--color-umber);
 }
 
 .quote-detail__date span {
   display: block;
   margin-top: 6px;
   font-family: var(--font-mono);
-  font-size: 12px;
-  color: rgba(82, 63, 45, 0.72);
+  font-size: var(--fs-12);
+  color: color-mix(in srgb, var(--color-umber) 72%, transparent);
 }
 
 .quote-detail__body {
   margin: 34px 0 0;
-  font-size: 28px;
+  font-size: var(--fs-28);
   line-height: 1.62;
-  color: #35291f;
+  color: var(--color-umber);
 }
 
 .quote-detail__body.is-empty {
-  font-size: 18px;
-  color: rgba(78, 60, 42, 0.72);
+  font-size: var(--fs-20);
+  color: color-mix(in srgb, var(--color-umber) 72%, transparent);
 }
 
 .quote-detail__source {
   margin: 20px 0 0;
   text-align: right;
-  font-size: 16px;
-  color: rgba(78, 60, 42, 0.74);
+  font-size: var(--fs-16);
+  color: color-mix(in srgb, var(--color-umber) 74%, transparent);
 }
 
 .notes-overlay__card--todo {
   background:
-    linear-gradient(180deg, rgba(255, 250, 244, 0.98), rgba(242, 233, 218, 0.96)),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-ivory-text) 98%, transparent), color-mix(in srgb, var(--color-ivory-text) 96%, transparent)),
     repeating-linear-gradient(
       to bottom,
       transparent 0 41px,
-      rgba(181, 194, 215, 0.32) 41px 42px
+      color-mix(in srgb, var(--color-navy-soft) 22%, transparent) 41px 42px
     );
 }
 
@@ -530,7 +530,7 @@
   bottom: 0;
   left: 30px;
   width: 1px;
-  background: rgba(210, 134, 123, 0.28);
+  background: color-mix(in srgb, var(--color-gold-warm) 28%, transparent);
 }
 
 .todo-detail__head {
@@ -540,9 +540,9 @@
 
 .todo-detail__head h3 {
   margin: 10px 0 4px;
-  font-size: 34px;
+  font-size: var(--fs-40);
   font-weight: 400;
-  color: #35291f;
+  color: var(--color-umber);
 }
 
 .todo-detail__eyebrow {
@@ -550,9 +550,9 @@
   display: inline-block;
   margin-left: 2px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.14em;
-  color: rgba(82, 63, 45, 0.68);
+  color: color-mix(in srgb, var(--color-umber) 68%, transparent);
 }
 
 .todo-detail__rows {
@@ -575,28 +575,28 @@
   width: 14px;
   height: 14px;
   margin-top: 7px;
-  border: 1px solid rgba(77, 57, 41, 0.62);
+  border: 1px solid color-mix(in srgb, var(--color-umber) 62%, transparent);
   border-radius: 2px;
   background: transparent;
 }
 
 .todo-editor-row__check.is-done {
-  background: rgba(77, 57, 41, 0.78);
+  background: color-mix(in srgb, var(--color-umber) 78%, transparent);
 }
 
 .todo-editor-row__text {
   display: block;
   min-height: 24px;
   outline: none;
-  font-size: 18px;
+  font-size: var(--fs-20);
   line-height: 1.55;
-  color: #433427;
+  color: var(--color-umber);
 }
 
 .todo-editor-row__text:empty::before,
 .followup-detail__body.is-editable:empty::before {
   content: attr(data-placeholder);
-  color: rgba(78, 60, 42, 0.48);
+  color: color-mix(in srgb, var(--color-umber) 48%, transparent);
 }
 
 .todo-editor-row.is-empty {
@@ -606,8 +606,8 @@
 
 .todo-editor-row__ghost {
   display: block;
-  font-size: 15px;
-  color: rgba(78, 60, 42, 0.62);
+  font-size: var(--fs-16);
+  color: color-mix(in srgb, var(--color-umber) 62%, transparent);
 }
 
 .todo-detail__add {
@@ -615,9 +615,9 @@
   padding: 0;
   background: transparent;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   letter-spacing: 0.12em;
-  color: rgba(84, 62, 40, 0.82);
+  color: color-mix(in srgb, var(--color-umber) 82%, transparent);
 }
 
 .notes-overlay__card--followup {
@@ -633,22 +633,22 @@
 .followup-detail__eyebrow {
   display: block;
   margin-top: 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.14em;
-  color: rgba(89, 66, 47, 0.72);
+  color: color-mix(in srgb, var(--color-umber) 72%, transparent);
 }
 
 .followup-detail__body {
   margin: 24px 0 0;
   min-height: 140px;
   outline: none;
-  font-size: 24px;
+  font-size: var(--fs-28);
   line-height: 1.56;
-  color: #3d2f25;
+  color: var(--color-umber);
 }
 
 .followup-detail__body.is-editable {
-  border-bottom: 1px solid rgba(96, 72, 50, 0.28);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-umber) 28%, transparent);
 }
 
 .followup-detail__actions {
@@ -662,17 +662,17 @@
 .followup-detail__done {
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(69, 53, 39, 0.9);
-  color: #f3eadb;
+  background: color-mix(in srgb, var(--color-umber) 90%, transparent);
+  color: var(--color-ivory-text);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.12em;
 }
 
 .followup-detail__hint {
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.08em;
-  color: rgba(89, 66, 47, 0.72);
+  color: color-mix(in srgb, var(--color-umber) 72%, transparent);
 }
 
 .followup-sticky.is-removing {
@@ -759,5 +759,5 @@
   border: 1px solid var(--rule-strong);
   border-radius: 4px;
   font-family: var(--font-serif);
-  font-size: 16px;
+  font-size: var(--fs-16);
 }

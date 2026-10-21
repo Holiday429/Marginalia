@@ -9,11 +9,11 @@
   overflow-y: auto;
   color: var(--color-ivory-text);
   font-family: var(--font-serif);
-  border: 1px solid color-mix(in srgb, var(--color-brass-border) 45%, transparent);
+  border: 1px solid var(--float-border);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--color-smoke-bg) 74%, transparent);
-  backdrop-filter: blur(18px) saturate(128%);
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--color-ink-deep) 40%, transparent);
+  background: var(--float-surface);
+  backdrop-filter: var(--float-blur);
+  box-shadow: var(--float-shadow);
 }
 
 #view-room .today[hidden] { display: none; }

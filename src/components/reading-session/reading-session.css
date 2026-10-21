@@ -8,7 +8,7 @@
 }
 
 .fw-panel {
-  color: rgba(249, 235, 213, 0.94);
+  color: color-mix(in srgb, var(--color-ivory-text) 94%, transparent);
   width: 100%;
   overflow: hidden;
   transition: opacity 0.2s;
@@ -28,16 +28,16 @@
   background: transparent;
   border: none;
   border-radius: 999px;
-  color: rgba(249, 235, 213, 0.94);
+  color: color-mix(in srgb, var(--color-ivory-text) 94%, transparent);
   font-family: var(--font-service-ui, var(--font-mono, monospace));
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.02em;
   cursor: pointer;
   text-align: left;
   min-height: 34px;
   transition: background 0.16s ease;
 }
-.fw-collapse-btn:hover { background: rgba(244, 228, 205, 0.12); }
+.fw-collapse-btn:hover { background: color-mix(in srgb, var(--color-ivory-text) 12%, transparent); }
 
 /* Status dot — color only, no animation */
 .fw-dot {
@@ -45,18 +45,18 @@
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: rgba(249, 235, 213, 0.25); /* inactive: dim */
+  background: color-mix(in srgb, var(--color-ivory-text) 25%, transparent); /* inactive: dim */
 }
 .fw-dot--active {
-  background: #6dba8a; /* active: green */
+  background: var(--color-sage); /* active: green */
 }
 .fw-dot--pom-done {
-  background: #c8b06a; /* pomodoro complete: gold */
+  background: var(--color-gold-warm); /* pomodoro complete: gold */
 }
 
 .fw-collapse-label {
   font-family: var(--font-service-ui, var(--font-mono, monospace));
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: var(--track-service-ui, 0.02em);
   font-weight: var(--weight-service-ui, 400);
 }
@@ -66,9 +66,9 @@
   min-width: 0;
   text-align: right;
   font-family: var(--font-mono, monospace);
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.02em;
-  color: rgba(249, 235, 213, 0.94);
+  color: color-mix(in srgb, var(--color-ivory-text) 94%, transparent);
 }
 
 /* Mini glyph in collapsed pill — sits right after the label, pushes time/chevron right */
@@ -80,23 +80,23 @@
 .fw-mini--hourglass { width: 12px; height: 15px; }
 .fw-mini__ring {
   fill: none;
-  stroke: rgba(244, 228, 205, 0.32);
+  stroke: color-mix(in srgb, var(--color-ivory-text) 32%, transparent);
   stroke-width: 1.4;
 }
 .fw-mini__hand {
-  stroke: rgba(219, 166, 89, 0.95);
+  stroke: color-mix(in srgb, var(--color-gold-warm) 95%, transparent);
   stroke-width: 1.4;
   stroke-linecap: round;
 }
 .fw-mini__frame {
   fill: none;
-  stroke: rgba(244, 228, 205, 0.4);
+  stroke: color-mix(in srgb, var(--color-ivory-text) 40%, transparent);
   stroke-width: 1.2;
   stroke-linejoin: round;
 }
-.fw-mini__sand { fill: rgba(219, 166, 89, 0.9); }
+.fw-mini__sand { fill: color-mix(in srgb, var(--color-gold-warm) 90%, transparent); }
 
-.fw-collapse-icon { margin-left: auto; font-size: 0.5rem; opacity: 0.4; }
+.fw-collapse-icon { margin-left: auto; font-size: var(--fs-11); opacity: 0.4; }
 
 .fw-collapse-time + .fw-collapse-icon {
   margin-left: 8px;
@@ -114,23 +114,23 @@
 }
 
 .fw-book-row { display: flex; flex-direction: column; gap: 4px; }
-.fw-book-label { font-size: 10px; letter-spacing: 0.06em; color: rgba(244, 228, 205, 0.74); font-family: var(--font-service-ui, var(--font-mono, monospace)); }
+.fw-book-label { font-size: var(--fs-11); letter-spacing: 0.06em; color: color-mix(in srgb, var(--color-ivory-text) 74%, transparent); font-family: var(--font-service-ui, var(--font-mono, monospace)); }
 
 .fw-book-select {
-  background: rgba(244, 228, 205, 0.07);
-  border: 1px solid rgba(244, 228, 205, 0.2);
-  color: rgba(249, 235, 213, 0.94);
+  background: color-mix(in srgb, var(--color-ivory-text) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 20%, transparent);
+  color: color-mix(in srgb, var(--color-ivory-text) 94%, transparent);
   font-family: var(--font-service-ui, var(--font-mono, monospace));
-  font-size: 11px;
+  font-size: var(--fs-11);
   padding: 5px 8px;
   border-radius: 10px;
   width: 100%;
 }
-.fw-book-select option { background: #2c231c; }
+.fw-book-select option { background: var(--color-umber); }
 
 .fw-active-book {
-  font-size: 11px;
-  color: rgba(249, 235, 213, 0.6);
+  font-size: var(--fs-11);
+  color: color-mix(in srgb, var(--color-ivory-text) 60%, transparent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -141,19 +141,19 @@
 .fw-mode-btn {
   flex: 1;
   padding: 5px;
-  background: rgba(244, 228, 205, 0.07);
-  border: 1px solid rgba(244, 228, 205, 0.2);
-  color: rgba(249, 235, 213, 0.5);
+  background: color-mix(in srgb, var(--color-ivory-text) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 20%, transparent);
+  color: color-mix(in srgb, var(--color-ivory-text) 50%, transparent);
   font-family: var(--font-service-ui, var(--font-mono, monospace));
-  font-size: 10px;
+  font-size: var(--fs-11);
   letter-spacing: 0.04em;
   cursor: pointer;
   border-radius: 999px;
   transition: all 0.15s;
   min-height: 28px;
 }
-.fw-mode-btn:hover { border-color: rgba(244,228,205,0.38); color: rgba(249,235,213,0.9); }
-.fw-mode-btn--active { border-color: rgba(255, 214, 150, 0.66); color: rgba(249, 235, 213, 0.95); background: rgba(219, 166, 89, 0.26); }
+.fw-mode-btn:hover { border-color: color-mix(in srgb, var(--color-ivory-text) 38%, transparent); color: color-mix(in srgb, var(--color-ivory-text) 90%, transparent); }
+.fw-mode-btn--active { border-color: color-mix(in srgb, var(--color-ivory-text) 66%, transparent); color: color-mix(in srgb, var(--color-ivory-text) 95%, transparent); background: color-mix(in srgb, var(--color-gold-warm) 26%, transparent); }
 
 /* ── Active visuals: clock dial (free) + hourglass (pomodoro) ──── */
 
@@ -167,37 +167,37 @@
 
 .fw-visual__time {
   font-family: var(--font-mono, monospace);
-  font-size: 13px;
+  font-size: var(--fs-14);
   letter-spacing: 0.06em;
-  color: rgba(249, 235, 213, 0.94);
+  color: color-mix(in srgb, var(--color-ivory-text) 94%, transparent);
   font-variant-numeric: tabular-nums;
 }
 
 /* Clock dial — free mode */
 .fw-clock { width: 72px; height: 72px; }
 .fw-clock__ring {
-  fill: rgba(244, 228, 205, 0.05);
-  stroke: rgba(244, 228, 205, 0.32);
+  fill: color-mix(in srgb, var(--color-ivory-text) 5%, transparent);
+  stroke: color-mix(in srgb, var(--color-ivory-text) 32%, transparent);
   stroke-width: 2;
 }
 .fw-clock__hand {
-  stroke: rgba(219, 166, 89, 0.95);
+  stroke: color-mix(in srgb, var(--color-gold-warm) 95%, transparent);
   stroke-width: 2.2;
   stroke-linecap: round;
   transition: x2 0.4s linear, y2 0.4s linear;
 }
-.fw-clock__pin { fill: rgba(219, 166, 89, 0.95); }
+.fw-clock__pin { fill: color-mix(in srgb, var(--color-gold-warm) 95%, transparent); }
 
 /* Hourglass — pomodoro mode */
 .fw-hourglass { width: 52px; height: 72px; }
 .fw-hourglass__frame {
-  fill: rgba(244, 228, 205, 0.05);
-  stroke: rgba(244, 228, 205, 0.4);
+  fill: color-mix(in srgb, var(--color-ivory-text) 5%, transparent);
+  stroke: color-mix(in srgb, var(--color-ivory-text) 40%, transparent);
   stroke-width: 2;
   stroke-linejoin: round;
 }
 .fw-hourglass__sand {
-  fill: rgba(219, 166, 89, 0.9);
+  fill: color-mix(in srgb, var(--color-gold-warm) 90%, transparent);
   transition: height 0.4s linear, y 0.4s linear;
 }
 
@@ -207,20 +207,20 @@
 .fw-stop-btn {
   flex: 1;
   padding: 8px;
-  border: 1px solid rgba(244, 228, 205, 0.24);
-  background: rgba(244, 228, 205, 0.07);
-  color: rgba(249, 235, 213, 0.94);
+  border: 1px solid color-mix(in srgb, var(--color-ivory-text) 24%, transparent);
+  background: color-mix(in srgb, var(--color-ivory-text) 7%, transparent);
+  color: color-mix(in srgb, var(--color-ivory-text) 94%, transparent);
   font-family: var(--font-service-ui, var(--font-mono, monospace));
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.04em;
   cursor: pointer;
   border-radius: 10px;
   min-height: 34px;
   transition: background 0.15s;
 }
-.fw-start-btn:hover { background: rgba(244,228,205,0.14); }
-.fw-stop-btn { border-color: rgba(200, 80, 80, 0.35); color: rgba(255,160,140,0.9); }
-.fw-stop-btn:hover { background: rgba(200,80,80,0.12); }
+.fw-start-btn:hover { background: color-mix(in srgb, var(--color-ivory-text) 14%, transparent); }
+.fw-stop-btn { border-color: color-mix(in srgb, var(--color-rose) 35%, transparent); color: var(--status-negative); }
+.fw-stop-btn:hover { background: color-mix(in srgb, var(--color-rose) 12%, transparent); }
 
 /* ── Desk slot (CSS3DRenderer) ────────────────────────────────── */
 
@@ -237,7 +237,7 @@
   box-sizing: border-box;
   background: transparent;
   font-family: var(--font-serif, Georgia, serif);
-  color: #1a1714;
+  color: var(--color-ink-deep);
 }
 
 /* Idle: transparent — no floating card on the desk. The Start control is kept
@@ -249,7 +249,7 @@
 
 /* Active: a small session card (timer + Stop) so the running state is legible. */
 .desk-slot--active {
-  background: rgba(245, 240, 228, 0.88);
+  background: color-mix(in srgb, var(--color-ivory-text) 88%, transparent);
   border-radius: 2px;
 }
 
@@ -262,28 +262,28 @@
 
 .desk-slot__timer {
   font-family: var(--font-mono, monospace);
-  font-size: 1.4rem;
+  font-size: var(--fs-20);
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: #1a1714;
+  color: var(--color-ink-deep);
 }
 
 .desk-slot__btn {
   align-self: flex-start;
   padding: 8px 18px;
-  border: 1px solid #1a1714;
+  border: 1px solid var(--color-ink-deep);
   background: transparent;
-  color: #1a1714;
+  color: var(--color-ink-deep);
   font-family: var(--font-mono, monospace);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.04em;
   cursor: pointer;
   min-height: 44px;
   transition: background 0.15s, color 0.15s;
 }
 
-.desk-slot__btn:hover { background: #1a1714; color: #f5f0e6; }
-.desk-slot__btn--stop { background: #1a1714; color: #f5f0e6; }
+.desk-slot__btn:hover { background: var(--color-ink-deep); color: var(--color-ivory-text); }
+.desk-slot__btn--stop { background: var(--color-ink-deep); color: var(--color-ivory-text); }
 .desk-slot__btn--stop:hover { opacity: 0.8; }
 .desk-slot__btn:disabled { opacity: 0.4; cursor: not-allowed; }
 

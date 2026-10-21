@@ -36,7 +36,7 @@
   transform-origin: left center;
   transform: rotateY(-90deg);
   background: var(--cover-bg, var(--book-color));
-  color: var(--cover-text, #e8dfc8);
+  color: var(--cover-text, var(--color-ivory-text));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -46,12 +46,12 @@
 .hero-book .spine {
   width: var(--spine-w, 40px);
   transform: none;
-  background: var(--book-color, #333);
+  background: var(--book-color, var(--color-ink-deep));
   box-shadow:
-    inset 2px 0 0 rgba(255, 255, 255, 0.05),
-    inset -2px 0 4px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    inset 2px 0 0 color-mix(in srgb, var(--color-ivory-text) 5%, transparent),
+    inset -2px 0 4px color-mix(in srgb, var(--color-ink-deep) 35%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-ivory-text) 8%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-ink-deep) 20%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -61,8 +61,8 @@
 
 .hero-book .back {
   transform: translateZ(calc(var(--spine-half, 20px) * -1)) rotateY(180deg);
-  background: var(--cover-bg, var(--book-color, #333));
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.2);
+  background: var(--cover-bg, var(--book-color, var(--color-ink-deep)));
+  box-shadow: inset 0 0 30px color-mix(in srgb, var(--color-ink-deep) 20%, transparent);
 }
 
 /* Hidden until the GLB first frame paints (hero-fallback shows them if GLB fails). */
@@ -80,10 +80,10 @@
 .hero-book .spine-text {
   position: relative;
   writing-mode: vertical-rl;
-  color: var(--book-text, #fff);
+  color: var(--book-text, var(--color-ivory-text));
   font-family: 'Fraunces', serif;
   font-weight: 500;
-  font-size: 18px;
+  font-size: var(--fs-20);
   letter-spacing: 0.02em;
   text-align: center;
   line-height: 1.05;
@@ -92,12 +92,12 @@
 /* Hero cover art (Visible Signs) */
 .hero-book .cover.cover-visible-signs {
   padding: clamp(18px, 7%, 36px) clamp(14px, 5%, 28px);
-  background: #14263e;
-  color: #e8dfc8;
+  background: var(--color-navy);
+  color: var(--color-ivory-text);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    inset 0 0 80px rgba(0, 0, 0, 0.25),
-    0 20px 40px -20px rgba(0, 0, 0, 0.45);
+    inset 0 0 0 1px color-mix(in srgb, var(--color-ivory-text) 8%, transparent),
+    inset 0 0 80px color-mix(in srgb, var(--color-ink-deep) 25%, transparent),
+    0 20px 40px -20px color-mix(in srgb, var(--color-ink-deep) 45%, transparent);
   justify-content: space-between;
   align-items: stretch;
 }

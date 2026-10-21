@@ -1,0 +1,9 @@
+# CSS files migrated to design tokens (docs/design-tokens.md). check:colors fails on any colour or font-size literal in them.
+src/three-room/three-room.css
+src/components/today-panel/today-panel.css
+src/components/reading-session/reading-session.css
+src/components/quick-capture/quick-capture.css
+src/components/quick-capture/captures-drawer.css
+src/components/notes-wall/notes-wall.css
+src/components/hero-book/hero-book.css
+src/components/consent-banner/consent-banner.css

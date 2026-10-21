@@ -37,7 +37,7 @@ body[data-view="preloader"] .qc-fab { display: none; }
   position: fixed;
   inset: 0;
   z-index: 9000;
-  background: rgba(21, 18, 16, 0.5);
+  background: color-mix(in srgb, var(--color-ink-deep) 50%, transparent);
 }
 
 .qc-sheet {
@@ -92,7 +92,7 @@ body[data-view="preloader"] .qc-fab { display: none; }
   border: 0;
   background: transparent;
   color: inherit;
-  font-size: 24px;
+  font-size: var(--fs-28);
   cursor: pointer;
 }
 
@@ -115,7 +115,7 @@ body[data-view="preloader"] .qc-fab { display: none; }
   background: var(--color-ink);
   color: var(--color-ivory-text);
   font-family: var(--font-serif);
-  font-size: 16px;
+  font-size: var(--fs-16);
   line-height: 1.45;
 }
 
@@ -145,7 +145,7 @@ body[data-view="preloader"] .qc-fab { display: none; }
   border: 0;
   background: transparent;
   color: inherit;
-  font-size: 20px;
+  font-size: var(--fs-20);
   cursor: pointer;
 }
 
