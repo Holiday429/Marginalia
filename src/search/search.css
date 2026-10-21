@@ -423,7 +423,7 @@ body[data-view="search"] {
   padding: 16px;
   border-radius: 14px;
   border: var(--ui-border-width) solid var(--ui-border-strong);
-  background: var(--panel-glass, color-mix(in srgb, var(--color-ink-deep) 96%, transparent));
+  background: var(--panel-glass, color-mix(in srgb, var(--color-smoke-bg) 96%, transparent));
   backdrop-filter: blur(12px);
   box-shadow: 0 18px 40px color-mix(in srgb, var(--color-ink-deep) 40%, transparent);
 }
@@ -944,7 +944,7 @@ body[data-view="search"] {
 
 .shelf-preview-panel {
   position: relative;
-  background: var(--color-ink-deep);
+  background: var(--color-smoke-bg);
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--color-ivory-text) 8%, transparent);
   padding: 14px;
@@ -1586,7 +1586,7 @@ body[data-view="search"] {
 }
 .laptop-fly-overlay.is-active {
   /* site background (smoke gray #302e2a), not pure black */
-  background: var(--bg-tool, var(--color-ink-deep));
+  background: var(--bg-tool, var(--color-smoke-bg));
 }
 .laptop-fly-overlay__gl,
 .laptop-fly-overlay__ui {

@@ -401,7 +401,7 @@
 }
 
 .ne-select option {
-  background: var(--color-ink-deep);
+  background: var(--color-smoke-bg);
   color: var(--color-ivory-text);
 }
 

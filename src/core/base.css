@@ -202,6 +202,10 @@
   --color-umber:      #2c231c;   /* warm dark, the base of floating glass */
   --color-umber-soft: #4a3b2e;
   --color-kraft:      #a48869;   /* kraft paper and wood mid-brown (notes wall, music cover) */
+  --color-gold-light: #e8c98c;   /* light gold: highlights, streak, medals */
+  --color-sienna:     #5e3410;   /* deep saturated brown (annual shelf artwork) */
+  --ribbon-red:       #c8212a;   /* annual shelf ribbon */
+  --ribbon-red-deep:  #b61620;
 
   /* Floating controls over the room (menu, nav, camera bar, Today, focus dock, settings) */
   --float-surface: linear-gradient(165deg, color-mix(in srgb, var(--color-umber) 50%, transparent), color-mix(in srgb, var(--color-umber-soft) 42%, transparent)),

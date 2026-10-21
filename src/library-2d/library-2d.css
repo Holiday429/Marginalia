@@ -817,7 +817,7 @@ body[data-view='studio'] {
     -2px 0 0 color-mix(in srgb, var(--color-ink-deep) 46%, transparent),
     0 10px 22px color-mix(in srgb, var(--color-ink-deep) 42%, transparent),
     inset 1px 0 0 color-mix(in srgb, var(--color-ivory-text) 7%, transparent);
-  background: var(--cover-color, var(--color-ink-deep));
+  background: var(--cover-color, var(--color-smoke-bg));
   color: var(--cover-text, var(--color-ivory-text));
 }
 
@@ -1127,7 +1127,7 @@ body[data-view='studio'] {
 }
 
 #panel-library .library-overlay-close:hover {
-  background: color-mix(in srgb, var(--color-ink-deep) 78%, transparent);
+  background: color-mix(in srgb, var(--color-smoke-bg) 78%, transparent);
   color: color-mix(in srgb, var(--color-ivory-text) 96%, transparent);
   transform: scale(1.04);
 }

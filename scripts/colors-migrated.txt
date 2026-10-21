@@ -22,3 +22,6 @@ src/components/finish-ritual/finish-ritual.css
 src/components/onboarding/onboarding.css
 src/components/action-notifications/action-notifications.css
 src/components/empty-state/empty-state.css
+src/profile/profile.css
+src/profile/annual-shelf.css
+src/profile/delete-account.css
