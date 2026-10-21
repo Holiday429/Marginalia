@@ -70,7 +70,7 @@
 
 .gs-hit__title { font-size: var(--fs-14); }
 
-.gs-hit__text { font-size: var(--fs-13); line-height: 1.45; color: var(--color-taupe); overflow-wrap: anywhere; }
+.gs-hit__text { font-size: var(--fs-14); line-height: 1.45; color: var(--color-taupe); overflow-wrap: anywhere; }
 
 .gs-hit mark { background: transparent; color: var(--color-accent); font-weight: 600; }
 

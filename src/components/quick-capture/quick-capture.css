@@ -82,7 +82,7 @@ body[data-view="preloader"] .qc-fab { display: none; }
 
 .qc-title {
   margin: 0;
-  font-size: var(--fs-18);
+  font-size: var(--fs-20);
   font-weight: 500;
 }
 
@@ -184,7 +184,7 @@ body[data-view="preloader"] .qc-fab { display: none; }
 .qc-error {
   margin: 0;
   color: var(--color-rose);
-  font-size: var(--fs-13);
+  font-size: var(--fs-14);
 }
 
 .qc-save {

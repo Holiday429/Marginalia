@@ -35,7 +35,7 @@
 .today__title {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: var(--fs-13);
+  font-size: var(--fs-14);
   font-weight: 600;
   color: var(--color-gold-warm);
 }
@@ -70,7 +70,7 @@
 .today__book,
 .today__quote span {
   margin: 0;
-  font-size: var(--fs-13);
+  font-size: var(--fs-14);
   line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;

@@ -20,7 +20,7 @@
   border-radius: 24px;
   cursor: pointer;
   user-select: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-ink-deep) 22%, transparent);
   transition: background 120ms ease;
 }
 
@@ -54,7 +54,7 @@
   background: var(--color-cream);
   border: 1px solid var(--rule-strong);
   border-radius: 6px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-ink-deep) 18%, transparent);
 }
 
 .an-panel[hidden] {
@@ -74,7 +74,7 @@
 
 .an-panel-title {
   font-family: var(--font-serif);
-  font-size: var(--fs-15);
+  font-size: var(--fs-16);
   font-weight: 600;
   color: var(--ink);
   margin: 0;
@@ -90,7 +90,7 @@
   border-radius: 3px;
   background: transparent;
   color: var(--muted);
-  font-size: var(--fs-18);
+  font-size: var(--fs-20);
   cursor: pointer;
   transition: background 100ms ease;
 }
@@ -121,7 +121,7 @@
 
 .an-tier-label {
   font-family: var(--font-mono);
-  font-size: var(--fs-10);
+  font-size: var(--fs-11);
   letter-spacing: 0.07em;
   color: var(--muted);
   margin: 0 0 8px;
@@ -150,7 +150,7 @@
 
 .an-item-text {
   font-family: var(--font-serif);
-  font-size: var(--fs-13);
+  font-size: var(--fs-14);
   color: var(--ink);
   flex: 1;
   line-height: 1.4;
@@ -169,7 +169,7 @@
   border-radius: 3px;
   background: transparent;
   font-family: var(--font-mono);
-  font-size: var(--fs-10);
+  font-size: var(--fs-11);
   color: var(--ink-soft);
   cursor: pointer;
   white-space: nowrap;

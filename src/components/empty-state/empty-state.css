@@ -12,13 +12,13 @@
 
 .empty-state__title {
   margin: 0 0 8px;
-  font-size: var(--fs-18);
+  font-size: var(--fs-20);
   font-weight: 500;
 }
 
 .empty-state__body {
   margin: 0;
-  font-size: var(--fs-15);
+  font-size: var(--fs-16);
   line-height: 1.55;
   color: var(--muted);
 }

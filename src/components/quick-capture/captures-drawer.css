@@ -114,7 +114,7 @@ body[data-view="preloader"] .cd-pill { display: none; }
 
 .cd-book { width: 100%; text-align: left; }
 
-.cd-empty { padding: 12px 0; font-size: var(--fs-13); color: var(--color-taupe); }
+.cd-empty { padding: 12px 0; font-size: var(--fs-14); color: var(--color-taupe); }
 
 .cd-ghost {
   position: fixed;

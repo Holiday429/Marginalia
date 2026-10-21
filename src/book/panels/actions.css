@@ -39,7 +39,7 @@
 }
 
 .actions-item:hover {
-  background: rgba(26,23,20,0.03);
+  background: color-mix(in srgb, var(--color-ink-deep) 3%, transparent);
   padding-left: 8px;
   padding-right: 8px;
   margin: 0 -8px;
@@ -105,7 +105,7 @@
 }
 
 .actions-ctrl-btn:hover {
-  background: rgba(26,23,20,0.08);
+  background: color-mix(in srgb, var(--color-ink-deep) 8%, transparent);
   color: var(--ink);
 }
 
@@ -115,7 +115,7 @@
 
 .actions-item-status-tag {
   font-family: var(--font-mono);
-  font-size: var(--fs-10);
+  font-size: var(--fs-11);
   color: var(--muted-soft);
   letter-spacing: 0.06em;
   flex-shrink: 0;
@@ -204,7 +204,7 @@
 
 .actions-resolved-count {
   font-family: var(--font-mono);
-  font-size: var(--fs-10);
+  font-size: var(--fs-11);
   letter-spacing: 0.12em;
   color: var(--muted);
 }

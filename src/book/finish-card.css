@@ -13,7 +13,7 @@
   font-family: var(--font-serif);
 }
 
-.finish-card__headline { margin: 0 0 8px; font-size: var(--fs-22); font-weight: 500; }
+.finish-card__headline { margin: 0 0 8px; font-size: var(--fs-20); font-weight: 500; }
 
 .finish-card__synthesis { margin: 0 0 14px; font-size: var(--fs-16); line-height: 1.6; }
 
