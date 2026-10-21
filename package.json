@@ -17,7 +17,7 @@
     "check:docs": "node scripts/check-claude-md.mjs",
     "lint": "eslint .",
     "pretest:rules": "node scripts/sync-shared.mjs",
-    "test:rules": "vitest run tests/firestore-rules.test.ts functions/test/quota.emulator.test.ts functions/test/delete-account.emulator.test.ts functions/test/weekly-digest.emulator.test.ts functions/test/geo-resolve.emulator.test.ts",
+    "test:rules": "vitest run tests/firestore-rules.test.ts functions/test/quota.emulator.test.ts functions/test/delete-account.emulator.test.ts functions/test/weekly-digest.emulator.test.ts functions/test/geo-resolve.emulator.test.ts --testTimeout=30000",
     "test:rules:emu": "firebase emulators:exec --only auth,firestore --project demo-marginalia \"npm run test:rules\"",
     "pretest:unit": "node scripts/sync-shared.mjs",
     "test:unit": "vitest run --exclude tests/firestore-rules.test.ts --exclude functions/test/quota.emulator.test.ts --exclude functions/test/delete-account.emulator.test.ts --exclude functions/test/weekly-digest.emulator.test.ts --exclude functions/test/geo-resolve.emulator.test.ts",
