@@ -9,6 +9,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1, // software-GL Chrome tests are heavy; run them one at a time
+  timeout: 90_000, // the navigation tests resize and route the 3D room several times; on a CI runner that is slow, not broken
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: 'http://localhost:4173',

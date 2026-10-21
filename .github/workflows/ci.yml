@@ -128,6 +128,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm ci
+      - run: npm ci --prefix functions
+      - run: npm --prefix functions run build  # the emulator loads functions/lib/index.js
       - run: npx playwright install --with-deps chromium
       - run: npm install -g firebase-tools
       - run: npm run test:e2e:emu
