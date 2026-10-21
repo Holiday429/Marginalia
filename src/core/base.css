@@ -66,21 +66,13 @@
   --font-hand:   'Caveat', cursive;                  /* handwritten margin notes only */
   --font-service-ui: var(--font-mono);
 
-  /* ── Fixed sizes (legacy; use sparingly) ─────────────────────────────── */
-  --fs-9:   9px;
-  --fs-10:  10px;
+  /* ── Type scale steps: 11 / 12 / 14 / 16 / 20 / 28 / 40, plus the display tier 48 / 72 ─── */
   --fs-11:  11px;
   --fs-12:  12px;
-  --fs-13:  13px;
   --fs-14:  14px;
-  --fs-15:  15px;
   --fs-16:  16px;
-  --fs-17:  17px;
-  --fs-18:  18px;
   --fs-20:  20px;
-  --fs-22:  22px;
   --fs-28:  28px;
-  --fs-36:  36px;
   --fs-48:  48px;
   --fs-72:  72px;
 
@@ -161,7 +153,7 @@
   --section-subtitle-line-height: 1.1;
   --section-subtitle-tracking: var(--track-service-ui);
   --section-subtitle-weight: var(--weight-service-ui-label);
-  --section-subtitle-minor-size: var(--fs-18);
+  --section-subtitle-minor-size: var(--fs-20);
   --section-title-gap-from-divider: 20px;
 
   /* Room → Tool transition palette */
@@ -582,7 +574,7 @@ body {
 
 .panel-masthead .room-top-tabs .room-nav-label {
   font-family: var(--font-service-ui);
-  font-size: 9px;
+  font-size: var(--fs-11);
   letter-spacing: 0.02em;
   font-weight: var(--weight-service-ui);
 }
@@ -602,7 +594,7 @@ body {
 
 .panel-header-action {
   font-family: var(--font-service-ui);
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: var(--track-service-ui);
   font-weight: var(--weight-service-ui-label);
   color: var(--ink);
@@ -668,7 +660,7 @@ body {
 /* Mono label — used for tags, breadcrumbs, and metadata keys */
 .label-mono {
   font-family: var(--font-service-ui);
-  font-size: var(--fs-9);
+  font-size: var(--fs-11);
   letter-spacing: var(--track-service-ui-label);
   font-weight: var(--weight-service-ui-label);
   text-transform: none;

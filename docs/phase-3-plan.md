@@ -97,45 +97,23 @@ Library  [Browse|Arrange]          7 finished · 0 reading · …
 
 ---
 
-## 阶段 3 — 设计 token 一致性
+## 阶段 3 — 设计 token 一致性（已完成）
 
-**问题**：房间 overlay 大量裸 `rgba()`（典型 `three-room.css:407-410`），
-字号散用，深色页面与浅色房间没有共用语义。
+**做法（owner 同意的版本）**：沿用现有命名（`--text-*`、`--glass-*`、`--panel-*`），补缺口，再逐页迁移；
+字号阶梯 11 / 12 / 14 / 16 / 20 / 28 / 40，另有展示档 48 / 72。详见 `docs/design-tokens.md`。
 
-**前置**：开工前需 owner 拍板两件事（见文末「待决事项」）。未拍板不要开始。
+**批次与提交**：1 Room（35b7793）· 2 Library · 3 Book / AI / 导入 / 仪式 / 引导 · 4 Profile · 5 Map / Graph · 6 登录面板 / 落地页 / 其它。
+共 33 个 CSS 文件登记在 `scripts/colors-migrated.txt`，`npm run check:colors`（颜色和字号字面量、旧 `--fs-N`）已进 `check:all`。
 
-**做法：按页面分批，每批独立截图回归。** 不要一次全站替换。
+**验证记录（2026-10-21）**
+- 每批迁移前后各截一组图（Room 7 张、Library 12、Book 6、Profile 12、Map/Graph 8、落地页和登录 4），用像素差量化：
+  平均色差多在 0.3–6（满分 255）；偏大的都有解释（筛选芯片多折一行、整页下移、登录面板从蓝黑改暖色）。
+- 评审截图时发现并修正了 7 类回归：书脊小字被放大、书架木色层次被压平、彩虹色板变淡、暗灰变近黑（8 处）、
+  黄铜金被归成发灰的棕、左栏按钮折行、落地页五个主题被合并。每一条都写进了 `docs/design-tokens.md`。
+- 已知残留：Profile 顶部卡片左侧面板边缘有 3–8 个色阶的台阶，肉眼很淡。
 
-批次顺序（依赖从低到高）：
-1. `src/core/base.css` — 建立语义 token 层（新增，先不改调用方）
-2. Room overlay — `src/three-room/three-room.css`
-3. Library — `src/search/`、`src/library-2d/`、`library-mode-switch`
-4. Book — `src/book/` 及 panels
-5. Profile — `src/profile/`
-6. Map / Graph — `src/map/`、`src/web/`
-
-**命名要求**：语义化，不是色值化。
-- 对：`--surface-raised`、`--text-secondary`、`--border-subtle`、`--accent-warm`
-- 错：`--taupe-40`、`--gold-warm`（现存的这类名字保留为底层原子，
-  语义 token 引用它们，不要一次性重命名，避免大爆炸）
-
-**双语境**：同一语义 token 在浅色房间与深色页面取值不同。
-用 `[data-view="room"]` 或 `.is-light-context` 作用域覆盖，不要新建一套平行命名。
-
-**字号**：统一到一套比例（建议 12/14/16/20/28/40，待拍板），
-现有 `--fs-12` 之类映射过去，不保留散值。
-
-**硬性检查**：`npm run check:hardcoded` 必须覆盖本批次改过的文件并通过。
-如果该脚本当前没覆盖房间 CSS，本阶段要把它纳入。
-
-**验证**
-- 每批次单独 commit，单独三档截图。
-- 全部完成后整站走一遍：Room / Library(Browse+Arrange) / Book / Profile / Map / Graph，
-  浅色深色都看，确认无错配。
-- `npm run check:all` 全绿。
-- 注意：字号统一会改变部分卡片高度，截图回归必须逐页看，不能只看通过与否。
-
----
+**统一的结果（用户可见）**：房间里所有浮动控件同一种暖棕玻璃材质；全站字号收敛到一套阶梯，
+原来 8–10px 的小字统一为 11px；登录面板与全站同色系。
 
 ## 阶段 4 — 房间主题真正接入
 

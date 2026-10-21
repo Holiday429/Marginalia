@@ -1,6 +1,6 @@
 # Design tokens — naming and migration (Phase 3.3)
 
-Status: applied page by page. Migrated so far: Room (see `scripts/colors-migrated.txt`). Source of truth stays `src/core/base.css`.
+Status: applied to every page and component stylesheet (33 files, listed in `scripts/colors-migrated.txt`); `check:colors` is part of `check:all`. `src/core/base.css` is the only place colour and size literals live. Source of truth: `src/core/base.css`.
 
 ## Principle
 
@@ -29,7 +29,7 @@ Rules: components use only the tokens above (never `--color-*` atoms, never lite
 
 ## Type scale
 
-Exposed as `--fs-11 … --fs-40` (see below); the other `--fs-*` steps are legacy and are removed when the last page is migrated.
+Exposed as `--fs-11 … --fs-40` (see below). The legacy `--fs-9/10/13/15/17/18/22/36` steps are removed.
 
 **Decided (owner approved the caption step).** 250+ literals are below 12 px (10 px ×93, 11 px ×74, 9 px ×51, 8 px ×19, 8.5 px ×14): mono
 captions, nav labels (9 px in 78 px columns), heatmap labels, notes-wall meta. Snapping them all to 12 px grows them
@@ -56,6 +56,20 @@ floating control over the room: menu, navigation, camera bar, Today, focus dock,
 `--shadow-soft`, `--shadow-lift`, `--fs-40`. Colour literals were mapped by family (ivory, ink, umber, gold, rose, sage, kraft)
 with `color-mix(in srgb, var(--token) N%, transparent)` for alpha, so near-duplicates such as `rgba(244,228,205,…)` and
 `rgba(249,235,213,…)` now resolve to the same token.
+
+## Where a literal stays a literal (deliberately tokenised, not folded into the families)
+
+A first pass mapped every colour by family (ivory, ink, smoke, umber, gold, rose, sage, kraft, brass, accent, navy).
+Review of the before/after screenshots showed these must not be folded, so each has its own token:
+- shelf spine and cover micro type (`--fs-spine` 10px, `--fs-spine-fine` 6px, `--fs-cover-fine` 8px): the spine height is
+  computed in JS from the type size
+- shelf wood shades (`--shelf-shade-*`), the default shelf tint, the colour-picker swatches (`--swatch-*`)
+- the five theme palettes (`--theme-<name>-bg / -bg-deep / -ink / -shelf`, name = taupe, cream, sage, clay, ink): the landing page
+  uses them now and the room theme reads the same ones in 3.4
+- artwork colours (`--color-sienna`, `--ribbon-red(-deep)`), the info status (`--status-info`, `--status-info-soft`)
+
+Lessons recorded for the next person: classify by saturation as well as lightness (vivid data colours are never
+"ivory"); dark neutral greys are `--color-smoke-bg`, not `--color-ink-deep`; and compare screenshots, not just diffs.
 
 ## Not in scope
 
