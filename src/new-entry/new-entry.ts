@@ -404,14 +404,14 @@ export const NewEntry = (() => {
           <div class="ne-form-scroll">
             <div class="ne-form-head">
               <h2 class="ne-form-title">Add Book</h2>
-              <button class="ne-close-btn" type="button" id="neCloseBtn" aria-label="Close">×</button>
+              <button class="btn btn--icon btn--sm ne-close-btn" type="button" id="neCloseBtn" aria-label="Close">×</button>
             </div>
 
             <div class="ne-autofill-section ne-field">
               <label class="ne-label" for="neIsbn">ISBN Lookup</label>
               <div class="ne-isbn-row">
                 <input class="ne-input ne-isbn-input" id="neIsbn" type="text" placeholder="ISBN — paste to auto-fill">
-                <button class="ne-isbn-btn" type="button" id="neIsbnBtn">Lookup</button>
+                <button class="btn btn--sm ne-isbn-btn" type="button" id="neIsbnBtn">Lookup</button>
               </div>
               <div class="ne-isbn-status" id="neIsbnStatus" hidden></div>
             </div>
@@ -474,13 +474,13 @@ export const NewEntry = (() => {
               <label class="ne-label" for="neExternalLink">External Link</label>
               <div class="ne-external-row">
                 <input class="ne-input" id="neExternalLink" type="url" placeholder="Douban / Amazon URL">
-                <button class="ne-external-btn" type="button" id="neExternalOpenBtn">Open</button>
+                <button class="btn btn--sm ne-external-btn" type="button" id="neExternalOpenBtn">Open</button>
               </div>
             </div>
             <div class="ne-error" id="neError" hidden></div>
             <div class="ne-footer-actions">
-              <button class="ne-submit-btn" type="submit" id="neSubmitBtn">Add to library</button>
-              <button class="ne-cancel-btn" type="button" id="neCancelBtn">Cancel</button>
+              <button class="btn btn--primary ne-submit-btn" type="submit" id="neSubmitBtn">Add to library</button>
+              <button class="btn ne-cancel-btn" type="button" id="neCancelBtn">Cancel</button>
             </div>
           </div>
         </form>

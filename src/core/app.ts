@@ -345,7 +345,7 @@ const App = (() => {
     const resolvedActionLabel = actionLabel || sharedAction?.label || (showNewEntry ? 'Add Book' : '');
     const resolvedActionId = actionId || sharedAction?.id || '';
     const actionBtn = (resolvedActionLabel)
-      ? `<button class="nav-action-btn"${resolvedActionId ? ` id="${resolvedActionId}"` : ''}>${toServiceTitleCase(resolvedActionLabel)}</button>`
+      ? `<button class="btn btn--sm nav-action-btn"${resolvedActionId ? ` id="${resolvedActionId}"` : ''}>${toServiceTitleCase(resolvedActionLabel)}</button>`
       : '';
     const authBtn = `
       <button class="auth-avatar-btn" type="button" data-auth-trigger aria-label="Open login panel" hidden>
@@ -375,7 +375,7 @@ const App = (() => {
     const resolvedActionLabel = actionLabel || sharedAction?.label || '';
     const resolvedActionId = actionId || sharedAction?.id || '';
     const defaultRight = resolvedActionLabel
-      ? `<button class="panel-header-action"${resolvedActionId ? ` id="${resolvedActionId}"` : ''}>${toServiceTitleCase(resolvedActionLabel)}</button>`
+      ? `<button class="btn panel-header-action"${resolvedActionId ? ` id="${resolvedActionId}"` : ''}>${toServiceTitleCase(resolvedActionLabel)}</button>`
       : '';
 
     return `

@@ -1,0 +1,171 @@
+/* Buttons: the only place a button's look is defined (docs/design-tokens.md, "Buttons").
+   Pages say which LEVEL a button is, never how it looks:
+
+     <button class="btn btn--primary">Add to library</button>      the one main action of a view or dialog
+     <button class="btn">Add Book</button>                          secondary (the default)
+     <button class="btn btn--quiet">Cancel</button>                 tertiary: dismiss, back, "Hide"
+     <button class="btn btn--danger">Delete account</button>        destructive
+     <button class="btn btn--icon" aria-label="Close">…</button>    icon only, round
+     <button class="chip" aria-pressed="true">Finished</button>     a filter or a toggle (pill)
+
+   Size: 44px by default (touch target); add btn--sm (32px) inside dense places such as cards, forms and toolbars.
+   A legacy class kept on the same element (e.g. .nav-action-btn) is only a hook for JS and layout, it carries no look. */
+
+:root {
+  --btn-h: 44px;
+  --btn-h-sm: 32px;
+  --btn-radius: 12px;
+  --btn-pad-x: 18px;
+  --btn-pad-x-sm: 12px;
+}
+
+.btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--btn-h);
+  padding: 0 var(--btn-pad-x);
+  border: 1px solid var(--panel-border-strong);
+  border-radius: var(--btn-radius);
+  background: var(--glass-fill);
+  color: var(--text-primary);
+  font-family: var(--font-service-ui);
+  font-size: var(--fs-12);
+  font-weight: var(--weight-service-ui);
+  letter-spacing: var(--track-service-ui);
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--glass-fill-hover);
+  border-color: var(--glass-border-active);
+}
+
+.btn:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--glass-fill-active);
+}
+
+.btn:focus-visible,
+.chip:focus-visible {
+  outline: 2px solid var(--color-gold-warm);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'],
+.chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn--sm {
+  min-height: var(--btn-h-sm);
+  padding: 0 var(--btn-pad-x-sm);
+  font-size: var(--fs-11);
+}
+
+/* Primary: filled with the accent; one per view or dialog. */
+.btn--primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.btn--primary:hover:not(:disabled):not([aria-disabled='true']) {
+  border-color: color-mix(in srgb, var(--color-accent) 86%, var(--color-ivory-text));
+  background: color-mix(in srgb, var(--color-accent) 86%, var(--color-ivory-text));
+}
+
+.btn--primary:active:not(:disabled):not([aria-disabled='true']) {
+  background: color-mix(in srgb, var(--color-accent) 80%, var(--color-ink));
+}
+
+/* Quiet: no frame until you point at it. */
+.btn--quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn--quiet:hover:not(:disabled):not([aria-disabled='true']) {
+  border-color: transparent;
+  background: var(--glass-fill-hover);
+  color: var(--text-primary);
+}
+
+/* Danger: the frame and the text carry the warning, the fill only appears on hover. */
+.btn--danger {
+  border-color: color-mix(in srgb, var(--status-negative) 50%, transparent);
+  background: transparent;
+  color: var(--status-negative);
+}
+
+.btn--danger:hover:not(:disabled):not([aria-disabled='true']) {
+  border-color: var(--status-negative);
+  background: color-mix(in srgb, var(--status-negative) 14%, transparent);
+}
+
+/* Icon only: round, square box. */
+.btn--icon {
+  width: var(--btn-h);
+  padding: 0;
+  border-radius: 999px;
+}
+
+.btn--icon.btn--sm {
+  width: var(--btn-h-sm);
+}
+
+.btn svg {
+  width: 1.2em;
+  height: 1.2em;
+  flex: none;
+}
+
+/* Chip: a filter or a toggle. Pill, smaller than a button, selected state in the accent. */
+.chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--btn-h-sm);
+  padding: 0 14px;
+  border: 1px solid var(--panel-border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-service-ui);
+  font-size: var(--fs-11);
+  font-weight: var(--weight-service-ui);
+  letter-spacing: var(--track-service-ui);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.chip:hover:not(:disabled) {
+  background: var(--glass-fill-hover);
+  color: var(--text-primary);
+}
+
+.chip.active,
+.chip.is-active,
+.chip[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--color-gold-warm) 60%, transparent);
+  background: color-mix(in srgb, var(--color-gold-warm) 18%, transparent);
+  color: var(--text-primary);
+}
+
+@media (pointer: coarse) {
+  .chip {
+    min-height: var(--btn-h);
+  }
+}

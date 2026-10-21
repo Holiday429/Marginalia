@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Marginalia buttons</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Renders the real component: src/components/button/button.css on the real tokens (src/core/base.css). -->
+<link rel="stylesheet" href="../src/core/base.css">
+<link rel="stylesheet" href="../src/components/button/button.css">
+<style>
+  body { margin: 0; padding: 32px; background: var(--bg-tool); color: var(--text-primary); font-family: var(--font-serif); }
+  h1 { font-weight: 500; font-size: var(--fs-28); margin: 0 0 4px; }
+  p.sub { margin: 0 0 28px; color: var(--text-secondary); font-size: var(--fs-14); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; }
+  .card { padding: 20px 22px 24px; border: 1px solid var(--panel-border); border-radius: 16px; background: var(--glass-panel); }
+  .card.room { background: linear-gradient(135deg, #8a7a66, #b4a48c); border-color: transparent; }
+  .card.light { background: var(--bg-warm-surface, #f3ede2); --text-primary: #1a1714; --text-secondary: rgba(26,23,20,.7); --panel-border-strong: rgba(26,23,20,.28); --glass-fill: rgba(26,23,20,.04); --glass-fill-hover: rgba(26,23,20,.08); --glass-border-active: rgba(26,23,20,.45); color: #1a1714; }
+  h2 { margin: 0 0 14px; font-family: var(--font-mono); font-size: var(--fs-12); letter-spacing: .08em; color: var(--text-muted); font-weight: 500; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .lab { width: 100%; font-family: var(--font-mono); font-size: var(--fs-11); color: var(--text-muted); margin: 6px 0 -2px; }
+</style>
+</head>
+<body>
+<h1>Buttons</h1>
+<p class="sub">Five levels and a chip. Pages choose the level; this file decides the look.</p>
+<div class="grid">
+  <section class="card">
+    <h2>Dark page (Library, Book, Profile, Map, Graph)</h2>
+    <div class="lab">Primary · Secondary · Quiet · Danger</div>
+    <div class="row"><button class="btn btn--primary">Add to library</button><button class="btn">Add Book</button><button class="btn btn--quiet">Cancel</button><button class="btn btn--danger">Delete account</button></div>
+    <div class="lab">Small (inside cards, forms, toolbars)</div>
+    <div class="row"><button class="btn btn--primary btn--sm">Save</button><button class="btn btn--sm">Search all</button><button class="btn btn--quiet btn--sm">Hide</button><button class="btn btn--danger btn--sm">Reject</button></div>
+    <div class="lab">Disabled</div>
+    <div class="row"><button class="btn btn--primary" disabled>Generate</button><button class="btn" disabled>Import</button></div>
+    <div class="lab">Icon (round)</div>
+    <div class="row"><button class="btn btn--icon" aria-label="Close">×</button><button class="btn btn--icon btn--sm" aria-label="Zoom in">+</button><button class="btn btn--icon btn--sm" aria-label="Zoom out">−</button></div>
+    <div class="lab">Chips (filters and toggles)</div>
+    <div class="row"><button class="chip active">Finished</button><button class="chip">To Read</button><button class="chip">Reading</button><button class="chip" aria-pressed="true">Anthropology</button><button class="chip" disabled>Narrative</button></div>
+  </section>
+  <section class="card room">
+    <h2>On the room (glass over the 3D scene)</h2>
+    <div class="lab">The same buttons, over a light scene</div>
+    <div class="row"><button class="btn btn--primary">Generate</button><button class="btn">Share</button><button class="btn btn--quiet">Hide</button></div>
+    <div class="row"><button class="chip active">Taupe</button><button class="chip">Ink</button><button class="chip">Cream</button><button class="chip">Sage</button><button class="chip">Clay</button></div>
+  </section>
+  <section class="card light">
+    <h2>On a light card (cultural context, print)</h2>
+    <div class="row"><button class="btn btn--primary">Save note</button><button class="btn">Edit</button><button class="btn btn--quiet">Cancel</button><button class="btn btn--danger">Remove</button></div>
+    <div class="row"><button class="chip active">Finished</button><button class="chip">To Read</button></div>
+  </section>
+</div>
+</body>
+</html>

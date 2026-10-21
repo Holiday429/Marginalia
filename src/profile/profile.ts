@@ -388,7 +388,7 @@ function stateShellHTML(title: string, body: string, showSettingsAction: boolean
 function settingsShellHTML(): string {
   return renderProfilePageShell(`
     ${(renderUnifiedPanelHeader as any)('profile', {
-      rightHTML: '<button class="panel-header-action" id="profileBackToProfileBtn">Back to Profile</button>',
+      rightHTML: '<button class="btn panel-header-action" id="profileBackToProfileBtn">Back to Profile</button>',
     })}
     <div class="prof-shell prof-shell--settings">
       <div class="prof-shell__inner">
@@ -991,11 +991,11 @@ function profileHeaderHTML(showSettingsAction: boolean, profile: PublicProfileDa
   const shareUrl = buildProfileShareUrl(profile);
   const actions: string[] = [];
   if (showSettingsAction && isOwner) {
-    actions.push('<button class="panel-header-action" id="profileHeaderSettingsBtn">Edit Profile</button>');
+    actions.push('<button class="btn panel-header-action" id="profileHeaderSettingsBtn">Edit Profile</button>');
   }
   if (shareUrl) {
     actions.push(`
-      <button class="panel-header-action prof-header-action--icon" id="profileHeaderShareBtn" type="button" data-share-url="${escapeHtml(shareUrl)}" aria-label="Share profile">
+      <button class="btn panel-header-action prof-header-action--icon" id="profileHeaderShareBtn" type="button" data-share-url="${escapeHtml(shareUrl)}" aria-label="Share profile">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M11 5V2.5H5V5"></path>
           <path d="M8 10V2.5"></path>

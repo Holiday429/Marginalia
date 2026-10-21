@@ -200,7 +200,6 @@
 .book-section { display: none; }
 .book-section.is-active { display: block; }
 
-
 /* ── Animation primitives ──────────────────────────────────────────────── */
 @keyframes book-fade-in {
   from { opacity: 0; }
@@ -211,7 +210,6 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 #panel-book { animation: book-fade-in 0.7s ease 0.05s both; }
-
 
 /* ── Masthead ──────────────────────────────────────────────────────────── */
 .book-masthead {
@@ -253,7 +251,6 @@
 .book-breadcrumb a:hover { color: var(--ink); }
 .book-breadcrumb .sep    { opacity: 0.4; }
 .book-breadcrumb .current{ color: var(--ink); }
-
 
 /* ── §1 Overview ───────────────────────────────────────────────────────── */
 .book-overview {
@@ -881,7 +878,6 @@
   padding-left: 0;
   padding-right: 0;
 }
-
 
 /* ── §2 Cultural context (now an inline section) ───────────────────────── */
 .cultural-bg {
@@ -1520,7 +1516,6 @@
   margin-top: 16px;
 }
 
-
 /* ── §3 Highlights ─────────────────────────────────────────────────────── */
 .highlights-section {
   padding: 0 0 var(--space-14);
@@ -1891,7 +1886,6 @@
   opacity: 0.88;
 }
 
-
 /* ── §6 Actions ────────────────────────────────────────────────────────── */
 .actions-section {
   padding: 0 0 var(--space-14);
@@ -1975,7 +1969,6 @@
   background: color-mix(in srgb, var(--color-ink-deep) 4%, transparent);
 }
 
-
 /* ── §7 Reading context ────────────────────────────────────────────────── */
 .context-section {
   padding: var(--section-y) var(--gutter) var(--space-20);
@@ -2027,7 +2020,6 @@
   padding: 6px var(--space-3);
   color: var(--muted);
 }
-
 
 /* ── §8 Notes ──────────────────────────────────────────────────────────── */
 .notes-section {
@@ -2354,7 +2346,6 @@
 @media (max-width: 900px) {
   .nt-templates-grid { grid-template-columns: repeat(2, 1fr); }
 }
-
 
 @media (max-width: 900px) {
   #panel-book .page {

@@ -295,8 +295,8 @@ function renderShelfSectionInternal() {
     shelfHost.innerHTML = `
       <div class="shelf-empty shelf-empty--first">
         <p>Your shelf is empty. Add the first book you are reading or want to read.</p>
-        <button class="shelf-empty__add" id="shelfEmptyAdd" type="button">Add a book</button>
-        <button class="shelf-empty__add" id="shelfEmptyImport" type="button">Import from Goodreads, Kindle and more</button>
+        <button class="btn shelf-empty__add" id="shelfEmptyAdd" type="button">Add a book</button>
+        <button class="btn shelf-empty__add" id="shelfEmptyImport" type="button">Import from Goodreads, Kindle and more</button>
       </div>`;
     shelfHost.querySelector('#shelfEmptyImport')?.addEventListener('click', () => {
       import('../api/import/import-ui.ts').then(({ openImportDialog }) => openImportDialog());

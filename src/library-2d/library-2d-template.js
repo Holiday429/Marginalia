@@ -4,16 +4,16 @@ import { renderLibraryModeSwitch } from '../components/library-mode-switch/libra
 function renderLeftRail() {
   return `
     <aside class="library-rail" aria-label="Library Tools">
-      <button type="button" class="library-rail-btn" data-library-rail="new-shelf">
+      <button type="button" class="btn library-rail-btn" data-library-rail="new-shelf">
         <span class="library-rail-icon">+</span>
         <span>New Shelf</span>
       </button>
-      <button type="button" class="library-rail-btn" data-library-rail="add-books">
+      <button type="button" class="btn library-rail-btn" data-library-rail="add-books">
         <span class="library-rail-icon">+</span>
         <span>Add Books</span>
       </button>
       <div class="library-rail-group">
-        <button type="button" class="library-rail-btn" data-library-group-trigger="organize">
+        <button type="button" class="btn library-rail-btn" data-library-group-trigger="organize">
           <span class="library-rail-icon">#</span>
           <span>Organize</span>
         </button>
@@ -25,11 +25,11 @@ function renderLeftRail() {
         </div>
       </div>
       <div class="library-rail-edit" id="libraryRailEdit" hidden>
-        <button type="button" class="library-rail-btn" data-library-rail="rename">
+        <button type="button" class="btn library-rail-btn" data-library-rail="rename">
           <span class="library-rail-icon">T</span>
           <span>Rename</span>
         </button>
-        <button type="button" class="library-rail-btn" data-library-rail="delete">
+        <button type="button" class="btn library-rail-btn" data-library-rail="delete">
           <span class="library-rail-icon">x</span>
           <span>Delete</span>
         </button>
@@ -48,7 +48,7 @@ export function renderLibraryShell() {
             <svg viewBox="0 0 16 16" class="room-svg-icon"><use href="#icon-nav-search"></use></svg>
           </span>
           <input id="librarySearchInput" type="search" placeholder="Locate a book on your shelf" />
-          <button type="submit" class="library-search-submit">Locate</button>
+          <button type="submit" class="btn btn--sm library-search-submit">Locate</button>
           <p class="library-search-feedback" id="librarySearchFeedback" aria-live="polite"></p>
         </form>
       </div>
