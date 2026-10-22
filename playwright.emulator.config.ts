@@ -25,7 +25,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     channel: process.env.CI ? undefined : 'chrome', // CI installs Playwright's Chromium
-    launchOptions: { args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] },
+    launchOptions: { args: process.env.CI ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] : ['--use-gl=angle', '--enable-unsafe-swiftshader'] }, // CI: see playwright.config.ts
   },
   projects: specs.map((file) => ({
     name: file.replace(/\.spec\.ts$/, ''),

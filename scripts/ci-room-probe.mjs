@@ -69,6 +69,8 @@ async function probe(name, args) {
 
 for (const [name, args] of Object.entries(VARIANTS)) {
   if (only.length && !only.includes(name)) continue;
-  await Promise.race([probe(name, args), new Promise((r) => setTimeout(() => { out(`${name.padEnd(26)} TIMEOUT (150s)`); r(); }, 150_000))]);
+  let timer;
+  await Promise.race([probe(name, args), new Promise((r) => { timer = setTimeout(() => { out(`${name.padEnd(26)} TIMEOUT (150s)`); r(); }, 150_000); })]);
+  clearTimeout(timer);
 }
 process.exit(0);
